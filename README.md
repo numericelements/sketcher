@@ -1,7 +1,6 @@
 # How to use
 Just clone it and get going.
 
-```
 # Clone the project
 $ git clone https://github.com/numericelements/sketcher.git <your-project-name>
 
