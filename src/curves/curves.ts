@@ -1,13 +1,14 @@
 import { nanoid } from "nanoid";
 
 import { setCurvesType } from "../hooks/useHistory";
-import { ComplexMassPoint, averagePhi, cm2c, cmX, cmadd, cmult } from "./complexGrassmannSpace";
+import { ComplexMassPoint, averagePhi, cdiv, cm2c, cmX, cmadd, cmult, csub } from "./complexGrassmannSpace";
 import { arcPoints, arrayRange, complexMassPointsFromCircleArc, q0FromPhi } from "./circleArc";
 
 import { BSplineR1toR2 } from "../bsplines/R1toR2/BSplineR1toR2";
 import { Vector2d } from "../mathVector/Vector2d";
 import { automaticFitting, removeASingleKnot } from "../bsplines/knotPlacement/automaticFitting";
 import { BSplineR1toC2 } from "../bsplines/R1toC2/BSplineR1toC2";
+import { Complex2d } from "../mathVector/Complex2d";
 
 export enum InitialCurveEnumType {
     Freehand,
@@ -302,8 +303,28 @@ export function pointsOnCurve(curve: NonRational, numberOfPoints: number) {
 }
 
 export function pointsOnComplexCurve(curve: ComplexCurve, numberOfPoints: number) {
-    const bspline: BSplineR1toC2 = new BSplineR1toC2()
-    return {x: 0, y: 0}
+    let z: Coordinates[] = []
+    let q: Coordinates[] = []
+    for(let i = 0; i < curve.points.length; i += 1) {
+        if (i % 2 === 0) {
+            z.push(curve.points[i])
+        } else {
+            q.push(curve.points[i])
+        }
+    }
+
+
+    let cps: Complex2d[] = [new Complex2d(z[0], {x: 1, y: 0})]
+    for (let i = 1; i < z.length; i += 1) {
+        const w = cmult(cps[i - 1].c1, cdiv( csub(q[i - 1], z[i - 1]), csub(z[i], q[i - 1]) ) )
+        cps.push(new Complex2d(cmult(z[i], w), w))
+    }
+    const bspline = new BSplineR1toC2(cps, curve.knots)
+
+    return [...Array(numberOfPoints).keys()].map((u) => {
+        const p = bspline.evaluate(u / (numberOfPoints - 1)).toComplexNumber()
+        return {x: p.x, y: p.y}
+    })  
 
 }
 

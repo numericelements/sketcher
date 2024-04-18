@@ -79,6 +79,7 @@ function Canvas(props: CanvasProps) {
                     context.arc(xc, yc, r, startAngle, endAngle, counterclockwise)
                     context.stroke()
                 } else if (curve.points.length >= 3) {
+                    /*
                     const points = arcPointsFromMultiplePoints(curve.points)
                     context.strokeStyle = lineColor2
                     context.lineJoin = 'round'
@@ -90,7 +91,14 @@ function Canvas(props: CanvasProps) {
                     const {xc, yc, r, startAngle, endAngle, counterclockwise} = circle
                     context.arc(xc, yc, r, startAngle, endAngle, counterclockwise)
                     context.stroke()
-                    const points2 = pointsOnComplexCurve(curve, 1000)
+                    */
+                    context.beginPath()
+                    const points = pointsOnComplexCurve(curve, 1000)
+                    context.moveTo(points[0].x, points[0].y)
+                    points.forEach( (point) =>
+                        context.lineTo(point.x, point.y)
+                    )
+                    context.stroke()
                 }
                 break
         }
@@ -557,6 +565,8 @@ function Canvas(props: CanvasProps) {
         if (!coordinates) return
         helperPressDown(coordinates)
     }, [getMouseCoordinates, helperPressDown])
+
+
 
     const handleTouchStart = useCallback((event: TouchEvent) => {
         if (event.touches.length === 1) {

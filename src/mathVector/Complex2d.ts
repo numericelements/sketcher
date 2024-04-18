@@ -26,6 +26,10 @@ export class Complex2d {
     subtract(v: Complex2d) {
         return new Complex2d(csub(this.c0, v.c0), csub(this.c1, v.c1))
     }
+    
+    toComplexNumber() {
+        return cdiv(this.c0, this.c1)
+    }
 
     clone() {
         return new Complex2d(this.c0, this.c1)
