@@ -370,7 +370,6 @@ function KnotVectorEditor(props: EditorProps) {
                 const scaleX = reductionFactor * zoom
                 const offsetLeft = 0.05 + reductionFactor * scroll
                 const degree = computeDegree(curve)
-                console.log(degree)
                 const knots = positionOfKnotsOnSlider(curve.knots, degree, scaleX, offsetLeft)
                 const knotIndex = getKnotAtPosition(point.x, knots)
                 
