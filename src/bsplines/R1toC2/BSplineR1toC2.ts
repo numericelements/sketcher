@@ -1,5 +1,7 @@
 import { Complex2d } from "../../mathVector/Complex2d";
+import { Vector2d } from "../../mathVector/Vector2d";
 import { basisFunctions, findSpan } from "../Piegl_Tiller_NURBS_Book";
+import { BSplineR1toR2 } from "../R1toR2/BSplineR1toR2";
 
 export class BSplineR1toC2 {
     protected readonly _controlPoints: readonly Complex2d[]
@@ -114,6 +116,16 @@ export class BSplineR1toC2 {
         return new BSplineR1toC2(controlPoints, knots)
     }
 
+    elevateDegree() {
+        const cps0 : Vector2d[] = this._controlPoints.map(value => new Vector2d(value.c0.x, value.c0.y))
+        const cps1 : Vector2d[] = this._controlPoints.map(value => new Vector2d(value.c1.x, value.c1.y))
+        const bspline0 = new BSplineR1toR2(cps0, this._knots)
+        const bspline1 = new BSplineR1toR2(cps1, this._knots)
+        const newbspline0 = bspline0.elevateDegree()
+        const newbspline1 = bspline1.elevateDegree()
+        const controlPoints = newbspline0.controlPoints.map((value, index) => new Complex2d(value, newbspline1.controlPoints[index]))
+        return new BSplineR1toC2(controlPoints, newbspline0.knots)
+    }
 }
 
 

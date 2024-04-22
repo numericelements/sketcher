@@ -370,8 +370,10 @@ function KnotVectorEditor(props: EditorProps) {
                 const scaleX = reductionFactor * zoom
                 const offsetLeft = 0.05 + reductionFactor * scroll
                 const degree = computeDegree(curve)
+                console.log(degree)
                 const knots = positionOfKnotsOnSlider(curve.knots, degree, scaleX, offsetLeft)
                 const knotIndex = getKnotAtPosition(point.x, knots)
+                
                 //setSelectedKnot(knotIndex)
                 if (knotIndex !== null) { 
                     actionManager.renderAction("selectKnot", knotIndex)
@@ -403,6 +405,7 @@ function KnotVectorEditor(props: EditorProps) {
 
     const helperMove = useCallback((point: {clientX: number, clientY: number}) => {
 
+
         const x = viewportCoordsToSceneCoords(point).x
 
         
@@ -431,6 +434,8 @@ function KnotVectorEditor(props: EditorProps) {
             setScroll(newScroll)
         }
 
+        
+
         if (editorState === "moving a knot") {
 
             if (initialMouseXPosition === null) return
@@ -446,8 +451,9 @@ function KnotVectorEditor(props: EditorProps) {
                 }
             }
             
-
+            
             if (!curve || sketcherState.selectedKnot === null) return
+            
             const offsetLeft = 0.05 + reductionFactor * scroll
             let newPosition = (x - offsetLeft ) / zoom / reductionFactor
             if (newPosition < 0) newPosition = 0

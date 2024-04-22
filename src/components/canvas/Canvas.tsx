@@ -217,6 +217,20 @@ function Canvas(props: CanvasProps) {
                     }
                     context.fill()
                 })
+                //draw control polygon
+                for (let i = 0; i < curve.points.length - 2; i += 2) {
+                    const points = arcPointsFromMultiplePoints([curve.points[i], curve.points[i + 1], curve.points[i + 2]])
+                    context.strokeStyle = fillStyle4
+                    context.lineJoin = 'round'
+                    context.lineWidth = 1.5 / sketcherState.zoom
+                    context.beginPath()
+                    context.moveTo(points[0].x, points[0].y)
+                    const circle = circleArcFromThreePoints(points[0], points[Math.floor(points.length / 2)], points[points.length - 1])
+                    if (! circle) return
+                    const {xc, yc, r, startAngle, endAngle, counterclockwise} = circle
+                    context.arc(xc, yc, r, startAngle, endAngle, counterclockwise)
+                    context.stroke()
+                }
                 break
             }
         }
@@ -372,13 +386,21 @@ function Canvas(props: CanvasProps) {
                 return betweenAnyPoint ? "inside" : null
                 }
             case BSplineEnumType.Complex: {
-                const {points: threePoints} = curve
-                return onCircle(threePoints, point, 10)
+                //const {points: threePoints} = curve
+                //return onCircle(threePoints, point, 10)
+                const points = pointsOnComplexCurve(curve, 100)
+                const betweenAnyPoint = points.some((curvePoint, index) => {
+                    const nextCurvePoint = points[index + 1]
+                    if (!nextCurvePoint) return false
+                    return onLine([curvePoint, nextCurvePoint], point, 10) != null
+                })
+                return betweenAnyPoint ? "inside" : null
+
                 }
             default:
                 throw new Error(`Type not recognised: ${type}`)
         }
-    }, [onCircle, onLine])
+    }, [onLine])
 
 
     const getCurveAtPosition = useCallback((coordinates: Coordinates, elements: BSplineType[]) => {

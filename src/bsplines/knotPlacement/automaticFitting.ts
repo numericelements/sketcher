@@ -8,6 +8,7 @@ import { zeroVector } from "../../linearAlgebra/MathVectorBasicOperations";
 import { SymmetricMatrix } from "../../linearAlgebra/SymmetricMatrix";
 import { Vector2d } from "../../mathVector/Vector2d";
 import { basisFunctions, findSpan } from "../Piegl_Tiller_NURBS_Book";
+import { BSplineR1toC2 } from "../R1toC2/BSplineR1toC2";
 import { BSplineR1toR1 } from "../R1toR1/BSplineR1toR1";
 import { BSplineR1toR2 } from "../R1toR2/BSplineR1toR2";
 
@@ -60,6 +61,8 @@ export function removeASingleKnot(initialSpline: BSplineR1toR2, knotIndex: numbe
     const cp = leastSquareApproximation2(initialSpline, newKnots)
     return new BSplineR1toR2(cp, newKnots)
 }
+
+
 
 
 

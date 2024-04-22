@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 
 import { setCurvesType } from "../hooks/useHistory";
-import { ComplexMassPoint, averagePhi, cdiv, cm2c, cmX, cmadd, cmult, csub } from "./complexGrassmannSpace";
+import { ComplexMassPoint, averagePhi, cadd, cdiv, cm2c, cmX, cmadd, cmult, csub } from "./complexGrassmannSpace";
 import { arcPoints, arrayRange, complexMassPointsFromCircleArc, q0FromPhi } from "./circleArc";
 
 import { BSplineR1toR2 } from "../bsplines/R1toR2/BSplineR1toR2";
@@ -108,7 +108,15 @@ function createCurve(type: InitialCurveEnumType, x0: number, y0: number): BSplin
 }
 
 export function computeDegree(curve: BSplineType) {
-    return curve.knots.length - curve.points.length - 1
+    switch (curve.type) {
+        case BSplineEnumType.NonRational :
+        case BSplineEnumType.Rational :
+            return curve.knots.length - curve.points.length - 1
+        case BSplineEnumType.Complex : 
+        case BSplineEnumType.PythagoreanHodograph:
+            return curve.knots.length - curve.points.length + (curve.points.length - 1) / 2 - 1
+    }
+    
 }
 
 export function moveControlPoint(curves: BSplineType[], setCurves: setCurvesType, id: string,  point: Coordinates, index: number) {
@@ -303,23 +311,11 @@ export function pointsOnCurve(curve: NonRational, numberOfPoints: number) {
 }
 
 export function pointsOnComplexCurve(curve: ComplexCurve, numberOfPoints: number) {
-    let z: Coordinates[] = []
-    let q: Coordinates[] = []
-    for(let i = 0; i < curve.points.length; i += 1) {
-        if (i % 2 === 0) {
-            z.push(curve.points[i])
-        } else {
-            q.push(curve.points[i])
-        }
-    }
 
 
-    let cps: Complex2d[] = [new Complex2d(z[0], {x: 1, y: 0})]
-    for (let i = 1; i < z.length; i += 1) {
-        const w = cmult(cps[i - 1].c1, cdiv( csub(q[i - 1], z[i - 1]), csub(z[i], q[i - 1]) ) )
-        cps.push(new Complex2d(cmult(z[i], w), w))
-    }
-    const bspline = new BSplineR1toC2(cps, curve.knots)
+
+
+    const bspline = new BSplineR1toC2(CoordinatesToComplex2d(curve.points), curve.knots)
 
     return [...Array(numberOfPoints).keys()].map((u) => {
         const p = bspline.evaluate(u / (numberOfPoints - 1)).toComplexNumber()
@@ -338,8 +334,43 @@ export function CoordinatesToVector2d(list: Coordinates[]) {
     return list.map(point => new Vector2d(point.x, point.y))
 }
 
+export function CoordinatesToComplex2d(list: Coordinates[]) {
+
+    let z: Coordinates[] = []
+    let q: Coordinates[] = []
+    for(let i = 0; i < list.length; i += 1) {
+        if (i % 2 === 0) {
+            z.push(list[i])
+        } else {
+            q.push(list[i])
+        }
+    }
+
+    let cps: Complex2d[] = [new Complex2d(z[0], {x: 1, y: 0})]
+    for (let i = 1; i < z.length; i += 1) {
+        const w = cmult(cps[i - 1].c1, cdiv( csub(q[i - 1], z[i - 1]), csub(z[i], q[i - 1]) ) )
+        cps.push(new Complex2d(cmult(z[i], w), w))
+    }
+    return cps
+}
+
+
 function Vector2dToCoordinates(list: Vector2d[]) {
     return list.map(point => {return {x: point.x, y: point.y}} )
+}
+
+function Complex2dToCoordinates(list: Complex2d[]) {
+    const z = list.map(point => cdiv(point.c0, point.c1))
+    let q: Coordinates[] = []
+    for (let i = 1; i < z.length; i += 1) {
+        q.push(cdiv (cadd(list[i - 1].c0, list[i].c0), cadd(list[i - 1].c1, list[i].c1)) )
+    }
+    let result: Coordinates[] = [z[0]]
+    for (let i = 0; i < q.length; i += 1) {
+        result.push(q[i])
+        result.push(z[i + 1])
+    }
+    return result
 }
 
 export function insertKnot(u: number, curves: BSplineType[], setCurves: setCurvesType, id: string) {
@@ -349,11 +380,17 @@ export function insertKnot(u: number, curves: BSplineType[], setCurves: setCurve
     let curve = curvesCopy[index]
 
     switch (curve.type) {
-        case BSplineEnumType.NonRational: 
-        const bspline =  new BSplineR1toR2(CoordinatesToVector2d(curve.points), curve.knots)
-        const newBSpline = bspline.insertKnot(u)
-        curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Vector2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+        case BSplineEnumType.NonRational: {
+            const bspline =  new BSplineR1toR2(CoordinatesToVector2d(curve.points), curve.knots)
+            const newBSpline = bspline.insertKnot(u)
+            curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Vector2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+        }
         break
+        case BSplineEnumType.Complex: {
+            const bspline =  new BSplineR1toC2(CoordinatesToComplex2d(curve.points), curve.knots)
+            const newBSpline = bspline.insertKnot(u)
+            curvesCopy[index] = {id, type: BSplineEnumType.Complex,  points: Complex2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+        }
     }
     
     //curvesCopy[index] = curve
@@ -367,12 +404,19 @@ export function elevateDegree(curves: BSplineType[], setCurves: setCurvesType, i
     let curve = curvesCopy[index]
 
     switch (curve.type) {
-        case BSplineEnumType.NonRational: 
-        const bspline =  new BSplineR1toR2(CoordinatesToVector2d(curve.points), curve.knots)
-        const newBSpline = bspline.elevateDegree()
-        curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Vector2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+        case BSplineEnumType.NonRational: {
+            const bspline =  new BSplineR1toR2(CoordinatesToVector2d(curve.points), curve.knots)
+            const newBSpline = bspline.elevateDegree()
+            curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Vector2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+        }
         break
-    }
+        case BSplineEnumType.Complex: {
+            const bspline =  new BSplineR1toC2(CoordinatesToComplex2d(curve.points), curve.knots)
+            const newBSpline = bspline.elevateDegree()
+            //console.log(newBSpline)
+            curvesCopy[index] = {id, type: BSplineEnumType.Complex,  points: Complex2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+            }
+        }
     
     //curvesCopy[index] = curve
     setCurves(curvesCopy, false)
@@ -401,11 +445,20 @@ export function removeAKnot(curves: BSplineType[], setCurves: setCurvesType, id:
     let curve = curvesCopy[index]
 
     switch (curve.type) {
-        case BSplineEnumType.NonRational: 
-        const bspline =  new BSplineR1toR2(CoordinatesToVector2d(curve.points), curve.knots)
-        const newBSpline = removeASingleKnot(bspline, knotIndex + bspline.degree + 1)
-        curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Vector2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+        case BSplineEnumType.NonRational:
+        {
+            const bspline =  new BSplineR1toR2(CoordinatesToVector2d(curve.points), curve.knots)
+            const newBSpline = removeASingleKnot(bspline, knotIndex + bspline.degree + 1)
+            curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Vector2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+        }
         break
+        case BSplineEnumType.Complex:
+            {
+                const bspline =  new BSplineR1toC2(CoordinatesToComplex2d(curve.points), curve.knots)
+                //const newBSpline = removeASingleKnot(bspline, knotIndex + bspline.degree + 1)
+                //curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Complex2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+            }
+            break
     }
 
     setCurves(curvesCopy, false)
