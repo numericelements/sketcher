@@ -92,6 +92,9 @@ function Canvas(props: CanvasProps) {
                     context.arc(xc, yc, r, startAngle, endAngle, counterclockwise)
                     context.stroke()
                     */
+                    context.strokeStyle = lineColor
+                    context.lineJoin = 'round'
+                    context.lineWidth = 1.5 / sketcherState.zoom
                     context.beginPath()
                     const points = pointsOnComplexCurve(curve, 1000)
                     context.moveTo(points[0].x, points[0].y)
