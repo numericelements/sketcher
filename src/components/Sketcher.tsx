@@ -16,6 +16,7 @@ import Canvas from './canvas/Canvas';
 import { LanguageList } from './LanguageList';
 import KnotVectorEditor from './KnotVectorEditor';
 import { removeASingleKnot } from '../bsplines/knotPlacement/automaticFitting';
+import { downloadRectangleSvg, readSingleFile, testSave } from '../renderer/RenderSceneToSvg';
 
 const initialElements: BSplineType[] = []
 
@@ -70,6 +71,7 @@ function Sketcher() {
     }
   
     const handleOpenFile = () => {
+      readSingleFile()
       setOpenMainMenu(false)
     }
   
@@ -78,6 +80,8 @@ function Sketcher() {
     }
   
     const handleExport = () => {
+      downloadRectangleSvg()
+      //testSave()
       setOpenMainMenu(false)
     }
   
@@ -212,7 +216,8 @@ function Sketcher() {
             handleZoomOut()
             break
     }
-}, [handleActivateMultipleSelection, handleCreateCircleArc, handleCreateFreeDraw, handleCreateLine, handleDelete, handleZoomIn, handleZoomOut])
+  }, [handleActivateMultipleSelection, handleCreateCircleArc, handleCreateFreeDraw, handleCreateLine, handleDelete, handleZoomIn, handleZoomOut])
+
 
 
 useEffect(() => {
@@ -220,7 +225,8 @@ useEffect(() => {
     return () => {
         window.removeEventListener('keydown', handleKeyPress)
     }
-}, [handleKeyPress])
+ }, [handleKeyPress])
+
 
 
 
@@ -237,7 +243,6 @@ useEffect(() => {
                 {openMainMenu ? (
                   <div  >
                   <ul className={"menu-" + theme}>
-                    {/* 
                     <li className="menu-item">
                       <button onClick={handleOpenFile}>
                         <div className={"dropdown-menu-item-icon-" + theme}>{LoadIcon}</div> &nbsp; <div className={"dropdown-menu-item-text-" + theme}>{t("buttons.load")}</div></button>
@@ -248,7 +253,7 @@ useEffect(() => {
                     <li className="menu-item">
                       <button onClick={handleExport}><div className={"dropdown-menu-item-icon-" + theme}>{ExportImageIcon}</div> &nbsp; <div className={"dropdown-menu-item-text-" + theme}>{t("buttons.exportToSvg")}</div></button>
                     </li>
-                */}
+                
                     <li className="menu-item">
                       <button onClick={handleResetCanvas}><div className={"dropdown-menu-item-icon-" + theme}>{TrashIcon}</div> &nbsp; <div className={"dropdown-menu-item-text-" + theme}>{t("buttons.clearReset")}</div></button>
                     </li>

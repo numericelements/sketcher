@@ -31,7 +31,7 @@ type ActionType = "none" | "drawing" | "moving a single curve" | "moving multipl
 
 type mouseMoveThresholdType = "not exceeded" | "just exceeded" | "exceeded"
 
-function Canvas(props: CanvasProps) {
+function Canvas(props: Readonly<CanvasProps>) {
 
     const {sketcherState, actionManager, sketchElements, setSketchElements, windowWidth = window.innerWidth, windowHeight = window.innerHeight} = props
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -507,16 +507,21 @@ function Canvas(props: CanvasProps) {
         else return null
     }
 
+    const callBackMoveControlPoint = useCallback( (curves: BSplineType[], setCurves: setCurvesType, id: string,  point: Coordinates, index: number) => {
+        moveControlPoint(curves, setCurves, id, point, index)
+    }, [])
+
     const moveSelectedControlPoint = useCallback( 
         (newMousePosition: Coordinates) => {
             if (sketcherState.controlPolygonDisplayed && sketcherState.controlPolygonDisplayed.selectedControlPoint) {
                 const id = sketcherState.controlPolygonDisplayed.selectedControlPoint.curveID
                 const scp = sketcherState.controlPolygonDisplayed.selectedControlPoint.controlPointIndex
                 if (scp !== null) {
-                    moveControlPoint(sketchElements, setSketchElements, id, newMousePosition, scp)
+                    //moveControlPoint(sketchElements, setSketchElements, id, newMousePosition, scp)
+                    callBackMoveControlPoint(sketchElements, setSketchElements, id, newMousePosition, scp)
                 }
             }
-        }, [setSketchElements, sketchElements, sketcherState.controlPolygonDisplayed]
+        }, [callBackMoveControlPoint, setSketchElements, sketchElements, sketcherState.controlPolygonDisplayed]
     )
 
     const addAnEntryToTheHistory = useCallback(() => {
@@ -585,14 +590,13 @@ function Canvas(props: CanvasProps) {
         }
     }, [sketcherState.activeTool, sketcherState.controlPolygonDisplayed, sketchElements, getCurveAtPosition, actionManager, getControlPointAtPosition])
 
+
     const handleMouseDown = useCallback((event: MouseEvent) => {
         const coordinates = getMouseCoordinates(event)
         if (!coordinates) return
         helperPressDown(coordinates)
     }, [getMouseCoordinates, helperPressDown])
-
-
-
+    
     const handleTouchStart = useCallback((event: TouchEvent) => {
         if (event.touches.length === 1) {
             const coordinates = getTouchCoordinates(event)
@@ -745,14 +749,16 @@ function Canvas(props: CanvasProps) {
                 break
             }
         }
-        
     }, [initialMousePosition, mouseMoveThreshold, sketcherState.activeTool, sketcherState.zoom, curveToMoveID, moveSelectedCurve, sketchElements, actionManager, action, drawLine, setSketchElements, moveSelectedControlPoint, addAnEntryToTheHistory, moveSelectedCurves])
     
+
     const handleMouseMove = useCallback((event: MouseEvent) => {
         const newMousePosition = getMouseCoordinates(event)
         if (!pressDown || !newMousePosition) return
         helperMove(newMousePosition)
     },[getMouseCoordinates, pressDown, helperMove])
+
+
 
     const handleTouchMove = useCallback((event: TouchEvent) => {    
         if (event.touches.length === 1) {
@@ -863,6 +869,9 @@ function Canvas(props: CanvasProps) {
         }
     }, [actionManager])
 
+    //https://overreacted.io/a-complete-guide-to-useeffect/
+    //https://stackoverflow.com/questions/55565444/how-to-register-event-with-useeffect-hooks
+    //https://blog.bitsrc.io/a-look-inside-the-useevent-polyfill-from-the-new-react-docs-d1c4739e8072
     useEffect(() => {
         if (!canvasRef.current) {
             return
@@ -888,7 +897,10 @@ function Canvas(props: CanvasProps) {
             canvas.removeEventListener('wheel', handleWheel)
             window.removeEventListener('keydown', handleKeyPress)
         }
+        
     }, [handleKeyPress, handleMouseDown, handleMouseLeave, handleMouseMove, handleMouseUp, handleTouchEnd, handleTouchMove, handleTouchStart, handleWheel])
+   
+
 
     return <canvas ref={canvasRef} width = {windowWidth} height = {windowHeight} style = {{backgroundColor: (sketcherState.theme === "dark") ? "black" : "white"}}/>
 }
@@ -898,12 +910,4 @@ function Canvas(props: CanvasProps) {
 
 export default Canvas
 
-
-
-
-
-
-function movePoint(p: Coordinates, displacement: Vector2D): any {
-    throw new Error('Function not implemented.')
-}
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { FunctionComponent, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react"
 import { SketcherState } from "../SketcherState"
 import { ActionManager } from "../actions/manager"
 import { BSplineEnumType, BSplineType, Coordinates, computeDegree, moveKnot } from "../curves/curves"
@@ -23,8 +23,41 @@ interface EditorProps {
     offsetY: number
 }
 
+enum CountActionKind {
+    INCREASE = 'INCREASE',
+    DECREASE = 'DECREASE'
+}
 
-function KnotVectorEditor(props: EditorProps) {
+interface CountAction {
+    type: CountActionKind
+    payload: number
+}
+
+interface CountState {
+    count: number
+}
+
+function counterReducer(state: CountState, action: CountAction) {
+    const { type, payload} = action
+    switch (type) {
+        case CountActionKind.INCREASE:
+            return {
+                ...state,
+                count: state.count + payload,
+            }
+        case CountActionKind.DECREASE:
+            return {
+                ...state,
+                count: state.count - payload,
+            }
+        default:
+            return state
+    }
+}
+
+
+const KnotVectorEditor: FunctionComponent<EditorProps> = (props) => {
+    const [state, dispatch] = useReducer(counterReducer, {count: 0})
     const {sketcherState, actionManager, sketchElements, setSketchElements, windowWidth, windowHeight, offsetX, offsetY } = props
     const [editorState, setEditorState] = useState<KnotEditorStateType>("idle")
     const [initialMouseXPosition, setInitialMouseXPosition] = useState<number | null>(null)
@@ -32,6 +65,8 @@ function KnotVectorEditor(props: EditorProps) {
     const [action, setAction] = useState<ActionType>("none")
     const [scroll, setScroll] = useState(0)
     //const [selectedKnot, setSelectedKnot] = useState<number | null>(null)
+
+
     const [curve, setCurve] = useState<BSplineType | null>(null)
     const [mouseMoveThreshold, setMouseMoveThreshold] = useState<mouseMoveThresholdType>("not exceeded")
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -42,18 +77,13 @@ function KnotVectorEditor(props: EditorProps) {
     const clickWithoutMovingResolution = 0.0005
 
 
-    
-    useEffect(() => {
+    useLayoutEffect(() => {
         const cpd = sketcherState.controlPolygonDisplayed
         if (cpd) {
             const curves = sketchElements.filter((element) => cpd.curveIDs.includes(element.id))
             setCurve(() => curves[0])
         } 
     }, [sketchElements, sketcherState.controlPolygonDisplayed])
-    
-
-  
-
 
     const drawBasisFunctions = useCallback((context: CanvasRenderingContext2D, curve: BSplineType, ratio: number = 1) => {
         //let lineColor = sketcherState.theme === "dark" ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)"
@@ -303,7 +333,7 @@ function KnotVectorEditor(props: EditorProps) {
         context.stroke()
         context.restore()
     }
-    , [curve, drawBasisFunctions, drawKnotSlider, drawKnotTicks, drawZoomSlider, scroll, sketchElements, sketcherState.controlPolygonDisplayed, sketcherState.theme, windowHeight, windowWidth, zoom])
+    , [curve, drawBasisFunctions, drawKnotSlider, drawKnotTicks, drawZoomSlider, scroll, sketcherState.controlPolygonDisplayed, sketcherState.theme, windowHeight, windowWidth, zoom])
 
 
     const viewportCoordsToSceneCoords = useCallback(({ clientX, clientY }: { clientX: number; clientY: number }) => {
@@ -403,17 +433,10 @@ function KnotVectorEditor(props: EditorProps) {
     }, [helperPressDown])
 
     const helperMove = useCallback((point: {clientX: number, clientY: number}) => {
-
-
         const x = viewportCoordsToSceneCoords(point).x
-
-        
         if (editorState !== "display position on abscissa") {
             actionManager.renderAction("displayParametricPositionOnCurve", null)
         }
-    
-        
-
         if (action === "zooming") {
             let newZoom = zoomFromSliderPosition(x)
             if (newZoom < 1) newZoom = 1
@@ -424,7 +447,6 @@ function KnotVectorEditor(props: EditorProps) {
             setZoom(newZoom)
             setScroll(newScroll)
         }
-
         if (action === "scrolling" && initialMouseXPosition) {
             let newScroll = scroll + (x - initialMouseXPosition) 
             if (newScroll > 0 ) newScroll = 0
@@ -432,13 +454,8 @@ function KnotVectorEditor(props: EditorProps) {
             setInitialMouseXPosition(x)
             setScroll(newScroll)
         }
-
-        
-
         if (editorState === "moving a knot") {
-
             if (initialMouseXPosition === null) return
-            
             if (mouseMoveThreshold === "just exceeded") {
                 addAnEntryToTheHistory()
                 setMouseMoveThreshold("exceeded")
@@ -449,10 +466,7 @@ function KnotVectorEditor(props: EditorProps) {
                     setMouseMoveThreshold("just exceeded")
                 }
             }
-            
-            
             if (!curve || sketcherState.selectedKnot === null) return
-            
             const offsetLeft = 0.05 + reductionFactor * scroll
             let newPosition = (x - offsetLeft ) / zoom / reductionFactor
             if (newPosition < 0) newPosition = 0
@@ -462,9 +476,9 @@ function KnotVectorEditor(props: EditorProps) {
             if (!cpd || mouseMoveThreshold !== "exceeded") return
             moveKnot(sketchElements, setSketchElements, cpd.curveIDs[0] , newPosition, index)
         }
-        
     }, [action, actionManager, addAnEntryToTheHistory, curve, editorState, initialMouseXPosition, mouseMoveThreshold, scroll, setSketchElements, sketchElements, sketcherState.controlPolygonDisplayed, sketcherState.selectedKnot, sketcherState.zoom, viewportCoordsToSceneCoords, zoom])
     
+
     const handleMouseMove = useCallback((event: MouseEvent) => {
         helperMove({clientX: event.clientX, clientY: event.clientY})
     },[helperMove])
