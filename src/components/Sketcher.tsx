@@ -81,20 +81,19 @@ function Sketcher() {
           }
           fileInput.addEventListener('change', readSingleFile, false ) 
           fileInput.click()
-          fileInput.removeEventListener('change', readSingleFile )
+          //fileInput.removeEventListener('change', readSingleFile )
         }
         setOpenMainMenu(false)
     }
-      
-      
-    const openCurves = (fileContent: string) => {
+
+    const openCurves = useCallback((fileContent: string) => {
       const curves = JSON.parse(fileContent)
       setSketchElements(curves)
-    }
+    }, [setSketchElements])
 
-    const readSingleFile = (ev: Event) => {
+    const readSingleFile = useCallback((ev: Event) => {
       const fileReader = new FileReader()
-            fileReader.onload = () => {
+            fileReader.onload = async() => {
                 const fileContent = fileReader.result as string
                 openCurves(fileContent)
             }
@@ -103,7 +102,26 @@ function Sketcher() {
             if (t.files === null) return
             fileReader.readAsText(t.files[0])
             //t.files = null
-    }
+    }, [openCurves] )
+
+    useEffect(() => {
+      const fileInput = document.getElementById('file')
+      if (fileInput !== null) {
+        fileInput.addEventListener('change', readSingleFile, false) 
+      }
+      return () => {
+        if (fileInput !== null) {
+        fileInput.removeEventListener('change', readSingleFile, false )
+        }
+      }
+    }, [readSingleFile])
+
+
+      
+      
+
+
+
 
 
   
@@ -299,7 +317,7 @@ function Sketcher() {
                       <button onClick={handleSave}><div className={"dropdown-menu-item-icon-" + theme}>{ExportIcon}</div> &nbsp; <div className={"dropdown-menu-item-text-" + theme}>{t("buttons.export")}</div></button>
                     </li>
                     <li className="menu-item">
-                      <button onClick={handleExport}><div className={"dropdown-menu-item-icon-" + theme}>{ExportImageIcon}</div> &nbsp; <div className={"dropdown-menu-item-text-" + theme}>{t("buttons.exportToSvg")}</div></button>
+                      {/* <button onClick={handleExport}><div className={"dropdown-menu-item-icon-" + theme}>{ExportImageIcon}</div> &nbsp; <div className={"dropdown-menu-item-text-" + theme}>{t("buttons.exportToSvg")}</div></button> */}
                     </li>
                 
                     <li className="menu-item">
