@@ -16,7 +16,9 @@ import Canvas from './canvas/Canvas';
 import { LanguageList } from './LanguageList';
 import KnotVectorEditor from './KnotVectorEditor';
 import { removeASingleKnot } from '../bsplines/knotPlacement/automaticFitting';
-import { downloadRectangleSvg, readSingleFile, testSave } from '../renderer/RenderSceneToSvg';
+import { downloadRectangleSvg} from '../renderer/RenderSceneToSvg';
+import { saveCurves } from '../renderer/SaveAndOpen';
+
 
 const initialElements: BSplineType[] = []
 
@@ -71,11 +73,42 @@ function Sketcher() {
     }
   
     const handleOpenFile = () => {
-      readSingleFile()
-      setOpenMainMenu(false)
+        const fileInput = document.getElementById('file')
+        if (fileInput !== null) {
+          fileInput.onclick = (e: Event) => {
+            let t = e.target as HTMLInputElement
+            t.value = ""
+          }
+          fileInput.addEventListener('change', readSingleFile, false ) 
+          fileInput.click()
+          fileInput.removeEventListener('change', readSingleFile )
+        }
+        setOpenMainMenu(false)
     }
+      
+      
+    const openCurves = (fileContent: string) => {
+      const curves = JSON.parse(fileContent)
+      setSketchElements(curves)
+    }
+
+    const readSingleFile = (ev: Event) => {
+      const fileReader = new FileReader()
+            fileReader.onload = () => {
+                const fileContent = fileReader.result as string
+                openCurves(fileContent)
+            }
+            if (ev.target === null ) return
+            let t = ev.target as HTMLInputElement
+            if (t.files === null) return
+            fileReader.readAsText(t.files[0])
+            //t.files = null
+    }
+
+
   
     const handleSave = () => {
+      saveCurves(sketchElements)
       setOpenMainMenu(false)
     }
   
@@ -219,13 +252,28 @@ function Sketcher() {
   }, [handleActivateMultipleSelection, handleCreateCircleArc, handleCreateFreeDraw, handleCreateLine, handleDelete, handleZoomIn, handleZoomOut])
 
 
+/*
+  useEffect(() => {
+      let inputFile: HTMLInputElement | null
+      if (document !== null) {
+        inputFile = document.getElementById('file') as HTMLInputElement
+        if (inputFile !== null) {
+          inputFile.addEventListener('change', readSingleFile ) 
+        }
+      }
+      return () => {
+        if (inputFile !== null)
+          inputFile.removeEventListener('change', readSingleFile )
+      }
+  }, [readSingleFile])
+  */
 
-useEffect(() => {
+  useEffect(() => {
     window.addEventListener('keydown', handleKeyPress)
     return () => {
         window.removeEventListener('keydown', handleKeyPress)
     }
- }, [handleKeyPress])
+  }, [handleKeyPress])
 
 
 
@@ -331,6 +379,10 @@ useEffect(() => {
                 ) : null}
 
               </div>
+            </div>
+
+            <div>
+              <input id='file' type='file' />
             </div>
 
             {(historyLength !== 1 || sketcherState.zoom !== 1) ? (

@@ -23,41 +23,8 @@ interface EditorProps {
     offsetY: number
 }
 
-enum CountActionKind {
-    INCREASE = 'INCREASE',
-    DECREASE = 'DECREASE'
-}
-
-interface CountAction {
-    type: CountActionKind
-    payload: number
-}
-
-interface CountState {
-    count: number
-}
-
-function counterReducer(state: CountState, action: CountAction) {
-    const { type, payload} = action
-    switch (type) {
-        case CountActionKind.INCREASE:
-            return {
-                ...state,
-                count: state.count + payload,
-            }
-        case CountActionKind.DECREASE:
-            return {
-                ...state,
-                count: state.count - payload,
-            }
-        default:
-            return state
-    }
-}
-
 
 const KnotVectorEditor: FunctionComponent<EditorProps> = (props) => {
-    const [state, dispatch] = useReducer(counterReducer, {count: 0})
     const {sketcherState, actionManager, sketchElements, setSketchElements, windowWidth, windowHeight, offsetX, offsetY } = props
     const [editorState, setEditorState] = useState<KnotEditorStateType>("idle")
     const [initialMouseXPosition, setInitialMouseXPosition] = useState<number | null>(null)

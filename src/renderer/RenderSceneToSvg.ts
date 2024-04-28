@@ -31,21 +31,3 @@ export const downloadRectangleSvg = async () => {
     saveAs(blob, "image.svg" )
 }
 
-export const testSave = () => {
-    const blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"})
-    saveAs(blob, "hello world.txt")
-}
-
-export function readSingleFile() {
-    let input = document.createElement('input')
-    input.type = 'file'
-    input.click()
-  
-    /*
-    let reader = new FileReader()
-    reader.onload = function (evt) {
-        console.log("reading")
-    }
-    */
-    //reader.readAsDataURL(input.files[0])
-}
