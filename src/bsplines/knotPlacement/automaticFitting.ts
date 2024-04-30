@@ -43,7 +43,7 @@ export function automaticFitting(initialSpline: BSplineR1toR2, scale = 1, resolu
     //const knots = knotDistribution(cff, 3, 0.0005 * Math.pow(scale, 1 / 3))
     //const knots = knotDistribution(cff, 3, 1 * scale)
 
-    const cp = leastSquareApproximation2(spline, knots)
+    const cp = leastSquareApproximation2(spline, knots, 3)
 
     if (cp.length >= initialSpline.controlPoints.length) {
         return initialSpline
@@ -61,6 +61,8 @@ export function removeASingleKnot(initialSpline: BSplineR1toR2, knotIndex: numbe
     const cp = leastSquareApproximation2(initialSpline, newKnots)
     return new BSplineR1toR2(cp, newKnots)
 }
+
+
 
 
 
@@ -273,17 +275,17 @@ export function leastSquareApproximation(splineToApproximate: BSplineR1toR2, new
     
 }
 
-export function leastSquareApproximation2(splineToApproximate: BSplineR1toR2, newKnots: number[] ) {
-    const degree = splineToApproximate.degree
-    const numberOfControlPoints = newKnots.length - degree - 1
-    const us = sampleBetweenKnotsPlusEndPoints(newKnots, degree)
+export function leastSquareApproximation2(splineToApproximate: BSplineR1toR2, newKnots: number[], degreeOfReturnedCurve: number = splineToApproximate.degree ) {
+    //const degree = splineToApproximate.degree
+    const numberOfControlPoints = newKnots.length - degreeOfReturnedCurve - 1
+    const us = sampleBetweenKnotsPlusEndPoints(newKnots, degreeOfReturnedCurve)
     //console.log("us")
     //console.log(us)
 
     const Qs = us.map(u => splineToApproximate.evaluate(u))
     const NplusEndPoints = us.map(u => {
-        const span = findSpan(u, newKnots, degree)
-        const basis = basisFunctions(span, u, newKnots, degree)
+        const span = findSpan(u, newKnots, degreeOfReturnedCurve)
+        const basis = basisFunctions(span, u, newKnots, degreeOfReturnedCurve)
         return {span, basis}
     })
 
@@ -295,7 +297,7 @@ export function leastSquareApproximation2(splineToApproximate: BSplineR1toR2, ne
     NplusEndPoints.forEach((item, i) => {
         const {span, basis} = item
         basis.forEach((value, j) => {
-            N.set(i, span - degree + j, value)
+            N.set(i, span - degreeOfReturnedCurve + j, value)
         })
     })
 
@@ -331,9 +333,9 @@ export function leastSquareApproximation2(splineToApproximate: BSplineR1toR2, ne
     let Rey = zeroVector(numberOfControlPoints)
 
     for (let s = 0; s < us.length; s += 1) {
-        for (let i = 0; i < degree + 1; i += 1) {
-            Rex[i + NplusEndPoints[s].span - degree] += NplusEndPoints[s].basis[i] * Rkx[s]
-            Rey[i + NplusEndPoints[s].span - degree] += NplusEndPoints[s].basis[i] * Rky[s]
+        for (let i = 0; i < degreeOfReturnedCurve + 1; i += 1) {
+            Rex[i + NplusEndPoints[s].span - degreeOfReturnedCurve] += NplusEndPoints[s].basis[i] * Rkx[s]
+            Rey[i + NplusEndPoints[s].span - degreeOfReturnedCurve] += NplusEndPoints[s].basis[i] * Rky[s]
         }
     }
 
@@ -376,6 +378,8 @@ export function leastSquareApproximation2(splineToApproximate: BSplineR1toR2, ne
 
     
 }
+
+
 
 function sampleBetweenKnotsPlusEndPoints(knots: number[], degree: number, subdivision = 8) {
     let us: number[] = []

@@ -456,9 +456,11 @@ export function removeAKnot(curves: BSplineType[], setCurves: setCurvesType, id:
         break
         case BSplineEnumType.Complex:
             {
+                /*
                 const bspline =  new BSplineR1toC2(CoordinatesToComplex2d(curve.points), curve.knots)
-                //const newBSpline = removeASingleKnot(bspline, knotIndex + bspline.degree + 1)
-                //curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Complex2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+                const newBSpline = removeASingleKnotFromComplexCurve(bspline, knotIndex + bspline.degree + 1)
+                curvesCopy[index] = {id, type: BSplineEnumType.NonRational,  points: Complex2dToCoordinates(newBSpline.controlPoints ), knots: newBSpline.knots}
+                */
             }
             break
     }

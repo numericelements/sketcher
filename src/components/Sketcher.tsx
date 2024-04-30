@@ -303,8 +303,11 @@ function Sketcher() {
         return curve.knots.length - 2 * (degree + 1)
       }
       case BSplineEnumType.Complex : {
+        /*
         const degree = curve.knots.length - (curve.points.length + 1) / 2 - 1
         return curve.knots.length - 2 * (degree + 1)
+        */
+        return 0
       }
     }
     return 0
