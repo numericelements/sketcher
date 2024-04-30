@@ -6,7 +6,7 @@ import { SketcherState, defaultInitialState } from '../SketcherState';
 import { useWindowSize } from '../hooks/useWindowSize';
 import { useOutsideClickHook } from '../hooks/useOutsideClickHook';
 import { useHistory } from '../hooks/useHistory';
-import { BSplineType, elevateDegree, insertKnot, optimizedKnotPositions, removeAKnot } from '../curves/curves';
+import { BSplineEnumType, BSplineType, elevateDegree, insertKnot, optimizedKnotPositions, removeAKnot } from '../curves/curves';
 import { ActionManager } from '../actions/manager';
 import { actions } from "../actions/register";
 import '../actions';
@@ -293,6 +293,23 @@ function Sketcher() {
     }
   }, [handleKeyPress])
 
+  const numberOfInteriorKnot = () => {
+    if (sketcherState.controlPolygonDisplayed === null) return 0
+    const cpd = sketcherState.controlPolygonDisplayed
+    const curve = sketchElements.filter((element) => cpd.curveIDs.includes(element.id))[0]
+    switch(curve.type) {
+      case BSplineEnumType.NonRational : {
+        const degree = curve.knots.length - curve.points.length - 1
+        return curve.knots.length - 2 * (degree + 1)
+      }
+      case BSplineEnumType.Complex : {
+        const degree = curve.knots.length - (curve.points.length + 1) / 2 - 1
+        return curve.knots.length - 2 * (degree + 1)
+      }
+    }
+    return 0
+  }
+
 
 
 
@@ -382,9 +399,10 @@ function Sketcher() {
                     <li>
                     <button className={clsx({"menu-top-button-light": theme === "light"}, {"menu-top-button-dark": theme === "dark"})} onClick={handleInsertKnot}>{InsertKnotIcon}</button>
                     </li> : null }
+                    { numberOfInteriorKnot() > 0 ? 
                     <li>
                     <button className={clsx({"menu-top-button-light": theme === "light"}, {"menu-top-button-dark": theme === "dark"})} onClick={handleDeleteKnot}>{DeleteKnotIcon}</button>
-                    </li> 
+                    </li>: null }
                     </div>
                     : null
                     } 
