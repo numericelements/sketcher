@@ -311,10 +311,6 @@ export function pointsOnCurve(curve: NonRational, numberOfPoints: number) {
 }
 
 export function pointsOnComplexCurve(curve: ComplexCurve, numberOfPoints: number) {
-
-
-
-
     const bspline = new BSplineR1toC2(CoordinatesToComplex2d(curve.points), curve.knots)
 
     return [...Array(numberOfPoints).keys()].map((u) => {
@@ -327,6 +323,12 @@ export function pointsOnComplexCurve(curve: ComplexCurve, numberOfPoints: number
 export function pointOnCurve(curve: NonRational, u: number) {
     const bspline: BSplineR1toR2 =  new BSplineR1toR2(CoordinatesToVector2d(curve.points), curve.knots)
     const p = bspline.evaluate(u)
+    return {x: p.x, y: p.y}
+}
+
+export function pointOnComplexCurve(curve: ComplexCurve, u: number) {
+    const bspline: BSplineR1toC2 =  new BSplineR1toC2(CoordinatesToComplex2d(curve.points), curve.knots)
+    const p = bspline.evaluate(u).toComplexNumber()
     return {x: p.x, y: p.y}
 }
 

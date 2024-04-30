@@ -94,6 +94,18 @@ Lorsque deux points d'extremum de courbure viennent en contact un X rouge vient 
 
 Les coordonnées des points de contrôle seulement sont conservées. Les poids sont calculés à partir des points de Farin. 
 
+### Séparer et joindre des bouts de courbes
+
+Lorsque les extrémités d'une courbe ou de deux courbes sont rapprochées suffisament, une incône de deux prises représentées par des demis cercles apparaît qui permet de fermer une courbe ou d'unir deux courbes. 
+
+Une icône de ciseaux s'enfonce lorsqu'appuyée et permet de séparer une courbe en un point. Si la sélection se fait dans le vide le bouton saisse d'être activé. Dans tous les cas l'activation du bouton permet un seul clic. 
+
+### Symétrie
+
+Il y a le groupe de rotation et le groupe dihedral qui inclut le groupe de rotation et qui ajoute les réflexions. Une symétrie approximative pourrait être reconnu et un bouton pourrait s'afficher pour imposer une certaine configuration de symétrie. La symétrie pourrait être calculé à partir des points de contrôles. Pour désactiver la symétrie il faut appuyer à nouveau sur le bouton.
+
+
+
 ## Divers éléments d'interface
 
 ### Spécification de la sélection d'éléments

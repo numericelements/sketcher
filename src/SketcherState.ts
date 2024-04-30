@@ -38,7 +38,7 @@ export const defaultInitialState: SketcherState = {
     controlPolygonDisplayed: null,
     displayParametricPositionOnSelectedCurve: null,
     showAllDrawingTools: false,
-    showKnotVectorEditor: false,
+    showKnotVectorEditor: true,
     selectedKnot: null,
 }
   

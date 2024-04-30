@@ -7,8 +7,12 @@
 - [x] The delete curve icon is available when the control polygon is displayed.
 - [x] Draw a circle
 - [x] Move highligted curves
-- [ ] Draw an optimized b-spline of degree 3 for free draw
-- [ ] Add zoom and pan to the knots editor
-- [ ] Add the slider for the knot
-- [ ] Draw B-spline and control polygon
+- [x] Draw an optimized b-spline of degree 3 for free draw
+- [x] Add zoom and pan to the knots editor
+- [x] Add the slider for the knot
+- [x] Draw B-spline and control polygon
 - [ ] Add and remove knot and show position on curve
+- [ ] Duplicate curves
+- [ ] Closed curve
+- [ ] Export to svg
+- [ ] Save to localy the light or dark mode

@@ -3,7 +3,7 @@
 import {useRef, useEffect, useCallback, useState, useLayoutEffect} from 'react'
 import { SketcherState } from '../../SketcherState'
 import { ActionManager } from '../../actions/manager'
-import createCurve, { Coordinates, InitialCurveEnumType, BSplineType, distance, updateCurve, BSplineEnumType, Vector2D, moveCurves, moveCurve, displacement, moveControlPoint, normalizeCircle, setCurve, ComplexCurve, arcPointsFrom3Points as arcPointsFromMultiplePoints, pointsOnCurve, pointOnCurve, NonRational, CoordinatesToVector2d, optimizedKnotPositions, Rational, PythagoreanHodograph, pointsOnComplexCurve } from '../../curves/curves'
+import createCurve, { Coordinates, InitialCurveEnumType, BSplineType, distance, updateCurve, BSplineEnumType, Vector2D, moveCurves, moveCurve, displacement, moveControlPoint, normalizeCircle, setCurve, ComplexCurve, arcPointsFrom3Points as arcPointsFromMultiplePoints, pointsOnCurve, pointOnCurve, NonRational, CoordinatesToVector2d, optimizedKnotPositions, Rational, PythagoreanHodograph, pointsOnComplexCurve, pointOnComplexCurve } from '../../curves/curves'
 import { setCurvesType } from '../../hooks/useHistory'
 import { viewportCoordsToSceneCoords } from './viewport'
 import { flushSync } from 'react-dom'
@@ -240,30 +240,36 @@ function Canvas(props: Readonly<CanvasProps>) {
     }
     ,[sketcherState.showKnotVectorEditor, sketcherState.theme, sketcherState.zoom])
 
-    const drawPositionOnCurve = useCallback((context: CanvasRenderingContext2D, curve: BSplineType, parametricPosition: number | null)  => {
+    const drawPoint = useCallback((context: CanvasRenderingContext2D, point : {x: number, y: number}) => {
         const zoom = sketcherState.zoom
         const radius = 4 /zoom 
         let fillStyle = sketcherState.theme === "dark" ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)"
-        switch(curve.type) {
-            case BSplineEnumType.NonRational :
-                {
-                    if (parametricPosition !== null) {
+        context.beginPath()
+        context.fillStyle = fillStyle
+        context.arc(point.x, point.y, radius, 0, 2 * Math.PI, false)
+        context.fill()
+    }, [sketcherState.theme, sketcherState.zoom])
+    
+    
+    const drawPositionOnCurve = useCallback((context: CanvasRenderingContext2D, curve: BSplineType, parametricPosition: number | null)  => {
+        if (parametricPosition !== null) {
+            switch(curve.type) {
+                case BSplineEnumType.NonRational : {
                         const point = pointOnCurve(curve, parametricPosition)
-                        context.beginPath()
-                        context.fillStyle = fillStyle
-                        context.arc(point.x, point.y, radius, 0, 2 * Math.PI, false)
-                        context.fill()
-                        
-                    }
-                    break
+                        drawPoint(context, point)
                 }
-            case BSplineEnumType.Complex :  
-            {
+                break
+                case BSplineEnumType.Complex : {
+                        const point = pointOnComplexCurve(curve, parametricPosition)
+                        drawPoint(context, point)
+                }   
                 break
             }
         }
     }
-    ,[sketcherState.theme, sketcherState.zoom])
+    ,[drawPoint])
+
+
 
     useLayoutEffect(() => {
         const canvas = canvasRef.current

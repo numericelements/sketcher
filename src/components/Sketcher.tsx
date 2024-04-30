@@ -11,7 +11,7 @@ import { ActionManager } from '../actions/manager';
 import { actions } from "../actions/register";
 import '../actions';
 import clsx from 'clsx';
-import { CircleArcIcon, CircleArcIconDark, DeleteKnotIcon, DownArrowIcon, ExportIcon, ExportImageIcon, FreeDrawIcon, HamburgerMenuIcon, InsertKnotIcon, KnotVectorEditorIcon, LineIcon, LineIconDark, LoadIcon, MoonIcon, MultipleSelectionIcon, PencilIcon, RedoIcon, SelectionIcon, ShiftIcon, SunIcon, TrashIcon, UndoIcon, UpArrowIcon, ZoomInIcon, ZoomOutIcon } from '../icons';
+import { CircleArcIcon, CircleArcIconDark, DeleteKnotIcon, DownArrowIcon, DuplicateIcon, ExportIcon, ExportImageIcon, FreeDrawIcon, HamburgerMenuIcon, InsertKnotIcon, KnotVectorEditorIcon, LineIcon, LineIconDark, LoadIcon, MoonIcon, MultipleSelectionIcon, PencilIcon, RedoIcon, SelectionIcon, ShiftIcon, SunIcon, TrashIcon, UndoIcon, UpArrowIcon, ZoomInIcon, ZoomOutIcon } from '../icons';
 import Canvas from './canvas/Canvas';
 import { LanguageList } from './LanguageList';
 import KnotVectorEditor from './KnotVectorEditor';
@@ -388,7 +388,9 @@ function Sketcher() {
                     </div>
                     : null
                     } 
-
+                    <li >
+                      <button className={clsx({"menu-top-button-light": theme === "light"}, {"menu-top-button-dark": theme === "dark"})} onClick={handleDelete}>{DuplicateIcon} </button>
+                    </li>
                     <li >
                       <button className={clsx({"menu-top-button-light": theme === "light"}, {"menu-top-button-dark": theme === "dark"})} onClick={handleDelete}>{TrashIcon} </button>
                     </li>

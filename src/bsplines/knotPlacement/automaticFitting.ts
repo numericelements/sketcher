@@ -274,7 +274,7 @@ export function leastSquareApproximation(splineToApproximate: BSplineR1toR2, new
 }
 
 export function leastSquareApproximation2(splineToApproximate: BSplineR1toR2, newKnots: number[] ) {
-    const degree = 3
+    const degree = splineToApproximate.degree
     const numberOfControlPoints = newKnots.length - degree - 1
     const us = sampleBetweenKnotsPlusEndPoints(newKnots, degree)
     //console.log("us")
