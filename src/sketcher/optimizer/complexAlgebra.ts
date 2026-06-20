@@ -22,6 +22,7 @@ import {
   precomputePeriodicRationalBasisDerivatives,
   type PrecomputedPeriodicRationalBasisDerivatives,
   precomputeRationalBasisDerivatives,
+  simpleDifferentiate,
 } from './algebra'
 import { mkPeriodicBSplineWithKnots, mkOpenBSpline, cpToArray, bsplineDomain } from './bsplineTypes'
 
@@ -39,29 +40,9 @@ export interface SimpleBSpline {
   controlPoints: number[]
 }
 
-function simpleDegree(bs: SimpleBSpline): number {
-  return bs.knots.length - bs.controlPoints.length - 1
-}
-
-export function simpleDifferentiate(bs: SimpleBSpline): SimpleBSpline {
-  const p = simpleDegree(bs)
-  if (p === 0) {
-    // Derivative of a piecewise constant is zero; return a zero B-spline
-    // with the same structure so decomposeToBernstein produces a valid degree-0 BD.
-    return { knots: [...bs.knots], controlPoints: bs.controlPoints.map(() => 0) }
-  }
-  const newKnots = bs.knots.slice(1, -1)
-  const newCPs: number[] = []
-  for (let i = 0; i < bs.controlPoints.length - 1; i++) {
-    const denom = bs.knots[i + p + 1] - bs.knots[i + 1]
-    if (Math.abs(denom) > 1e-14) {
-      newCPs.push((p * (bs.controlPoints[i + 1] - bs.controlPoints[i])) / denom)
-    } else {
-      newCPs.push(0)
-    }
-  }
-  return { knots: newKnots, controlPoints: newCPs }
-}
+// simpleDifferentiate lives in algebra.ts (this was a byte-identical copy); import
+// and re-export it so abPHCurve's existing `from './complexAlgebra'` keeps working.
+export { simpleDifferentiate }
 
 // ============================================================================
 // ComplexBD Arithmetic

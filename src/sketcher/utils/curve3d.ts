@@ -1,58 +1,13 @@
 // Being migrated to core/ incrementally; remove this once a file is on core.
 /**
- * 3D B-spline curve evaluation utilities.
- * Reuses findKnotSpan and basisFunctions from bspline/core.ts.
+ * 3D B-spline degree elevation (blossom/polar form). The 3D evaluation and
+ * 2D→3D conversion helpers that used to live here were unused and were removed;
+ * the only live entry point is degree elevation (used by the store).
  */
 
-import { findKnotSpan, basisFunctions } from './bspline/core'
+import { findKnotSpan } from './bspline/core'
 import { groupKnotMultiplicities } from './bspline'
-import type { Point3D, Curve3D } from '../types/curve'
-import type { Curve } from '../types/curve'
-
-/**
- * Evaluate a 3D B-spline curve at parameter t.
- */
-export function evaluateCurve3D(
-  controlPoints: Point3D[],
-  knots: number[],
-  degree: number,
-  t: number
-): Point3D {
-  const span = findKnotSpan(degree, knots, t)
-  const N = basisFunctions(span, t, degree, knots)
-
-  let x = 0, y = 0, z = 0
-  for (let i = 0; i <= degree; i++) {
-    const cp = controlPoints[span - degree + i]
-    x += N[i] * cp.x
-    y += N[i] * cp.y
-    z += N[i] * cp.z
-  }
-
-  return { x, y, z }
-}
-
-/**
- * Evaluate a 3D B-spline curve at evenly spaced parameter values.
- * Returns an array of points for rendering.
- */
-export function evaluateCurve3DRange(
-  controlPoints: Point3D[],
-  knots: number[],
-  degree: number,
-  numSamples: number = 200
-): Point3D[] {
-  const tMin = knots[degree]
-  const tMax = knots[knots.length - degree - 1]
-  const points: Point3D[] = []
-
-  for (let i = 0; i <= numSamples; i++) {
-    const t = tMin + (i / numSamples) * (tMax - tMin)
-    points.push(evaluateCurve3D(controlPoints, knots, degree, t))
-  }
-
-  return points
-}
+import type { Point3D } from '../types/curve'
 
 /**
  * Evaluate the blossom (polar form) of a 3D B-spline at arbitrary arguments.
@@ -159,26 +114,4 @@ export function elevateDegreeBy1BSpline3D(
   }
 
   return { controlPoints: newCPs, knots: elevatedKnots }
-}
-
-let _nextCurveId = 1
-
-/**
- * Convert 2D sketcher curves to 3D curves on the y=0 plane.
- * Only handles bspline curves (not rational or complex-rational).
- */
-export function convertSketchCurvesTo3D(curves2D: Curve[]): Curve3D[] {
-  return curves2D
-    .filter((c) => c.kind === 'bspline')
-    .map((c) => ({
-      id: `sketch-${_nextCurveId++}-${Date.now()}`,
-      controlPoints: c.controlPoints.map((p) => ({
-        x: p.x / 500,
-        y: 0,
-        z: p.y / 500,
-      })),
-      knots: [...c.knots],
-      degree: c.degree,
-      closed: c.closed,
-    }))
 }

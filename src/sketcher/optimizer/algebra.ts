@@ -37,7 +37,7 @@ function simpleDegree(bs: SimpleBSpline): number {
   return bs.knots.length - bs.controlPoints.length - 1
 }
 
-function simpleDifferentiate(bs: SimpleBSpline): SimpleBSpline {
+export function simpleDifferentiate(bs: SimpleBSpline): SimpleBSpline {
   const p = simpleDegree(bs)
   if (p === 0) {
     // Derivative of a piecewise constant is zero; return a zero B-spline
