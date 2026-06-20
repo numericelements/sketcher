@@ -73,6 +73,25 @@ export function ldlFactorBand(M: SymBand, minPivot = 1e-300): boolean {
 }
 
 /** Solve M x = rhs given an LDLᵀ-factored band (factor in place first). */
+/** y = M·x for a symmetric banded M, reconstructing the full product from the
+ *  stored lower band. MUST be called BEFORE ldlFactorBand (which overwrites the
+ *  band in place with its LDLᵀ factors). O(n·b). */
+export function symBandMatVec(M: SymBand, x: readonly number[]): number[] {
+  const { n, b, low } = M
+  const y = new Array<number>(n).fill(0)
+  for (let i = 0; i < n; i++) {
+    y[i] += low[i][0] * x[i] // diagonal
+    const pMax = Math.min(b, i)
+    for (let p = 1; p <= pMax; p++) {
+      const j = i - p
+      const v = low[i][p] // M[i][j] = M[j][i]
+      y[i] += v * x[j]
+      y[j] += v * x[i]
+    }
+  }
+  return y
+}
+
 export function ldlSolveBand(M: SymBand, rhs: number[]): number[] {
   const { n, b, low } = M
   const x = rhs.slice()

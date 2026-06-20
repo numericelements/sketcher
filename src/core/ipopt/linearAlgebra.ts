@@ -345,11 +345,27 @@ export function solveTrustRegion(
   delta: number,
   regularization = 1e-8
 ): TrustRegionResult {
-  const n = gradient.length
-
   // Try Newton step first
   const negGrad = scale(gradient, -1)
   const { success, x: newtonStep } = choleskySolve(hessian, negGrad, regularization)
+  const gHg = quadraticForm(hessian, gradient)
+  return doglegFromParts(gradient, success ? newtonStep : null, gHg, delta)
+}
+
+/**
+ * The dogleg trust-region step, given the already-computed Newton step (null if
+ * the factorization failed) and gᵀHg. Factored out so the dense
+ * (`solveTrustRegion`) and BANDED (`solveTrustRegionBanded`) paths share the exact
+ * same geometry — only HOW the Newton step and gᵀHg are computed differs.
+ */
+export function doglegFromParts(
+  gradient: number[],
+  newtonStep: number[] | null,
+  gHg: number,
+  delta: number
+): TrustRegionResult {
+  const n = gradient.length
+  const success = newtonStep !== null
 
   if (success) {
     const newtonNorm = norm2(newtonStep)
@@ -359,11 +375,7 @@ export function solveTrustRegion(
     }
   }
 
-  // Newton step outside trust region or Cholesky failed
-  // Use Cauchy point as fallback
-  const gHg = quadraticForm(hessian, gradient)
   const gNorm = norm2(gradient)
-
   if (gNorm < 1e-14) {
     return { step: zeros(n), hitsBoundary: false, lambda: 0 }
   }
