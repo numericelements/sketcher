@@ -2,13 +2,17 @@
 import type { Point2D, Curve } from '../types/curve'
 import { findKnotSpan, isPeriodicRepresentation, findPeriodicKnotSpan, periodicKnotAt, periodicControlPointAt } from './bspline'
 
-// Compute basis function derivatives
+// Compute basis function derivatives (NURBS book A2.3). `knotAt` lets the same
+// code serve open curves (raw knots, the default) and periodic curves (wrapping
+// access via periodicKnotAt); the `den === 0 ? 0` guards make repeated / zero-
+// width spans safe in both cases.
 function basisFunctionDerivatives(
   span: number,
   t: number,
   degree: number,
   knots: number[],
-  numDerivs: number
+  numDerivs: number,
+  knotAt: (i: number) => number = (i) => knots[i],
 ): number[][] {
   const ders: number[][] = []
   for (let i = 0; i <= numDerivs; i++) {
@@ -26,98 +30,8 @@ function basisFunctionDerivatives(
   ndu[0][0] = 1.0
 
   for (let j = 1; j <= degree; j++) {
-    left[j] = t - knots[span + 1 - j]
-    right[j] = knots[span + j] - t
-    let saved = 0.0
-
-    for (let r = 0; r < j; r++) {
-      ndu[j][r] = right[r + 1] + left[j - r]
-      const temp = ndu[r][j - 1] / ndu[j][r]
-      ndu[r][j] = saved + right[r + 1] * temp
-      saved = left[j - r] * temp
-    }
-    ndu[j][j] = saved
-  }
-
-  for (let j = 0; j <= degree; j++) {
-    ders[0][j] = ndu[j][degree]
-  }
-
-  const a: number[][] = [new Array(degree + 1).fill(0), new Array(degree + 1).fill(0)]
-
-  for (let r = 0; r <= degree; r++) {
-    let s1 = 0
-    let s2 = 1
-    a[0][0] = 1.0
-
-    for (let k = 1; k <= numDerivs; k++) {
-      let d = 0.0
-      const rk = r - k
-      const pk = degree - k
-
-      if (r >= k) {
-        a[s2][0] = a[s1][0] / ndu[pk + 1][rk]
-        d = a[s2][0] * ndu[rk][pk]
-      }
-
-      const j1 = rk >= -1 ? 1 : -rk
-      const j2 = r - 1 <= pk ? k - 1 : degree - r
-
-      for (let j = j1; j <= j2; j++) {
-        a[s2][j] = (a[s1][j] - a[s1][j - 1]) / ndu[pk + 1][rk + j]
-        d += a[s2][j] * ndu[rk + j][pk]
-      }
-
-      if (r <= pk) {
-        a[s2][k] = -a[s1][k - 1] / ndu[pk + 1][r]
-        d += a[s2][k] * ndu[r][pk]
-      }
-
-      ders[k][r] = d
-      const temp = s1
-      s1 = s2
-      s2 = temp
-    }
-  }
-
-  let r = degree
-  for (let k = 1; k <= numDerivs; k++) {
-    for (let j = 0; j <= degree; j++) {
-      ders[k][j] *= r
-    }
-    r *= degree - k
-  }
-
-  return ders
-}
-
-// Compute basis function derivatives for periodic curves
-function periodicBasisFunctionDerivatives(
-  span: number,
-  t: number,
-  degree: number,
-  knots: number[],
-  numDerivs: number
-): number[][] {
-  const ders: number[][] = []
-  for (let i = 0; i <= numDerivs; i++) {
-    ders.push(new Array(degree + 1).fill(0))
-  }
-
-  const ndu: number[][] = []
-  for (let i = 0; i <= degree; i++) {
-    ndu.push(new Array(degree + 1).fill(0))
-  }
-
-  const left = new Array(degree + 1).fill(0)
-  const right = new Array(degree + 1).fill(0)
-
-  ndu[0][0] = 1.0
-
-  for (let j = 1; j <= degree; j++) {
-    // Use periodicKnotAt for proper wrapping
-    left[j] = t - periodicKnotAt(knots, span + 1 - j)
-    right[j] = periodicKnotAt(knots, span + j) - t
+    left[j] = t - knotAt(span + 1 - j)
+    right[j] = knotAt(span + j) - t
     let saved = 0.0
 
     for (let r = 0; r < j; r++) {
@@ -196,7 +110,7 @@ export function evaluateCurveDerivatives(
     t = ((t % 1) + 1) % 1
 
     const span = findPeriodicKnotSpan(degree, knots, t)
-    const ders = periodicBasisFunctionDerivatives(span, t, degree, knots, numDerivs)
+    const ders = basisFunctionDerivatives(span, t, degree, knots, numDerivs, (i) => periodicKnotAt(knots, i))
 
     const result: Point2D[] = []
 

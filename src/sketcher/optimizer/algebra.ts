@@ -849,7 +849,7 @@ function computeContinuityAtBreakpoint(bd: BernsteinDecomposition, breakpointInd
  * Uses the same Tiller-Hanson algorithm as bspline.ts removeKnot, adapted for 1D.
  * Returns new CPs and knots, or null if removal error exceeds tolerance.
  */
-function removeKnot1DSimple(
+export function removeKnot1DSimple(
   P: number[], knots: number[], degree: number,
   knotIndex: number, tolerance: number
 ): { controlPoints: number[]; knots: number[] } | null {

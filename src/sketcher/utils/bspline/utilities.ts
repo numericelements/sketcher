@@ -11,7 +11,7 @@
 
 import type { Point2D, WeightedPoint2D, ComplexPoint, Curve, BSplineCurve, ComplexRationalBSplineCurve } from '../../types/curve'
 import { evaluateCurve, isPeriodicRepresentation } from './core'
-import { decomposeToBernstein, derivativeBD } from '../../optimizer/algebra'
+import { decomposeToBernstein, derivativeBD, removeKnot1DSimple } from '../../optimizer/algebra'
 import type { BernsteinDecomposition } from '../../optimizer/algebra'
 import { periodicKnotAt } from './periodic'
 import { removeKnot } from '../bspline'
@@ -620,7 +620,7 @@ function jointRecomposeBDs(bds: BernsteinDecomposition[]): { knots: number[]; cp
       const removeIdx = Math.floor((knotIdx + lastIdx) / 2)
 
       // Try to remove from all components
-      const results = cpsArrays.map(cps => removeKnotFromAll(cps, knots, p, removeIdx, 1e-8))
+      const results = cpsArrays.map(cps => removeKnot1DSimple(cps, knots, p, removeIdx, 1e-8))
       if (results.some(r => r === null)) break
 
       // All succeeded - apply the removal
@@ -630,75 +630,6 @@ function jointRecomposeBDs(bds: BernsteinDecomposition[]): { knots: number[]; cp
   }
 
   return { knots, cpsArrays }
-}
-
-/**
- * Remove a single knot from a 1D B-spline (Tiller-Hanson algorithm).
- */
-function removeKnotFromAll(
-  P: number[], knots: number[], degree: number,
-  knotIndex: number, tolerance: number
-): { controlPoints: number[]; knots: number[] } | null {
-  const n = P.length
-  const u = knots[knotIndex]
-  const ord = degree + 1
-
-  let r = knotIndex
-  while (r < knots.length - 1 && Math.abs(knots[r + 1] - u) < 1e-10) r++
-
-  let s = 0
-  for (let i = 0; i < knots.length; i++) {
-    if (Math.abs(knots[i] - u) < 1e-10) s++
-  }
-
-  const first = r - degree
-  const last = r - s
-  if (first < 0 || last >= n - 1) return null
-
-  const temp: number[] = new Array(last - first + 3)
-  temp[0] = P[first - 1 >= 0 ? first - 1 : 0]
-  temp[last - first + 2] = P[last + 1 < n ? last + 1 : n - 1]
-
-  let i = first, j = last, ii = 1, jj = last - first + 1
-
-  while (j - i > 0) {
-    const alphaI = (u - knots[i]) / (knots[i + ord] - knots[i])
-    if (Math.abs(alphaI) < 1e-14) temp[ii] = P[i]
-    else if (Math.abs(alphaI - 1) < 1e-14) temp[ii] = temp[ii - 1]
-    else temp[ii] = (P[i] - (1 - alphaI) * temp[ii - 1]) / alphaI
-
-    const alphaJ = (u - knots[j]) / (knots[j + ord] - knots[j])
-    if (Math.abs(1 - alphaJ) < 1e-14) temp[jj] = P[j]
-    else if (Math.abs(alphaJ) < 1e-14) temp[jj] = temp[jj + 1]
-    else temp[jj] = (P[j] - alphaJ * temp[jj + 1]) / (1 - alphaJ)
-
-    i++; ii++; j--; jj--
-  }
-
-  let removable = false
-  if (j - i < 0) {
-    const err = Math.abs(temp[ii - 1] - temp[jj + 1])
-    if (err <= tolerance) removable = true
-  } else {
-    const alphaI = (u - knots[i]) / (knots[i + ord] - knots[i])
-    const val = alphaI * temp[jj + 1] + (1 - alphaI) * temp[ii - 1]
-    if (Math.abs(val - P[i]) <= tolerance) removable = true
-  }
-
-  if (!removable) return null
-
-  // Apply removal
-  i = first; j = last; ii = 1; jj = last - first + 1
-  const newP = [...P]
-  while (j - i > 0) {
-    newP[i] = temp[ii]; newP[j] = temp[jj]
-    i++; ii++; j--; jj--
-  }
-
-  const newKnots = [...knots.slice(0, knotIndex), ...knots.slice(knotIndex + 1)]
-  const newCPs = [...newP.slice(0, last), ...newP.slice(last + 1)]
-
-  return { controlPoints: newCPs, knots: newKnots }
 }
 
 /**
