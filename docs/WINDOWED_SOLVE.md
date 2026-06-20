@@ -5,6 +5,26 @@ implementations. `ne-core` is where this lever was developed first and is live
 (`feat/windowed-drag-solve`). This doc is mirrored from `static-portfolio-rust/WINDOWED_SOLVE.md`;
 the **TypeScript integration notes** at the bottom are specific to this repo.
 
+> ## ⚠️ Update (2026‑06): the SOLVE is not the bottleneck — ASSEMBLY is
+>
+> A Rust benchmark pinned the real cost: **drag time = (#iterations) × (constraint‑Jacobian
+> assembly)**. The banded linear solve is microseconds, so windowing it yields **1.0× (no
+> speedup)** — it optimizes something already ~free.
+> - n=60: 303 ms ≈ 45 iters × ~6.8 ms assembly (solve in the noise)
+> - n=180: 1008 ms ≈ 44 iters × ~22.8 ms assembly
+>
+> **Do NOT implement the windowed solve as a perf fix.** The real lever is **cheaper /
+> cached assembly**: recompute only the constraint rows whose control‑point window changed
+> (~93% static per iteration), and/or replace the finite‑difference Jacobian with the
+> analytic banded (Chen‑form / seeded) gradient. Potentially ~10× at n=180.
+>
+> In **TS** the assembly cost is concentrated in the **finite‑difference extrema Jacobian**
+> (`PHCurveProblem.computeConstraintJacobian` / the core curvature problem — O(numVars × g)
+> per iteration; measured ~800 ms on a closed‑PH extrema drag, solve negligible). That's the
+> thing to attack. The windowed solve stays correct/safe and becomes worthwhile only *after*
+> assembly is cheap (then the solve is the next bottleneck) — keep the rest of this doc as
+> the reference for that later step.
+
 ## What it does
 
 The interactive drag (interior-point: least-change objective + the curvature-extrema
