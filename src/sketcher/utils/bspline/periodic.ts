@@ -14,7 +14,7 @@
 // The same pattern applies to rational curves with real weights.
 // ============================================================================
 
-import type { Point2D, WeightedPoint2D, ComplexPoint, RationalBSplineCurve, ComplexRationalBSplineCurve } from '../../types/curve'
+import type { Point2D, RationalBSplineCurve, ComplexRationalBSplineCurve } from '../../types/curve'
 import { cmult, cdiv, type Complex } from '../complex'
 
 // ============================================================================
@@ -103,31 +103,6 @@ export function toPeriodicComplexBSpline(curve: ComplexRationalBSplineCurve): Pe
   }
 }
 
-/**
- * Convert back to ComplexRationalBSplineCurve
- */
-export function fromPeriodicComplexBSpline(
-  pbs: PeriodicComplexBSpline,
-  originalCurve: ComplexRationalBSplineCurve
-): ComplexRationalBSplineCurve {
-  const controlPoints: ComplexPoint[] = pbs.positions.map((z, i) => ({
-    re: z.re,
-    im: z.im,
-    w_re: pbs.weights[i].re,
-    w_im: pbs.weights[i].im,
-  }))
-
-  // Compute wrapWeight from ratio
-  const w0 = pbs.weights[0]
-  const wrapWeight = cmult(w0, pbs.weightRatio)
-
-  return {
-    ...originalCurve,
-    knots: [...pbs.knots],
-    controlPoints,
-    wrapWeight: { re: wrapWeight.re, im: wrapWeight.im },
-  }
-}
 
 // ============================================================================
 // COMPLEX SPIRAL ACCESSORS
@@ -234,30 +209,6 @@ export function toPeriodicRationalBSpline(curve: RationalBSplineCurve): Periodic
     weights,
     degree: curve.degree,
     weightRatio,
-  }
-}
-
-/**
- * Convert back to RationalBSplineCurve
- */
-export function fromPeriodicRationalBSpline(
-  pbs: PeriodicRationalBSpline,
-  originalCurve: RationalBSplineCurve
-): RationalBSplineCurve {
-  const controlPoints: WeightedPoint2D[] = pbs.positions.map((p, i) => ({
-    x: p.x,
-    y: p.y,
-    w: pbs.weights[i],
-  }))
-
-  // Compute wrapWeight from ratio
-  const wrapWeight = pbs.weights[0] * pbs.weightRatio
-
-  return {
-    ...originalCurve,
-    knots: [...pbs.knots],
-    controlPoints,
-    wrapWeight,
   }
 }
 
