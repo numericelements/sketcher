@@ -293,25 +293,44 @@ export class InteriorPointOptimizer {
       // For each constraint, compute max alpha such that sign*c(x + alpha*step) < 0
       // using the linear approximation c(x + alpha*step) ≈ c(x) + alpha * J * step.
       {
-        const jacobian = this.problem.computeConstraintJacobian()
         const constraints = state.c
         const signs = state.signs
         const numEq = this.problem.numEqualityConstraints
         const tau = 0.995 // fraction-to-boundary parameter
         let alphaMax = 1.0
 
-        for (let i = numEq; i < constraints.length; i++) {
-          if (state.inactiveSet.has(i)) continue
-          const fi = signs[i] * constraints[i] // fi < 0 (feasible)
-          // Compute directional derivative: sign * J_i · step
-          let Jd = 0
-          for (let j = 0; j < step.length; j++) {
-            Jd += signs[i] * jacobian[i][j] * step[j]
+        // Sparse directional derivative J_i·step over each constraint's d+1 support
+        // (O(active·d)); fall back to the dense row scan when no local Jacobian.
+        const withLocal = this.problem as unknown as {
+          computeConstraintJacobianLocal?: () => { vars: number[]; vals: number[] }[] | null
+        }
+        const sparseRows = numEq === 0 && state.inactiveSet.size === 0
+          ? (withLocal.computeConstraintJacobianLocal?.() ?? null)
+          : null
+
+        if (sparseRows) {
+          for (let i = numEq; i < constraints.length; i++) {
+            const fi = signs[i] * constraints[i] // fi < 0 (feasible)
+            const r = sparseRows[i - numEq], sgn = signs[i]
+            let Jd = 0
+            for (let a = 0; a < r.vars.length; a++) Jd += sgn * r.vals[a] * step[r.vars[a]]
+            if (Jd > 0) alphaMax = Math.min(alphaMax, tau * ((-fi) / Jd))
           }
-          if (Jd > 0) {
-            // Step pushes toward constraint boundary
-            const alpha_i = (-fi) / Jd // how far until fi = 0
-            alphaMax = Math.min(alphaMax, tau * alpha_i)
+        } else {
+          const jacobian = this.problem.computeConstraintJacobian()
+          for (let i = numEq; i < constraints.length; i++) {
+            if (state.inactiveSet.has(i)) continue
+            const fi = signs[i] * constraints[i] // fi < 0 (feasible)
+            // Compute directional derivative: sign * J_i · step
+            let Jd = 0
+            for (let j = 0; j < step.length; j++) {
+              Jd += signs[i] * jacobian[i][j] * step[j]
+            }
+            if (Jd > 0) {
+              // Step pushes toward constraint boundary
+              const alpha_i = (-fi) / Jd // how far until fi = 0
+              alphaMax = Math.min(alphaMax, tau * alpha_i)
+            }
           }
         }
 
@@ -324,14 +343,14 @@ export class InteriorPointOptimizer {
       }
 
       // Evaluate step
-      const stepResult = this.evaluateStep(step)
+      const stepResult = this.evaluateStep(step, barrier.predictedReduction)
 
       // Apply Second-Order Correction if needed
       if (config.enableSOC && stepResult.violatesConstraints) {
         const socStep = this.secondOrderCorrection(step, stepResult.constraints)
         if (socStep) {
           step = socStep.step
-          const socResult = this.evaluateStep(step)
+          const socResult = this.evaluateStep(step, barrier.predictedReduction)
           if (!socResult.violatesConstraints) {
             // SOC fixed the constraints
             this.acceptStep(step, socResult, true)
@@ -435,7 +454,21 @@ export class InteriorPointOptimizer {
     const constraints = state.c
     const signs = state.signs
     const inactiveSet = state.inactiveSet
-    const jacobian = problem.computeConstraintJacobian()
+
+    // SPARSE assembly: when the problem exposes a per-constraint local Jacobian
+    // (open/closed planar B-spline, no equalities, nothing sliding), build the
+    // barrier gradient + Hessian from the d+1-wide support of each constraint
+    // (O(active·d²)) instead of scanning full-width DENSE rows (O(active·n) ⇒ O(n²)).
+    // Bit-identical: each (i,j) Hessian entry still sums over constraints in the same
+    // order, and sign²=1 is exact — the per-entry arithmetic matches the dense path.
+    const withLocal = problem as unknown as {
+      computeConstraintJacobianLocal?: () => { vars: number[]; vals: number[] }[] | null
+    }
+    const sparseRows = numEq === 0 && inactiveSet.size === 0
+      ? (withLocal.computeConstraintJacobianLocal?.() ?? null)
+      : null
+    const useSparse = sparseRows != null
+    const jacobian = useSparse ? ([] as Matrix) : problem.computeConstraintJacobian()
 
     // Compute barrier gradient: t * ∇f0
     const barrierGradient = scale(f0Gradient, t)
@@ -456,27 +489,43 @@ export class InteriorPointOptimizer {
     const activeJacobian: Matrix = []
     const activeSupports: number[][] = [] // nonzero columns per active row (only when IP_LOCALITY)
 
-    for (let i = numEq; i < constraints.length; i++) {
-      if (inactiveSet.has(i)) continue
-
-      const f = signs[i] * constraints[i]
-      if (f >= 0) {
-        // Constraint violated or at boundary - can't compute log barrier
-        return null
+    if (useSparse) {
+      // sparseRows[k] is the (signed-by-caller) Jacobian of active constraint k over
+      // its support. constraint index i = numEq + k (numEq = 0, nothing inactive).
+      for (let i = numEq; i < constraints.length; i++) {
+        const f = signs[i] * constraints[i]
+        if (f >= 0) return null // violated / at boundary — can't take the log barrier
+        activeF.push(f)
+        const r = sparseRows![i - numEq]
+        const sgn = signs[i]
+        const vars = r.vars, vals = r.vals
+        for (let a = 0; a < vars.length; a++) {
+          barrierGradient[vars[a]] += (-vals[a] * sgn) / f
+        }
       }
+    } else {
+      for (let i = numEq; i < constraints.length; i++) {
+        if (inactiveSet.has(i)) continue
 
-      activeF.push(f)
-      const scaledRow = jacobian[i].map((val) => val * signs[i])
-      activeJacobian.push(scaledRow)
-      if (IP_LOCALITY.enabled) {
-        const supp: number[] = []
-        for (let j = 0; j < n; j++) if (scaledRow[j] !== 0) supp.push(j)
-        activeSupports.push(supp)
-      }
+        const f = signs[i] * constraints[i]
+        if (f >= 0) {
+          // Constraint violated or at boundary - can't compute log barrier
+          return null
+        }
 
-      // Add barrier gradient contribution: -1/f * ∇f
-      for (let j = 0; j < n; j++) {
-        barrierGradient[j] += (-jacobian[i][j] * signs[i]) / f
+        activeF.push(f)
+        const scaledRow = jacobian[i].map((val) => val * signs[i])
+        activeJacobian.push(scaledRow)
+        if (IP_LOCALITY.enabled) {
+          const supp: number[] = []
+          for (let j = 0; j < n; j++) if (scaledRow[j] !== 0) supp.push(j)
+          activeSupports.push(supp)
+        }
+
+        // Add barrier gradient contribution: -1/f * ∇f
+        for (let j = 0; j < n; j++) {
+          barrierGradient[j] += (-jacobian[i][j] * signs[i]) / f
+        }
       }
     }
 
@@ -507,7 +556,21 @@ export class InteriorPointOptimizer {
     // Inequality constraints: Hessian += J^T * diag(1/f²) * J
     if (activeF.length > 0) {
       let jtDiagJ: Matrix
-      if (IP_LOCALITY.enabled) {
+      if (useSparse) {
+        // Sparse rank-1 accumulation over each constraint's d+1 support — same
+        // lower-triangle-then-mirror as the dense locality path, and bit-identical
+        // (di·row[j] = (vals_a·sgn·d)·(vals_b·sgn); sgn²=1 is exact). O(active·d²).
+        jtDiagJ = Array.from({ length: n }, () => new Array(n).fill(0))
+        for (let kk = 0; kk < sparseRows!.length; kk++) {
+          const r = sparseRows![kk], d = 1 / (activeF[kk] * activeF[kk]), sgn = signs[numEq + kk]
+          const vars = r.vars, vals = r.vals
+          for (let a = 0; a < vars.length; a++) {
+            const i = vars[a], di = (vals[a] * sgn) * d, Hi = jtDiagJ[i]
+            for (let b = 0; b < vars.length; b++) { const j = vars[b]; if (j <= i) Hi[j] += di * (vals[b] * sgn) }
+          }
+        }
+        for (let i = 0; i < n; i++) for (let j = 0; j < i; j++) jtDiagJ[j][i] = jtDiagJ[i][j] // mirror
+      } else if (IP_LOCALITY.enabled) {
         // Locality: accumulate each constraint's rank-1 update into its local
         // support block — lower triangle only, then mirror — to keep it BIT-IDENTICAL
         // to atDiagA (which is symmetric). O(active·d²) instead of O(active·n²).
@@ -906,7 +969,7 @@ export class InteriorPointOptimizer {
   // Step Evaluation
   // ==========================================================================
 
-  private evaluateStep(step: number[]): StepResult {
+  private evaluateStep(step: number[], predictedReduction: number): StepResult {
     const { state, problem } = this
 
     // Compute trial point
@@ -937,11 +1000,12 @@ export class InteriorPointOptimizer {
     // Compute rho (actual / predicted reduction of the barrier objective φ)
     // Boyd §11.5.2: compare actual vs predicted reduction of the same function
     // The Newton step minimizes φ(x) = t·f(x) - Σlog(-fᵢ(x)), so rho should
-    // use φ, not the raw objective f.
+    // use φ, not the raw objective f. predictedReduction is the model's predicted
+    // decrease at the CURRENT point (state.x) — supplied by the caller, which
+    // already built the barrier there. (Recomputing it here used to re-run the full
+    // dense Hessian assembly + solve at the trial point — 2-3× per inner iteration,
+    // the dominant drag cost — and evaluated the model at the wrong center.)
     const actualReduction = state.phi - trialPhi
-    const barrier = this.computeBarrier()
-    const predictedReduction = barrier ? barrier.predictedReduction : 0
-
     const rho = predictedReduction > 0 ? actualReduction / predictedReduction : 0
 
     // Restore original point

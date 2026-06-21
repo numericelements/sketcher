@@ -178,6 +178,20 @@ export interface PlanarCurvatureGradientLocal {
   cols: LocalGradientColumn[]
 }
 
+/** A closed-curve column: support spans WRAP the seam, so they're listed explicitly
+ *  (gx/gy gathered on `spans`, local index k ↔ span spans[k]) rather than a run s0.. */
+export interface PeriodicLocalColumn {
+  spans: number[]
+  gx: BernsteinDecomposition
+  gy: BernsteinDecomposition
+}
+export interface PlanarCurvatureGradientPeriodicLocal {
+  g: BernsteinDecomposition
+  gDeg: number
+  numSpans: number
+  cols: PeriodicLocalColumn[]
+}
+
 /**
  * Same exact Jacobian as curvatureExtremaGradientPlanar, but each column is left
  * in LOCAL form (its support spans only, no full-width padding). Lets callers
@@ -432,6 +446,34 @@ export function curvatureExtremaGradientPlanarPeriodicLocal(
   degree: number,
   seeds: PeriodicSeeds = precomputePeriodicSeeds(knots, degree, x.length),
 ): PlanarCurvatureGradient {
+  // Scatter the sparse (gathered-on-support-spans) columns back to full width — the
+  // non-support spans are structurally zero, so {dx,dy} is bit-identical to the dense
+  // oracle. Used where a full-width gradient is expected (the dense Jacobian path).
+  const { g, numSpans, cols } = curvatureExtremaGradientPlanarPeriodicLocalCols(x, y, knots, degree, seeds)
+  const spanDegree = g.degree
+  const dx: BernsteinDecomposition[] = []
+  const dy: BernsteinDecomposition[] = []
+  for (const col of cols) {
+    dx.push(scatterSpans(col.gx, col.spans, numSpans, spanDegree, g.breaks))
+    dy.push(scatterSpans(col.gy, col.spans, numSpans, spanDegree, g.breaks))
+  }
+  return { g, dx, dy }
+}
+
+/**
+ * Sparse (pre-scatter) periodic local gradient: per control point, the (wrapping)
+ * support spans and gx/gy gathered ON those spans — O(n·d²), no full-width columns.
+ * This is the primitive that lets the closed-curve drag build a SPARSE constraint
+ * Jacobian (and from it a band+seam Hessian) without ever materialising an O(n²)
+ * dense column. The dense {dx,dy} gradient above just scatters these back to width.
+ */
+export function curvatureExtremaGradientPlanarPeriodicLocalCols(
+  x: readonly number[],
+  y: readonly number[],
+  knots: readonly number[],
+  degree: number,
+  seeds: PeriodicSeeds = precomputePeriodicSeeds(knots, degree, x.length),
+): PlanarCurvatureGradientPeriodicLocal {
   const X1 = decomposeToBernsteinPeriodic(x, knots, degree).derivative()
   const Y1 = decomposeToBernsteinPeriodic(y, knots, degree).derivative()
   const X2 = X1.derivative()
@@ -460,11 +502,8 @@ export function curvatureExtremaGradientPlanarPeriodicLocal(
   const pX3 = normSq.multiply(Y1).scale(-1)
   const pY3 = normSq.multiply(X1)
 
-  const numSpans = seeds.numSpans
-  const spanDegree = g.degree
   const n = x.length
-  const dx: BernsteinDecomposition[] = []
-  const dy: BernsteinDecomposition[] = []
+  const cols: PeriodicLocalColumn[] = []
   for (let i = 0; i < n; i++) {
     const spans = seeds.spans[i]
     const n1 = seeds.n1[i]
@@ -476,10 +515,9 @@ export function curvatureExtremaGradientPlanarPeriodicLocal(
     const gy = gatherSpans(pY1, spans).multiply(n1)
       .add(gatherSpans(pY2, spans).multiply(n2))
       .add(gatherSpans(pY3, spans).multiply(n3))
-    dx.push(scatterSpans(gx, spans, numSpans, spanDegree, g.breaks))
-    dy.push(scatterSpans(gy, spans, numSpans, spanDegree, g.breaks))
+    cols.push({ spans, gx, gy })
   }
-  return { g, dx, dy }
+  return { g, gDeg: g.degree, numSpans: seeds.numSpans, cols }
 }
 
 /** Inflection numerator f = c′×c″ assembled over Duals. */

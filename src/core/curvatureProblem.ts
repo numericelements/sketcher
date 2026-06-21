@@ -16,6 +16,7 @@ import {
 import {
   curvatureExtremaGradientPlanar,
   curvatureExtremaGradientPlanarPeriodicLocal,
+  curvatureExtremaGradientPlanarPeriodicLocalCols,
   curvatureExtremaGradientPlanarLocal,
   inflectionGradientPlanar,
   inflectionGradientPlanarPeriodicLocal,
@@ -281,6 +282,7 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
   private fMargins: number[] = []
   private cachedCons: number[] | null = null
   private cachedJac: Matrix | null = null
+  private cachedLocalJac: { vars: number[]; vals: number[] }[] | null = null
   // Geometry-independent seeds for the periodic local gradient — depend only on
   // (knots, degree, n), so precompute ONCE here and reuse across every Jacobian
   // build of the drag (the curve moves ~50×/frame; the seeds never change).
@@ -473,6 +475,7 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
     this.cpY = x.slice(n)
     this.cachedCons = null
     this.cachedJac = null
+    this.cachedLocalJac = null
   }
 
   computeObjective(): number {
@@ -562,13 +565,45 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
    * number of control points. Open planar B-splines only (returns null otherwise).
    */
   computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] | null {
-    if (this.closed || this.preserveInflections) return null
-    const grad = curvatureExtremaGradientPlanarLocal(this.cpX, this.cpY, this.knots, this.degree, this.openSeeds ?? undefined)
-    const gDeg1 = grad.gDeg + 1
+    if (this.preserveInflections) return null
+    if (this.cachedLocalJac) return this.cachedLocalJac
     const n = this.cpX.length
     const activePos = new Map<number, number>()
     this.activeIdx.forEach((flat, k) => activePos.set(flat, k))
     const rows = this.activeIdx.map(() => ({ vars: [] as number[], vals: [] as number[] }))
+
+    if (this.closed) {
+      // Closed: support spans WRAP the seam, so iterate the explicit span list of
+      // each sparse periodic column. O(n·d²), no full-width column ever built.
+      const grad = curvatureExtremaGradientPlanarPeriodicLocalCols(
+        this.cpX, this.cpY, this.knots, this.degree, this.periodicSeeds ?? undefined,
+      )
+      const gDeg1 = grad.gDeg + 1
+      for (let i = 0; i < n; i++) {
+        const col = grad.cols[i]
+        const gxc = col.gx.coeffs, gyc = col.gy.coeffs
+        for (let ls = 0; ls < col.spans.length; ls++) {
+          const s = col.spans[ls]
+          for (let c = 0; c <= grad.gDeg; c++) {
+            const k = activePos.get(s * gDeg1 + c)
+            if (k === undefined) continue
+            // Divide (not multiply by 1/scale) to stay BIT-identical to the dense
+            // jacRows path — the closed seam drag is near-singular, so a 1-ULP change
+            // reshuffles which valid feasible point is reached.
+            const sc = this.gScale[k]
+            const vx = gxc[ls][c], vy = gyc[ls][c]
+            if (vx !== 0) { rows[k].vars.push(i); rows[k].vals.push(vx / sc) }
+            if (vy !== 0) { rows[k].vars.push(n + i); rows[k].vals.push(vy / sc) }
+          }
+        }
+      }
+      sortRowsByVar(rows)
+      this.cachedLocalJac = rows
+      return rows
+    }
+
+    const grad = curvatureExtremaGradientPlanarLocal(this.cpX, this.cpY, this.knots, this.degree, this.openSeeds ?? undefined)
+    const gDeg1 = grad.gDeg + 1
     for (let i = 0; i < n; i++) {
       const col = grad.cols[i]
       if (col.s0 < 0) continue
@@ -587,6 +622,8 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
         }
       }
     }
+    sortRowsByVar(rows)
+    this.cachedLocalJac = rows
     return rows
   }
   getConstraintSigns(): number[] {
@@ -606,6 +643,23 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
     }
     this.cachedCons = null
     this.cachedJac = null
+    this.cachedLocalJac = null
+  }
+}
+
+/**
+ * Sort each sparse Jacobian row's (vars, vals) by ascending variable index, in place.
+ * The gradient/Hessian accumulation is order-independent (each variable gets one
+ * contribution per constraint), but a fraction-to-boundary directional derivative
+ * Jᵢ·step is a SUM over the support — summing in ascending index order makes it
+ * bit-identical to the dense j=0…n scan (the skipped zeros are exact no-ops), which
+ * matters on the near-singular closed seam drag where 1 ULP reshuffles the result.
+ */
+function sortRowsByVar(rows: { vars: number[]; vals: number[] }[]): void {
+  for (const r of rows) {
+    const order = r.vars.map((_, k) => k).sort((p, q) => r.vars[p] - r.vars[q])
+    r.vars = order.map((k) => r.vars[k])
+    r.vals = order.map((k) => r.vals[k])
   }
 }
 
