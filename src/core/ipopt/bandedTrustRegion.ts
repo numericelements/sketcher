@@ -15,7 +15,7 @@
 import type { Matrix, TrustRegionResult } from './linearAlgebra'
 import { doglegFromParts, dot } from './linearAlgebra'
 import { type SymBand, symBandZero, symBandClone, ldlFactorBand, ldlSolveBand, symBandMatVec } from '../banded'
-import { denseToArrowhead, arrowheadQuadForm, solveArrowhead, arrowheadApply } from '../cyclic'
+import { type Arrowhead, denseToArrowhead, arrowheadQuadForm, solveArrowhead, arrowheadApply } from '../cyclic'
 
 /**
  * One step of iterative refinement for the arrowhead solve x ≈ M⁻¹ rhs. The
@@ -84,21 +84,38 @@ export function solveTrustRegionBanded(
   nCP: number,
   b: number,
 ): TrustRegionResult {
+  return doglegFromBand(gradient, denseToSymBandInterleaved(hessian, nCP, b), delta, regularization, nCP)
+}
+
+/**
+ * Dogleg trust-region step from a PRE-BUILT interleaved band `M` (the barrier can
+ * assemble it directly from the sparse rank-1 updates, skipping the dense O(n²)
+ * matrix). `M` is left UNFACTORED (a clone is factored), so the same band can also
+ * feed the Newton-decrement solve. Same step as the dense path.
+ */
+export function doglegFromBand(
+  gradient: number[],
+  M: SymBand,
+  delta: number,
+  regularization: number,
+  nCP: number,
+): TrustRegionResult {
   const n = gradient.length
   // Permute the gradient to interleaved order.
   const gP = new Array<number>(n)
   for (let v = 0; v < n; v++) gP[toInterleaved(v, nCP)] = gradient[v]
 
-  // Band WITHOUT regularization first, so gᵀHg matches the dense quadraticForm
-  // (the dense Cholesky adds reg only inside the factorization, not to the matrix).
-  const M = denseToSymBandInterleaved(hessian, nCP, b)
-  const gHg = dot(gP, symBandMatVec(M, gP)) // before factoring (matvec needs the raw band)
+  // gᵀHg from the UNFACTORED band (the dense Cholesky adds reg only inside the
+  // factorization, not to the matrix).
+  const gHg = dot(gP, symBandMatVec(M, gP))
 
-  // Factor with PER-PIVOT regularization (matches the dense Cholesky's stabilization).
+  // Factor a CLONE (preserve M for any other solve on the same barrier) with
+  // PER-PIVOT regularization (matches the dense Cholesky's stabilization).
   let newtonStep: number[] | null = null
-  if (ldlFactorBand(M, 1e-300, regularization)) {
+  const fac = symBandClone(M)
+  if (ldlFactorBand(fac, 1e-300, regularization)) {
     const negGP = gP.map((v) => -v)
-    const stepP = ldlSolveBand(M, negGP)
+    const stepP = ldlSolveBand(fac, negGP)
     newtonStep = new Array<number>(n)
     for (let v = 0; v < n; v++) newtonStep[v] = stepP[toInterleaved(v, nCP)]
   }
@@ -120,23 +137,38 @@ export function solveTrustRegionArrowhead(
   nCP: number,
   b: number,
 ): TrustRegionResult {
+  return doglegFromArrowhead(gradient, denseToArrowhead(hessian, nCP, b), delta, regularization, nCP)
+}
+
+/**
+ * Dogleg trust-region step from a PRE-BUILT arrowhead `ah` (band + seam), assembled
+ * directly from the sparse rank-1 updates without a dense O(n²) matrix. `ah.band` is
+ * left UNFACTORED (a clone is factored), so the same arrowhead also feeds the
+ * Newton-decrement solve. Same step as the dense path.
+ */
+export function doglegFromArrowhead(
+  gradient: number[],
+  ah: Arrowhead,
+  delta: number,
+  regularization: number,
+  nCP: number,
+): TrustRegionResult {
   const n = gradient.length
-  const ah = denseToArrowhead(hessian, nCP, b)
   const gHg = arrowheadQuadForm(ah, gradient, nCP) // band unfactored
-  const bandUnfac = symBandClone(ah.band) // keep for iterative refinement
+  const fac = symBandClone(ah.band) // factor a clone; preserve ah.band for refinement + reuse
   let newtonStep: number[] | null = null
-  if (ldlFactorBand(ah.band, 1e-300, regularization)) {
+  if (ldlFactorBand(fac, 1e-300, regularization)) {
     const negGP = new Array<number>(n)
     for (let v = 0; v < n; v++) negGP[toInterleaved(v, nCP)] = -gradient[v]
-    let stepP = solveArrowhead(ah.band, ah.seam, ah.eSS, negGP)
-    stepP = refineArrowhead(bandUnfac, regularization, ah.band, ah.seam, ah.eSS, negGP, stepP)
+    let stepP = solveArrowhead(fac, ah.seam, ah.eSS, negGP)
+    stepP = refineArrowhead(ah.band, regularization, fac, ah.seam, ah.eSS, negGP, stepP)
     newtonStep = new Array<number>(n)
     for (let v = 0; v < n; v++) newtonStep[v] = stepP[toInterleaved(v, nCP)]
   }
   return doglegFromParts(gradient, newtonStep, gHg, delta)
 }
 
-/** Newton-decrement solve H·x = rhs for the closed (arrowhead) Hessian. */
+/** Newton-decrement solve H·x = rhs for the closed (arrowhead) Hessian (dense in). */
 export function solveArrowheadSPD(
   hessian: Matrix,
   rhs: number[],
@@ -144,14 +176,23 @@ export function solveArrowheadSPD(
   nCP: number,
   b: number,
 ): number[] | null {
+  return spdFromArrowhead(denseToArrowhead(hessian, nCP, b), rhs, regularization, nCP)
+}
+
+/** Newton-decrement solve from a PRE-BUILT arrowhead (ah.band preserved). */
+export function spdFromArrowhead(
+  ah: Arrowhead,
+  rhs: number[],
+  regularization: number,
+  nCP: number,
+): number[] | null {
   const n = rhs.length
-  const ah = denseToArrowhead(hessian, nCP, b)
-  const bandUnfac = symBandClone(ah.band)
-  if (!ldlFactorBand(ah.band, 1e-300, regularization)) return null
+  const fac = symBandClone(ah.band)
+  if (!ldlFactorBand(fac, 1e-300, regularization)) return null
   const rP = new Array<number>(n)
   for (let v = 0; v < n; v++) rP[toInterleaved(v, nCP)] = rhs[v]
-  let xP = solveArrowhead(ah.band, ah.seam, ah.eSS, rP)
-  xP = refineArrowhead(bandUnfac, regularization, ah.band, ah.seam, ah.eSS, rP, xP)
+  let xP = solveArrowhead(fac, ah.seam, ah.eSS, rP)
+  xP = refineArrowhead(ah.band, regularization, fac, ah.seam, ah.eSS, rP, xP)
   const x = new Array<number>(n)
   for (let v = 0; v < n; v++) x[v] = xP[toInterleaved(v, nCP)]
   return x
@@ -169,12 +210,22 @@ export function solveBandedSPD(
   nCP: number,
   b: number,
 ): number[] | null {
+  return spdFromBand(denseToSymBandInterleaved(hessian, nCP, b), rhs, regularization, nCP)
+}
+
+/** Newton-decrement solve from a PRE-BUILT interleaved band (M preserved). */
+export function spdFromBand(
+  M: SymBand,
+  rhs: number[],
+  regularization: number,
+  nCP: number,
+): number[] | null {
   const n = rhs.length
-  const M = denseToSymBandInterleaved(hessian, nCP, b)
-  if (!ldlFactorBand(M, 1e-300, regularization)) return null
+  const fac = symBandClone(M)
+  if (!ldlFactorBand(fac, 1e-300, regularization)) return null
   const rP = new Array<number>(n)
   for (let v = 0; v < n; v++) rP[toInterleaved(v, nCP)] = rhs[v]
-  const xP = ldlSolveBand(M, rP)
+  const xP = ldlSolveBand(fac, rP)
   const x = new Array<number>(n)
   for (let v = 0; v < n; v++) x[v] = xP[toInterleaved(v, nCP)]
   return x

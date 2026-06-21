@@ -510,6 +510,19 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
     }
     return H
   }
+  /** Diagonal of the (diagonal) objective Hessian, block order [x₀…,y₀…] — O(n).
+   *  Lets the banded barrier add the objective term without materialising the dense
+   *  n×n matrix that computeObjectiveHessian + matScale would. */
+  computeObjectiveHessianDiagonal(): number[] {
+    const m = this.cpX.length
+    const aw = this.anchorWeight
+    const d = new Array<number>(2 * m)
+    for (let i = 0; i < m; i++) {
+      d[i] = this.weights[i] + aw
+      d[m + i] = this.weights[i] + aw
+    }
+    return d
+  }
 
   get numConstraints(): number {
     return this.activeIdx.length + (this.preserveInflections ? this.fActiveIdx.length : 0)

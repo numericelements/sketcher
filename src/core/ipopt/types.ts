@@ -91,6 +91,14 @@ export interface OptimizationProblem {
   computeObjectiveHessian?(): Matrix
 
   /**
+   * Diagonal of the objective Hessian in variable order — O(n), no dense matrix.
+   * Only meaningful when the objective Hessian is diagonal (the least-squares drag).
+   * Lets the banded barrier assemble the band directly without materialising the
+   * dense n×n. If absent, the banded direct-build path falls back to the dense one.
+   */
+  computeObjectiveHessianDiagonal?(): number[]
+
+  /**
    * Compute the weighted sum of constraint Hessians: Σ wᵢ·∇²cᵢ(x).
    * weights[i] corresponds to constraint i (same order as computeConstraints).
    * If not provided, constraint Hessians are assumed zero (Gauss-Newton only).

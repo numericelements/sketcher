@@ -43,7 +43,9 @@ import {
   solveTrustRegion,
   minNormSolve,
 } from './linearAlgebra'
-import { solveTrustRegionBanded, solveBandedSPD, solveTrustRegionArrowhead, solveArrowheadSPD } from './bandedTrustRegion'
+import { solveTrustRegionBanded, solveBandedSPD, solveTrustRegionArrowhead, solveArrowheadSPD, doglegFromArrowhead, doglegFromBand, spdFromArrowhead, spdFromBand } from './bandedTrustRegion'
+import { type SymBand, symBandZero } from '../banded'
+import { type Arrowhead, toInterleaved, toBlock } from '../cyclic'
 import { minNormSolveSparse } from './sparseSym'
 
 import type {
@@ -280,12 +282,17 @@ export class InteriorPointOptimizer {
       }
 
       // Compute Newton step using trust region (banded LDLᵀ when the Hessian is
-      // banded in interleaved order — same dogleg, O(n·b²) instead of O(n³)).
-      const trustResult = !this.bandedEnabled
-        ? solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization)
-        : this.hasSeam
-          ? solveTrustRegionArrowhead(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
-          : solveTrustRegionBanded(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
+      // banded in interleaved order — same dogleg, O(n·b²) instead of O(n³)). When the
+      // barrier already assembled the band directly, reuse it (no dense re-extract).
+      const trustResult = barrier.prebuilt
+        ? (this.hasSeam
+            ? doglegFromArrowhead(gradient, barrier.prebuilt, state.delta, config.hessianRegularization, this.nCP)
+            : doglegFromBand(gradient, barrier.prebuilt.band, state.delta, config.hessianRegularization, this.nCP))
+        : !this.bandedEnabled
+          ? solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization)
+          : this.hasSeam
+            ? solveTrustRegionArrowhead(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
+            : solveTrustRegionBanded(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
       let step = trustResult.step
 
       // Fraction-to-boundary rule: scale step to maintain strict feasibility.
@@ -443,6 +450,10 @@ export class InteriorPointOptimizer {
     hessian: Matrix
     predictedReduction: number
     newtonDecrementSq: number
+    /** Pre-built interleaved band Hessian, assembled directly from the sparse rank-1
+     *  updates (no dense n×n). When present the caller solves with this instead of
+     *  re-extracting from `hessian` (which is left empty). `seam` empty ⇒ open band. */
+    prebuilt?: Arrowhead
   } | null {
     const { state, problem, config } = this
     const n = problem.numVariables
@@ -526,6 +537,28 @@ export class InteriorPointOptimizer {
         for (let j = 0; j < n; j++) {
           barrierGradient[j] += (-jacobian[i][j] * signs[i]) / f
         }
+      }
+    }
+
+    // DIRECT BAND BUILD: when the inner solve is banded (no equalities), the
+    // objective Hessian is diagonal (Gauss-Newton, no BFGS), and we have the sparse
+    // rows, assemble the interleaved band (+ seam block, closed) DIRECTLY from the
+    // rank-1 updates — no dense n×n matrix, no matScale/alloc/mirror/add, no
+    // denseToArrowhead. Bit-identical to the dense path (same per-entry value &
+    // accumulation order; the objective diagonal is added last — addition commutes).
+    if (useSparse && this.bandedEnabled && !config.enableBFGS && problem.computeObjectiveHessianDiagonal) {
+      const objDiag = problem.computeObjectiveHessianDiagonal()
+      const ah = this.assembleBandedBarrier(sparseRows!, activeF, signs, numEq, objDiag, t)
+      const negStep = this.hasSeam
+        ? spdFromArrowhead(ah, barrierGradient, config.hessianRegularization, this.nCP)
+        : spdFromBand(ah.band, barrierGradient, config.hessianRegularization, this.nCP)
+      const predictedReduction = negStep ? dot(barrierGradient, negStep) : 0
+      return {
+        gradient: barrierGradient,
+        hessian: [],
+        prebuilt: ah,
+        predictedReduction,
+        newtonDecrementSq: Math.max(0, predictedReduction),
       }
     }
 
@@ -627,6 +660,71 @@ export class InteriorPointOptimizer {
       predictedReduction,
       newtonDecrementSq,
     }
+  }
+
+  /**
+   * Assemble the barrier Hessian directly as an interleaved band (+ low-rank seam
+   * block for a closed curve) from the sparse rank-1 constraint updates — never a
+   * dense n×n. The VALUE of each entry is computed in BLOCK order exactly as the
+   * dense `jtDiagJ` did (so the rounding matches), then stored at its INTERLEAVED
+   * band/seam position; the objective-Hessian diagonal is added last (addition
+   * commutes). Result is bit-identical to denseToArrowhead(dense barrier Hessian).
+   */
+  private assembleBandedBarrier(
+    sparseRows: { vars: number[]; vals: number[] }[],
+    activeF: number[],
+    signs: number[],
+    numEq: number,
+    objDiag: number[],
+    t: number,
+  ): Arrowhead {
+    const nCP = this.nCP
+    const b = this.bandwidth
+    const n = 2 * nCP
+    const band: SymBand = symBandZero(n, b)
+    const corner = new Map<number, number>() // seam entries, packed key I*n+J (I>J)
+    const seamSet = new Set<number>()
+
+    for (let kk = 0; kk < sparseRows.length; kk++) {
+      const r = sparseRows[kk], d = 1 / (activeF[kk] * activeF[kk]), sgn = signs[numEq + kk]
+      const vars = r.vars, vals = r.vals
+      for (let a = 0; a < vars.length; a++) {
+        const i = vars[a], di = (vals[a] * sgn) * d
+        const Ii = toInterleaved(i, nCP)
+        for (let bb = 0; bb < vars.length; bb++) {
+          const j = vars[bb]
+          if (j > i) continue // block lower triangle, matching the dense jtDiagJ guard
+          const val = di * (vals[bb] * sgn)
+          const Ij = toInterleaved(j, nCP)
+          const I = Ii > Ij ? Ii : Ij
+          const J = Ii > Ij ? Ij : Ii
+          const p = I - J
+          if (p <= b) band.low[I][p] += val
+          else {
+            const key = I * n + J
+            corner.set(key, (corner.get(key) ?? 0) + val)
+            seamSet.add(I); seamSet.add(J)
+          }
+        }
+      }
+    }
+
+    // Objective Hessian diagonal (t·diag), added last — commutes with the sums above.
+    for (let I = 0; I < n; I++) band.low[I][0] += t * objDiag[toBlock(I, nCP)]
+
+    // Build the dense s×s seam block from the corner entries (as denseToArrowhead).
+    const seam = [...seamSet].sort((p, q) => p - q)
+    const idx = new Map<number, number>(seam.map((v, k) => [v, k]))
+    const s = seam.length
+    const eSS: number[][] = Array.from({ length: s }, () => new Array<number>(s).fill(0))
+    for (const [key, v] of corner) {
+      const I = Math.floor(key / n)
+      const J = key - I * n
+      const ia = idx.get(I)!, ib = idx.get(J)!
+      eSS[ia][ib] += v
+      eSS[ib][ia] += v
+    }
+    return { band, seam, eSS }
   }
 
   // ==========================================================================
