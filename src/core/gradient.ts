@@ -184,31 +184,21 @@ export interface PlanarCurvatureGradientLocal {
  * assemble JᵀDJ in O(n·d²) instead of paying O(n·numSpans) per column — the key
  * to a linear-in-#control-points interior-point step. Open (clamped) curves only.
  */
-export function curvatureExtremaGradientPlanarLocal(
-  x: readonly number[],
-  y: readonly number[],
-  knots: readonly number[],
-  degree: number,
-): PlanarCurvatureGradientLocal {
-  const X1 = decomposeToBernstein(x, knots, degree).derivative()
-  const Y1 = decomposeToBernstein(y, knots, degree).derivative()
-  const X2 = X1.derivative()
-  const Y2 = Y1.derivative()
-  const X3 = X2.derivative()
-  const Y3 = Y2.derivative()
+/**
+ * Geometry-INDEPENDENT part of the OPEN local gradient: for each control point its
+ * contiguous support range [s0,s1) and the seed Dirac derivatives Nᵢ′,Nᵢ″,Nᵢ‴
+ * gathered on it. Depends only on (knots, degree, n) — precompute ONCE per drag and
+ * reuse across every Jacobian build (the open analogue of precomputePeriodicSeeds).
+ */
+export interface OpenSeeds {
+  numSpans: number
+  cols: { s0: number; s1: number; n1: BernsteinDecomposition; n2: BernsteinDecomposition; n3: BernsteinDecomposition }[]
+}
 
-  const g = gOverDuals(
-    new Dual(X1, zeroLike(X1)),
-    new Dual(Y1, zeroLike(Y1)),
-    new Dual(X2, zeroLike(X2)),
-    new Dual(Y2, zeroLike(Y2)),
-    new Dual(X3, zeroLike(X3)),
-    new Dual(Y3, zeroLike(Y3)),
-  ).v
-
-  const n = x.length
-  const empty = new BernsteinDecomposition([], [])
-  const cols: LocalGradientColumn[] = []
+export function precomputeOpenSeeds(knots: readonly number[], degree: number, n: number): OpenSeeds {
+  const probe = decomposeToBernstein(new Array<number>(n).fill(0), knots, degree)
+  const numSpans = probe.numSpans
+  const cols: OpenSeeds['cols'] = []
   for (let i = 0; i < n; i++) {
     const e = new Array<number>(n).fill(0)
     e[i] = 1
@@ -222,35 +212,72 @@ export function curvatureExtremaGradientPlanarLocal(
       }
     }
     if (s0 < 0) {
-      cols.push({ s0: -1, gx: empty, gy: empty })
+      const empty = new BernsteinDecomposition([], [])
+      cols.push({ s0: -1, s1: -1, n1: empty, n2: empty, n3: empty })
       continue
     }
     s1 += 1
-    const Ni1 = Ni.derivative().subset(s0, s1)
-    const Ni2 = Ni.derivative().derivative().subset(s0, s1)
-    const Ni3 = Ni.derivative().derivative().derivative().subset(s0, s1)
-    const x1 = X1.subset(s0, s1)
-    const y1 = Y1.subset(s0, s1)
-    const x2 = X2.subset(s0, s1)
-    const y2 = Y2.subset(s0, s1)
-    const x3 = X3.subset(s0, s1)
-    const y3 = Y3.subset(s0, s1)
-    const gx = gOverDuals(
-      new Dual(x1, Ni1),
-      new Dual(y1, zeroLike(y1)),
-      new Dual(x2, Ni2),
-      new Dual(y2, zeroLike(y2)),
-      new Dual(x3, Ni3),
-      new Dual(y3, zeroLike(y3)),
-    ).t
-    const gy = gOverDuals(
-      new Dual(x1, zeroLike(x1)),
-      new Dual(y1, Ni1),
-      new Dual(x2, zeroLike(x2)),
-      new Dual(y2, Ni2),
-      new Dual(x3, zeroLike(x3)),
-      new Dual(y3, Ni3),
-    ).t
+    const d1 = Ni.derivative()
+    const d2 = d1.derivative()
+    cols.push({ s0, s1, n1: d1.subset(s0, s1), n2: d2.subset(s0, s1), n3: d2.derivative().subset(s0, s1) })
+  }
+  return { numSpans, cols }
+}
+
+/**
+ * Local (B-spline-locality) version of the OPEN planar curvature-extrema gradient.
+ * Rewritten to the same O(n·d²) pattern as the periodic local gradient: the value
+ * polynomials and the analytic partials ∂g/∂{X1..Y3} are computed ONCE per build
+ * (hoisted out of the per-control-point loop), and each column reuses the cached
+ * seed derivatives. The previous version rebuilt the seed (decomposeToBernstein of
+ * a Dirac, O(n)) AND re-ran the full forward-AD per control point — making it
+ * O(n²); this makes it linear, which is what the banded drag needs. Pass `seeds`
+ * (precomputeOpenSeeds) to skip the geometry-independent rebuild every call.
+ */
+export function curvatureExtremaGradientPlanarLocal(
+  x: readonly number[],
+  y: readonly number[],
+  knots: readonly number[],
+  degree: number,
+  seeds: OpenSeeds = precomputeOpenSeeds(knots, degree, x.length),
+): PlanarCurvatureGradientLocal {
+  const X1 = decomposeToBernstein(x, knots, degree).derivative()
+  const Y1 = decomposeToBernstein(y, knots, degree).derivative()
+  const X2 = X1.derivative()
+  const Y2 = Y1.derivative()
+  const X3 = X2.derivative()
+  const Y3 = Y2.derivative()
+
+  // Shared value polynomials + analytic partials, hoisted once (same as the
+  // periodic local gradient). g = ‖c′‖²(c′×c‴) − 3(c′·c″)(c′×c″).
+  const cross1 = X1.multiply(Y2).subtract(Y1.multiply(X2))
+  const dotP = X1.multiply(X2).add(Y1.multiply(Y2))
+  const cross2 = X1.multiply(Y3).subtract(Y1.multiply(X3))
+  const normSq = X1.multiply(X1).add(Y1.multiply(Y1))
+  const g = normSq.multiply(cross2).subtract(dotP.multiply(cross1).scale(3))
+  const pX1 = X1.scale(2).multiply(cross2).add(normSq.multiply(Y3)).subtract(X2.multiply(cross1).add(dotP.multiply(Y2)).scale(3))
+  const pY1 = Y1.scale(2).multiply(cross2).subtract(normSq.multiply(X3)).subtract(Y2.multiply(cross1).subtract(dotP.multiply(X2)).scale(3))
+  const pX2 = X1.multiply(cross1).subtract(dotP.multiply(Y1)).scale(-3)
+  const pY2 = Y1.multiply(cross1).add(dotP.multiply(X1)).scale(-3)
+  const pX3 = normSq.multiply(Y1).scale(-1)
+  const pY3 = normSq.multiply(X1)
+
+  const n = x.length
+  const empty = new BernsteinDecomposition([], [])
+  const cols: LocalGradientColumn[] = []
+  for (let i = 0; i < n; i++) {
+    const sd = seeds.cols[i]
+    if (sd.s0 < 0) {
+      cols.push({ s0: -1, gx: empty, gy: empty })
+      continue
+    }
+    const { s0, s1, n1, n2, n3 } = sd
+    const gx = pX1.subset(s0, s1).multiply(n1)
+      .add(pX2.subset(s0, s1).multiply(n2))
+      .add(pX3.subset(s0, s1).multiply(n3))
+    const gy = pY1.subset(s0, s1).multiply(n1)
+      .add(pY2.subset(s0, s1).multiply(n2))
+      .add(pY3.subset(s0, s1).multiply(n3))
     cols.push({ s0, gx, gy })
   }
   return { g, gDeg: g.degree, numSpans: g.numSpans, cols }

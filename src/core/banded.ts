@@ -76,6 +76,11 @@ export function ldlFactorBand(M: SymBand, minPivot = 1e-300, ridge = 0): boolean
 }
 
 /** Solve M x = rhs given an LDLᵀ-factored band (factor in place first). */
+/** Deep copy of a SymBand (so a matvec can run before an in-place factorization). */
+export function symBandClone(M: SymBand): SymBand {
+  return { n: M.n, b: M.b, low: M.low.map((r) => r.slice()) }
+}
+
 /** y = M·x for a symmetric banded M, reconstructing the full product from the
  *  stored lower band. MUST be called BEFORE ldlFactorBand (which overwrites the
  *  band in place with its LDLᵀ factors). O(n·b). */

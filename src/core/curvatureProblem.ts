@@ -20,8 +20,9 @@ import {
   inflectionGradientPlanar,
   inflectionGradientPlanarPeriodicLocal,
   precomputePeriodicSeeds,
+  precomputeOpenSeeds,
 } from './gradient'
-import type { PeriodicSeeds } from './gradient'
+import type { PeriodicSeeds, OpenSeeds } from './gradient'
 import type { BernsteinDecomposition } from './bernstein'
 import type { PlanarCurvatureGradient } from './gradient'
 
@@ -284,6 +285,9 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
   // (knots, degree, n), so precompute ONCE here and reuse across every Jacobian
   // build of the drag (the curve moves ~50×/frame; the seeds never change).
   private periodicSeeds: PeriodicSeeds | null = null
+  // Geometry-independent seeds for the OPEN local gradient — same idea as
+  // periodicSeeds, precomputed once so each Jacobian build is O(n·d²) not O(n²).
+  private openSeeds: OpenSeeds | null = null
 
   constructor(
     cpX: readonly number[],
@@ -332,6 +336,7 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
     this.degree = degree
     this.closed = opts.closed ?? false
     if (this.closed) this.periodicSeeds = precomputePeriodicSeeds(this.knots, this.degree, this.cpX.length)
+    else this.openSeeds = precomputeOpenSeeds(this.knots, this.degree, this.cpX.length)
     this.targetX = [...cpX]
     this.targetY = [...cpY]
     this.targetX[dragIndex] = targetX
@@ -543,7 +548,7 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
    */
   computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] | null {
     if (this.closed || this.preserveInflections) return null
-    const grad = curvatureExtremaGradientPlanarLocal(this.cpX, this.cpY, this.knots, this.degree)
+    const grad = curvatureExtremaGradientPlanarLocal(this.cpX, this.cpY, this.knots, this.degree, this.openSeeds ?? undefined)
     const gDeg1 = grad.gDeg + 1
     const n = this.cpX.length
     const activePos = new Map<number, number>()
