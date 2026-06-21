@@ -742,13 +742,24 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       }
     }
 
-    // Open planar B-splines run on the core/ engine: the scaled-robust banded
-    // interior-point solver (O(n) cached-seed gradient + banded LDLᵀ). It's
-    // bound-faithful (per-solve identical to the dense robust solver) and far faster
-    // on larger curves — measured ~6.8× vs the original dense at 180 control points.
-    // Closed b-splines, rational, and symmetry-reduced drags stay on the legacy
-    // optimizer below until core covers those conventions.
-    if (preserveCurvatureExtrema && curve.kind === 'bspline' && !curve.closed && !symmetryMaps) {
+    // Planar B-splines run on the core/ engine: the scaled-robust banded
+    // interior-point solver (O(n) cached-seed gradient + banded LDLᵀ for open; band +
+    // low-rank seam "arrowhead" solve for closed). Bound-faithful (per-solve identical
+    // to the dense robust solver) and far faster on larger curves — ~6.8× open at 180
+    // CPs; ~3× closed at 320 CPs after the sparse-assembly work. Closed routes only on
+    // a CLEAN periodic knot vector (n strictly-increasing knots in [0,1), period 1 —
+    // core's smooth-periodic model); the C⁰ junction/cusp convention and rational /
+    // symmetry-reduced drags stay on the legacy optimizer below.
+    const cleanPeriodic =
+      curve.kind === 'bspline' && curve.closed &&
+      curve.knots.length === curve.controlPoints.length &&
+      curve.knots[0] < 1e-9 && // period-1 domain starting at 0 (core's wrap = first + 1)
+      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
+      curve.knots[curve.knots.length - 1] < 1
+    if (
+      preserveCurvatureExtrema && curve.kind === 'bspline' && !symmetryMaps &&
+      (!curve.closed || cleanPeriodic)
+    ) {
       try {
         const pts = curve.controlPoints as Point2D[]
         const cpX = pts.map((p) => p.x)
@@ -758,6 +769,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           bandedSolve: true,
           maxIterations: 20,
           enableBFGS: false,
+          ...(curve.closed ? { closed: true } : {}),
           ...(preserveInflections ? { preserveInflections } : {}),
           ...(disableSliding ? { disableSliding } : {}),
           ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
