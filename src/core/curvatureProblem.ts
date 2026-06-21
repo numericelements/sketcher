@@ -526,16 +526,31 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
   computeConstraintJacobian(): Matrix {
     // Divide each constraint row by its (floored) scale — matches computeConstraints.
     if (!this.cachedJac) {
-      const rows = this.jacRows(this.gradient(), this.activeIdx).map((row, k) =>
-        row.map((v) => v / this.gScale[k]),
-      )
-      if (this.preserveInflections) {
-        const fRows = this.jacRows(this.inflectionGrad(), this.fActiveIdx).map((row, k) =>
-          row.map((v) => v / this.fScale[k]),
+      // Fast path (open, no inflection): scatter the O(n) cached-seed LOCAL gradient
+      // into full-width rows instead of computing the dense O(n²) gradient. Same
+      // numbers (gScale already applied in the local rows), ~15× cheaper at n=180 —
+      // the assembly cost that dominated the drag. Closed/inflection keep the dense
+      // gradient path below.
+      const local = this.computeConstraintJacobianLocal()
+      if (local) {
+        const w = this.numVariables
+        this.cachedJac = local.map((r) => {
+          const row = new Array<number>(w).fill(0)
+          for (let a = 0; a < r.vars.length; a++) row[r.vars[a]] = r.vals[a]
+          return row
+        })
+      } else {
+        const rows = this.jacRows(this.gradient(), this.activeIdx).map((row, k) =>
+          row.map((v) => v / this.gScale[k]),
         )
-        rows.push(...fRows)
+        if (this.preserveInflections) {
+          const fRows = this.jacRows(this.inflectionGrad(), this.fActiveIdx).map((row, k) =>
+            row.map((v) => v / this.fScale[k]),
+          )
+          rows.push(...fRows)
+        }
+        this.cachedJac = rows
       }
-      this.cachedJac = rows
     }
     return this.cachedJac
   }
