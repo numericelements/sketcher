@@ -194,11 +194,26 @@ assembly dominates the O(n³) solve we removed. So the banded solve is the valid
 1. ✅ **DONE — the well-conditioned bound-faithful regime + faithful banded solve** (Step 1c).
    The keystone reconciliation is solved and validated; banded ipopt is faithful + per-solve
    identical to dense. Behind the `bandedSolve` flag (default off) pending the assembly work.
-2. **Banded/sparse ASSEMBLY in the ipopt inner loop (the actual speedup lever).** Replace the
-   dense n×n Hessian build + dense `computeConstraintJacobian` (in the Hessian assembly, the
-   fraction-to-boundary loop, and SOC) with the LOCAL sparse Jacobian
-   (`computeConstraintJacobianLocal`) and a `SymBand` Hessian, so per-iteration cost is
-   O(n·b²) end-to-end. THEN banded ipopt becomes genuinely linear and the flag can default on.
+2. ✅ **DONE — cheap assembly (the actual speedup).** Profiling found the per-iteration
+   bottleneck was the curvature-GRADIENT computation, not the solve or the matrix format:
+   the OPEN local gradient was O(n²) (rebuilt the per-CP Dirac seed + re-ran the full AD
+   every build). Fixed by caching the geometry-independent seeds (`precomputeOpenSeeds`) and
+   hoisting the analytic partials — `computeConstraintJacobianLocal` went 28.5→2.2 ms at
+   n=180 (~13×, now ~linear; oracle `openLocalGradient.test.ts`). `computeConstraintJacobian`
+   now scatters that O(n) local gradient instead of computing the dense O(n²) one.
+   Measured `slideCurve` (ipopt, n=180): **dense 5068→1664 ms (3×); banded 4198→749 ms
+   (6.8× vs the original dense)**, and banded/dense grows with n (1.0× at 30 → 2.0–2.8× at
+   240). Faithful (0/75) + per-solve identical to dense throughout. The banded solve is
+   behind `bandedSolve` (default off) pending wiring it into the live drag (sceneStore →
+   core slideCurve).
+
+   *Tried & reverted:* a FULLY banded assembly (`computeBarrierBand` building the Hessian as
+   a SymBand directly, no dense n×n). It is the truly-O(n) path and was validated (per-solve
+   identical, after fixing a lower-triangle double-count in symBandAdd), but at n≤360 it's
+   SLOWER than the dense-Hessian-build + band-extract above — the dense n×n isn't the
+   bottleneck at these sizes (the gradient was), so building the band entry-by-entry just
+   adds constant overhead. It's the right architecture for SURFACES (large n, where the dense
+   n×n O(n²) dominates); revisit it there with the per-entry overhead tuned.
 3. **Arrowhead/cyclic solver for closed curves** — port `cyclic.rs`; closed has no
    near-linear path today.
 4. **PH banded** — assembly is already cheap (low-degree g); give it an analytic/seeded
