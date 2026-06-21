@@ -13,7 +13,97 @@
 // = (s+2) banded solves + one s×s dense solve → O(n·b²) for fixed degree, vs O(n³).
 // ============================================================================
 
-import { type SymBand, ldlSolveBand } from './banded'
+import { type SymBand, symBandZero, symBandMatVec, ldlSolveBand } from './banded'
+
+/** Block variable index → interleaved index (x_v→2v, y_v→2(v−nCP)+1). */
+const toInterleaved = (v: number, nCP: number) => (v < nCP ? 2 * v : 2 * (v - nCP) + 1)
+/** Interleaved index → block variable index (inverse). */
+const toBlock = (q: number, nCP: number) => (q % 2 === 0 ? q / 2 : nCP + (q - 1) / 2)
+
+export interface Arrowhead {
+  band: SymBand
+  seam: number[]
+  eSS: number[][]
+}
+
+/**
+ * Extract the arrowhead (narrow band + low-rank seam block) from a dense
+ * BLOCK-ordered Hessian, in interleaved ordering. Entries within interleaved
+ * distance `b` go to the band; the (few) longer-range seam-crossing entries — the
+ * periodic n−1↔0 wrap — go to the dense s×s seam block on the variables they touch.
+ * O(n·b) for the band + O(n²) lower-triangle scan for the seam (the dense H already
+ * cost O(n²) to build, so this doesn't change the order).
+ */
+export function denseToArrowhead(H: readonly number[][], nCP: number, b: number): Arrowhead {
+  const n = 2 * nCP
+  const band = symBandZero(n, b)
+  const corner = new Map<number, number>() // packed key I*n+J (I>J) → value
+  const seamSet = new Set<number>()
+  for (let I = 0; I < n; I++) {
+    const vI = toBlock(I, nCP)
+    const rowI = H[vI]
+    for (let J = 0; J <= I; J++) {
+      const v = rowI[toBlock(J, nCP)]
+      if (v === 0) continue
+      if (I - J <= b) {
+        band.low[I][I - J] = v
+      } else {
+        corner.set(I * n + J, v)
+        seamSet.add(I)
+        seamSet.add(J)
+      }
+    }
+  }
+  const seam = [...seamSet].sort((p, q) => p - q)
+  const idx = new Map<number, number>(seam.map((v, k) => [v, k]))
+  const s = seam.length
+  const eSS: number[][] = Array.from({ length: s }, () => new Array<number>(s).fill(0))
+  for (const [key, v] of corner) {
+    const I = Math.floor(key / n)
+    const J = key - I * n
+    const ia = idx.get(I)!
+    const ib = idx.get(J)!
+    eSS[ia][ib] += v
+    eSS[ib][ia] += v
+  }
+  return { band, seam, eSS }
+}
+
+/** vᵀ M v for an arrowhead M = band + P·E_SS·Pᵀ (band UNFACTORED). v is block-order;
+ *  permute to interleaved for the band matvec, add the seam quadratic. */
+export function arrowheadQuadForm(ah: Arrowhead, v: readonly number[], nCP: number): number {
+  const n = v.length
+  const vP = new Array<number>(n)
+  for (let k = 0; k < n; k++) vP[toInterleaved(k, nCP)] = v[k]
+  let q = 0
+  const mv = symBandMatVec(ah.band, vP)
+  for (let i = 0; i < n; i++) q += vP[i] * mv[i]
+  const s = ah.seam.length
+  for (let i = 0; i < s; i++) {
+    const vi = vP[ah.seam[i]]
+    for (let j = 0; j < s; j++) q += ah.eSS[i][j] * vi * vP[ah.seam[j]]
+  }
+  return q
+}
+
+/** M·v for an arrowhead M = band + P·E_SS·Pᵀ, all in interleaved order (band UNFACTORED). */
+export function arrowheadApply(
+  band: SymBand,
+  seam: readonly number[],
+  eSS: readonly number[][],
+  v: readonly number[],
+): number[] {
+  const out = symBandMatVec(band, v)
+  const s = seam.length
+  for (let i = 0; i < s; i++) {
+    let acc = 0
+    for (let j = 0; j < s; j++) acc += eSS[i][j] * v[seam[j]]
+    out[seam[i]] += acc
+  }
+  return out
+}
+
+export { toInterleaved, toBlock }
 
 /** Solve A·x = b for a small DENSE matrix via partial-pivot Gaussian elimination.
  *  Used for the s×s inner system (and the equality Schur complement). */

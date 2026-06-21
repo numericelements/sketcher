@@ -43,7 +43,7 @@ import {
   solveTrustRegion,
   minNormSolve,
 } from './linearAlgebra'
-import { solveTrustRegionBanded, solveBandedSPD } from './bandedTrustRegion'
+import { solveTrustRegionBanded, solveBandedSPD, solveTrustRegionArrowhead, solveArrowheadSPD } from './bandedTrustRegion'
 import { minNormSolveSparse } from './sparseSym'
 
 import type {
@@ -94,6 +94,10 @@ export class InteriorPointOptimizer {
   private bandedEnabled = false
   private nCP = 0
   private bandwidth = 1
+  // Closed curves: the periodic wrap makes some constraint rows span the whole
+  // index range. Those seam-crossing entries are carried in a low-rank seam block
+  // (the arrowhead solve) instead of widening the band. Detected from the Jacobian.
+  private hasSeam = false
 
   constructor(problem: OptimizationProblem, config: Partial<OptimizerConfig> = {}) {
     this.problem = problem
@@ -216,6 +220,8 @@ export class InteriorPointOptimizer {
       computeConstraintJacobianLocal?: () => { vars: number[]; vals: number[] }[] | null
     }
     let b = 1
+    const half = nCP // = n/2; a row spanning more than this is a periodic seam-crossing
+    this.hasSeam = false
     const spread = (vars: number[]) => {
       let lo = Infinity
       let hi = -Infinity
@@ -224,7 +230,14 @@ export class InteriorPointOptimizer {
         if (q < lo) lo = q
         if (q > hi) hi = q
       }
-      if (hi >= lo) b = Math.max(b, hi - lo)
+      if (hi < lo) return
+      const sp = hi - lo
+      // CLOSED curve only: a row spanning > n/2 is a periodic seam-crossing — its
+      // long-range entries go to the seam block (arrowhead), not the band, so the band
+      // stays narrow. OPEN curves are never periodic: every row is local, so the band
+      // must cover its full spread (don't mistake a wide row on a small curve for a seam).
+      if (this.config.closed && sp > half) this.hasSeam = true
+      else b = Math.max(b, sp)
     }
     const local = withLocal.computeConstraintJacobianLocal?.()
     if (local) {
@@ -268,9 +281,11 @@ export class InteriorPointOptimizer {
 
       // Compute Newton step using trust region (banded LDLᵀ when the Hessian is
       // banded in interleaved order — same dogleg, O(n·b²) instead of O(n³)).
-      const trustResult = this.bandedEnabled
-        ? solveTrustRegionBanded(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
-        : solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization)
+      const trustResult = !this.bandedEnabled
+        ? solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization)
+        : this.hasSeam
+          ? solveTrustRegionArrowhead(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
+          : solveTrustRegionBanded(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
       let step = trustResult.step
 
       // Fraction-to-boundary rule: scale step to maintain strict feasibility.
@@ -535,9 +550,11 @@ export class InteriorPointOptimizer {
     }
 
     // Compute predicted reduction and Newton decrement (banded LDLᵀ when enabled).
-    const negStep = this.bandedEnabled
-      ? solveBandedSPD(barrierHessian, barrierGradient, config.hessianRegularization, this.nCP, this.bandwidth)
-      : choleskySolve(barrierHessian, barrierGradient, config.hessianRegularization).x
+    const negStep = !this.bandedEnabled
+      ? choleskySolve(barrierHessian, barrierGradient, config.hessianRegularization).x
+      : this.hasSeam
+        ? solveArrowheadSPD(barrierHessian, barrierGradient, config.hessianRegularization, this.nCP, this.bandwidth)
+        : solveBandedSPD(barrierHessian, barrierGradient, config.hessianRegularization, this.nCP, this.bandwidth)
     const predictedReduction = negStep ? dot(barrierGradient, negStep) : 0
     const newtonDecrementSq = Math.max(0, predictedReduction)
 

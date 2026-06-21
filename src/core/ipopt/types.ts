@@ -207,6 +207,15 @@ export interface OptimizerConfig {
    */
   bandedSolve?: boolean
 
+  /**
+   * The problem is a CLOSED (periodic) curve. Only then can a constraint's support
+   * wrap the seam, so only then do we split the banded Hessian into band + seam
+   * block (arrowhead). For an OPEN curve every constraint is local — even on a tiny
+   * curve where one constraint spans more than half the variables — so the band must
+   * cover its full spread (no seam). Default false.
+   */
+  closed?: boolean
+
   // ----- Debug -----
 
   /** Print debug information (default: false) */

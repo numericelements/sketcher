@@ -14,7 +14,32 @@
 
 import type { Matrix, TrustRegionResult } from './linearAlgebra'
 import { doglegFromParts, dot } from './linearAlgebra'
-import { type SymBand, symBandZero, ldlFactorBand, ldlSolveBand, symBandMatVec } from '../banded'
+import { type SymBand, symBandZero, symBandClone, ldlFactorBand, ldlSolveBand, symBandMatVec } from '../banded'
+import { denseToArrowhead, arrowheadQuadForm, solveArrowhead, arrowheadApply } from '../cyclic'
+
+/**
+ * One step of iterative refinement for the arrowhead solve x ≈ M⁻¹ rhs. The
+ * Woodbury formula loses a few digits when the seam block is stiff (a seam-adjacent
+ * drag), enough to lag the cursor by a couple of pixels at the seam point. One
+ * refinement against the regularized matrix M_reg = (band+reg·I) + seam recovers
+ * them. `bandUnfac` is the UNfactored band, `aFac` the same band LDLᵀ-factored.
+ */
+function refineArrowhead(
+  bandUnfac: SymBand,
+  reg: number,
+  aFac: SymBand,
+  seam: readonly number[],
+  eSS: readonly number[][],
+  rhs: readonly number[],
+  x: number[],
+): number[] {
+  // M_reg = (bandUnfac + reg·I) + seam; residual r = rhs − M_reg·x.
+  const Mx = arrowheadApply(bandUnfac, seam, eSS, x)
+  for (let i = 0; i < x.length; i++) Mx[i] += reg * x[i]
+  const r = rhs.map((ri, i) => ri - Mx[i])
+  const dx = solveArrowhead(aFac, seam, eSS, r)
+  return x.map((xi, i) => xi + dx[i])
+}
 
 /** Block variable index → interleaved index. v<nCP is xᵥ → 2v; v≥nCP is y_{v−nCP} → 2(v−nCP)+1. */
 function toInterleaved(v: number, nCP: number): number {
@@ -79,6 +104,57 @@ export function solveTrustRegionBanded(
   }
 
   return doglegFromParts(gradient, newtonStep, gHg, delta)
+}
+
+/**
+ * Trust-region step for a CLOSED curve via the arrowhead solve: the Hessian is a
+ * narrow band PLUS a low-rank seam block (the periodic wrap). Same dogleg geometry
+ * as the banded path; the Newton solve is Sherman-Morrison-Woodbury (O(n·b²) for
+ * fixed degree). `b` is the LOCAL band half-width.
+ */
+export function solveTrustRegionArrowhead(
+  gradient: number[],
+  hessian: Matrix,
+  delta: number,
+  regularization: number,
+  nCP: number,
+  b: number,
+): TrustRegionResult {
+  const n = gradient.length
+  const ah = denseToArrowhead(hessian, nCP, b)
+  const gHg = arrowheadQuadForm(ah, gradient, nCP) // band unfactored
+  const bandUnfac = symBandClone(ah.band) // keep for iterative refinement
+  let newtonStep: number[] | null = null
+  if (ldlFactorBand(ah.band, 1e-300, regularization)) {
+    const negGP = new Array<number>(n)
+    for (let v = 0; v < n; v++) negGP[toInterleaved(v, nCP)] = -gradient[v]
+    let stepP = solveArrowhead(ah.band, ah.seam, ah.eSS, negGP)
+    stepP = refineArrowhead(bandUnfac, regularization, ah.band, ah.seam, ah.eSS, negGP, stepP)
+    newtonStep = new Array<number>(n)
+    for (let v = 0; v < n; v++) newtonStep[v] = stepP[toInterleaved(v, nCP)]
+  }
+  return doglegFromParts(gradient, newtonStep, gHg, delta)
+}
+
+/** Newton-decrement solve H·x = rhs for the closed (arrowhead) Hessian. */
+export function solveArrowheadSPD(
+  hessian: Matrix,
+  rhs: number[],
+  regularization: number,
+  nCP: number,
+  b: number,
+): number[] | null {
+  const n = rhs.length
+  const ah = denseToArrowhead(hessian, nCP, b)
+  const bandUnfac = symBandClone(ah.band)
+  if (!ldlFactorBand(ah.band, 1e-300, regularization)) return null
+  const rP = new Array<number>(n)
+  for (let v = 0; v < n; v++) rP[toInterleaved(v, nCP)] = rhs[v]
+  let xP = solveArrowhead(ah.band, ah.seam, ah.eSS, rP)
+  xP = refineArrowhead(bandUnfac, regularization, ah.band, ah.seam, ah.eSS, rP, xP)
+  const x = new Array<number>(n)
+  for (let v = 0; v < n; v++) x[v] = xP[toInterleaved(v, nCP)]
+  return x
 }
 
 /**

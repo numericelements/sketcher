@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { symBandZero, symBandAdd, symBandAddDiag, ldlFactorBand } from '../banded'
-import { solveArrowhead, denseSolve } from '../cyclic'
+import { solveArrowhead, denseSolve, denseToArrowhead } from '../cyclic'
 
 /**
  * Gate for the closed-curve arrowhead solve (port of ne-core cyclic.rs's
@@ -60,6 +60,35 @@ describe('closed-curve arrowhead solve (cyclic.ts)', () => {
     const b = A.map((row) => row.reduce((s, v, j) => s + v * xTrue[j], 0))
     const x = denseSolve(A, b)
     for (let i = 0; i < 3; i++) expect(Math.abs(x[i] - xTrue[i])).toBeLessThan(1e-12)
+  })
+
+  it('denseToArrowhead + solveArrowhead == dense solve of the same matrix', () => {
+    // A dense BLOCK-ordered SPD matrix; extract arrowhead at band half-width b and
+    // confirm the solve matches a dense solve (any off-band entries → seam block).
+    const nCP = 6
+    const n = 2 * nCP
+    let seed = 99
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff - 0.5 }
+    const H: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0))
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < i; j++) { const v = rnd() * 0.2; H[i][j] = v; H[j][i] = v }
+      H[i][i] = n // diagonally dominant ⇒ SPD
+    }
+    const ah = denseToArrowhead(H, nCP, 3)
+    expect(ldlFactorBand(ah.band)).toBe(true)
+    const rhs = Array.from({ length: n }, (_, i) => Math.cos(i) + 0.5)
+    // solveArrowhead works in INTERLEAVED order (band/seam are interleaved); permute
+    // the rhs in and the result out, matching the solveTrustRegionArrowhead wrapper.
+    const toInt = (v: number) => (v < nCP ? 2 * v : 2 * (v - nCP) + 1)
+    const rhsP = new Array<number>(n)
+    for (let v = 0; v < n; v++) rhsP[toInt(v)] = rhs[v]
+    const xP = solveArrowhead(ah.band, ah.seam, ah.eSS, rhsP)
+    const x = new Array<number>(n)
+    for (let v = 0; v < n; v++) x[v] = xP[toInt(v)]
+    const xRef = denseSolve(H, rhs)
+    let maxErr = 0
+    for (let i = 0; i < n; i++) maxErr = Math.max(maxErr, Math.abs(x[i] - xRef[i]))
+    expect(maxErr).toBeLessThan(1e-9)
   })
 
   it('s=0 (no seam) reduces to the plain banded solve', () => {

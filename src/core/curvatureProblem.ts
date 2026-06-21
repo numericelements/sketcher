@@ -671,12 +671,13 @@ export function slideCurve(
     preserveInflections: opts.preserveInflections,
     dragWeight: opts.dragWeight,
     constraintState: opts.constraintState,
-    // Open planar drags (ipopt AND the banded solvers) take the SCALED-ROBUST regime:
-    // well-conditioned for a banded factorization AND bound-faithful (neighbour signs
-    // + structural margins). Closed/symmetry ipopt keeps the raw (noScale) regime
-    // (its trust region handles the dynamic range; no banded path there yet).
-    noScale: method === 'ipopt' && (opts.symmetryMaps != null || opts.closed === true),
-    robustScaled: !opts.symmetryMaps && !opts.closed,
+    // Open AND closed planar drags take the SCALED-ROBUST regime: well-conditioned
+    // for a banded/arrowhead factorization AND bound-faithful (neighbour signs +
+    // structural margins). Closed uses the arrowhead solve (band + seam block); open
+    // uses the plain band. Only symmetry-reduced ipopt keeps the raw (noScale) regime
+    // (the reduced problem isn't interleaved-bandable).
+    noScale: method === 'ipopt' && opts.symmetryMaps != null,
+    robustScaled: !opts.symmetryMaps,
   })
   // Symmetry is enforced inside the solve via variable reduction (the result
   // is symmetric AND constraint-feasible — no post-projection).
@@ -702,9 +703,13 @@ export function slideCurve(
       // objective): full speed without giving up the feasibility guarantee.
       enableBFGS: opts.enableBFGS ?? false,
       returnBestFeasible: true,
-      // Banded inner solve — open planar only (banded structure needs the
-      // interleaved ordering + the well-conditioned scaled-robust regime).
-      bandedSolve: (opts.bandedSolve ?? false) && !opts.symmetryMaps && !opts.closed,
+      // Banded/arrowhead inner solve — any interleaved-bandable planar drag (open →
+      // band, closed → arrowhead). Not symmetry-reduced (not interleaved).
+      bandedSolve: (opts.bandedSolve ?? false) && !opts.symmetryMaps,
+      // CLOSED → the band splits into band + seam block (arrowhead). Gating the seam
+      // detection on this stops a wide constraint on a SMALL open curve from being
+      // misread as a periodic wrap.
+      closed: opts.closed ?? false,
     })
     const r = ip.optimize()
     solved.setVariables(r.variables)
