@@ -43,6 +43,7 @@ import {
   solveTrustRegion,
   minNormSolve,
 } from './linearAlgebra'
+import { solveTrustRegionBanded, solveBandedSPD } from './bandedTrustRegion'
 import { minNormSolveSparse } from './sparseSym'
 
 import type {
@@ -86,6 +87,13 @@ export class InteriorPointOptimizer {
   private prevObjGrad: number[] | null = null
   private prevJacobian: Matrix | null = null
   private prevSigns: number[] | null = null
+  // Banded inner solve (O(n·b²) instead of dense O(n³)). Enabled only when the
+  // Hessian is banded in the interleaved [x,y] ordering — open planar drag, no
+  // equality constraints, even var count — AND the regime is well-conditioned
+  // (scaled-robust). Bandwidth precomputed from the constraint Jacobian support.
+  private bandedEnabled = false
+  private nCP = 0
+  private bandwidth = 1
 
   constructor(problem: OptimizationProblem, config: Partial<OptimizerConfig> = {}) {
     this.problem = problem
@@ -104,6 +112,15 @@ export class InteriorPointOptimizer {
     this.adaptiveMaxTR = this.config.maxTrustRadius * xInfNorm
 
     this.state = this.initializeState()
+
+    // Banded inner solve: open planar case only (no equalities, even var count),
+    // on the well-conditioned scaled-robust regime. Precompute the band half-width
+    // from the constraint Jacobian support (fixed per drag).
+    if (this.config.bandedSolve && problem.numEqualityConstraints === 0 && problem.numVariables % 2 === 0) {
+      this.nCP = problem.numVariables / 2
+      this.bandwidth = this.computeInterleavedBandwidth()
+      this.bandedEnabled = true
+    }
 
     if (this.config.enableBFGS) {
       this.resetBFGS()
@@ -189,6 +206,40 @@ export class InteriorPointOptimizer {
   // Inner Loop (Fixed Barrier Parameter)
   // ==========================================================================
 
+  /** Band half-width in the interleaved [x₀,y₀,…] ordering: the max interleaved
+   *  spread of any constraint's variable support (the barrier Hessian's off-diagonal
+   *  fill lives inside this band; the objective Hessian is diagonal). Computed once. */
+  private computeInterleavedBandwidth(): number {
+    const nCP = this.nCP
+    const toI = (v: number) => (v < nCP ? 2 * v : 2 * (v - nCP) + 1)
+    const withLocal = this.problem as OptimizationProblem & {
+      computeConstraintJacobianLocal?: () => { vars: number[]; vals: number[] }[] | null
+    }
+    let b = 1
+    const spread = (vars: number[]) => {
+      let lo = Infinity
+      let hi = -Infinity
+      for (const v of vars) {
+        const q = toI(v)
+        if (q < lo) lo = q
+        if (q > hi) hi = q
+      }
+      if (hi >= lo) b = Math.max(b, hi - lo)
+    }
+    const local = withLocal.computeConstraintJacobianLocal?.()
+    if (local) {
+      for (const r of local) spread(r.vars)
+    } else {
+      const J = this.problem.computeConstraintJacobian()
+      for (let i = this.problem.numEqualityConstraints; i < J.length; i++) {
+        const vars: number[] = []
+        for (let v = 0; v < J[i].length; v++) if (J[i][v] !== 0) vars.push(v)
+        spread(vars)
+      }
+    }
+    return b
+  }
+
   private innerLoop(): 'converged' | 'trust_radius_too_small' | 'numerical_error' {
     const { config, state } = this
     let innerIter = 0
@@ -215,8 +266,11 @@ export class InteriorPointOptimizer {
         return 'converged'
       }
 
-      // Compute Newton step using trust region
-      const trustResult = solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization)
+      // Compute Newton step using trust region (banded LDLᵀ when the Hessian is
+      // banded in interleaved order — same dogleg, O(n·b²) instead of O(n³)).
+      const trustResult = this.bandedEnabled
+        ? solveTrustRegionBanded(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
+        : solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization)
       let step = trustResult.step
 
       // Fraction-to-boundary rule: scale step to maintain strict feasibility.
@@ -480,8 +534,10 @@ export class InteriorPointOptimizer {
       }
     }
 
-    // Compute predicted reduction and Newton decrement
-    const { x: negStep } = choleskySolve(barrierHessian, barrierGradient, config.hessianRegularization)
+    // Compute predicted reduction and Newton decrement (banded LDLᵀ when enabled).
+    const negStep = this.bandedEnabled
+      ? solveBandedSPD(barrierHessian, barrierGradient, config.hessianRegularization, this.nCP, this.bandwidth)
+      : choleskySolve(barrierHessian, barrierGradient, config.hessianRegularization).x
     const predictedReduction = negStep ? dot(barrierGradient, negStep) : 0
     const newtonDecrementSq = Math.max(0, predictedReduction)
 

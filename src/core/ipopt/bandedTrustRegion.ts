@@ -69,10 +69,9 @@ export function solveTrustRegionBanded(
   const M = denseToSymBandInterleaved(hessian, nCP, b)
   const gHg = dot(gP, symBandMatVec(M, gP)) // before factoring (matvec needs the raw band)
 
-  // Now add reg to the diagonal and factor in place.
-  for (let i = 0; i < n; i++) M.low[i][0] += regularization
+  // Factor with PER-PIVOT regularization (matches the dense Cholesky's stabilization).
   let newtonStep: number[] | null = null
-  if (ldlFactorBand(M)) {
+  if (ldlFactorBand(M, 1e-300, regularization)) {
     const negGP = gP.map((v) => -v)
     const stepP = ldlSolveBand(M, negGP)
     newtonStep = new Array<number>(n)
@@ -80,4 +79,27 @@ export function solveTrustRegionBanded(
   }
 
   return doglegFromParts(gradient, newtonStep, gHg, delta)
+}
+
+/**
+ * Solve H·x = rhs for a Hessian banded in interleaved order, via banded LDLᵀ
+ * (O(n·b²)). Returns null if the (regularized) band is not positive-definite — the
+ * banded analogue of a failed dense Cholesky. Used for the IPOPT Newton-decrement.
+ */
+export function solveBandedSPD(
+  hessian: Matrix,
+  rhs: number[],
+  regularization: number,
+  nCP: number,
+  b: number,
+): number[] | null {
+  const n = rhs.length
+  const M = denseToSymBandInterleaved(hessian, nCP, b)
+  if (!ldlFactorBand(M, 1e-300, regularization)) return null
+  const rP = new Array<number>(n)
+  for (let v = 0; v < n; v++) rP[toInterleaved(v, nCP)] = rhs[v]
+  const xP = ldlSolveBand(M, rP)
+  const x = new Array<number>(n)
+  for (let v = 0; v < n; v++) x[v] = xP[toInterleaved(v, nCP)]
+  return x
 }

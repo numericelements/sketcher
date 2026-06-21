@@ -97,21 +97,114 @@ Dense keeps climbing (super-linear); **banded flattens** (278→535→529 from 6
 barely moves 120→180). Both land on the same curve (maxΔ ≈ 0.5% of curve width; the small
 drift is the known "`barrier` can let the bound drift on a quick drag" gap). So the
 linear machinery already in `core/` delivers — the remaining work is wiring, not
-invention.
+invention. **(But see the Step-1 finding below — "the remaining work is wiring" turned out
+to be too optimistic for the bound-faithful part; it's solver engineering.)**
+
+## Step 1 finding (2026-06): bound-faithful banded is solver engineering, not wiring
+
+Attempted step 1; here is what it actually takes (so the next attempt doesn't repeat the
+dead ends).
+
+**Why the banded solvers drift (root cause).** Both `barrier` and `primal-dual` fail the
+strict display-metric bound lock (`boundPreservationSession.test.ts`) on the hard case: a
+parabola whose boundary g coefficient is a STRUCTURAL ZERO. On a quick drag that
+coefficient gets parked on / nudged across its sign wall and the next frame's sign
+re-snapshot reads it as a crossing → S⁻ +1. Only `ipopt` passes.
+
+**How Rust avoids it (the blueprint).** Rust has ONE robust interior-point solver that is
+also banded (robustness lives above the linear solve). It makes the sign-snapshot
+structural-zero-proof: (a) `assign_signs_neighbor` — a |g|≤1e-9·max coefficient takes its
+neighbour's sign, never its own noisy one; (b) sign-driven active set — it stays actively
+held in a same-sign run; (c) an absolute feasible-side margin (slack = `margin − sign·c`,
+margin = 1e-9·max|g|) so g≈0 starts off the wall but can't cross; plus an exact in-loop
+recompute-and-reject. Rust hit our exact bug and fixed it (commits `d4ce3cc`, `005f779`;
+the naive "drop near-zero from the active set" hack was tried and broke the guarantee).
+
+**TS already has (a)/(b)/(c)** — `assignSignsNeighbor`, `computeInactiveSetBySign`,
+`structuralMargins` (`MARGIN_REL=1e-9`) in `curvatureProblem.ts` — but they're gated to the
+`ipopt` path only (`noScale: method === 'ipopt'`); the banded solvers run the scaled,
+margins-0 regime.
+
+**What was tried & measured.** Wiring the robust regime onto the banded path (`noScale` for
+the open banded case) **made `barrier` PASS the bound lock** — the margins do work. BUT:
+- It forces RAW constraints (no per-constraint scaling), because the scale floor
+  (`SCALE_FLOOR_REL=1e-12`) is 1000× below the margin (`MARGIN_REL=1e-9`), so a scaled
+  margin translates to ~1e3 and the structural-zero constraint becomes infeasible. The two
+  constants are unit-incompatible — you cannot keep per-constraint scaling AND the margin.
+- Raw constraints ill-condition the banded solve (g spans ~1e12), so `barrier` tracked far
+  worse (~17 units off target vs ~2 for the reference) — it lacks `ipopt`'s trust region to
+  handle the raw dynamic range. `primal-dual` still nicked the bound.
+- A plain fraction-to-the-boundary line search in `barrier` did NOT fix the structural-zero
+  case and hurt tracking (the same dead end Rust's `005f779` documents).
+
+**Conclusion.** Step 1 is real solver engineering, not wiring: the banded path needs
+`ipopt`-level step robustness ON RAW constraints (trust region / diagonal preconditioning
+of the banded M), plus the margin/neighbour-sign machinery, in ONE solver — i.e. porting
+Rust's robust-banded `interior_point.rs` architecture, not just flipping a flag. Confirmed
+the fix DIRECTION works (margins → barrier faithful); the remaining blocker is the
+raw-dynamic-range conditioning. Everything was reverted; nothing shipped from this attempt.
+
+### Step 1b finding (the ipopt-side attempt — same wall, from the other direction)
+
+Instead of making the weak banded solver robust, tried the cleaner-looking inverse:
+make the already-robust `ipopt` solver BANDED (swap its dense Cholesky for a banded LDLᵀ).
+Built and VALIDATED the banded trust-region solve as a self-contained helper
+(`core/ipopt/bandedTrustRegion.ts` + `symBandMatVec` + a shared `doglegFromParts`; unit
+test `bandedTrustRegion.test.ts` proves banded == dense `solveTrustRegion` on a
+well-conditioned banded SPD matrix). Wired it into the ipopt inner loop behind a flag
+(`bandedSolve`, default off; auto-gated to open/no-equality). Result:
+- **Bound-faithful** everywhere (ipopt's robustness is preserved — the flag only changes
+  the linear algebra). ✓
+- But it **tracks worse**: ~14 units off vs dense on a *well-conditioned* wavy curve, and
+  70–106 on the degenerate parabola. Root cause: ipopt uses RAW (`noScale`) constraints, so
+  its barrier Hessian is ill-conditioned (g spans ~1e12) for ANY curve; banded-LDL is less
+  numerically robust than dense-Cholesky there (the solve is regularization-dominated; LDL
+  vs Cholesky give different steps; the trust region amplifies the difference). Adding
+  per-pivot regularization to the band (matching dense Cholesky's `sum += reg`) helped
+  (106→70 on the parabola) but did not close it.
+
+**Same wall as 1a, confirmed from both sides:** the banded solve needs a WELL-CONDITIONED
+Hessian, which needs Rust's SCALED-and-margined regime (per-constraint scaling for
+conditioning AND structural margins for the structural-zero, reconciled).
+
+### Step 1c — KEYSTONE CRACKED: the scaled-robust regime
+
+The reconciliation that the scaled regime (well-conditioned, not faithful) and the raw
+`noScale` regime (faithful, ill-conditioned) each got half-right: scale a STRUCTURAL-ZERO
+active coefficient by **max|g|** (a normal-magnitude Jacobian row) instead of the `1e-12`
+floor that blew it up, and put its margin in those scaled units (`scaleForRobust` +
+`structuralMarginsScaled` in `curvatureProblem.ts`). Result — well-conditioned AND faithful:
+- Open ipopt now runs this regime; the full suite is green and ipopt is still **0/75** on
+  the structural-zero parabola bound lock.
+- The banded ipopt solve (`bandedSolve`) on this regime is **0/75 bound-faithful** (matches
+  dense, parabola and all) and **PER-SOLVE IDENTICAL to dense** (single-frame Δ ≈ 0 on a
+  well-conditioned curve; `bandedIpopt.test.ts`). The 1b tracking gap is gone — it was the
+  raw-regime conditioning all along.
+- The opt-in banded `barrier` solver dropped from 18/75 → ~2/75 on the same regime (it's the
+  looser fast option; banded ipopt is the faithful one).
+
+**But the SOLVE was not the speed bottleneck (as `WINDOWED_SOLVE.md` warned).** Banded ipopt
+is only ~1.0–1.2× faster than dense at 30–180 CPs, because ipopt still ASSEMBLES a dense
+n×n Hessian and calls the dense `computeConstraintJacobian` every inner iteration — O(n²)
+assembly dominates the O(n³) solve we removed. So the banded solve is the validated, faithful
+*foundation*; the actual linear speedup needs the assembly to go sparse/banded too.
 
 ## Path to linear (leverage order)
 
-1. **Bound-faithful banded drag, routed live** (the big one). Make `barrier`/banded
-   keep the curvature-extrema bound on quick drags (today it can drift — see
-   [[core-slidecurve-banded-default-violates-bound]] / [[ipopt-is-the-invariant-keeper]]),
-   then route the live open-planar drag through it (sceneStore → core, or port the banded
-   path into the sketcher optimizer). Universal win for b-spline/rational/complex.
-2. **Arrowhead/cyclic solver for closed curves** — port `cyclic.rs`; closed has no
+1. ✅ **DONE — the well-conditioned bound-faithful regime + faithful banded solve** (Step 1c).
+   The keystone reconciliation is solved and validated; banded ipopt is faithful + per-solve
+   identical to dense. Behind the `bandedSolve` flag (default off) pending the assembly work.
+2. **Banded/sparse ASSEMBLY in the ipopt inner loop (the actual speedup lever).** Replace the
+   dense n×n Hessian build + dense `computeConstraintJacobian` (in the Hessian assembly, the
+   fraction-to-boundary loop, and SOC) with the LOCAL sparse Jacobian
+   (`computeConstraintJacobianLocal`) and a `SymBand` Hessian, so per-iteration cost is
+   O(n·b²) end-to-end. THEN banded ipopt becomes genuinely linear and the flag can default on.
+3. **Arrowhead/cyclic solver for closed curves** — port `cyclic.rs`; closed has no
    near-linear path today.
-3. **PH banded** — assembly is already cheap (low-degree g); give it an analytic/seeded
+4. **PH banded** — assembly is already cheap (low-degree g); give it an analytic/seeded
    extrema Jacobian + banded (interleaved-generator) ordering so the solve stops being
    dense. Greenfield (Rust hasn't done it either).
-4. **Windowed solve** ([[windowed-solve-handoff]]) — only after 1–3; it makes the solve
+5. **Windowed solve** ([[windowed-solve-handoff]]) — only after the above; it makes the solve
    sub-`O(n)` for local drags but is a no-op until the solve is the bottleneck.
 
 See also [[closed-curve-abstractions-to-preserve]], [[ph-drag-analytic-jacobian-finding]].

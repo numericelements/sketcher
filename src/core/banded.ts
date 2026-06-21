@@ -44,7 +44,7 @@ export function symBandAddDiag(M: SymBand, i: number, v: number): void {
  * In-place LDLᵀ factorization of a symmetric banded matrix. Returns false if a
  * pivot is non-positive (not positive-definite within tolerance). O(n·b²).
  */
-export function ldlFactorBand(M: SymBand, minPivot = 1e-300): boolean {
+export function ldlFactorBand(M: SymBand, minPivot = 1e-300, ridge = 0): boolean {
   const { n, b, low } = M
   for (let j = 0; j < n; j++) {
     let d = low[j][0]
@@ -53,6 +53,9 @@ export function ldlFactorBand(M: SymBand, minPivot = 1e-300): boolean {
       const Ljk = low[j][p] // L[j][j−p]
       d -= Ljk * Ljk * low[j - p][0] // L[j][k]² · D[k]
     }
+    // Per-pivot regularization (added to the COMPUTED pivot, like the dense
+    // Cholesky's `sum += regularization`) — robust on a near-singular Hessian.
+    d += ridge
     if (!(Math.abs(d) > minPivot)) return false
     low[j][0] = d
     const iMax = Math.min(j + b, n - 1)

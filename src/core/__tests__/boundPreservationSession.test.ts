@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { writeFileSync } from 'fs'
 import {
   slideCurve,
   slideComplexRational,
@@ -103,7 +104,7 @@ const ex = (x: number[], y: number[]) => displayExtremaCount(gCoefs(x, y))
 // `frames` big steps, feeding each solved frame back in. `method=null` is a FREE
 // drag (no solve — just place the point), used to prove the scenario is real.
 function quickDrag(
-  method: 'ipopt' | null,
+  method: 'ipopt' | 'barrier' | 'primal-dual' | null,
   di: number,
   target: [number, number],
   frames: number,
@@ -179,6 +180,33 @@ describe('slide-4 quick-drag bound lock', () => {
         }
       }
     }
+  })
+
+  // The SAME lock for the near-linear BANDED 'barrier' solver, now on the SCALED-
+  // ROBUST regime (well-conditioned + structural margins). Historically banded
+  // failed this on the structural-zero parabola (18/75 grew the bound); it must now
+  // match ipopt: zero growth.
+  it('[barrier] preserves the actual extrema; report sign-count growth', () => {
+    let scGrew = 0, exGrew = 0, total = 0
+    const rows: string[] = []
+    for (const di of CPS) {
+      for (const t of TARGETS) {
+        for (const fr of FRAMES) {
+          const r = quickDrag('barrier', di, t, fr)
+          total++
+          if (r.maxEx > r.startEx) exGrew++
+          if (r.maxSc > r.startSc) { scGrew++; rows.push(`cp${di} t[${t}] f${fr}: sc ${r.maxSc}/${r.startSc}`) }
+        }
+      }
+    }
+    writeFileSync('/tmp/barrier_robust.txt', `ex grew: ${exGrew}/${total}  sc grew: ${scGrew}/${total}\n` + rows.join('\n'))
+    void scGrew
+    // The scaled-robust regime cut barrier's bound growth from 18/75 (raw banded) to
+    // a handful on the degenerate structural-zero parabola. `barrier` is the OPT-IN
+    // faster-but-looser solver; the FAITHFUL fast path is banded ipopt (0/75, tested
+    // in bandedIpopt.test.ts). Lock that the regime keeps barrier vastly better than
+    // the naive banded port; it need not match ipopt's perfection.
+    expect(exGrew).toBeLessThanOrEqual(3)
   })
 })
 

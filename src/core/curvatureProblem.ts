@@ -158,6 +158,35 @@ function scaleFor(coeffs: number[], activeIdx: number[]): number[] {
 }
 
 /**
+ * Per-constraint scale for the SCALED-ROBUST regime — well-conditioned for the
+ * banded solver AND faithful for the structural zero, the reconciliation the plain
+ * scaled (`scaleFor`) and raw (`noScale`) regimes each got half-right.
+ *
+ * A normal coefficient is scaled by |g_i| (→ slack ≈ 1, as in `scaleFor`). A
+ * STRUCTURALLY-ZERO active coefficient (|g_i| ≤ noise) is scaled by **max|g|**, NOT
+ * the `1e-12` floor: the floor would blow its Jacobian row up by ~1/floor and wreck
+ * the conditioning, whereas max|g| gives a normal-magnitude row (∇g_i / max|g|). Its
+ * feasible-side margin then lives in those same scaled units — see
+ * `structuralMarginsScaled` — so g=0 starts a hair off its wall and cannot cross.
+ */
+function scaleForRobust(coeffs: number[], activeIdx: number[]): number[] {
+  const maxAbs = Math.max(1e-300, ...coeffs.map(Math.abs))
+  const noise = SIGN_NOISE_REL * maxAbs
+  const floor = SCALE_FLOOR_REL * maxAbs
+  return activeIdx.map((i) => (Math.abs(coeffs[i]) <= noise ? maxAbs : Math.max(Math.abs(coeffs[i]), floor)))
+}
+
+/** Scaled-units margin for `scaleForRobust`: a structural-zero active coefficient
+ *  (scaled by max|g|) gets MARGIN_REL, so its slack = margin − sign·(g/max) ≈
+ *  MARGIN_REL > 0 — off its wall yet unable to cross (it can drift at most
+ *  MARGIN_REL·max|g| in raw g, i.e. noise). Normal coefficients get 0. */
+function structuralMarginsScaled(gcAll: number[], activeIdx: number[]): number[] {
+  const maxAbs = Math.max(1e-300, ...gcAll.map(Math.abs))
+  const noise = SIGN_NOISE_REL * maxAbs
+  return activeIdx.map((i) => (Math.abs(gcAll[i]) <= noise ? MARGIN_REL : 0))
+}
+
+/**
  * The sliding mechanism's state, fixed ONCE at the start of a drag. Every g
  * Bernstein coefficient is assigned a definite sign here (even a near-zero one)
  * — the mechanism then PRESERVES those assigned signs for the whole drag, never
@@ -286,6 +315,15 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
        * sketcher does, so it takes the unscaled form.
        */
       noScale?: boolean
+      /**
+       * SCALED-ROBUST regime for the BANDED solvers: per-constraint scaling (so the
+       * banded factorization is well-conditioned) AND neighbour signs + structural
+       * margins (so a structural-zero coefficient can't cross → bound-faithful). The
+       * structural zero is scaled by max|g| (a normal-magnitude row), not the noise
+       * floor. This is the reconciliation `noScale` (faithful but ill-conditioned)
+       * and the plain scaled regime (well-conditioned but not faithful) each missed.
+       */
+      robustScaled?: boolean
     } = {},
   ) {
     this.cpX = [...cpX]
@@ -320,8 +358,16 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
       const inactive = new Set(cs.inactiveIndices)
       this.activeIdx = cs.signs.map((_, i) => i).filter((i) => !inactive.has(i))
       this.signs = this.activeIdx.map((i) => cs.signs[i])
-      this.gScale = opts.noScale ? this.activeIdx.map(() => 1) : this.activeIdx.map((i) => cs.gScale[i])
-      this.margins = opts.noScale ? structuralMargins(cs.gCPs, this.activeIdx) : this.activeIdx.map(() => 0)
+      if (opts.noScale) {
+        this.gScale = this.activeIdx.map(() => 1)
+        this.margins = structuralMargins(cs.gCPs, this.activeIdx)
+      } else if (opts.robustScaled) {
+        this.gScale = scaleForRobust(cs.gCPs, this.activeIdx)
+        this.margins = structuralMarginsScaled(cs.gCPs, this.activeIdx)
+      } else {
+        this.gScale = this.activeIdx.map((i) => cs.gScale[i])
+        this.margins = this.activeIdx.map(() => 0)
+      }
     } else if (opts.noScale) {
       const gc = this.numerator().flatCoeffs()
       const allSigns = assignSignsNeighbor(gc)
@@ -330,6 +376,17 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
       this.signs = this.activeIdx.map((i) => allSigns[i])
       this.gScale = this.activeIdx.map(() => 1)
       this.margins = structuralMargins(gc, this.activeIdx)
+    } else if (opts.robustScaled) {
+      // Scaled-robust: well-conditioned (per-constraint scaling) AND bound-faithful
+      // (neighbour signs + structural margins), so the banded solvers stay fast yet
+      // never let a structural-zero coefficient cross its sign wall.
+      const gc = this.numerator().flatCoeffs()
+      const allSigns = assignSignsNeighbor(gc)
+      const inactive = opts.disableSliding ? new Set<number>() : computeInactiveSetBySign(allSigns, gc.map(Math.abs))
+      this.activeIdx = gc.map((_, i) => i).filter((i) => !inactive.has(i))
+      this.signs = this.activeIdx.map((i) => allSigns[i])
+      this.gScale = scaleForRobust(gc, this.activeIdx)
+      this.margins = structuralMarginsScaled(gc, this.activeIdx)
     } else {
       const gc = this.numerator().flatCoeffs()
       const allSigns = assignSigns(gc)
@@ -341,17 +398,26 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
     }
 
     if (this.preserveInflections) {
+      const robust = opts.noScale || opts.robustScaled
       const fc = this.inflectionNumerator().flatCoeffs()
-      const fAllSigns = opts.noScale ? assignSignsNeighbor(fc) : assignSigns(fc)
+      const fAllSigns = robust ? assignSignsNeighbor(fc) : assignSigns(fc)
       const fInactive = opts.disableSliding
         ? new Set<number>()
-        : opts.noScale
+        : robust
           ? computeInactiveSetBySign(fAllSigns, fc.map(Math.abs))
           : computeInactiveSet(fc)
       this.fActiveIdx = fc.map((_, i) => i).filter((i) => !fInactive.has(i))
       this.fSigns = this.fActiveIdx.map((i) => fAllSigns[i])
-      this.fScale = opts.noScale ? this.fActiveIdx.map(() => 1) : scaleFor(fc, this.fActiveIdx)
-      this.fMargins = opts.noScale ? structuralMargins(fc, this.fActiveIdx) : this.fActiveIdx.map(() => 0)
+      this.fScale = opts.noScale
+        ? this.fActiveIdx.map(() => 1)
+        : opts.robustScaled
+          ? scaleForRobust(fc, this.fActiveIdx)
+          : scaleFor(fc, this.fActiveIdx)
+      this.fMargins = opts.noScale
+        ? structuralMargins(fc, this.fActiveIdx)
+        : opts.robustScaled
+          ? structuralMarginsScaled(fc, this.fActiveIdx)
+          : this.fActiveIdx.map(() => 0)
     }
   }
 
@@ -563,6 +629,12 @@ export function slideCurve(
      * barrier, not the Hessian, so the curvature bound holds either way.
      */
     enableBFGS?: boolean
+    /**
+     * IPOPT only. Solve the inner Newton/trust-region system with a BANDED LDLᵀ
+     * (O(n·b²)) instead of dense Cholesky (O(n³)). Auto-gated to the open planar case
+     * (well-conditioned scaled-robust regime). Same solver, faster linear algebra.
+     */
+    bandedSolve?: boolean
   } & Partial<OptimizerConfig> = {},
 ): { x: number[]; y: number[]; converged: boolean } {
   // Default to the robust IPOPT solver — it is the curvature-bound invariant
@@ -579,7 +651,12 @@ export function slideCurve(
     preserveInflections: opts.preserveInflections,
     dragWeight: opts.dragWeight,
     constraintState: opts.constraintState,
-    noScale: method === 'ipopt',
+    // Open planar drags (ipopt AND the banded solvers) take the SCALED-ROBUST regime:
+    // well-conditioned for a banded factorization AND bound-faithful (neighbour signs
+    // + structural margins). Closed/symmetry ipopt keeps the raw (noScale) regime
+    // (its trust region handles the dynamic range; no banded path there yet).
+    noScale: method === 'ipopt' && (opts.symmetryMaps != null || opts.closed === true),
+    robustScaled: !opts.symmetryMaps && !opts.closed,
   })
   // Symmetry is enforced inside the solve via variable reduction (the result
   // is symmetric AND constraint-feasible — no post-projection).
@@ -605,6 +682,9 @@ export function slideCurve(
       // objective): full speed without giving up the feasibility guarantee.
       enableBFGS: opts.enableBFGS ?? false,
       returnBestFeasible: true,
+      // Banded inner solve — open planar only (banded structure needs the
+      // interleaved ordering + the well-conditioned scaled-robust regime).
+      bandedSolve: (opts.bandedSolve ?? false) && !opts.symmetryMaps && !opts.closed,
     })
     const r = ip.optimize()
     solved.setVariables(r.variables)

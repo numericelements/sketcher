@@ -196,6 +196,17 @@ export interface OptimizerConfig {
   /** Warm-start trust region radius */
   warmStartDelta?: number
 
+  // ----- Linear solve -----
+
+  /**
+   * Solve the inner Newton/trust-region system with a BANDED LDLᵀ factorization
+   * (O(n·b²)) instead of dense Cholesky (O(n³)). Valid ONLY when the barrier
+   * Hessian is banded in the interleaved [x₀,y₀,…] ordering — an OPEN planar drag,
+   * no equality constraints — AND well-conditioned (the scaled-robust regime). The
+   * solver's behaviour is unchanged; only the linear-algebra cost drops. Default false.
+   */
+  bandedSolve?: boolean
+
   // ----- Debug -----
 
   /** Print debug information (default: false) */
