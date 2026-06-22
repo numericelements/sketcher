@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { curvatureExtremaGradientComplexPeriodicFixedWeight } from '../curvature'
+import {
+  curvatureExtremaGradientComplexPeriodicFixedWeight,
+  curvatureExtremaNumeratorComplexPeriodic,
+  precomputeComplexPeriodicSeeds,
+} from '../curvature'
 import type { BernsteinDecomposition } from '../bernstein'
 
 /**
@@ -59,5 +63,45 @@ describe('complex-rational analytic Jacobian matches finite differences (oracle)
     }
 
     expect(maxRel).toBeLessThan(1e-3) // FD truncation ~1e-5; a wrong gradient would be O(1)
+  })
+
+  // ρ≠1 (spiral monodromy) guard: the seam-crossing columns are only correct if the
+  // gradient SEEDS carry the same ρ-scaling as the value terms. With ρ=1 seeds those
+  // columns were off by O(1e-2…1e-1) — invisible to the bound (a flattened curve has
+  // fewer extrema) but it flattened segments in the editor. This catches that.
+  it('dx/dy equal central differences of the ρ-aware g (spiral, real + complex ρ)', () => {
+    const n = 8
+    const degree = 3
+    const knots = Array.from({ length: n }, (_, i) => i / n)
+    const zre = [200, 120, -100, -200, -90, 110, 150, 60]
+    const zim = [0, 170, 150, 0, -160, -140, 80, -90]
+    const wre = [1, 0.95, 1.1, 1, 0.9, 1.05, 1.02, 0.97]
+    const wim = [0, 0.05, -0.04, 0, 0.03, -0.02, 0.04, -0.03]
+
+    for (const rho of [{ re: 1.5, im: 0 }, { re: 0.6, im: 0 }, { re: 1.2, im: 0.3 }]) {
+      const seeds = precomputeComplexPeriodicSeeds(knots, degree, n, rho)
+      // FD uses the cheap numerator (one decompose), not the full gradient.
+      const g = (zr: number[], zi: number[]) =>
+        curvatureExtremaNumeratorComplexPeriodic(zr, zi, wre, wim, knots, degree, rho).flatCoeffs()
+      const analytic = curvatureExtremaGradientComplexPeriodicFixedWeight(zre, zim, wre, wim, knots, degree, seeds, rho)
+      const h = 1e-2
+      let maxRel = 0
+      const compare = (an: BernsteinDecomposition, fd: number[]) => {
+        const a = flat(an)
+        let scale = 0
+        for (let k = 0; k < a.length; k++) scale = Math.max(scale, Math.abs(a[k]), Math.abs(fd[k]))
+        if (scale === 0) return
+        for (let k = 0; k < a.length; k++) maxRel = Math.max(maxRel, Math.abs(a[k] - fd[k]) / scale)
+      }
+      for (let i = 0; i < n; i++) {
+        const zreP = [...zre]; zreP[i] += h
+        const zreM = [...zre]; zreM[i] -= h
+        compare(analytic.dx[i], g(zreP, zim).map((v, k) => (v - g(zreM, zim)[k]) / (2 * h)))
+        const zimP = [...zim]; zimP[i] += h
+        const zimM = [...zim]; zimM[i] -= h
+        compare(analytic.dy[i], g(zre, zimP).map((v, k) => (v - g(zre, zimM)[k]) / (2 * h)))
+      }
+      expect(maxRel, `ρ=${rho.re}+${rho.im}i`).toBeLessThan(1e-3)
+    }
   })
 })

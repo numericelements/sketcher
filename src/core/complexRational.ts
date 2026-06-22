@@ -494,7 +494,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
     this.rho = opts.rho ?? { re: 1, im: 0 }
     this.knots = [...knots]
     this.degree = degree
-    this.seeds = precomputeComplexPeriodicSeeds(this.knots, degree, this.cpX.length)
+    this.seeds = precomputeComplexPeriodicSeeds(this.knots, degree, this.cpX.length, this.rho)
     this.targetX = [...this.cpX]
     this.targetY = [...this.cpY]
     this.targetX[dragIndex] = targetX

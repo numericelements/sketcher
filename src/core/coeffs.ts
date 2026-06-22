@@ -47,6 +47,22 @@ export const scalarCoeffs: Coeffs<number, number, number, number> = {
   spow: () => 1,
 }
 
+// --- complex-valued SCALAR function: f(t) = Σ cᵢ Nᵢ(t), ℝ → ℂ --------------
+// Used to decompose a perturbation basis Nᵢ (or any complex coefficient sequence)
+// WITH the periodic weight spiral: the wrap span's coefficients pick up ρ^(wraps),
+// so a unit perturbation at a seam-crossing control point gets the same ρ-scaling
+// the homogeneous Z/W decomposition has (exact ρ≠1 gradient seeds).
+export const complexScalarCoeffs: Coeffs<Complex, Complex, Complex, Complex> = {
+  one: { re: 1, im: 0 },
+  lift: (c) => c,
+  unlift: (h) => h,
+  zero: () => ({ re: 0, im: 0 }),
+  madd: (a, n, h) => cadd(a, cscale(h, n)),
+  scale: (h, s) => cmul(h, s),
+  project: (h) => h,
+  spow: (s, q) => cpow(s, q),
+}
+
 // --- plain B-spline curve: weight ≡ 1, no projection, no spiral ------------
 export const plainCoeffs: Coeffs<Point2D, Point2D, number, Point2D> = {
   one: 1,

@@ -1,5 +1,6 @@
-import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic } from './bernstein'
+import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, decomposeBsplineGeneric } from './bernstein'
 import { ComplexBD, decomposeComplexCurvePeriodic } from './complexBernstein'
+import { complexScalarCoeffs } from './coeffs'
 import type { Complex } from './complex'
 
 /**
@@ -308,10 +309,14 @@ function complexChenG(Z: ComplexBD, W: ComplexBD): BernsteinDecomposition {
  * n), so precompute ONCE per problem and reuse across every Jacobian build.
  */
 export interface ComplexPeriodicSeeds {
-  N: BernsteinDecomposition[]
-  N1: BernsteinDecomposition[]
-  N2: BernsteinDecomposition[]
-  N3: BernsteinDecomposition[]
+  // Per control point, the periodic basis Nᵢ and its derivatives, decomposed WITH the
+  // weight spiral ρ: a seam-crossing column's wrap span picks up ρ^(wraps), so these
+  // are COMPLEX (for ρ=1 the imaginary part is 0 and they reduce to the real basis).
+  // This is what makes the ρ≠1 gradient seed consistent with the ρ-aware value terms.
+  N: ComplexBD[]
+  N1: ComplexBD[]
+  N2: ComplexBD[]
+  N3: ComplexBD[]
   /** Per control point: the (wrap-around) spans where its basis function is nonzero.
    *  Lets the local Jacobian keep each column on its d+1 support spans. */
   spans: number[][]
@@ -322,27 +327,32 @@ export function precomputeComplexPeriodicSeeds(
   knots: readonly number[],
   degree: number,
   n: number,
+  rho: Complex = { re: 1, im: 0 },
 ): ComplexPeriodicSeeds {
-  const N: BernsteinDecomposition[] = []
-  const N1: BernsteinDecomposition[] = []
-  const N2: BernsteinDecomposition[] = []
-  const N3: BernsteinDecomposition[] = []
+  const N: ComplexBD[] = []
+  const N1: ComplexBD[] = []
+  const N2: ComplexBD[] = []
+  const N3: ComplexBD[] = []
   const spans: number[][] = []
   let numSpans = 0
   for (let i = 0; i < n; i++) {
-    const e = new Array<number>(n).fill(0)
-    e[i] = 1
-    const Ni = decomposeToBernsteinPeriodic(e, knots, degree)
+    const e: Complex[] = Array.from({ length: n }, () => ({ re: 0, im: 0 }))
+    e[i] = { re: 1, im: 0 }
+    // Decompose the unit perturbation WITH the spiral ρ (complex on the wrap span).
+    const { coeffs, breaks } = decomposeBsplineGeneric(complexScalarCoeffs, e, knots, degree, true, rho)
+    const re = coeffs.map((seg) => seg.map((h) => h.re))
+    const im = coeffs.map((seg) => seg.map((h) => h.im))
+    const Ni = new ComplexBD(new BernsteinDecomposition(re, breaks), new BernsteinDecomposition(im, breaks))
     const d1 = Ni.derivative()
     const d2 = d1.derivative()
     N.push(Ni)
     N1.push(d1)
     N2.push(d2)
     N3.push(d2.derivative())
-    numSpans = Ni.coeffs.length
+    numSpans = coeffs.length
     const sp: number[] = []
-    for (let s = 0; s < Ni.coeffs.length; s++) {
-      if (Ni.coeffs[s].some((c) => Math.abs(c) > 1e-14)) sp.push(s)
+    for (let s = 0; s < coeffs.length; s++) {
+      if (coeffs[s].some((h) => Math.abs(h.re) > 1e-14 || Math.abs(h.im) > 1e-14)) sp.push(s)
     }
     spans.push(sp)
   }
@@ -360,7 +370,9 @@ export function precomputeComplexPeriodicSeeds(
  * Jacobian (to FD truncation) by complexJacobianOracle.test.ts.
  *
  * Returns g and dx[i]=∂g/∂Re(zᵢ), dy[i]=∂g/∂Im(zᵢ) (real Bernstein functions).
- * Assumes ρ=1 (same monodromy assumption as curvatureExtremaNumeratorComplexPeriodic).
+ * Exact for any monodromy ρ — the value terms AND the seeds carry the spiral, so the
+ * gradient matches a finite-difference of the ρ-aware numerator at every control point
+ * (seam-crossing ones included). Pass `seeds` precomputed with the SAME ρ.
  */
 export function curvatureExtremaGradientComplexPeriodicFixedWeight(
   zre: readonly number[],
@@ -369,9 +381,10 @@ export function curvatureExtremaGradientComplexPeriodicFixedWeight(
   wim: readonly number[],
   knots: readonly number[],
   degree: number,
-  seeds: ComplexPeriodicSeeds = precomputeComplexPeriodicSeeds(knots, degree, zre.length),
+  seeds?: ComplexPeriodicSeeds,
   rho: Complex = { re: 1, im: 0 },
 ): { g: BernsteinDecomposition; dx: BernsteinDecomposition[]; dy: BernsteinDecomposition[] } {
+  const sds = seeds ?? precomputeComplexPeriodicSeeds(knots, degree, zre.length, rho)
   const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree, rho)
 
   // ── Per-column differential. δW = 0 (weights fixed). For Re(zᵢ): δZ = wᵢ·Nᵢ;
@@ -380,7 +393,7 @@ export function curvatureExtremaGradientComplexPeriodicFixedWeight(
   const dx: BernsteinDecomposition[] = []
   const dy: BernsteinDecomposition[] = []
   const column = (i: number, cr: number, ci: number): BernsteinDecomposition =>
-    complexDifferential(seeds.N[i], seeds.N1[i], seeds.N2[i], seeds.N3[i], cr, ci, V)
+    complexDifferential(sds.N[i], sds.N1[i], sds.N2[i], sds.N3[i], cr, ci, V)
   for (let i = 0; i < n; i++) {
     dx.push(column(i, wre[i], wim[i])) // δZ = wᵢ·Nᵢ
     dy.push(column(i, -wim[i], wre[i])) // δZ = i·wᵢ·Nᵢ
@@ -424,10 +437,14 @@ function complexFixedWeightValueTerms(
  *  Operands may be full-width OR gathered on a support-span list — the formula is
  *  identical, so the dense and local-cols gradients share it (bit-for-bit). */
 function complexDifferential(
-  N: BernsteinDecomposition, N1: BernsteinDecomposition, N2: BernsteinDecomposition, N3: BernsteinDecomposition,
+  N: ComplexBD, N1: ComplexBD, N2: ComplexBD, N3: ComplexBD,
   cr: number, ci: number, V: ComplexFixedWeightTerms,
 ): BernsteinDecomposition {
-  const cplx = (re: BernsteinDecomposition) => new ComplexBD(re.scale(cr), re.scale(ci))
+  // δZ = (cr + i·ci)·Nᵢ, where Nᵢ is the (possibly ρ-scaled) complex seed.
+  // (cr+i·ci)(a+i·b) = (cr·a − ci·b) + i(cr·b + ci·a). For a real seed (ρ=1, b=0)
+  // this reduces to the old ComplexBD(a·cr, a·ci) — bit-identical.
+  const cplx = (s: ComplexBD) =>
+    new ComplexBD(s.re.scale(cr).subtract(s.im.scale(ci)), s.re.scale(ci).add(s.im.scale(cr)))
   const dZ = cplx(N), dZu = cplx(N1), dZuu = cplx(N2), dZuuu = cplx(N3)
   const dD1 = dZu.mul(V.W).sub(dZ.mul(V.Wu))
   const dD2 = dZuu.mul(V.W).sub(dZ.mul(V.Wuu))
@@ -448,16 +465,17 @@ function complexDifferential(
 export function curvatureExtremaGradientComplexPeriodicFixedWeightCols(
   zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
   knots: readonly number[], degree: number,
-  seeds: ComplexPeriodicSeeds = precomputeComplexPeriodicSeeds(knots, degree, zre.length),
+  seeds?: ComplexPeriodicSeeds,
   rho: Complex = { re: 1, im: 0 },
 ): { g: BernsteinDecomposition; gDeg: number; numSpans: number; cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] } {
+  const sds = seeds ?? precomputeComplexPeriodicSeeds(knots, degree, zre.length, rho)
   const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree, rho)
   const n = zre.length
   const cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] = []
   for (let i = 0; i < n; i++) {
-    const sp = seeds.spans[i]
+    const sp = sds.spans[i]
     // Gather seeds + value terms on this control point's support spans.
-    const N = seeds.N[i].gather(sp), N1 = seeds.N1[i].gather(sp), N2 = seeds.N2[i].gather(sp), N3 = seeds.N3[i].gather(sp)
+    const N = sds.N[i].gather(sp), N1 = sds.N1[i].gather(sp), N2 = sds.N2[i].gather(sp), N3 = sds.N3[i].gather(sp)
     const Vg: ComplexFixedWeightTerms = {
       W: V.W.gather(sp), Wu: V.Wu.gather(sp), Wuu: V.Wuu.gather(sp), Wuuu: V.Wuuu.gather(sp),
       D1: V.D1.gather(sp), D2: V.D2.gather(sp), D3: V.D3.gather(sp), D21: V.D21.gather(sp), D1c: V.D1c.gather(sp),
@@ -467,7 +485,7 @@ export function curvatureExtremaGradientComplexPeriodicFixedWeightCols(
     const gy = complexDifferential(N, N1, N2, N3, -wim[i], wre[i], Vg)
     cols.push({ spans: sp, gx, gy })
   }
-  return { g, gDeg: g.degree, numSpans: seeds.numSpans, cols }
+  return { g, gDeg: g.degree, numSpans: sds.numSpans, cols }
 }
 
 /**
