@@ -792,8 +792,14 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // Farin t-values are weight RATIOS, position-independent — fixed weights leave
     // them (and wrapWeight) unchanged, so `...curve` keeps them. Same clean-periodic
     // gate; falls through to the legacy optimizer otherwise.
+    // ρ = 1 guard (see complex-rational above): core wraps the weights directly, so it
+    // only matches the rendered NURBS when wrapWeight == w₀. ρ ≠ 1 → legacy.
+    const rrW0 = curve.kind === 'rational' ? curve.controlPoints[0].w : 1
+    const rrRho1 =
+      !(curve.kind === 'rational' && curve.wrapWeight !== undefined) ||
+      Math.abs(curve.wrapWeight! - rrW0) <= 1e-6 * (Math.abs(rrW0) + 1)
     const rrCleanPeriodic =
-      curve.kind === 'rational' && curve.closed && !symmetryMaps &&
+      curve.kind === 'rational' && curve.closed && !symmetryMaps && rrRho1 &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
@@ -850,8 +856,19 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // rides them along and we recompute the Farin handles from the moved points (the
     // same derivation the store uses elsewhere). ~13× faster than the dense path at
     // 80 CPs; falls through to the legacy optimizer on any failure or a junction knot.
+    // ρ = 1 (periodic monodromy): core's closed numerator wraps the weight sequence
+    // directly (wrap-edge weight == w₀), so it only matches the rendered curve when
+    // the stored wrapWeight equals w₀. A curve with wrapWeight ≠ w₀ (ρ ≠ 1) must stay
+    // on the legacy optimizer, which is wrapWeight-aware — otherwise core preserves a
+    // DIFFERENT curve's bound and the visible curvature-extrema bound drifts.
+    const crW0 = curve.kind === 'complex-rational' ? curve.controlPoints[0] : null
+    const crRho1 =
+      !(curve.kind === 'complex-rational' && curve.wrapWeight) ||
+      (crW0 != null &&
+        Math.abs(curve.wrapWeight!.re - crW0.w_re) <= 1e-6 * (Math.abs(crW0.w_re) + 1) &&
+        Math.abs(curve.wrapWeight!.im - crW0.w_im) <= 1e-6 * (Math.abs(crW0.w_im) + 1))
     const crCleanPeriodic =
-      curve.kind === 'complex-rational' && curve.closed &&
+      curve.kind === 'complex-rational' && curve.closed && crRho1 &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
