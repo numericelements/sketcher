@@ -788,14 +788,17 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
 
     // Closed REAL-rational CP-drag → core (banded), holding weights fixed. A closed
     // real-rational curve is a complex-rational with w_im = 0, so it rides the same
-    // fast path: convert (x,y,w) → (re,im,w_re=w,w_im=0), slide, write (x,y) back. The
-    // Farin t-values are weight RATIOS, position-independent — fixed weights leave
-    // them (and wrapWeight) unchanged, so `...curve` keeps them. The monodromy
-    // ρ = wrapWeight/w₀ (real) is passed through, so core matches the rendered NURBS
-    // for any ρ. Same clean-periodic gate; falls through to the legacy optimizer
-    // otherwise.
+    // fast path: convert (x,y,w) → (re,im,w_re=w,w_im=0), slide, write (x,y) back.
+    // GATED on ρ = 1 (wrapWeight absent or ≈ w₀): core's exact-ρ NUMERATOR keeps the
+    // bound at any ρ, but its GRADIENT seeds are ρ=1 — inconsistent at the seam for
+    // ρ≠1, which flattens segments on a ρ≠1 drag. Until the seeds are exact-ρ, ρ≠1
+    // stays on the legacy optimizer.
+    const rrW0 = curve.kind === 'rational' ? curve.controlPoints[0].w : 1
+    const rrRho1 =
+      !(curve.kind === 'rational' && curve.wrapWeight !== undefined) ||
+      Math.abs(curve.wrapWeight! - rrW0) <= 1e-6 * (Math.abs(rrW0) + 1)
     const rrCleanPeriodic =
-      curve.kind === 'rational' && curve.closed && !symmetryMaps &&
+      curve.kind === 'rational' && curve.closed && !symmetryMaps && rrRho1 &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
@@ -850,16 +853,22 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     }
 
     // Closed complex-rational CP-drag → core (banded arrowhead, weights held fixed).
-    // The curve's periodic monodromy ρ = wrapWeight/w₀ is passed through, so core's
-    // numerator uses the wrap-scaled (spiral-unrolled) decomposition and matches the
-    // rendered curve EXACTLY for any ρ (verified to machine ε vs the legacy
-    // wrapWeight-aware g) — no ρ=1 restriction. Control points carry the live complex
-    // weights, so the drag rides them along; Farin handles are recomputed wrapWeight-
-    // aware (computeComplexFarinPoints derives the wrap edge from wrapWeight when no
-    // stored positions are passed). ~13× faster than the dense path at 80 CPs; falls
-    // through to the legacy optimizer on any failure or a junction (non-clean) knot.
+    // Control points carry the live complex weights, so the drag rides them along;
+    // Farin handles are recomputed wrapWeight-aware via computeComplexFarinPoints.
+    // ~13× faster than the dense path at 80 CPs; falls through to the legacy optimizer
+    // on any failure or a junction (non-clean) knot.
+    // GATED on ρ = 1 (wrapWeight absent or ≈ w₀). core's exact-ρ numerator KEEPS the
+    // bound at any ρ, but its gradient seeds are still ρ=1 — inconsistent at the seam
+    // for ρ≠1, which produced flat segments on a ρ≠1 drag. ρ≠1 stays on the legacy
+    // (wrapWeight-aware) optimizer until the gradient seeds are made exact-ρ.
+    const crW0 = curve.kind === 'complex-rational' ? curve.controlPoints[0] : null
+    const crRho1 =
+      !(curve.kind === 'complex-rational' && curve.wrapWeight) ||
+      (crW0 != null &&
+        Math.abs(curve.wrapWeight!.re - crW0.w_re) <= 1e-6 * (Math.abs(crW0.w_re) + 1) &&
+        Math.abs(curve.wrapWeight!.im - crW0.w_im) <= 1e-6 * (Math.abs(crW0.w_im) + 1))
     const crCleanPeriodic =
-      curve.kind === 'complex-rational' && curve.closed &&
+      curve.kind === 'complex-rational' && curve.closed && crRho1 &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
