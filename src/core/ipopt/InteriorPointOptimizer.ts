@@ -777,35 +777,60 @@ export class InteriorPointOptimizer {
       return null
     }
 
-    // Get Jacobian for active constraints
-    const fullJacobian = problem.computeConstraintJacobian()
-    const activeJacobian: Matrix = activeIndices.map((i) =>
-      i < numEq
-        ? fullJacobian[i]  // equality: no sign flip
-        : fullJacobian[i].map((val) => val * signs[i])
-    )
-
-    if (activeJacobian.length === 0) {
-      return null
-    }
-
     // Solve min-norm problem: min ||Δp||² s.t. J * Δp = -violations
     const rhs = violations.map((v) => -v)
     let success: boolean, correction: number[]
-    if (IP_SPARSE_SOC.enabled) {
-      // Banded path: extract each row's sparse support, solve via the constraint
-      // Gram A·Aᵀ (banded) instead of dense matMat + Cholesky.
-      const nCols = activeJacobian[0].length
+
+    // Sparse Jacobian (no dense O(n²) build) when the problem exposes per-constraint
+    // local rows — the SAME path the barrier uses. Without this, SOC re-built the
+    // dense Jacobian on every fire, which on a high-degree (complex-rational) curve
+    // dominated the drag (≈0.5 s/fire at 80 CPs). activeIndices == the active rows in
+    // order; with numEq=0 and nothing sliding, row i is localRows[i].
+    const withLocal = problem as unknown as {
+      computeConstraintJacobianLocal?: () => { vars: number[]; vals: number[] }[] | null
+    }
+    const localRows = IP_SPARSE_SOC.enabled && numEq === 0 && inactiveSet.size === 0
+      ? (withLocal.computeConstraintJacobianLocal?.() ?? null)
+      : null
+
+    if (localRows) {
+      const nCols = problem.numVariables
       const rowCols: number[][] = []
       const rowVals: number[][] = []
-      for (const row of activeJacobian) {
-        const cols: number[] = [], vals: number[] = []
-        for (let j = 0; j < nCols; j++) { const v = row[j]; if (v !== 0) { cols.push(j); vals.push(v) } }
-        rowCols.push(cols); rowVals.push(vals)
+      for (let k = 0; k < activeIndices.length; k++) {
+        const r = localRows[activeIndices[k]] // numEq=0 ⇒ constraint index == local row index
+        const sgn = signs[activeIndices[k]]
+        rowCols.push(r.vars)
+        rowVals.push(r.vals.map((v) => v * sgn))
       }
       ;({ success, x: correction } = minNormSolveSparse(rowCols, rowVals, nCols, rhs))
     } else {
-      ;({ success, x: correction } = minNormSolve(activeJacobian, rhs))
+      // Get Jacobian for active constraints (dense fallback)
+      const fullJacobian = problem.computeConstraintJacobian()
+      const activeJacobian: Matrix = activeIndices.map((i) =>
+        i < numEq
+          ? fullJacobian[i]  // equality: no sign flip
+          : fullJacobian[i].map((val) => val * signs[i])
+      )
+
+      if (activeJacobian.length === 0) {
+        return null
+      }
+
+      if (IP_SPARSE_SOC.enabled) {
+        // Extract each row's sparse support, solve via the constraint Gram A·Aᵀ.
+        const nCols = activeJacobian[0].length
+        const rowCols: number[][] = []
+        const rowVals: number[][] = []
+        for (const row of activeJacobian) {
+          const cols: number[] = [], vals: number[] = []
+          for (let j = 0; j < nCols; j++) { const v = row[j]; if (v !== 0) { cols.push(j); vals.push(v) } }
+          rowCols.push(cols); rowVals.push(vals)
+        }
+        ;({ success, x: correction } = minNormSolveSparse(rowCols, rowVals, nCols, rhs))
+      } else {
+        ;({ success, x: correction } = minNormSolve(activeJacobian, rhs))
+      }
     }
 
     if (!success) {

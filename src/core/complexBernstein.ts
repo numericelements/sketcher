@@ -36,4 +36,8 @@ export class ComplexBD {
   derivative(): ComplexBD {
     return new ComplexBD(this.re.derivative(), this.im.derivative())
   }
+  /** Gather a (possibly wrapping) span list — closed-curve locality. See BernsteinDecomposition.gather. */
+  gather(spans: readonly number[]): ComplexBD {
+    return new ComplexBD(this.re.gather(spans), this.im.gather(spans))
+  }
 }

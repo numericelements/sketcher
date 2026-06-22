@@ -311,6 +311,11 @@ export interface ComplexPeriodicSeeds {
   N1: BernsteinDecomposition[]
   N2: BernsteinDecomposition[]
   N3: BernsteinDecomposition[]
+  /** Per control point: the (wrap-around) spans where its basis function is nonzero.
+   *  Lets the local Jacobian keep each column on its d+1 support spans. */
+  spans: number[][]
+  /** Total number of spans (period length) — for scattering a local column to width. */
+  numSpans: number
 }
 export function precomputeComplexPeriodicSeeds(
   knots: readonly number[],
@@ -321,6 +326,8 @@ export function precomputeComplexPeriodicSeeds(
   const N1: BernsteinDecomposition[] = []
   const N2: BernsteinDecomposition[] = []
   const N3: BernsteinDecomposition[] = []
+  const spans: number[][] = []
+  let numSpans = 0
   for (let i = 0; i < n; i++) {
     const e = new Array<number>(n).fill(0)
     e[i] = 1
@@ -331,8 +338,14 @@ export function precomputeComplexPeriodicSeeds(
     N1.push(d1)
     N2.push(d2)
     N3.push(d2.derivative())
+    numSpans = Ni.coeffs.length
+    const sp: number[] = []
+    for (let s = 0; s < Ni.coeffs.length; s++) {
+      if (Ni.coeffs[s].some((c) => Math.abs(c) > 1e-14)) sp.push(s)
+    }
+    spans.push(sp)
   }
-  return { N, N1, N2, N3 }
+  return { N, N1, N2, N3, spans, numSpans }
 }
 
 /**
@@ -357,13 +370,37 @@ export function curvatureExtremaGradientComplexPeriodicFixedWeight(
   degree: number,
   seeds: ComplexPeriodicSeeds = precomputeComplexPeriodicSeeds(knots, degree, zre.length),
 ): { g: BernsteinDecomposition; dx: BernsteinDecomposition[]; dy: BernsteinDecomposition[] } {
+  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree)
+
+  // ── Per-column differential. δW = 0 (weights fixed). For Re(zᵢ): δZ = wᵢ·Nᵢ;
+  //    for Im(zᵢ): δZ = i·wᵢ·Nᵢ. δZ⁽ᵏ⁾ = (complex const)·Nᵢ⁽ᵏ⁾. ──
   const n = zre.length
+  const dx: BernsteinDecomposition[] = []
+  const dy: BernsteinDecomposition[] = []
+  const column = (i: number, cr: number, ci: number): BernsteinDecomposition =>
+    complexDifferential(seeds.N[i], seeds.N1[i], seeds.N2[i], seeds.N3[i], cr, ci, V)
+  for (let i = 0; i < n; i++) {
+    dx.push(column(i, wre[i], wim[i])) // δZ = wᵢ·Nᵢ
+    dy.push(column(i, -wim[i], wre[i])) // δZ = i·wᵢ·Nᵢ
+  }
+  return { g, dx, dy }
+}
+
+/** The complex-rational fixed-weight curvature value terms (Chen reduction),
+ *  computed ONCE per build and reused by every per-control-point differential. */
+interface ComplexFixedWeightTerms {
+  W: ComplexBD; Wu: ComplexBD; Wuu: ComplexBD; Wuuu: ComplexBD
+  D1: ComplexBD; D2: ComplexBD; D3: ComplexBD; D21: ComplexBD; D1c: ComplexBD
+  T_Wbar: ComplexBD; D1c2_Wbar: ComplexBD; WuD2_WuuD1: ComplexBD
+}
+function complexFixedWeightValueTerms(
+  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
+  knots: readonly number[], degree: number,
+): { g: BernsteinDecomposition; V: ComplexFixedWeightTerms } {
   const Zre = zre.map((zr, i) => zr * wre[i] - zim[i] * wim[i])
   const Zim = zre.map((zr, i) => zr * wim[i] + zim[i] * wre[i])
   const Z = new ComplexBD(decomposeToBernsteinPeriodic(Zre, knots, degree), decomposeToBernsteinPeriodic(Zim, knots, degree))
   const W = new ComplexBD(decomposeToBernsteinPeriodic([...wre], knots, degree), decomposeToBernsteinPeriodic([...wim], knots, degree))
-
-  // ── Value terms (computed ONCE) ──
   const Zu = Z.derivative(), Zuu = Zu.derivative(), Zuuu = Zuu.derivative()
   const Wu = W.derivative(), Wuu = Wu.derivative(), Wuuu = Wuu.derivative()
   const D1 = Zu.mul(W).sub(Z.mul(Wu))
@@ -376,36 +413,60 @@ export function curvatureExtremaGradientComplexPeriodicFixedWeight(
   const T = W.mul(bracket).add(D1.mul(Wu.mul(D2).sub(Wuu.mul(D1))).scale(2))
   const Wbar = W.conj()
   const g = D1c2.mul(T).mul(Wbar).im
-  // Reusable value products for the per-column differential.
   const T_Wbar = T.mul(Wbar) // for d(D1c²)·T·W̄
   const D1c2_Wbar = D1c2.mul(Wbar) // for D1c²·dT·W̄
   const WuD2_WuuD1 = Wu.mul(D2).sub(Wuu.mul(D1)) // value part of the T tail
+  return { g, V: { W, Wu, Wuu, Wuuu, D1, D2, D3, D21, D1c, T_Wbar, D1c2_Wbar, WuD2_WuuD1 } }
+}
 
-  // ── Per-column differential. δW = 0 (weights fixed). For Re(zᵢ): δZ = wᵢ·Nᵢ;
-  //    for Im(zᵢ): δZ = i·wᵢ·Nᵢ. δZ⁽ᵏ⁾ = (complex const)·Nᵢ⁽ᵏ⁾. ──
-  const dx: BernsteinDecomposition[] = []
-  const dy: BernsteinDecomposition[] = []
-  const cplx = (re: BernsteinDecomposition, cr: number, ci: number) => new ComplexBD(re.scale(cr), re.scale(ci))
-  const column = (i: number, cr: number, ci: number): BernsteinDecomposition => {
-    const dZ = cplx(seeds.N[i], cr, ci)
-    const dZu = cplx(seeds.N1[i], cr, ci)
-    const dZuu = cplx(seeds.N2[i], cr, ci)
-    const dZuuu = cplx(seeds.N3[i], cr, ci)
-    const dD1 = dZu.mul(W).sub(dZ.mul(Wu))
-    const dD2 = dZuu.mul(W).sub(dZ.mul(Wuu))
-    const dD3 = dZuuu.mul(W).sub(dZ.mul(Wuuu))
-    const dD21 = dZuu.mul(Wu).sub(dZu.mul(Wuu))
-    const dbracket = dD3.mul(D1).add(D3.mul(dD1)).add(dD1.mul(D21)).add(D1.mul(dD21)).sub(D2.mul(dD2).scale(3))
-    const dD1c2 = D1c.mul(dD1.conj()).scale(2) // d(D1c²) = 2·D1c·conj(dD1)
-    const dT = W.mul(dbracket).add(dD1.mul(WuD2_WuuD1).add(D1.mul(Wu.mul(dD2).sub(Wuu.mul(dD1)))).scale(2))
-    const dP = dD1c2.mul(T_Wbar).add(D1c2_Wbar.mul(dT))
-    return dP.im
-  }
+/** ∂g/∂(one coordinate of one control point): the differential at the seed basis
+ *  function N (and its derivatives), reusing the precomputed value terms `V`.
+ *  Operands may be full-width OR gathered on a support-span list — the formula is
+ *  identical, so the dense and local-cols gradients share it (bit-for-bit). */
+function complexDifferential(
+  N: BernsteinDecomposition, N1: BernsteinDecomposition, N2: BernsteinDecomposition, N3: BernsteinDecomposition,
+  cr: number, ci: number, V: ComplexFixedWeightTerms,
+): BernsteinDecomposition {
+  const cplx = (re: BernsteinDecomposition) => new ComplexBD(re.scale(cr), re.scale(ci))
+  const dZ = cplx(N), dZu = cplx(N1), dZuu = cplx(N2), dZuuu = cplx(N3)
+  const dD1 = dZu.mul(V.W).sub(dZ.mul(V.Wu))
+  const dD2 = dZuu.mul(V.W).sub(dZ.mul(V.Wuu))
+  const dD3 = dZuuu.mul(V.W).sub(dZ.mul(V.Wuuu))
+  const dD21 = dZuu.mul(V.Wu).sub(dZu.mul(V.Wuu))
+  const dbracket = dD3.mul(V.D1).add(V.D3.mul(dD1)).add(dD1.mul(V.D21)).add(V.D1.mul(dD21)).sub(V.D2.mul(dD2).scale(3))
+  const dD1c2 = V.D1c.mul(dD1.conj()).scale(2) // d(D1c²) = 2·D1c·conj(dD1)
+  const dT = V.W.mul(dbracket).add(dD1.mul(V.WuD2_WuuD1).add(V.D1.mul(V.Wu.mul(dD2).sub(V.Wuu.mul(dD1)))).scale(2))
+  const dP = dD1c2.mul(V.T_Wbar).add(V.D1c2_Wbar.mul(dT))
+  return dP.im
+}
+
+/** Local (sparse) form of curvatureExtremaGradientComplexPeriodicFixedWeight: each
+ *  column kept on its control point's (wrapping) support spans — O(n·d²), no
+ *  full-width column. The primitive the complex-rational drag uses to build a sparse
+ *  constraint Jacobian (→ banded/arrowhead barrier). Bit-identical to the dense
+ *  gradient (same value terms + differential, just gathered on the support). */
+export function curvatureExtremaGradientComplexPeriodicFixedWeightCols(
+  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
+  knots: readonly number[], degree: number,
+  seeds: ComplexPeriodicSeeds = precomputeComplexPeriodicSeeds(knots, degree, zre.length),
+): { g: BernsteinDecomposition; gDeg: number; numSpans: number; cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] } {
+  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree)
+  const n = zre.length
+  const cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] = []
   for (let i = 0; i < n; i++) {
-    dx.push(column(i, wre[i], wim[i])) // δZ = wᵢ·Nᵢ
-    dy.push(column(i, -wim[i], wre[i])) // δZ = i·wᵢ·Nᵢ
+    const sp = seeds.spans[i]
+    // Gather seeds + value terms on this control point's support spans.
+    const N = seeds.N[i].gather(sp), N1 = seeds.N1[i].gather(sp), N2 = seeds.N2[i].gather(sp), N3 = seeds.N3[i].gather(sp)
+    const Vg: ComplexFixedWeightTerms = {
+      W: V.W.gather(sp), Wu: V.Wu.gather(sp), Wuu: V.Wuu.gather(sp), Wuuu: V.Wuuu.gather(sp),
+      D1: V.D1.gather(sp), D2: V.D2.gather(sp), D3: V.D3.gather(sp), D21: V.D21.gather(sp), D1c: V.D1c.gather(sp),
+      T_Wbar: V.T_Wbar.gather(sp), D1c2_Wbar: V.D1c2_Wbar.gather(sp), WuD2_WuuD1: V.WuD2_WuuD1.gather(sp),
+    }
+    const gx = complexDifferential(N, N1, N2, N3, wre[i], wim[i], Vg)
+    const gy = complexDifferential(N, N1, N2, N3, -wim[i], wre[i], Vg)
+    cols.push({ spans: sp, gx, gy })
   }
-  return { g, dx, dy }
+  return { g, gDeg: g.degree, numSpans: seeds.numSpans, cols }
 }
 
 /**

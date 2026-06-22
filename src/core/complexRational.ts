@@ -22,6 +22,7 @@ import { type Complex, cadd, csub, cmul, cdiv, cnorm } from './complex'
 import {
   curvatureExtremaNumeratorComplexPeriodic,
   curvatureExtremaGradientComplexPeriodicFixedWeight,
+  curvatureExtremaGradientComplexPeriodicFixedWeightCols,
   precomputeComplexPeriodicSeeds,
 } from './curvature'
 import type { ComplexPeriodicSeeds } from './curvature'
@@ -454,6 +455,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
   private seeds: ComplexPeriodicSeeds
   private cachedCons: number[] | null = null
   private cachedJac: Matrix | null = null
+  private cachedLocalJac: { vars: number[]; vals: number[] }[] | null = null
 
   constructor(
     controlPoints: readonly ComplexPoint[],
@@ -527,6 +529,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
     this.cpY = x.slice(n)
     this.cachedCons = null
     this.cachedJac = null
+    this.cachedLocalJac = null
   }
 
   computeObjective(): number {
@@ -597,6 +600,52 @@ export class ComplexRationalProblem implements OptimizationProblem {
     })
     return this.cachedJac
   }
+  /**
+   * Sparse per-active-constraint Jacobian (closed complex-rational, fixed weights):
+   * row k lists only the variables ∂g_k/∂var ≠ 0 — the d+1 control points (× re/im)
+   * supporting g_k's span, which wrap the seam. Built from the LOCAL complex gradient
+   * (cols form) in O(n·d²), so the interior-point step assembles a banded + low-rank
+   * seam Hessian instead of a dense one — linear in the number of control points.
+   */
+  computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] {
+    if (this.cachedLocalJac) return this.cachedLocalJac
+    const grad = curvatureExtremaGradientComplexPeriodicFixedWeightCols(
+      this.cpX, this.cpY, this.wre, this.wim, this.knots, this.degree, this.seeds,
+    )
+    const gDeg1 = grad.gDeg + 1
+    const n = this.cpX.length
+    const activePos = new Map<number, number>()
+    this.activeIdx.forEach((flat, k) => activePos.set(flat, k))
+    const rows = this.activeIdx.map(() => ({ vars: [] as number[], vals: [] as number[] }))
+    for (let i = 0; i < n; i++) {
+      const col = grad.cols[i]
+      const gxc = col.gx.coeffs, gyc = col.gy.coeffs
+      for (let ls = 0; ls < col.spans.length; ls++) {
+        const s = col.spans[ls]
+        for (let c = 0; c <= grad.gDeg; c++) {
+          const k = activePos.get(s * gDeg1 + c)
+          if (k === undefined) continue
+          const vx = gxc[ls][c], vy = gyc[ls][c]
+          if (vx !== 0) { rows[k].vars.push(i); rows[k].vals.push(vx) }
+          if (vy !== 0) { rows[k].vars.push(n + i); rows[k].vals.push(vy) }
+        }
+      }
+    }
+    // Ascending var order so the fraction-to-boundary Jᵢ·step sum matches the dense scan.
+    for (const r of rows) {
+      const order = r.vars.map((_, k) => k).sort((p, q) => r.vars[p] - r.vars[q])
+      r.vars = order.map((k) => r.vars[k]); r.vals = order.map((k) => r.vals[k])
+    }
+    this.cachedLocalJac = rows
+    return rows
+  }
+  computeObjectiveHessianDiagonal(): number[] {
+    const m = this.cpX.length
+    const aw = this.anchorWeight
+    const d = new Array<number>(2 * m)
+    for (let i = 0; i < m; i++) { d[i] = this.weights[i] + aw; d[m + i] = this.weights[i] + aw }
+    return d
+  }
   getConstraintSigns(): number[] {
     return this.signs
   }
@@ -608,6 +657,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
     this.signs = this.activeIdx.map((i) => (gc[i] > 0 ? -1 : 1))
     this.cachedCons = null
     this.cachedJac = null
+    this.cachedLocalJac = null
   }
 }
 
@@ -661,6 +711,11 @@ export function slideComplexRational(
         maxIterations: opts.maxIterations ?? 60,
         enableBFGS: opts.enableBFGS ?? false,
         returnBestFeasible: true,
+        // Closed planar drag, no equalities → the barrier Hessian is a band + low-rank
+        // seam block. Assemble + solve it directly (sparse rows → arrowhead), O(n)
+        // instead of the dense O(n³) that made an 80-CP complex-rational drag ~14 s.
+        bandedSolve: true,
+        closed: true,
       })
     : new PrimalDualOptimizer(problem, {
         maxIterations: opts.maxIterations ?? 60,

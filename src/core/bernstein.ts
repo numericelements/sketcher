@@ -155,6 +155,19 @@ export class BernsteinDecomposition {
   }
 
   /**
+   * Gather an explicit (possibly WRAPPING) list of spans into a compact
+   * decomposition whose local span index k holds the coeffs of original span
+   * `spans[k]`. Lets closed-curve locality keep only a control point's support
+   * spans (which wrap the seam) instead of the full width. Synthetic integer
+   * breaks — the result is used for span-by-span products, not parameter evaluation.
+   */
+  gather(spans: readonly number[]): BernsteinDecomposition {
+    const breaks = spans.map((_, k) => k)
+    breaks.push(spans.length)
+    return new BernsteinDecomposition(spans.map((s) => this.coeffs[s]), breaks)
+  }
+
+  /**
    * Number of strict sign changes S⁻ in the Bernstein coefficients (zeros
    * skipped). By the variation-diminishing property this bounds the number of
    * zeros of f — for g(t) that is the bound on the number of curvature extrema.
