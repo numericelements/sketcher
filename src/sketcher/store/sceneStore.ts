@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve } from '../../core'
+import { slideCurve, slideComplexRational } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -813,6 +813,36 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       } catch (e) {
         // Fall through to direct move if optimization fails
         console.warn('Curvature optimizer failed:', e)
+      }
+    }
+
+    // Closed complex-rational CP-drag → core (banded arrowhead, weights held fixed).
+    // Same clean-periodic-knot gate as the closed b-spline (core's smooth-periodic,
+    // ρ=1 model). The control points carry the live complex weights, so the drag
+    // rides them along and we recompute the Farin handles from the moved points (the
+    // same derivation the store uses elsewhere). ~13× faster than the dense path at
+    // 80 CPs; falls through to the legacy optimizer on any failure or a junction knot.
+    const crCleanPeriodic =
+      curve.kind === 'complex-rational' && curve.closed &&
+      curve.knots.length === curve.controlPoints.length &&
+      curve.knots[0] < 1e-9 &&
+      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
+      curve.knots[curve.knots.length - 1] < 1
+    if (preserveCurvatureExtrema && curve.kind === 'complex-rational' && crCleanPeriodic) {
+      try {
+        const r = slideComplexRational(
+          curve.controlPoints, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y,
+          { maxIterations: 20, enableBFGS: false },
+        )
+        const farinPositions = initializeFarinPositionsFromComplexWeights(r.points, true)
+        set((state) => ({
+          curves: state.curves.map((c) =>
+            c.id === curveId ? { ...curve, controlPoints: r.points, farinPositions } : c
+          ),
+        }))
+        return
+      } catch (e) {
+        console.warn('core slideComplexRational failed; falling back to legacy optimizer:', e)
       }
     }
 
