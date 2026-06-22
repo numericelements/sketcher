@@ -786,6 +786,34 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       }
     }
 
+    // Closed REAL-rational CP-drag → core (banded), holding weights fixed. A closed
+    // real-rational curve is a complex-rational with w_im = 0, so it rides the same
+    // fast path: convert (x,y,w) → (re,im,w_re=w,w_im=0), slide, write (x,y) back. The
+    // Farin t-values are weight RATIOS, position-independent — fixed weights leave
+    // them (and wrapWeight) unchanged, so `...curve` keeps them. Same clean-periodic
+    // gate; falls through to the legacy optimizer otherwise.
+    const rrCleanPeriodic =
+      curve.kind === 'rational' && curve.closed && !symmetryMaps &&
+      curve.knots.length === curve.controlPoints.length &&
+      curve.knots[0] < 1e-9 &&
+      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
+      curve.knots[curve.knots.length - 1] < 1
+    if (preserveCurvatureExtrema && curve.kind === 'rational' && rrCleanPeriodic) {
+      try {
+        const cpx = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, w_re: p.w, w_im: 0 }))
+        const r = slideComplexRational(cpx, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y, {
+          maxIterations: 20, enableBFGS: false,
+        })
+        const newControlPoints = r.points.map((p, i) => ({ x: p.re, y: p.im, w: curve.controlPoints[i].w }))
+        set((state) => ({
+          curves: state.curves.map((c) => (c.id === curveId ? { ...curve, controlPoints: newControlPoints } : c)),
+        }))
+        return
+      } catch (e) {
+        console.warn('core slideComplexRational (real rational) failed; falling back to legacy optimizer:', e)
+      }
+    }
+
     // Use optimizer if preserveCurvatureExtrema is enabled and curve is compatible
     // (closed bsplines + rational — not yet migrated to core/).
     if (preserveCurvatureExtrema && (curve.kind === 'bspline' || curve.kind === 'rational')) {

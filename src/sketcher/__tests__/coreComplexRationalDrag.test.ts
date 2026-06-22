@@ -54,4 +54,33 @@ describe('core complex-rational drag (live sketcher path)', () => {
       }
     }
   })
+
+  // Closed REAL-rational drag rides the SAME core path with w_im = 0 (a real-rational
+  // NURBS is a complex-rational with imaginary weight 0 — identical curve). Mirrors
+  // the store: (x,y,w) → (re,im,w_re=w,w_im=0), slide, write (x,y) back; t-values fixed.
+  it('real-rational (w_im=0, non-unit weights): bound never grows, weights ride fixed', () => {
+    for (const n of [12, 24]) {
+      const knots = uniformPeriodicKnots(n)
+      // WeightedPoint2D-style closed curve with non-unit real weights.
+      const wp = Array.from({ length: n }, (_, i) => {
+        const a = (2 * Math.PI * i) / n
+        return { x: 170 * Math.cos(a), y: 90 * Math.sin(a), w: 1 + 0.4 * Math.cos(2 * a) }
+      })
+      const toCR = (q: typeof wp): ComplexPoint[] => q.map((p) => ({ re: p.x, im: p.y, w_re: p.w, w_im: 0 }))
+      const start = sc(toCR(wp), knots)
+      for (const di of [0, Math.floor(n / 2)]) {
+        let cur = wp.map((p) => ({ ...p }))
+        const tx = cur[di].x + 30, ty = cur[di].y - 45
+        for (let f = 1; f <= 4; f++) {
+          const r = slideComplexRational(
+            toCR(cur), knots, DEG, di, wp[di].x + (tx - wp[di].x) * (f / 4), wp[di].y + (ty - wp[di].y) * (f / 4),
+            { maxIterations: 20, enableBFGS: false },
+          )
+          cur = r.points.map((p, i) => ({ x: p.re, y: p.im, w: cur[i].w })) // weights ride fixed
+          expect(cur.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true)
+        }
+        expect(sc(toCR(cur), knots)).toBeLessThanOrEqual(start)
+      }
+    }
+  })
 })
