@@ -1,4 +1,4 @@
-import { scalarCoeffs } from './coeffs'
+import { scalarCoeffs, type Coeffs } from './coeffs'
 import { makeIndexing, deBoor } from './indexing'
 
 // ============================================================================
@@ -219,6 +219,43 @@ function decomposeScalar(
     spanCoeffs.push(seg)
   }
   return new BernsteinDecomposition(spanCoeffs, breaks)
+}
+
+/**
+ * Generic Bernstein decomposition over ANY coefficient field (`Coeffs`): returns the
+ * per-span homogeneous Bézier coefficients (in H-space) + breaks. The periodic wrap
+ * AND the weight SPIRAL (`spiralRatio` ρ, applied per wrap by the indexing) live in
+ * one place, so a quasi-periodic curve — W(t+P)=ρ·W(t) — decomposes correctly. The
+ * scalar `decomposeScalar` is the ρ=1 real special case; complex-rational uses this
+ * with `complexCoeffs` to get ρ-correct Z and W in one pass.
+ */
+export function decomposeBsplineGeneric<CP, H, S, Out>(
+  coeffs: Coeffs<CP, H, S, Out>,
+  controlPoints: readonly CP[],
+  knots: readonly number[],
+  degree: number,
+  closed: boolean,
+  spiralRatio?: S,
+): { coeffs: H[][]; breaks: number[] } {
+  const ix = makeIndexing(coeffs, controlPoints, knots, degree, closed, spiralRatio)
+  const distinct = distinctKnots(knots)
+  const breaks = closed ? [...distinct, distinct[0] + 1] : [...distinct]
+  const numSpans = breaks.length - 1
+  const spanCoeffs: H[][] = []
+  for (let s = 0; s < numSpans; s++) {
+    const a = breaks[s]
+    const b = breaks[s + 1]
+    const span = ix.span(a)
+    const seg: H[] = []
+    for (let j = 0; j <= degree; j++) {
+      const args: number[] = []
+      for (let m = 0; m < degree - j; m++) args.push(a)
+      for (let m = 0; m < j; m++) args.push(b)
+      seg.push(deBoor(ix, coeffs, span, degree, args))
+    }
+    spanCoeffs.push(seg)
+  }
+  return { coeffs: spanCoeffs, breaks }
 }
 
 /** Bernstein decomposition of an open (clamped) scalar B-spline function. */

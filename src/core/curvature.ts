@@ -1,5 +1,6 @@
 import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic } from './bernstein'
-import { ComplexBD } from './complexBernstein'
+import { ComplexBD, decomposeComplexCurvePeriodic } from './complexBernstein'
+import type { Complex } from './complex'
 
 /**
  * Curvature numerators for a planar polynomial B-spline curve c(t) = (x(t), y(t)),
@@ -369,8 +370,9 @@ export function curvatureExtremaGradientComplexPeriodicFixedWeight(
   knots: readonly number[],
   degree: number,
   seeds: ComplexPeriodicSeeds = precomputeComplexPeriodicSeeds(knots, degree, zre.length),
+  rho: Complex = { re: 1, im: 0 },
 ): { g: BernsteinDecomposition; dx: BernsteinDecomposition[]; dy: BernsteinDecomposition[] } {
-  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree)
+  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree, rho)
 
   // ── Per-column differential. δW = 0 (weights fixed). For Re(zᵢ): δZ = wᵢ·Nᵢ;
   //    for Im(zᵢ): δZ = i·wᵢ·Nᵢ. δZ⁽ᵏ⁾ = (complex const)·Nᵢ⁽ᵏ⁾. ──
@@ -395,12 +397,10 @@ interface ComplexFixedWeightTerms {
 }
 function complexFixedWeightValueTerms(
   zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
-  knots: readonly number[], degree: number,
+  knots: readonly number[], degree: number, rho: Complex = { re: 1, im: 0 },
 ): { g: BernsteinDecomposition; V: ComplexFixedWeightTerms } {
-  const Zre = zre.map((zr, i) => zr * wre[i] - zim[i] * wim[i])
-  const Zim = zre.map((zr, i) => zr * wim[i] + zim[i] * wre[i])
-  const Z = new ComplexBD(decomposeToBernsteinPeriodic(Zre, knots, degree), decomposeToBernsteinPeriodic(Zim, knots, degree))
-  const W = new ComplexBD(decomposeToBernsteinPeriodic([...wre], knots, degree), decomposeToBernsteinPeriodic([...wim], knots, degree))
+  const cps = zre.map((zr, i) => ({ re: zr, im: zim[i], w_re: wre[i], w_im: wim[i] }))
+  const { Z, W } = decomposeComplexCurvePeriodic(cps, knots, degree, rho)
   const Zu = Z.derivative(), Zuu = Zu.derivative(), Zuuu = Zuu.derivative()
   const Wu = W.derivative(), Wuu = Wu.derivative(), Wuuu = Wuu.derivative()
   const D1 = Zu.mul(W).sub(Z.mul(Wu))
@@ -449,8 +449,9 @@ export function curvatureExtremaGradientComplexPeriodicFixedWeightCols(
   zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
   knots: readonly number[], degree: number,
   seeds: ComplexPeriodicSeeds = precomputeComplexPeriodicSeeds(knots, degree, zre.length),
+  rho: Complex = { re: 1, im: 0 },
 ): { g: BernsteinDecomposition; gDeg: number; numSpans: number; cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] } {
-  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree)
+  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree, rho)
   const n = zre.length
   const cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] = []
   for (let i = 0; i < n; i++) {
@@ -486,17 +487,10 @@ export function curvatureExtremaNumeratorComplexPeriodic(
   wim: readonly number[],
   knots: readonly number[],
   degree: number,
+  rho: Complex = { re: 1, im: 0 },
 ): BernsteinDecomposition {
-  const Zre = zre.map((zr, i) => zr * wre[i] - zim[i] * wim[i])
-  const Zim = zre.map((zr, i) => zr * wim[i] + zim[i] * wre[i])
-  const Z = new ComplexBD(
-    decomposeToBernsteinPeriodic(Zre, knots, degree),
-    decomposeToBernsteinPeriodic(Zim, knots, degree),
-  )
-  const W = new ComplexBD(
-    decomposeToBernsteinPeriodic([...wre], knots, degree),
-    decomposeToBernsteinPeriodic([...wim], knots, degree),
-  )
+  const cps = zre.map((zr, i) => ({ re: zr, im: zim[i], w_re: wre[i], w_im: wim[i] }))
+  const { Z, W } = decomposeComplexCurvePeriodic(cps, knots, degree, rho)
   return complexChenG(Z, W)
 }
 
@@ -509,8 +503,9 @@ export function closedComplexCurvatureExtremaParameters(
   knots: readonly number[],
   degree: number,
   samples = 600,
+  rho: Complex = { re: 1, im: 0 },
 ): number[] {
-  const g = curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree)
+  const g = curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree, rho)
   const f = (t: number) => g.evaluate(((t % 1) + 1) % 1)
   const zeros: number[] = []
   let prevT = 0

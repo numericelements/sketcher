@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational } from '../../core'
+import { slideCurve, slideComplexRational, computeComplexFarinPoints, cdiv } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -790,16 +790,12 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // real-rational curve is a complex-rational with w_im = 0, so it rides the same
     // fast path: convert (x,y,w) → (re,im,w_re=w,w_im=0), slide, write (x,y) back. The
     // Farin t-values are weight RATIOS, position-independent — fixed weights leave
-    // them (and wrapWeight) unchanged, so `...curve` keeps them. Same clean-periodic
-    // gate; falls through to the legacy optimizer otherwise.
-    // ρ = 1 guard (see complex-rational above): core wraps the weights directly, so it
-    // only matches the rendered NURBS when wrapWeight == w₀. ρ ≠ 1 → legacy.
-    const rrW0 = curve.kind === 'rational' ? curve.controlPoints[0].w : 1
-    const rrRho1 =
-      !(curve.kind === 'rational' && curve.wrapWeight !== undefined) ||
-      Math.abs(curve.wrapWeight! - rrW0) <= 1e-6 * (Math.abs(rrW0) + 1)
+    // them (and wrapWeight) unchanged, so `...curve` keeps them. The monodromy
+    // ρ = wrapWeight/w₀ (real) is passed through, so core matches the rendered NURBS
+    // for any ρ. Same clean-periodic gate; falls through to the legacy optimizer
+    // otherwise.
     const rrCleanPeriodic =
-      curve.kind === 'rational' && curve.closed && !symmetryMaps && rrRho1 &&
+      curve.kind === 'rational' && curve.closed && !symmetryMaps &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
@@ -807,8 +803,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     if (preserveCurvatureExtrema && curve.kind === 'rational' && rrCleanPeriodic) {
       try {
         const cpx = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, w_re: p.w, w_im: 0 }))
+        const rho = curve.wrapWeight !== undefined
+          ? { re: curve.wrapWeight / curve.controlPoints[0].w, im: 0 }
+          : undefined
         const r = slideComplexRational(cpx, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y, {
-          maxIterations: 20, enableBFGS: false,
+          maxIterations: 20, enableBFGS: false, ...(rho ? { rho } : {}),
         })
         const newControlPoints = r.points.map((p, i) => ({ x: p.re, y: p.im, w: curve.controlPoints[i].w }))
         set((state) => ({
@@ -851,35 +850,34 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     }
 
     // Closed complex-rational CP-drag → core (banded arrowhead, weights held fixed).
-    // Same clean-periodic-knot gate as the closed b-spline (core's smooth-periodic,
-    // ρ=1 model). The control points carry the live complex weights, so the drag
-    // rides them along and we recompute the Farin handles from the moved points (the
-    // same derivation the store uses elsewhere). ~13× faster than the dense path at
-    // 80 CPs; falls through to the legacy optimizer on any failure or a junction knot.
-    // ρ = 1 (periodic monodromy): core's closed numerator wraps the weight sequence
-    // directly (wrap-edge weight == w₀), so it only matches the rendered curve when
-    // the stored wrapWeight equals w₀. A curve with wrapWeight ≠ w₀ (ρ ≠ 1) must stay
-    // on the legacy optimizer, which is wrapWeight-aware — otherwise core preserves a
-    // DIFFERENT curve's bound and the visible curvature-extrema bound drifts.
-    const crW0 = curve.kind === 'complex-rational' ? curve.controlPoints[0] : null
-    const crRho1 =
-      !(curve.kind === 'complex-rational' && curve.wrapWeight) ||
-      (crW0 != null &&
-        Math.abs(curve.wrapWeight!.re - crW0.w_re) <= 1e-6 * (Math.abs(crW0.w_re) + 1) &&
-        Math.abs(curve.wrapWeight!.im - crW0.w_im) <= 1e-6 * (Math.abs(crW0.w_im) + 1))
+    // The curve's periodic monodromy ρ = wrapWeight/w₀ is passed through, so core's
+    // numerator uses the wrap-scaled (spiral-unrolled) decomposition and matches the
+    // rendered curve EXACTLY for any ρ (verified to machine ε vs the legacy
+    // wrapWeight-aware g) — no ρ=1 restriction. Control points carry the live complex
+    // weights, so the drag rides them along; Farin handles are recomputed wrapWeight-
+    // aware (computeComplexFarinPoints derives the wrap edge from wrapWeight when no
+    // stored positions are passed). ~13× faster than the dense path at 80 CPs; falls
+    // through to the legacy optimizer on any failure or a junction (non-clean) knot.
     const crCleanPeriodic =
-      curve.kind === 'complex-rational' && curve.closed && crRho1 &&
+      curve.kind === 'complex-rational' && curve.closed &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
       curve.knots[curve.knots.length - 1] < 1
     if (preserveCurvatureExtrema && curve.kind === 'complex-rational' && crCleanPeriodic) {
       try {
+        const cw0 = curve.controlPoints[0]
+        const rho = curve.wrapWeight ? cdiv(curve.wrapWeight, { re: cw0.w_re, im: cw0.w_im }) : undefined
         const r = slideComplexRational(
           curve.controlPoints, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y,
-          { maxIterations: 20, enableBFGS: false },
+          { maxIterations: 20, enableBFGS: false, ...(rho ? { rho } : {}) },
         )
-        const farinPositions = initializeFarinPositionsFromComplexWeights(r.points, true)
+        // Recompute Farin handles wrapWeight-aware: pass NO stored positions so
+        // computeComplexFarinPoints derives them (wrap edge from wrapWeight).
+        const farinPositions = computeComplexFarinPoints({
+          degree: curve.degree, knots: curve.knots, controlPoints: r.points,
+          closed: true, wrapWeight: curve.wrapWeight,
+        }).map((f) => f.position)
         set((state) => ({
           curves: state.curves.map((c) =>
             c.id === curveId ? { ...curve, controlPoints: r.points, farinPositions } : c

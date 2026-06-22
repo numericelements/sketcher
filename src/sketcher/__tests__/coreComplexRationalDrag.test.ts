@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { slideComplexRational, curvatureExtremaNumeratorComplexPeriodic, type ComplexPoint } from '../../core'
+import { cdiv } from '../../core'
 import { initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
 import { uniformPeriodicKnots } from '../utils/bspline'
 
@@ -80,6 +81,35 @@ describe('core complex-rational drag (live sketcher path)', () => {
           expect(cur.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true)
         }
         expect(sc(toCR(cur), knots)).toBeLessThanOrEqual(start)
+      }
+    }
+  })
+
+  // ρ ≠ 1 (spiral monodromy): wrapWeight ≠ w₀. The numerator must wrap-scale by ρ to
+  // match the rendered curve. sc() and the drag both take ρ; the bound is measured
+  // with the SAME ρ-aware numerator the editor renders, so a real drift would show.
+  it('ρ ≠ 1 (spiral): bound never grows, drag finite, for real and complex ρ', () => {
+    const scRho = (cps: ComplexPoint[], knots: number[], rho: { re: number; im: number }) =>
+      curvatureExtremaNumeratorComplexPeriodic(
+        cps.map((p) => p.re), cps.map((p) => p.im), cps.map((p) => p.w_re), cps.map((p) => p.w_im), knots, DEG, rho,
+      ).signChanges()
+    for (const [wr, wi] of [[1.5, 0], [1.2, 0.3]] as [number, number][]) { // real + complex ρ
+      const n = 12
+      const { cps, knots } = oval(n) // unit w₀ = 1
+      const rho = cdiv({ re: wr, im: wi }, { re: cps[0].w_re, im: cps[0].w_im })
+      const start = scRho(cps, knots, rho)
+      for (const di of [0, 6]) { // seam + interior
+        let pts = cps
+        const tx = cps[di].re + 35, ty = cps[di].im - 45
+        for (let f = 1; f <= 4; f++) {
+          const r = slideComplexRational(
+            pts, knots, DEG, di, cps[di].re + (tx - cps[di].re) * (f / 4), cps[di].im + (ty - cps[di].im) * (f / 4),
+            { maxIterations: 20, enableBFGS: false, rho },
+          )
+          pts = r.points
+          expect(pts.every((p) => Number.isFinite(p.re) && Number.isFinite(p.im))).toBe(true)
+        }
+        expect(scRho(pts, knots, rho)).toBeLessThanOrEqual(start)
       }
     }
   })

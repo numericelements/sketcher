@@ -442,6 +442,10 @@ export class ComplexRationalProblem implements OptimizationProblem {
   private degree: number
   private wre: number[]
   private wim: number[]
+  /** Periodic monodromy ρ = wrapWeight/w₀. ρ=1 is the ordinary closed curve; ρ≠1 is a
+   *  spiral whose weight function repeats only up to ·ρ each loop (the wrap span's
+   *  homogeneous coeffs are scaled by ρ in the decomposition). */
+  private rho: Complex
   private targetX: number[]
   private targetY: number[]
   private weights: number[]
@@ -478,12 +482,16 @@ export class ComplexRationalProblem implements OptimizationProblem {
        * drag and adds a curvature extremum (same failure the open curves had).
        */
       robust?: boolean
+      /** Periodic monodromy ρ = wrapWeight/w₀ (default 1). Pass ≠1 for a spiral curve
+       *  so the numerator/Jacobian use the correct wrap-scaled decomposition. */
+      rho?: Complex
     } = {},
   ) {
     this.cpX = controlPoints.map((p) => p.re)
     this.cpY = controlPoints.map((p) => p.im)
     this.wre = controlPoints.map((p) => p.w_re)
     this.wim = controlPoints.map((p) => p.w_im)
+    this.rho = opts.rho ?? { re: 1, im: 0 }
     this.knots = [...knots]
     this.degree = degree
     this.seeds = precomputeComplexPeriodicSeeds(this.knots, degree, this.cpX.length)
@@ -514,6 +522,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
       this.wim,
       this.knots,
       this.degree,
+      this.rho,
     ).flatCoeffs()
   }
 
@@ -586,7 +595,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
     if (this.cachedJac) return this.cachedJac
     const m = this.cpX.length
     const grad = curvatureExtremaGradientComplexPeriodicFixedWeight(
-      this.cpX, this.cpY, this.wre, this.wim, this.knots, this.degree, this.seeds,
+      this.cpX, this.cpY, this.wre, this.wim, this.knots, this.degree, this.seeds, this.rho,
     )
     const dxf = grad.dx.map((b) => b.flatCoeffs())
     const dyf = grad.dy.map((b) => b.flatCoeffs())
@@ -610,7 +619,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
   computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] {
     if (this.cachedLocalJac) return this.cachedLocalJac
     const grad = curvatureExtremaGradientComplexPeriodicFixedWeightCols(
-      this.cpX, this.cpY, this.wre, this.wim, this.knots, this.degree, this.seeds,
+      this.cpX, this.cpY, this.wre, this.wim, this.knots, this.degree, this.seeds, this.rho,
     )
     const gDeg1 = grad.gDeg + 1
     const n = this.cpX.length
@@ -695,6 +704,9 @@ export function slideComplexRational(
      * barrier regardless. Matches ../sketcher's optimizeComplexRationalCurve.
      */
     enableBFGS?: boolean
+    /** Periodic monodromy ρ = wrapWeight/w₀ (default 1). Pass the curve's ρ for a
+     *  spiral (ρ≠1) closed curve so the bound matches the rendered curve. */
+    rho?: Complex
   } & Partial<OptimizerConfig> = {},
 ): { points: ComplexPoint[]; converged: boolean } {
   const robust = (opts.method ?? 'ipopt') === 'ipopt' // default to the bound-keeping solver
@@ -703,6 +715,7 @@ export function slideComplexRational(
     anchorX: opts.anchorX,
     anchorY: opts.anchorY,
     anchorWeight: opts.anchorWeight,
+    rho: opts.rho,
     dragWeight: opts.dragWeight,
     robust,
   })
