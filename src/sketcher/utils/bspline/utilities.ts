@@ -468,7 +468,16 @@ export function sampleCurveAdaptiveSegments(curve: Curve, options: AdaptiveSampl
           if (depth < maxDepth && t1 - t0 >= minStep) {
             const tMid = (t0 + t1) / 2
             const pMid = evaluateCurve(curve, tMid)
-            if (isValidPoint(pMid) && isInViewport(pMid, viewport, viewportMargin)) {
+            // Keep subdividing if the midpoint is in view OR the chord still spans
+            // more than the viewport. The straight-chord intersection test is only
+            // reliable once the segment is small: at high zoom the initial segment is
+            // the WHOLE curve, whose chord misses the tiny viewport even though the
+            // curve bulges through it. Culling on the chord alone there dropped the
+            // entire curve (control polygon + extrema stayed, curve vanished).
+            const chord = Math.hypot(p1.x - p0.x, p1.y - p0.y)
+            const viewportSize =
+              Math.max(viewport.maxX - viewport.minX, viewport.maxY - viewport.minY) + 2 * viewportMargin
+            if (isValidPoint(pMid) && (isInViewport(pMid, viewport, viewportMargin) || chord > viewportSize)) {
               subdivide(t0, tMid, p0, pMid, depth + 1)
               subdivide(tMid, t1, pMid, p1, depth + 1)
               return
