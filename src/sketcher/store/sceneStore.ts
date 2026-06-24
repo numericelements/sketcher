@@ -558,6 +558,15 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
 
     if (!curve) return
 
+    // Guard a stale / out-of-bounds index. A drag's rAF-coalesced move can fire
+    // AFTER closeCurveByMergingEndpoints has reduced the control-point count
+    // (n → n−1), leaving the captured draggedPointIndex past the end. Writing
+    // newPoints[pointIndex] there would EXTEND the array with a malformed control
+    // point — weightless ({x,y} with no w) for rational — and a control-point/knot
+    // count mismatch, degenerating the curve (a straight line for polynomial, a
+    // NaN/vanishing curve for rational). Drop the stale move.
+    if (pointIndex < 0 || pointIndex >= curve.controlPoints.length) return
+
     // PH curve optimization (always active for PH curves)
     if (phMetadata.has(curveId) && curve.kind === 'bspline') {
       const meta = phMetadata.get(curveId)!
