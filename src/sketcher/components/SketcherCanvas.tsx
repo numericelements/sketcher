@@ -108,7 +108,7 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
     smoothIterations,
   } = useSceneStore()
 
-  const { allowDrawing = true, allowSelection = true, showControlPolygon, hidePolygonOnDeselect, controlPointHitRadius = 15, alwaysShowCurvatureExtrema = false } = config
+  const { allowDrawing = true, allowSelection = true, showControlPolygon, hidePolygonOnDeselect, controlPointHitRadius = 15, alwaysShowCurvatureExtrema = false, disableClosing = false } = config
   const { t } = useTranslation()
 
   // Compute curvature extrema positions for selected curve when curvature panel or preserve toggle is active
@@ -616,7 +616,7 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
         // support). Other PH kinds are still excluded.
         const curve = curves.find((c) => c.id === selectedCurveId)
         const phK = curve ? phMetadata.get(curve.id) : undefined
-        const closeable = !phK || phK.kind === 'polynomial'
+        const closeable = !disableClosing && (!phK || phK.kind === 'polynomial')
         const minSnapPoints = curve?.kind === 'complex-rational' ? 3 : 4
         if (curve && !curve.closed && closeable && curve.controlPoints.length >= minSnapPoints) {
           const n = curve.controlPoints.length
@@ -1076,7 +1076,7 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
           // and the polynomial PH spline are closeable.
           const curve = curves.find((c) => c.id === selectedCurveId)
           const phK = curve ? phMetadata.get(curve.id) : undefined
-          const closeable = !phK || phK.kind === 'polynomial'
+          const closeable = !disableClosing && (!phK || phK.kind === 'polynomial')
           const minSnapPoints = curve?.kind === 'complex-rational' ? 3 : 4
           if (curve && !curve.closed && closeable && curve.controlPoints.length >= minSnapPoints) {
             const n = curve.controlPoints.length

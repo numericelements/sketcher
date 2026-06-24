@@ -18,6 +18,9 @@ export interface CanvasConfig {
   // Behavior overrides
   allowDrawing?: boolean // default: true
   allowSelection?: boolean // default: true
+  disableClosing?: boolean // default: false — when true, dragging an endpoint onto
+  // the other does NOT snap-highlight or close the curve (it stays open). Used by the
+  // 2D PH curvature workbench, where the curve must remain an open PH spline.
   alwaysSelected?: boolean // default: false (for demos)
   showControlPolygon?: boolean // default: only when selected
   hidePolygonOnDeselect?: boolean // default: false — when true, the control

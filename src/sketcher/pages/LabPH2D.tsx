@@ -33,6 +33,9 @@ const config: CanvasConfig = {
   alwaysSelected: true,
   showControlPolygon: true,
   hidePolygonOnDeselect: true,
+  // The PH curvature workbench studies an OPEN PH spline — dragging an endpoint onto
+  // the other must NOT close it (same as the Lie Sphere meridian).
+  disableClosing: true,
 }
 
 interface CurvatureData {
