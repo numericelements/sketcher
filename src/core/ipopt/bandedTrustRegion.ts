@@ -38,6 +38,7 @@ function refineArrowhead(
   for (let i = 0; i < x.length; i++) Mx[i] += reg * x[i]
   const r = rhs.map((ri, i) => ri - Mx[i])
   const dx = solveArrowhead(aFac, seam, eSS, r)
+  if (!dx) return x // singular refinement system — keep the unrefined solve
   return x.map((xi, i) => xi + dx[i])
 }
 
@@ -161,9 +162,12 @@ export function doglegFromArrowhead(
     const negGP = new Array<number>(n)
     for (let v = 0; v < n; v++) negGP[toInterleaved(v, nCP)] = -gradient[v]
     let stepP = solveArrowhead(fac, ah.seam, ah.eSS, negGP)
-    stepP = refineArrowhead(ah.band, regularization, fac, ah.seam, ah.eSS, negGP, stepP)
-    newtonStep = new Array<number>(n)
-    for (let v = 0; v < n; v++) newtonStep[v] = stepP[toInterleaved(v, nCP)]
+    if (stepP) {
+      // Singular seam (stepP === null) ⇒ leave newtonStep null ⇒ dogleg uses Cauchy.
+      stepP = refineArrowhead(ah.band, regularization, fac, ah.seam, ah.eSS, negGP, stepP)
+      newtonStep = new Array<number>(n)
+      for (let v = 0; v < n; v++) newtonStep[v] = stepP[toInterleaved(v, nCP)]
+    }
   }
   return doglegFromParts(gradient, newtonStep, gHg, delta)
 }
@@ -192,6 +196,7 @@ export function spdFromArrowhead(
   const rP = new Array<number>(n)
   for (let v = 0; v < n; v++) rP[toInterleaved(v, nCP)] = rhs[v]
   let xP = solveArrowhead(fac, ah.seam, ah.eSS, rP)
+  if (!xP) return null // singular seam ⇒ no Newton decrement (matches spdFromBand's null contract)
   xP = refineArrowhead(ah.band, regularization, fac, ah.seam, ah.eSS, rP, xP)
   const x = new Array<number>(n)
   for (let v = 0; v < n; v++) x[v] = xP[toInterleaved(v, nCP)]

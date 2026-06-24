@@ -32,14 +32,16 @@ describe('high-zoom curve clipping', () => {
     const segs = sampleCurveAdaptiveSegments(curve, { tolerance: 0.5 / 80, viewport })
     const pts = segs.flat()
     expect(pts.length).toBeGreaterThan(0) // curve not dropped
+    expect(pts.length).toBeLessThan(5000) // bounded (maxDepth) — high zoom doesn't sample unboundedly
 
     // At least one sampled point lands inside the window (the curve is drawn there).
     const inside = pts.some((q) => Math.abs(q.x - p.x) <= r * 1.5 && Math.abs(q.y - p.y) <= r * 1.5)
     expect(inside).toBe(true)
   })
 
-  it('still culls genuinely off-screen curves (no false positive)', () => {
-    // Viewport far from the entire curve ⇒ nothing should be sampled.
+  it('still culls genuinely off-screen curves (bounded work, no points)', () => {
+    // Viewport far from the entire curve ⇒ nothing should be sampled, and the cull must
+    // terminate (subdivision is maxDepth-bounded) rather than run away.
     const viewport = { minX: 100000, maxX: 100002, minY: 100000, maxY: 100002 }
     const segs = sampleCurveAdaptiveSegments(curve, { tolerance: 0.5 / 80, viewport })
     expect(segs.flat().length).toBe(0)

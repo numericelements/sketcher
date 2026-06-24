@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, computeComplexFarinPoints } from '../../core'
+import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -812,7 +812,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       try {
         const cpx = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, w_re: p.w, w_im: 0 }))
         const rho = curve.wrapWeight !== undefined
-          ? { re: curve.wrapWeight / curve.controlPoints[0].w, im: 0 }
+          ? { re: realSpiralRatio(curve.wrapWeight, curve.controlPoints[0].w), im: 0 }
           : undefined
         const r = slideComplexRational(cpx, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y, {
           maxIterations: 20, enableBFGS: false, ...(rho ? { rho } : {}),
@@ -874,7 +874,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     if (preserveCurvatureExtrema && curve.kind === 'complex-rational' && crCleanPeriodic) {
       try {
         const cw0 = curve.controlPoints[0]
-        const rho = curve.wrapWeight ? cdiv(curve.wrapWeight, { re: cw0.w_re, im: cw0.w_im }) : undefined
+        const rho = curve.wrapWeight ? complexSpiralRatio(curve.wrapWeight, { re: cw0.w_re, im: cw0.w_im }) : undefined
         const r = slideComplexRational(
           curve.controlPoints, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y,
           { maxIterations: 20, enableBFGS: false, ...(rho ? { rho } : {}) },

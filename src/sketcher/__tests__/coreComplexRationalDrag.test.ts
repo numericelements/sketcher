@@ -88,7 +88,13 @@ describe('core complex-rational drag (live sketcher path)', () => {
   // ρ ≠ 1 (spiral monodromy): wrapWeight ≠ w₀. The numerator must wrap-scale by ρ to
   // match the rendered curve. sc() and the drag both take ρ; the bound is measured
   // with the SAME ρ-aware numerator the editor renders, so a real drift would show.
-  it('ρ ≠ 1 (spiral): bound never grows, drag finite, for real and complex ρ', () => {
+  //
+  // NOTE: the bound (≤) is blind to a degenerate/flattening regression (a frozen or
+  // collapsed curve has FEWER extrema and still passes). The authoritative gate against
+  // a wrong ρ-seed is the FD-vs-analytic oracle in complexJacobianOracle.test.ts; here
+  // we ALSO assert non-degeneracy — the dragged point must make real progress toward the
+  // cursor — so a seed that silently freezes the drag would fail this test too.
+  it('ρ ≠ 1 (spiral): bound never grows, drag finite + makes progress, for real and complex ρ', () => {
     const scRho = (cps: ComplexPoint[], knots: number[], rho: { re: number; im: number }) =>
       curvatureExtremaNumeratorComplexPeriodic(
         cps.map((p) => p.re), cps.map((p) => p.im), cps.map((p) => p.w_re), cps.map((p) => p.w_im), knots, DEG, rho,
@@ -101,6 +107,7 @@ describe('core complex-rational drag (live sketcher path)', () => {
       for (const di of [0, 6]) { // seam + interior
         let pts = cps
         const tx = cps[di].re + 35, ty = cps[di].im - 45
+        const startDist = Math.hypot(tx - cps[di].re, ty - cps[di].im)
         for (let f = 1; f <= 4; f++) {
           const r = slideComplexRational(
             pts, knots, DEG, di, cps[di].re + (tx - cps[di].re) * (f / 4), cps[di].im + (ty - cps[di].im) * (f / 4),
@@ -110,6 +117,12 @@ describe('core complex-rational drag (live sketcher path)', () => {
           expect(pts.every((p) => Number.isFinite(p.re) && Number.isFinite(p.im))).toBe(true)
         }
         expect(scRho(pts, knots, rho)).toBeLessThanOrEqual(start)
+        // Non-degeneracy: the dragged point made real progress toward the cursor. The
+        // curvature-extrema bound legitimately resists a full reach, so we only require
+        // meaningful movement — a frozen/collapsed curve from a bad ρ-seed would leave the
+        // point ~at its start (progress ≈ 0).
+        const endDist = Math.hypot(tx - pts[di].re, ty - pts[di].im)
+        expect(startDist - endDist).toBeGreaterThan(0.1 * startDist)
       }
     }
   })

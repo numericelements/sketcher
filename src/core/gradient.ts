@@ -358,15 +358,6 @@ export function curvatureExtremaGradientPlanarPeriodic(
   return { g, dx, dy }
 }
 
-/** Gather the listed spans (any order; periodic support may wrap) into a compact
- *  BD. Breaks are placeholders — downstream only multiplies/adds (per-span, breaks-
- *  independent) and reads coeffs, so the values don't matter, only the count. */
-function gatherSpans(bd: BernsteinDecomposition, spans: number[]): BernsteinDecomposition {
-  const breaks = spans.map((_, k) => k)
-  breaks.push(spans.length)
-  return new BernsteinDecomposition(spans.map((s) => bd.coeffs[s]), breaks)
-}
-
 /** Scatter a compact per-span-list result back to full width (zeros elsewhere). */
 function scatterSpans(
   sub: BernsteinDecomposition,
@@ -422,9 +413,9 @@ export function precomputePeriodicSeeds(
     const d1 = Ni.derivative()
     const d2 = d1.derivative()
     spans.push(sp)
-    n1.push(gatherSpans(d1, sp))
-    n2.push(gatherSpans(d2, sp))
-    n3.push(gatherSpans(d2.derivative(), sp))
+    n1.push(d1.gather(sp))
+    n2.push(d2.gather(sp))
+    n3.push(d2.derivative().gather(sp))
   }
   return { numSpans, spans, n1, n2, n3 }
 }
@@ -509,12 +500,12 @@ export function curvatureExtremaGradientPlanarPeriodicLocalCols(
     const n1 = seeds.n1[i]
     const n2 = seeds.n2[i]
     const n3 = seeds.n3[i]
-    const gx = gatherSpans(pX1, spans).multiply(n1)
-      .add(gatherSpans(pX2, spans).multiply(n2))
-      .add(gatherSpans(pX3, spans).multiply(n3))
-    const gy = gatherSpans(pY1, spans).multiply(n1)
-      .add(gatherSpans(pY2, spans).multiply(n2))
-      .add(gatherSpans(pY3, spans).multiply(n3))
+    const gx = pX1.gather(spans).multiply(n1)
+      .add(pX2.gather(spans).multiply(n2))
+      .add(pX3.gather(spans).multiply(n3))
+    const gy = pY1.gather(spans).multiply(n1)
+      .add(pY2.gather(spans).multiply(n2))
+      .add(pY3.gather(spans).multiply(n3))
     cols.push({ spans, gx, gy })
   }
   return { g, gDeg: g.degree, numSpans: seeds.numSpans, cols }
@@ -609,8 +600,8 @@ export function inflectionGradientPlanarPeriodicLocal(
     const n1 = seeds.n1[i]
     const n2 = seeds.n2[i]
     // dx = Y2·Nᵢ′ + (−Y1)·Nᵢ″ ; dy = (−X2)·Nᵢ′ + X1·Nᵢ″
-    const gx = gatherSpans(Y2, spans).multiply(n1).subtract(gatherSpans(Y1, spans).multiply(n2))
-    const gy = gatherSpans(X1, spans).multiply(n2).subtract(gatherSpans(X2, spans).multiply(n1))
+    const gx = Y2.gather(spans).multiply(n1).subtract(Y1.gather(spans).multiply(n2))
+    const gy = X1.gather(spans).multiply(n2).subtract(X2.gather(spans).multiply(n1))
     dx.push(scatterSpans(gx, spans, numSpans, spanDegree, g.breaks))
     dy.push(scatterSpans(gy, spans, numSpans, spanDegree, g.breaks))
   }

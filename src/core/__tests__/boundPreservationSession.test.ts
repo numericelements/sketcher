@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { writeFileSync } from 'fs'
 import {
   slideCurve,
   slideComplexRational,
@@ -199,14 +198,13 @@ describe('slide-4 quick-drag bound lock', () => {
         }
       }
     }
-    writeFileSync('/tmp/barrier_robust.txt', `ex grew: ${exGrew}/${total}  sc grew: ${scGrew}/${total}\n` + rows.join('\n'))
-    void scGrew
+    const breakdown = `ex grew: ${exGrew}/${total}  sc grew: ${scGrew}/${total}\n` + rows.join('\n')
     // The scaled-robust regime cut barrier's bound growth from 18/75 (raw banded) to
     // a handful on the degenerate structural-zero parabola. `barrier` is the OPT-IN
     // faster-but-looser solver; the FAITHFUL fast path is banded ipopt (0/75, tested
     // in bandedIpopt.test.ts). Lock that the regime keeps barrier vastly better than
     // the naive banded port; it need not match ipopt's perfection.
-    expect(exGrew).toBeLessThanOrEqual(3)
+    expect(exGrew, breakdown).toBeLessThanOrEqual(3)
   })
 })
 

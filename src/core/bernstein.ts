@@ -199,25 +199,9 @@ function decomposeScalar(
   degree: number,
   closed: boolean,
 ): BernsteinDecomposition {
-  const ix = makeIndexing(scalarCoeffs, coeffs, knots, degree, closed)
-  const distinct = distinctKnots(knots)
-  const breaks = closed ? [...distinct, distinct[0] + 1] : [...distinct]
-  const numSpans = breaks.length - 1
-
-  const spanCoeffs: number[][] = []
-  for (let s = 0; s < numSpans; s++) {
-    const a = breaks[s]
-    const b = breaks[s + 1]
-    const span = ix.span(a)
-    const seg: number[] = []
-    for (let j = 0; j <= degree; j++) {
-      const args: number[] = []
-      for (let m = 0; m < degree - j; m++) args.push(a)
-      for (let m = 0; m < j; m++) args.push(b)
-      seg.push(deBoor(ix, scalarCoeffs, span, degree, args))
-    }
-    spanCoeffs.push(seg)
-  }
+  // The ρ=1 real special case of the generic decomposition (scalarCoeffs ⇒ H=number,
+  // no spiral). Delegates so the de Boor blossom loop lives in one place.
+  const { coeffs: spanCoeffs, breaks } = decomposeBsplineGeneric(scalarCoeffs, coeffs, knots, degree, closed)
   return new BernsteinDecomposition(spanCoeffs, breaks)
 }
 

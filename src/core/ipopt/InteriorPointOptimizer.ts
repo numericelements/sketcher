@@ -544,8 +544,12 @@ export class InteriorPointOptimizer {
     // objective Hessian is diagonal (Gauss-Newton, no BFGS), and we have the sparse
     // rows, assemble the interleaved band (+ seam block, closed) DIRECTLY from the
     // rank-1 updates — no dense n×n matrix, no matScale/alloc/mirror/add, no
-    // denseToArrowhead. Bit-identical to the dense path (same per-entry value &
-    // accumulation order; the objective diagonal is added last — addition commutes).
+    // denseToArrowhead. The ASSEMBLED matrix is bit-identical to denseToArrowhead(dense
+    // barrier Hessian) — same per-entry value & accumulation order, objective diagonal
+    // added last (addition commutes). (The SOLVE still differs from the dense Cholesky:
+    // banded LDLᵀ vs LLᵀ, plus Woodbury + refinement for the seam — so the resulting
+    // step matches algebraically, not byte-for-byte; see curvatureProblem.ts on the
+    // near-singular closed seam where 1 ULP picks a different valid feasible point.)
     if (useSparse && this.bandedEnabled && !config.enableBFGS && problem.computeObjectiveHessianDiagonal) {
       const objDiag = problem.computeObjectiveHessianDiagonal()
       const ah = this.assembleBandedBarrier(sparseRows!, activeF, signs, numEq, objDiag, t)
@@ -668,7 +672,9 @@ export class InteriorPointOptimizer {
    * dense n×n. The VALUE of each entry is computed in BLOCK order exactly as the
    * dense `jtDiagJ` did (so the rounding matches), then stored at its INTERLEAVED
    * band/seam position; the objective-Hessian diagonal is added last (addition
-   * commutes). Result is bit-identical to denseToArrowhead(dense barrier Hessian).
+   * commutes). The assembled MATRIX is bit-identical to denseToArrowhead(dense barrier
+   * Hessian); the downstream solve (LDLᵀ + Woodbury/refinement) is algebraically
+   * equivalent to the dense Cholesky, not byte-for-byte.
    */
   private assembleBandedBarrier(
     sparseRows: { vars: number[]; vals: number[] }[],

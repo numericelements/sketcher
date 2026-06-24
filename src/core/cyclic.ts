@@ -106,11 +106,17 @@ export function arrowheadApply(
 export { toInterleaved, toBlock }
 
 /** Solve A·x = b for a small DENSE matrix via partial-pivot Gaussian elimination.
- *  Used for the s×s inner system (and the equality Schur complement). */
-export function denseSolve(A: readonly number[][], b: readonly number[]): number[] {
+ *  Returns null when A is (numerically) singular — a pivot drops below 1e-12·‖A‖∞.
+ *  The caller (solveArrowhead) propagates that as a clean failure rather than
+ *  dividing by ~0, so a near-singular closed seam falls back to the Cauchy step
+ *  instead of producing a NaN/huge Newton step (and a NaN Newton decrement). */
+export function denseSolve(A: readonly number[][], b: readonly number[]): number[] | null {
   const n = b.length
   const M = A.map((r) => r.slice())
   const x = b.slice()
+  let maxAbs = 0
+  for (const row of M) for (const v of row) { const a = Math.abs(v); if (a > maxAbs) maxAbs = a }
+  const tol = 1e-12 * (maxAbs || 1)
   for (let col = 0; col < n; col++) {
     let piv = col
     for (let r = col + 1; r < n; r++) if (Math.abs(M[r][col]) > Math.abs(M[piv][col])) piv = r
@@ -118,7 +124,8 @@ export function denseSolve(A: readonly number[][], b: readonly number[]): number
       const tm = M[col]; M[col] = M[piv]; M[piv] = tm
       const tx = x[col]; x[col] = x[piv]; x[piv] = tx
     }
-    const d = M[col][col] || 1e-300
+    const d = M[col][col]
+    if (!Number.isFinite(d) || Math.abs(d) <= tol) return null // singular
     for (let r = col + 1; r < n; r++) {
       const f = M[r][col] / d
       if (f === 0) continue
@@ -129,7 +136,9 @@ export function denseSolve(A: readonly number[][], b: readonly number[]): number
   for (let col = n - 1; col >= 0; col--) {
     let sum = x[col]
     for (let c = col + 1; c < n; c++) sum -= M[col][c] * x[c]
-    x[col] = sum / (M[col][col] || 1e-300)
+    const d = M[col][col]
+    if (!Number.isFinite(d) || Math.abs(d) <= tol) return null
+    x[col] = sum / d
   }
   return x
 }
@@ -145,7 +154,7 @@ export function solveArrowhead(
   seam: readonly number[],
   eSS: readonly number[][],
   rhs: readonly number[],
-): number[] {
+): number[] | null {
   const nv = rhs.length
   const s = seam.length
   // 1. y = A⁻¹ rhs
@@ -180,8 +189,9 @@ export function solveArrowhead(
     rc[i] = acc
   }
 
-  // 5. tvec = K⁻¹ rc
+  // 5. tvec = K⁻¹ rc  (null ⇒ K singular: a near-singular seam — signal failure)
   const tvec = denseSolve(k, rc)
+  if (!tvec) return null
 
   // 6. x = y − A⁻¹ (P·tvec)
   const pt = new Array<number>(nv).fill(0)
