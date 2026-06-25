@@ -12,10 +12,18 @@ import { makeIndexing, deBoor } from './indexing'
 // ============================================================================
 
 /** Binomial coefficient C(n, k). */
+// Memoized — bernsteinMultiply calls this ~27× per product over thousands of products
+// per gradient build; recomputing the loop each time dominated the Bernstein hot path.
+// The cached value is the SAME float the loop produces (bit-identical), just looked up.
+const binomCache = new Map<number, number>()
 function binomial(n: number, k: number): number {
   if (k < 0 || k > n) return 0
+  const key = n * 1024 + k
+  const cached = binomCache.get(key)
+  if (cached !== undefined) return cached
   let r = 1
   for (let i = 0; i < k; i++) r = (r * (n - i)) / (i + 1)
+  binomCache.set(key, r)
   return r
 }
 
@@ -171,19 +179,36 @@ export class BernsteinDecomposition {
    * Number of strict sign changes S⁻ in the Bernstein coefficients (zeros
    * skipped). By the variation-diminishing property this bounds the number of
    * zeros of f — for g(t) that is the bound on the number of curvature extrema.
+   *
+   * `cyclic` (for CLOSED/periodic g): also compare the last nonzero coefficient
+   * back to the first, so the seam crossing is counted. A periodic g's zeros come
+   * in EVEN number; the linear (non-cyclic) walk drops the seam crossing and can
+   * report an odd count. Open curves are not periodic → leave `cyclic` false.
    */
-  signChanges(): number {
-    let changes = 0
-    let prev = 0
-    for (const v of this.flatCoeffs()) {
-      const s = Math.sign(v)
-      if (s !== 0) {
-        if (prev !== 0 && s !== prev) changes++
-        prev = s
-      }
-    }
-    return changes
+  signChanges(cyclic = false): number {
+    return cyclicSignChanges(this.flatCoeffs(), cyclic)
   }
+}
+
+/**
+ * Strict sign changes in a sequence of ±1/0 signs (zeros skipped). `cyclic` adds
+ * the seam crossing (last nonzero ↔ first nonzero) — use it for CLOSED/periodic
+ * sign arrays so the count is even (the four-vertex / even-zero-count property),
+ * not for open curves. Mirrors ne-core optimizer.rs `sign_changes(s, cyclic)`.
+ */
+export function cyclicSignChanges(signs: readonly number[], cyclic: boolean): number {
+  let changes = 0
+  let prev = 0
+  let first = 0
+  for (const v of signs) {
+    const s = Math.sign(v)
+    if (s === 0) continue
+    if (prev === 0) first = s // first nonzero sign
+    else if (s !== prev) changes++
+    prev = s
+  }
+  if (cyclic && first !== 0 && prev !== first) changes++
+  return changes
 }
 
 /**

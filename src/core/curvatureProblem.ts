@@ -24,6 +24,7 @@ import {
   precomputeOpenSeeds,
 } from './gradient'
 import type { PeriodicSeeds, OpenSeeds } from './gradient'
+import { curvatureExtremaHessianPlanarWeighted } from './curvatureHessian'
 import type { BernsteinDecomposition } from './bernstein'
 import type { PlanarCurvatureGradient } from './gradient'
 
@@ -238,6 +239,70 @@ export function planarCurvatureConstraintState(
     const a = g.breaks[s]
     const b = g.breaks[s + 1]
     const m = g.coeffs[s].length
+    for (let j = 0; j < m; j++) grevilleAbscissae.push(a + (m > 1 ? j / (m - 1) : 0) * (b - a))
+  }
+  return { gCPs: gc, signs, inactiveIndices: [...inactive], gScale, grevilleAbscissae }
+}
+
+/** Cyclic version of computeInactiveSetBySign for CLOSED curves: the g coefficient
+ *  sequence is a loop, so an alternating-sign run can wrap the seam (coeff n−1 ↔ 0).
+ *  Start the scan at a same-sign boundary so runs don't split across the seam; a fully
+ *  alternating cycle is one run keeping the single global anchor. Freeing only run-
+ *  interior coefficients means a freed flip can merge two extrema, never create one —
+ *  the closed analogue of the variation-diminishing argument. */
+function computeInactiveSetBySignCyclic(signs: number[], absVal: number[]): Set<number> {
+  const n = signs.length
+  const inactive = new Set<number>()
+  if (n < 2) return inactive
+  let start = -1
+  for (let i = 0; i < n; i++) if (signs[i] === signs[(i + 1) % n]) { start = (i + 1) % n; break }
+  if (start === -1) {
+    // Fully alternating cycle: one run around the loop, keep the global anchor.
+    let anchor = 0
+    for (let i = 1; i < n; i++) if (absVal[i] > absVal[anchor]) anchor = i
+    for (let i = 0; i < n; i++) if (i !== anchor) inactive.add(i)
+    return inactive
+  }
+  // Linear scan over the rotation starting at the boundary — no run wraps the seam now.
+  let p = 0
+  while (p < n - 1) {
+    const i = (start + p) % n, iN = (start + p + 1) % n
+    if (signs[i] !== signs[iN]) {
+      const seq = [{ idx: i, abs: absVal[i] }, { idx: iN, abs: absVal[iN] }]
+      let q = p + 1
+      while (q < n - 1) {
+        const j = (start + q) % n, jN = (start + q + 1) % n
+        if (signs[j] !== signs[jN]) { q++; seq.push({ idx: jN, abs: absVal[jN] }) } else break
+      }
+      const anchor = seq.reduce((m, e) => (e.abs > m.abs ? e : m))
+      for (const e of seq) if (e.idx !== anchor.idx) inactive.add(e.idx)
+      p = q + 1
+    } else {
+      p++
+    }
+  }
+  return inactive
+}
+
+/** CLOSED-curve constraint state — call ONCE at drag start, reuse every tick. Uses the
+ *  PERIODIC numerator (the layout the closed solver constrains) and the CYCLIC inactive
+ *  set, so freezing it holds S⁻ non-increasing across a fast closed drag (signs can't
+ *  flicker tick-to-tick). Mirrors planarCurvatureConstraintState for the open case. */
+export function periodicCurvatureConstraintState(
+  cpX: readonly number[],
+  cpY: readonly number[],
+  knots: readonly number[],
+  degree: number,
+  opts: { disableSliding?: boolean; robust?: boolean } = {},
+): CurvatureConstraintState {
+  const g = curvatureExtremaNumeratorPlanarPeriodic(cpX, cpY, knots, degree)
+  const gc = g.flatCoeffs()
+  const signs = opts.robust ? assignSignsNeighbor(gc) : assignSigns(gc)
+  const inactive = opts.disableSliding ? new Set<number>() : computeInactiveSetBySignCyclic(signs, gc.map(Math.abs))
+  const gScale = scaleFor(gc, gc.map((_, i) => i))
+  const grevilleAbscissae: number[] = []
+  for (let s = 0; s < g.coeffs.length; s++) {
+    const a = g.breaks[s], b = g.breaks[s + 1], m = g.coeffs[s].length
     for (let j = 0; j < m; j++) grevilleAbscissae.push(a + (m > 1 ? j / (m - 1) : 0) * (b - a))
   }
   return { gCPs: gc, signs, inactiveIndices: [...inactive], gScale, grevilleAbscissae }
@@ -571,6 +636,32 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
     return this.cachedJac
   }
   /**
+   * Σ_k weights[k]·∇²c_k — the exact constraint-curvature term for a FULL-Newton
+   * barrier step (vs Gauss-Newton, which drops it and tracks the cursor worse +
+   * overshoots the bound near a binding constraint). c_k = g[activeIdx[k]]/gScale[k],
+   * so ∇²c_k = ∇²g[activeIdx[k]]/gScale[k]; the weighted sum is folded to g's flat
+   * coefficient layout and evaluated by the Jet2 second-order AD Hessian. OPEN planar
+   * only — closed and the inflection rows stay Gauss-Newton (return their zeros), which
+   * is harmless (the barrier still converges, just without the extra curvature term).
+   * Returns a dense 2n×2n matrix in block order [x₀..,y₀..]; it is band-sparse
+   * (nonzero only for |i−j| ≤ degree), so the banded assembly scatters it cheaply.
+   */
+  computeConstraintHessianWeightedSum(weights: number[]): Matrix {
+    const n = this.cpX.length
+    const H: Matrix = Array.from({ length: 2 * n }, () => new Array<number>(2 * n).fill(0))
+    if (this.closed) return H // exact Hessian is open-only for now (Jet2 seeds are open)
+    const g = this.numerator()
+    const numFlat = g.numSpans * (g.degree + 1)
+    const wFlat = new Array<number>(numFlat).fill(0)
+    // Curvature constraints come first (activeIdx.length of them); inflection rows, if
+    // any, follow and are skipped (their ∇²f is not ported → Gauss-Newton for those).
+    for (let k = 0; k < this.activeIdx.length; k++) {
+      const w = weights[k]
+      if (w !== 0) wFlat[this.activeIdx[k]] += w / this.gScale[k]
+    }
+    return curvatureExtremaHessianPlanarWeighted(this.cpX, this.cpY, this.knots, this.degree, wFlat, this.openSeeds!)
+  }
+  /**
    * Sparse per-active-constraint Jacobian: row k = {vars, vals} listing only the
    * variables ∂c_k/∂var ≠ 0 (the d+1 control points supporting g_k's span ×
    * x/y). Assembled in O(n·d²) from the LOCAL gradient — no full-width rows — so
@@ -777,6 +868,8 @@ export function slideCurve(
       // detection on this stops a wide constraint on a SMALL open curve from being
       // misread as a periodic wrap.
       closed: opts.closed ?? false,
+      // Full-Newton exact constraint Hessian (open planar only; no-op for closed).
+      enableExactHessian: opts.enableExactHessian ?? false,
     })
     const r = ip.optimize()
     solved.setVariables(r.variables)

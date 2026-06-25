@@ -11,7 +11,7 @@ import { computeClosedCurveConstraintState, computeRationalCurveConstraintState,
 // Open planar B-spline: the displayed bound S and the marker count come from
 // core/ (what the core optimizer actually preserves), not the legacy code —
 // which computed them on a different g decomposition and could drift.
-import { curvatureExtremaNumeratorPlanar as coreCurvatureNumerator, planarCurvatureConstraintState as coreConstraintState } from '../../core'
+import { curvatureExtremaNumeratorPlanar as coreCurvatureNumerator, planarCurvatureConstraintState as coreConstraintState, cyclicSignChanges } from '../../core'
 
 export default function BottomPanel() {
   const { panelView, curves, selectedCurveId } = useSceneStore()
@@ -797,11 +797,12 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
     // skipped), so S is well-defined and, during a drag, fixed (the mechanism
     // follows the drag-start assignment). This is the bound the talk's theorem
     // keeps monotone.
-    const s = constraintState.signs
-    let count = 0
-    for (let i = 1; i < s.length; i++) if (s[i] !== s[i - 1]) count++
-    return count
-  }, [constraintState])
+    // CLOSED curves are periodic: the sign sequence is a cycle, so the seam crossing
+    // (last coefficient ↔ first) is a real sign change too. Omitting it shows an ODD
+    // count — impossible on a closed curve (curvature extrema come in even number).
+    // cyclicSignChanges wraps the seam for closed; OPEN stays a linear walk.
+    return cyclicSignChanges(constraintState.signs, !!curve?.closed)
+  }, [constraintState, curve])
 
   // Find curvature range for scaling
   const curvatures = curvatureData.map((d) => d.curvature)

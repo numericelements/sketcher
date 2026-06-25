@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio } from '../../core'
+import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, planarCurvatureConstraintState, periodicCurvatureConstraintState, type CurvatureConstraintState } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -131,6 +131,10 @@ interface SketcherState {
   anchorWeight: number  // 0 = disabled, >0 = anchor undragged CPs to drag-start positions
   dragStartCPsX: number[] | null
   dragStartCPsY: number[] | null
+  // Curvature constraint signs/active-set FROZEN at drag start (open + clean-periodic
+  // closed b-splines). Reused every tick so the bound S⁻ can't ratchet up from
+  // tick-to-tick sign re-assignment — the Rust "freeze signs at pointer-down" model.
+  dragConstraintState: CurvatureConstraintState | null
 
   // Generate session: apply a (planar) Lie-sphere transform to a PH curve to
   // PRODUCE A NEW curve. accumulated = baked transform; sliders = the live one;
@@ -454,6 +458,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
   anchorWeight: 0,
   dragStartCPsX: null,
   dragStartCPsY: null,
+  dragConstraintState: null,
   generate: null,
 
   view: {
@@ -553,7 +558,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
   },
 
   moveControlPoint: (curveId, pointIndex, newPosition) => {
-    const { preserveCurvatureExtrema, preserveInflections, disableSliding, symmetryMaps, curves, phMetadata, anchorWeight, dragStartCPsX, dragStartCPsY, boundCurvatureValue, curvatureBound } = get()
+    const { preserveCurvatureExtrema, preserveInflections, disableSliding, symmetryMaps, curves, phMetadata, anchorWeight, dragStartCPsX, dragStartCPsY, dragConstraintState, boundCurvatureValue, curvatureBound } = get()
     const curve = curves.find((c) => c.id === curveId)
 
     if (!curve) return
@@ -778,7 +783,14 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           bandedSolve: true,
           maxIterations: 20,
           enableBFGS: false,
+          // Gauss-Newton, NOT the exact full-Newton Hessian: the exact step is
+          // aggressive near the bound and OVERSHOOTS on a fast drag (flips a g
+          // coefficient → S⁻ grows, e.g. 7→9), while Gauss-Newton holds the bound in
+          // every case AND is ~2.5× faster (measured: diagnostic matrix + isolation).
+          // The exact Hessian stays available behind enableExactHessian for later.
           ...(curve.closed ? { closed: true } : {}),
+          // Signs frozen at drag start → S⁻ can't ratchet up over a fast drag.
+          ...(dragConstraintState ? { constraintState: dragConstraintState } : {}),
           ...(preserveInflections ? { preserveInflections } : {}),
           ...(disableSliding ? { disableSliding } : {}),
           ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
@@ -1633,17 +1645,42 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     }))
   },
   snapshotDragStartCPs: (curveId) => {
-    const curve = get().curves.find((c) => c.id === curveId)
+    const { curves, preserveCurvatureExtrema, symmetryMaps } = get()
+    const curve = curves.find((c) => c.id === curveId)
     if (!curve) return
     const cps = curve.controlPoints
+    // Freeze the curvature constraint signs/active-set ONCE at drag start for the core
+    // b-spline path (open + clean-periodic closed). Reusing it every tick keeps the
+    // bound S⁻ non-increasing: recomputing signs per tick lets a near-zero coefficient
+    // get re-assigned and the boundary ratchet up over a fast drag (Rust freezes at
+    // pointer-down). Other kinds / legacy paths leave it null.
+    let dragConstraintState: CurvatureConstraintState | null = null
+    if (preserveCurvatureExtrema && curve.kind === 'bspline' && !symmetryMaps) {
+      const pts = curve.controlPoints as Point2D[]
+      const X = pts.map((p) => p.x)
+      const Y = pts.map((p) => p.y)
+      const k = curve.knots
+      const cleanPeriodic =
+        curve.closed &&
+        k.length === pts.length && k[0] < 1e-9 &&
+        k.every((v, i) => (i === 0 ? v >= 0 : v > k[i - 1])) && k[k.length - 1] < 1
+      try {
+        if (!curve.closed) {
+          dragConstraintState = planarCurvatureConstraintState(X, Y, k, curve.degree, { robust: true })
+        } else if (cleanPeriodic) {
+          dragConstraintState = periodicCurvatureConstraintState(X, Y, k, curve.degree, { robust: true })
+        }
+      } catch { /* leave null → per-tick signs (legacy behaviour) */ }
+    }
     // Snapshot the drag-start control points — used as the anchor (drift
     // resistance) when anchorWeight > 0.
     set({
       dragStartCPsX: cps.map((p) => ('re' in p ? p.re : p.x)),
       dragStartCPsY: cps.map((p) => ('im' in p ? p.im : p.y)),
+      dragConstraintState,
     })
   },
-  clearDragStartCPs: () => set({ dragStartCPsX: null, dragStartCPsY: null }),
+  clearDragStartCPs: () => set({ dragStartCPsX: null, dragStartCPsY: null, dragConstraintState: null }),
 
   // View actions
   setZoom: (zoom) =>

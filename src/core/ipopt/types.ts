@@ -224,6 +224,16 @@ export interface OptimizerConfig {
    */
   closed?: boolean
 
+  /**
+   * Fold the EXACT analytic constraint-curvature Hessian Σ wᵢ·∇²cᵢ into the barrier
+   * Hessian (full Newton) instead of dropping it (Gauss-Newton). Requires the problem
+   * to implement computeConstraintHessianWeightedSum. Near a binding curvature bound
+   * this tracks the cursor closer, holds the bound tighter, and converges in fewer
+   * iterations. Open planar drags only (the method returns zeros for closed). Default
+   * false (opt-in, matching ne-core's enable_exact_hessian).
+   */
+  enableExactHessian?: boolean
+
   // ----- Debug -----
 
   /** Print debug information (default: false) */

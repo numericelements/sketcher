@@ -553,6 +553,28 @@ export class InteriorPointOptimizer {
     if (useSparse && this.bandedEnabled && !config.enableBFGS && problem.computeObjectiveHessianDiagonal) {
       const objDiag = problem.computeObjectiveHessianDiagonal()
       const ah = this.assembleBandedBarrier(sparseRows!, activeF, signs, numEq, objDiag, t)
+      // Full-Newton: fold the exact constraint-curvature Hessian Σ wᵢ·∇²cᵢ into the
+      // band (same wᵢ = −signᵢ/fᵢ as the dense path). Band-sparse, so cheap to scatter;
+      // open curve ⇒ entries stay inside the band (no seam corner). Opt-in.
+      if (config.enableExactHessian && problem.computeConstraintHessianWeightedSum) {
+        const hessWeights = new Array(constraints.length).fill(0)
+        for (let i = 0; i < numEq; i++) hessWeights[i] = (t * t) * constraints[i]
+        for (let i = numEq; i < constraints.length; i++) hessWeights[i] = -signs[i] / activeF[i - numEq]
+        const Hc = problem.computeConstraintHessianWeightedSum(hessWeights)
+        const nCP = this.nCP, bw = this.bandwidth
+        for (let bi = 0; bi < Hc.length; bi++) {
+          const Ii = toInterleaved(bi, nCP)
+          const rowi = Hc[bi]
+          for (let bj = 0; bj <= bi; bj++) {
+            const val = rowi[bj]
+            if (val === 0) continue
+            const Ij = toInterleaved(bj, nCP)
+            const I = Ii > Ij ? Ii : Ij, J = Ii > Ij ? Ij : Ii
+            const p = I - J
+            if (p <= bw) ah.band.low[I][p] += val // open ⇒ always within band
+          }
+        }
+      }
       const negStep = this.hasSeam
         ? spdFromArrowhead(ah, barrierGradient, config.hessianRegularization, this.nCP)
         : spdFromBand(ah.band, barrierGradient, config.hessianRegularization, this.nCP)
@@ -630,7 +652,7 @@ export class InteriorPointOptimizer {
     // Exact constraint Hessians: Σ wᵢ · ∇²cᵢ
     // For equalities: wᵢ = t² · hᵢ (from quadratic penalty)
     // For active inequalities: wᵢ = -signᵢ / fᵢ = -1/cᵢ (barrier multiplier)
-    if (problem.computeConstraintHessianWeightedSum) {
+    if (config.enableExactHessian && problem.computeConstraintHessianWeightedSum) {
       const hessianWeights = new Array(constraints.length).fill(0)
       for (let i = 0; i < numEq; i++) {
         hessianWeights[i] = eqPenalty * constraints[i]

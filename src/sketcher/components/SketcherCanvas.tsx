@@ -492,10 +492,10 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
               setDraggedPointIndex(controlPointIndex)
               selectControlPoint(controlPointIndex)
               setDidExceedThreshold(true)
-              // Snapshot CPs for drift resistance (only used when anchorWeight > 0)
-              if (useSceneStore.getState().anchorWeight > 0) {
-                useSceneStore.getState().snapshotDragStartCPs(selectedCurveId)
-              }
+              // Snapshot drag-start state: FREEZES the curvature constraint signs (always —
+              // so the extrema bound can't ratchet up over a fast drag) and the CPs (anchor
+              // drift-resistance, used only when anchorWeight > 0).
+              useSceneStore.getState().snapshotDragStartCPs(selectedCurveId)
             } else {
               // Will determine action (pan or move-curve) on threshold exceeded
               setAction('none')
@@ -851,8 +851,8 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
       setAction('moving-point')
       setDraggedPointIndex(pointIndex)
       selectControlPoint(pointIndex)
-      // Snapshot CPs for drift resistance (only used when anchorWeight > 0)
-      if (useSceneStore.getState().anchorWeight > 0 && selectedCurveId) {
+      // Freeze curvature signs (always) + anchor CPs (when anchorWeight > 0).
+      if (selectedCurveId) {
         useSceneStore.getState().snapshotDragStartCPs(selectedCurveId)
       }
       // Capture on SVG element (parent), not the circle
@@ -943,9 +943,8 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
             setAction('moving-point')
             setDraggedPointIndex(controlPointIndex)
             selectControlPoint(controlPointIndex)
-            if (useSceneStore.getState().anchorWeight > 0) {
-              useSceneStore.getState().snapshotDragStartCPs(selectedCurveId)
-            }
+            // Freeze curvature signs (always) + anchor CPs (when anchorWeight > 0).
+            useSceneStore.getState().snapshotDragStartCPs(selectedCurveId)
             setDidExceedThreshold(true)
           } else {
             setAction('none')
