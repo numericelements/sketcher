@@ -21,6 +21,7 @@ import {
   curvatureExtremaNumeratorComplex,
   curvatureExtremaNumeratorComplexPeriodic,
   curvatureExtremaGradientComplexPeriodicFixedWeight,
+  curvatureExtremaGradientComplexFixedWeight,
   curvatureExtremaMarkers,
 } from './curvature'
 import { curvatureExtremaGradientPlanar, curvatureExtremaGradientPlanarPeriodic } from './gradient'
@@ -155,9 +156,11 @@ export function familyJacobian(
     if (backend !== 'ad') throw new Error(`polynomial Jacobian backend '${backend}' not in the set yet (have: fd, ad)`)
     grad = closed ? curvatureExtremaGradientPlanarPeriodic(re, im, knots, degree) : curvatureExtremaGradientPlanar(re, im, knots, degree)
   } else {
-    if (backend !== 'analytic' || !closed)
-      throw new Error(`${kind}/${topology} Jacobian backend '${backend}' not in the set yet (have: fd${closed ? ', analytic' : ''})`)
-    grad = curvatureExtremaGradientComplexPeriodicFixedWeight(re, im, cps.map((p) => p.wRe), cps.map((p) => p.wIm), knots, degree, undefined, rho)
+    if (backend !== 'analytic') throw new Error(`${kind}/${topology} Jacobian backend '${backend}' not in the set yet (have: fd, analytic)`)
+    const wRe = cps.map((p) => p.wRe), wIm = cps.map((p) => p.wIm)
+    grad = closed
+      ? curvatureExtremaGradientComplexPeriodicFixedWeight(re, im, wRe, wIm, knots, degree, undefined, rho)
+      : curvatureExtremaGradientComplexFixedWeight(re, im, wRe, wIm, knots, degree)
   }
   return assembleFromColumns(grad.g.flatCoeffs().length, grad.dx, grad.dy)
 }

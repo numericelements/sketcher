@@ -480,12 +480,9 @@ interface ComplexFixedWeightTerms {
   D1: ComplexBD; D2: ComplexBD; D3: ComplexBD; D21: ComplexBD; D1c: ComplexBD
   T_Wbar: ComplexBD; D1c2_Wbar: ComplexBD; WuD2_WuuD1: ComplexBD
 }
-function complexFixedWeightValueTerms(
-  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
-  knots: readonly number[], degree: number, rho: Complex = { re: 1, im: 0 },
-): { g: BernsteinDecomposition; V: ComplexFixedWeightTerms } {
-  const cps = zre.map((zr, i) => ({ re: zr, im: zim[i], w_re: wre[i], w_im: wim[i] }))
-  const { Z, W } = decomposeComplexCurvePeriodic(cps, knots, degree, rho)
+/** The Chen value-term reduction from already-decomposed Z, W — topology-agnostic, so
+ *  the open and closed (periodic) value terms share it bit-for-bit. */
+function complexFixedWeightTermsFromZW(Z: ComplexBD, W: ComplexBD): { g: BernsteinDecomposition; V: ComplexFixedWeightTerms } {
   const Zu = Z.derivative(), Zuu = Zu.derivative(), Zuuu = Zuu.derivative()
   const Wu = W.derivative(), Wuu = Wu.derivative(), Wuuu = Wuu.derivative()
   const D1 = Zu.mul(W).sub(Z.mul(Wu))
@@ -502,6 +499,70 @@ function complexFixedWeightValueTerms(
   const D1c2_Wbar = D1c2.mul(Wbar) // for D1c²·dT·W̄
   const WuD2_WuuD1 = Wu.mul(D2).sub(Wuu.mul(D1)) // value part of the T tail
   return { g, V: { W, Wu, Wuu, Wuuu, D1, D2, D3, D21, D1c, T_Wbar, D1c2_Wbar, WuD2_WuuD1 } }
+}
+
+/** CLOSED (periodic, ρ-aware) fixed-weight value terms. */
+function complexFixedWeightValueTerms(
+  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
+  knots: readonly number[], degree: number, rho: Complex = { re: 1, im: 0 },
+): { g: BernsteinDecomposition; V: ComplexFixedWeightTerms } {
+  const cps = zre.map((zr, i) => ({ re: zr, im: zim[i], w_re: wre[i], w_im: wim[i] }))
+  const { Z, W } = decomposeComplexCurvePeriodic(cps, knots, degree, rho)
+  return complexFixedWeightTermsFromZW(Z, W)
+}
+
+/** OPEN fixed-weight value terms — Z = w·z and W = w decomposed on the open knot vector
+ *  (mirrors curvatureExtremaNumeratorComplex), then the shared Chen reduction. */
+function complexFixedWeightValueTermsOpen(
+  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
+  knots: readonly number[], degree: number,
+): { g: BernsteinDecomposition; V: ComplexFixedWeightTerms } {
+  const Zre = zre.map((zr, i) => zr * wre[i] - zim[i] * wim[i])
+  const Zim = zre.map((zr, i) => zr * wim[i] + zim[i] * wre[i])
+  const Z = new ComplexBD(decomposeToBernstein(Zre, knots, degree), decomposeToBernstein(Zim, knots, degree))
+  const W = new ComplexBD(decomposeToBernstein([...wre], knots, degree), decomposeToBernstein([...wim], knots, degree))
+  return complexFixedWeightTermsFromZW(Z, W)
+}
+
+/** OPEN geometry-independent seeds: the real Dirac B-splines Nᵢ and derivatives,
+ *  decomposed on the open knot vector (full width; imaginary part ≡ 0). */
+function precomputeComplexOpenSeeds(
+  knots: readonly number[], degree: number, n: number,
+): { N: ComplexBD[]; N1: ComplexBD[]; N2: ComplexBD[]; N3: ComplexBD[] } {
+  const N: ComplexBD[] = [], N1: ComplexBD[] = [], N2: ComplexBD[] = [], N3: ComplexBD[] = []
+  for (let i = 0; i < n; i++) {
+    const e = new Array<number>(n).fill(0)
+    e[i] = 1
+    const Nre = decomposeToBernstein(e, knots, degree)
+    const Ni = new ComplexBD(Nre, Nre.scale(0)) // real seed
+    const d1 = Ni.derivative(), d2 = d1.derivative()
+    N.push(Ni); N1.push(d1); N2.push(d2); N3.push(d2.derivative())
+  }
+  return { N, N1, N2, N3 }
+}
+
+/**
+ * Exact analytic Jacobian of the OPEN complex-rational curvature numerator g w.r.t.
+ * the control points, WEIGHTS HELD FIXED — the open analogue of
+ * curvatureExtremaGradientComplexPeriodicFixedWeight. Value terms computed once; each
+ * column is the per-control-point differential reusing them (same complexDifferential).
+ * dx[i] = ∂g/∂Re(zᵢ), dy[i] = ∂g/∂Im(zᵢ). Validated against FD in the family Jacobian
+ * cross-check.
+ */
+export function curvatureExtremaGradientComplexFixedWeight(
+  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
+  knots: readonly number[], degree: number,
+): { g: BernsteinDecomposition; dx: BernsteinDecomposition[]; dy: BernsteinDecomposition[] } {
+  const n = zre.length
+  const sds = precomputeComplexOpenSeeds(knots, degree, n)
+  const { g, V } = complexFixedWeightValueTermsOpen(zre, zim, wre, wim, knots, degree)
+  const dx: BernsteinDecomposition[] = [], dy: BernsteinDecomposition[] = []
+  for (let i = 0; i < n; i++) {
+    // δZ = wᵢ·Nᵢ for Re(zᵢ); δZ = i·wᵢ·Nᵢ for Im(zᵢ). (Weights fixed ⇒ δW = 0.)
+    dx.push(complexDifferential(sds.N[i], sds.N1[i], sds.N2[i], sds.N3[i], wre[i], wim[i], V))
+    dy.push(complexDifferential(sds.N[i], sds.N1[i], sds.N2[i], sds.N3[i], -wim[i], wre[i], V))
+  }
+  return { g, dx, dy }
 }
 
 /** ∂g/∂(one coordinate of one control point): the differential at the seed basis
