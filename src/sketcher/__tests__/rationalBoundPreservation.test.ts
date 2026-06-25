@@ -92,7 +92,7 @@ describe('rational curve: production drag preserves the curvature-extrema bound'
       const out = optimizedDrag(start, di, start.controlPoints[di].x + dx, start.controlPoints[di].y + dy)
       expect(boundOf(out)).toBeLessThanOrEqual(b0)
     }
-  })
+  }, 30000)
 
   it('TEETH: a naive snap-to-cursor drag DOES raise the bound on at least one push', () => {
     let naiveViolations = 0

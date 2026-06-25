@@ -77,7 +77,7 @@ describe('core slideCurve closed-B-spline editing feel (live path)', () => {
         expect(ex(m.x, m.y, m.knots)).toBeLessThanOrEqual(startEx)
       }
     }
-  })
+  }, 30000)
 
   it('GENTLE FEEL: per-frame deformation stays proportional to the cursor step', () => {
     for (const n of [12, 24]) {

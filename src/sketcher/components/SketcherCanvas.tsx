@@ -8,11 +8,11 @@ import { curvePathAdaptive, getControlPointsAsPoints, sampleCurve, evaluateCurve
 import { computeRegionPreview } from '../utils/regionSmooth'
 import { computeRationalFarinPoints, computeComplexFarinPoints, computeEdgePerpendicular, computeComplexControlPolygonPath, type RationalFarinPoint, type ComplexFarinPoint } from '../utils/farinPoints'
 import { getBasisColor } from '../utils/colors'
-import { computeCurvatureExtremaParameters, computeClosedInflectionParameters } from '../optimizer'
 // Curvature-extrema MARKERS for EVERY kind now come from ONE core function
 // (deadband-filtered dense zeros of the kind's own g) — the same numerators the
 // bound readout and the drag guard use, so dots, readout and guard never disagree.
-import { curvatureExtremaMarkers, cdiv } from '../../core'
+// Inflection dots come from core's closed inflection-numerator zeros too.
+import { curvatureExtremaMarkers, closedInflectionParameters, cdiv } from '../../core'
 import TransformWidget from './TransformWidget'
 import { threeArcPointsFromNoisyPoints, circleArcFromThreePoints } from '../utils/circleArc'
 import { evaluatePHNormal, findNearestPointParam, computePHCurveFromUV, type PHMetadata } from '../optimizer/phCurve'
@@ -161,10 +161,10 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
     if (!curve || curve.kind !== 'bspline' || !curve.closed) return []
 
     try {
-      const params = computeClosedInflectionParameters(
-        curve.knots,
+      const params = closedInflectionParameters(
         curve.controlPoints.map((p) => p.x),
         curve.controlPoints.map((p) => p.y),
+        curve.knots,
         curve.degree
       )
       return params.map((t) => evaluateCurve(curve, t))
@@ -227,7 +227,7 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
     // Curvature extrema of the PREVIEW curve, so they animate (and collide) as you slide.
     let extrema: Point2D[] = []
     try {
-      const params = computeCurvatureExtremaParameters(previewCurve.knots, prev.cpX, prev.cpY)
+      const params = curvatureExtremaMarkers('bspline', prev.cpX, prev.cpY, [], [], previewCurve.knots, previewCurve.degree, !!previewCurve.closed)
       extrema = params.map((tt) => evaluateCurve(previewCurve, tt))
     } catch { extrema = [] }
     return { fullPath, arcPath, cps, extrema }

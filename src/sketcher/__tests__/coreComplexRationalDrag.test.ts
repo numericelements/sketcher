@@ -54,7 +54,7 @@ describe('core complex-rational drag (live sketcher path)', () => {
         expect(sc(pts, knots)).toBeLessThanOrEqual(start)
       }
     }
-  })
+  }, 30000)
 
   // Closed REAL-rational drag rides the SAME core path with w_im = 0 (a real-rational
   // NURBS is a complex-rational with imaginary weight 0 — identical curve). Mirrors

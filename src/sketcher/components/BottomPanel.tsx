@@ -7,13 +7,13 @@ import { computeRegionPreview } from '../utils/regionSmooth'
 import { basisFunctions, findKnotSpan, isClampedEndKnot, isPeriodicRepresentation, periodicBasisFunctions, findPeriodicKnotSpan } from '../utils/bspline'
 import { curvatureComb } from '../utils/curvature'
 import { getBasisColor } from '../utils/colors'
-import { computeCurvatureExtremaParameters } from '../optimizer'
 // CANONICAL display metric: the displayed bound S and the constraint bar come from core/
 // for EVERY curve kind — the SAME numerator + noise-robust sign assignment the drag guard
 // enforces — so the readout can't disagree with the guard (the "guard holds 4, readout
 // shows 6" class of bug). (Convergence Step 1: docs/CURVATURE_ARCHITECTURE.md §9.)
 import {
   curvatureExtremaNumeratorPlanar as coreCurvatureNumerator,
+  curvatureExtremaNumeratorPlanarPeriodic as coreCurvatureNumeratorPeriodic,
   planarCurvatureConstraintState as coreConstraintState,
   periodicCurvatureConstraintState, complexCurvatureConstraintState, cyclicSignChanges, cdiv,
 } from '../../core'
@@ -707,12 +707,11 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
   const smoothBound = useMemo(() => {
     if (!smooth || smoothMode !== 'laplacian-bounded') return null
     try {
-      // Open planar B-spline: core's S⁻ (the bound), consistent with the drag
-      // display; else the legacy marker count.
-      if (curve.kind === 'bspline' && !curve.closed) {
-        return coreCurvatureNumerator(smooth.cpX, smooth.cpY, curve.knots, curve.degree).signChanges()
-      }
-      return computeCurvatureExtremaParameters(curve.knots, smooth.cpX, smooth.cpY).length
+      // Planar B-spline (smoothing only ever runs on bspline): core's S⁻ (the bound),
+      // consistent with the drag display — open non-cyclic, closed cyclic (seam wrap).
+      return curve.closed
+        ? coreCurvatureNumeratorPeriodic(smooth.cpX, smooth.cpY, curve.knots, curve.degree).signChanges(true)
+        : coreCurvatureNumerator(smooth.cpX, smooth.cpY, curve.knots, curve.degree).signChanges()
     } catch { return null }
   }, [smooth, smoothMode, curve])
 
