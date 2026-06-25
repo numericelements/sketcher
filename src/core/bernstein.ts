@@ -211,16 +211,28 @@ export function cyclicSignChanges(signs: readonly number[], cyclic: boolean): nu
   return changes
 }
 
-/** A coefficient is treated as a structural zero when |v| ≤ SIGN_NOISE_REL·max|coeff|. */
-export const SIGN_NOISE_REL = 1e-9
+/**
+ * A coefficient counts as a STRUCTURAL ZERO only when its magnitude is at the ROUNDOFF
+ * level of the g computation — i.e. its sign is numerical noise, not real information.
+ *
+ * This MUST stay at machine-roundoff scale. g's coefficients span a huge dynamic range
+ * (they blow up near clamped endpoints), so a larger "small relative to the max" floor
+ * deletes genuine low-amplitude coefficients and makes S⁻ read BELOW the true number of
+ * sign changes — a FALSE bound (CLAUDE.md, Law 3). g is built from a short chain of
+ * Bernstein products/derivatives, so accumulated roundoff is a few thousand·ε ≈ 1e-12
+ * relative; real coefficients sit far above that. Erring smaller only ever makes S⁻
+ * looser (still a valid upper bound), never false — so when in doubt, smaller.
+ */
+export const SIGN_NOISE_REL = 1e-12
 
 /**
- * Noise-robust signs of Bernstein coefficients: a coefficient below the relative noise
- * floor (cancellation dust near g≈0) takes the sign of its NEAREST nonzero neighbour, so
- * a structurally-zero coefficient does not register as a spurious sign change. Pair with
- * cyclicSignChanges to get S⁻ — the bound the St-Malo sliding mechanism keeps monotone —
- * and to screen out flat / zero-curvature curves (whose g is all dust). The returned signs
- * use the optimizer's internal convention (+v → −1, −v → +1); only sign CHANGES matter.
+ * Signs of Bernstein coefficients with ONLY roundoff-level zeros resolved: a coefficient
+ * at the roundoff floor (its sign is meaningless) takes the sign of its NEAREST real
+ * neighbour, so a genuine structural zero does not register as a spurious sign change and
+ * an exactly-0 clamped-boundary coefficient still joins its run (stays active for the
+ * optimizer). It NEVER reassigns a coefficient whose sign is real — that would fake the
+ * bound. Pair with cyclicSignChanges to get S⁻. The returned signs use the optimizer's
+ * internal convention (+v → −1, −v → +1); only sign CHANGES matter.
  */
 export function assignSignsNeighbor(gc: number[]): number[] {
   const maxAbs = Math.max(1e-300, ...gc.map(Math.abs))
