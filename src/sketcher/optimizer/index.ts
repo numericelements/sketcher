@@ -473,26 +473,6 @@ export function applyComplexRationalOptimizeResult(
 }
 
 /**
- * Optimize a periodic B-spline curve so ALL control points track target positions,
- * while preserving curvature extrema. Used by the "target curve" editing mode.
- */
-export function optimizeCurveToTarget(
-  curve: Curve,
-  targetCPsX: number[],
-  targetCPsY: number[],
-  options: OptimizeOptions = {}
-): OptimizeResult {
-  const bs2d = curveToBS2D(curve)
-  // Reuse the anchoring mechanism: all CPs target the given positions with weight 1
-  return optimizeCurveInternal(bs2d, targetCPsX[0], targetCPsY[0], 0, {
-    ...options,
-    anchorCPsX: targetCPsX,
-    anchorCPsY: targetCPsY,
-    anchorWeight: 1.0,
-  })
-}
-
-/**
  * Apply optimization result to a curve, returning a new curve.
  */
 export function applyOptimizeResult(curve: Curve, result: OptimizeResult): Curve {
