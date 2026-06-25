@@ -63,6 +63,43 @@ export function assignSignsNeighbor(gc: number[]): number[] {
   return out
 }
 
+/**
+ * Strict sliding-mechanism enforcement (NOT a freeze) — the ONE guard shared by every
+ * drag entry point (planar `slideCurve`, complex/rational `slideComplexRational`, …).
+ *
+ * The interior-point solve keeps sⱼ·gⱼ ≥ 0 only approximately near g≈0, so numerical
+ * slip can let the BOUND S⁻ — the sign changes of g's coefficients, exactly what the
+ * St-Malo theorem keeps monotone non-increasing — tick up on a fast drag. After the
+ * solve we recompute S⁻; if it grew past THIS tick's start, we bisect along the straight
+ * path start→result and return the furthest point whose S⁻ still does not exceed the
+ * start. The active set is re-evaluated every tick (anchors + same-sign retained,
+ * interiors free to merge) — nothing is pinned; this only corrects the solver's slip.
+ *
+ * `boundOf` MUST count S⁻ the noise-robust way (assignSignsNeighbor + cyclicSignChanges)
+ * so a structurally-zero coefficient takes its run's sign and does not fight the bound.
+ * `lerp` is the straight-path interpolation between the two states: lerp(0)=start,
+ * lerp(1)=result. Generic over the state type S so each family supplies its own (planar
+ * (x,y); complex (re,im) with weights held), keeping the enforcement itself single-source.
+ */
+export function enforceBoundNonincreasing<S>(
+  start: S,
+  result: S,
+  boundOf: (state: S) => number,
+  lerp: (a: number) => S,
+  iters = 26,
+): S {
+  const startS = boundOf(start)
+  if (boundOf(result) <= startS) return result // clean solve — no-op
+  let lo = 0
+  let hi = 1
+  for (let it = 0; it < iters; it++) {
+    const mid = (lo + hi) / 2
+    if (boundOf(lerp(mid)) <= startS) lo = mid
+    else hi = mid
+  }
+  return lerp(lo)
+}
+
 /** Sliding active set driven by the ASSIGNED signs (robust regime): a near-zero
  *  coefficient that took its run's sign shares its neighbour's sign and so stays
  *  active. Within each alternating-sign run keep the largest-|g| anchor active. */
@@ -891,39 +928,27 @@ export function slideCurve(
     converged = result.converged
   }
 
-  // Strict sliding-mechanism enforcement (NOT a freeze): the interior-point solve
-  // enforces sⱼ·gⱼ ≥ 0 only approximately near g≈0, so numerical slip can let the
-  // BOUND S⁻ — the sign changes of g's coefficients, exactly what the St-Malo theorem
-  // keeps monotone — tick up. After the solve we recompute S⁻ and, if it grew, pull the
-  // result back along the straight path toward THIS tick's start just until S⁻ no longer
-  // exceeds the start. The active set is re-evaluated every tick (the sliding mechanism
-  // adapts — anchors + same-sign, interiors free to merge), nothing is pinned; this only
-  // corrects the solver's numerical slip. S⁻ is counted on the NEIGHBOUR-ASSIGNED signs
-  // (assignSignsNeighbor) so a structurally-zero coefficient (|g| below the noise floor)
-  // takes its run's sign and does NOT fight the bound — the same noise-robust count the
-  // display shows, cyclic for closed curves.
-  const sOf = (x: readonly number[], y: readonly number[]) => {
-    const gc = (opts.closed
-      ? curvatureExtremaNumeratorPlanarPeriodic(x, y, knots, degree)
-      : curvatureExtremaNumeratorPlanar(x, y, knots, degree)
-    ).flatCoeffs()
-    return cyclicSignChanges(assignSignsNeighbor(gc), opts.closed ?? false)
-  }
-  let rx = problem.cpX
-  let ry = problem.cpY
-  const startS = sOf(cpX, cpY)
-  if (sOf(rx, ry) > startS) {
-    let lo = 0
-    let hi = 1
-    for (let it = 0; it < 26; it++) {
-      const mid = (lo + hi) / 2
-      const xm = cpX.map((v, i) => v + mid * (rx[i] - v))
-      const ym = cpY.map((v, i) => v + mid * (ry[i] - v))
-      if (sOf(xm, ym) <= startS) lo = mid
-      else hi = mid
-    }
-    rx = cpX.map((v, i) => v + lo * (rx[i] - v))
-    ry = cpY.map((v, i) => v + lo * (ry[i] - v))
-  }
-  return { x: rx, y: ry, converged }
+  // Strict sliding-mechanism enforcement (the shared guard — see enforceBoundNonincreasing).
+  // The interior-point solve keeps sⱼ·gⱼ ≥ 0 only approximately near g≈0; if a fast drag let
+  // the bound S⁻ grow we pull the result back along the straight path toward this tick's start.
+  const boundOf = (s: { x: readonly number[]; y: readonly number[] }) =>
+    cyclicSignChanges(
+      assignSignsNeighbor(
+        (opts.closed
+          ? curvatureExtremaNumeratorPlanarPeriodic(s.x, s.y, knots, degree)
+          : curvatureExtremaNumeratorPlanar(s.x, s.y, knots, degree)
+        ).flatCoeffs(),
+      ),
+      opts.closed ?? false,
+    )
+  const corrected = enforceBoundNonincreasing(
+    { x: cpX, y: cpY },
+    { x: problem.cpX, y: problem.cpY },
+    boundOf,
+    (a) => ({
+      x: cpX.map((v, i) => v + a * (problem.cpX[i] - v)),
+      y: cpY.map((v, i) => v + a * (problem.cpY[i] - v)),
+    }),
+  )
+  return { x: corrected.x as number[], y: corrected.y as number[], converged }
 }

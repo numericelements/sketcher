@@ -31,7 +31,7 @@ import type { Matrix } from './linalg'
 import type { OptimizationProblem, OptimizerConfig } from './optimize'
 import { PrimalDualOptimizer } from './optimize'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
-import { assignSignsNeighbor, structuralMargins, computeInactiveSetBySign, computeInactiveSetBySignCyclic, type CurvatureConstraintState } from './curvatureProblem'
+import { assignSignsNeighbor, enforceBoundNonincreasing, structuralMargins, computeInactiveSetBySign, computeInactiveSetBySignCyclic, type CurvatureConstraintState } from './curvatureProblem'
 import { cyclicSignChanges } from './bernstein'
 
 /**
@@ -772,15 +772,14 @@ export function slideComplexRational(
     w_im: p.w_im,
   }))
 
-  // Strict sliding-mechanism enforcement — the SAME guard slideCurve has, which the
-  // complex/rational path was missing. The interior-point solve enforces sⱼ·gⱼ≥0 only
-  // approximately near g≈0, so a fast drag can let the BOUND S⁻ tick up (rational
-  // closed: 4→6). S⁻ is the noise-robust neighbour-assigned sign-change count of the
-  // periodic complex-rational numerator (= the "S =" readout, cyclic). If it grew, pull
-  // the result back along the path toward the start (weights fixed) just until S⁻ no
-  // longer exceeds the start. No freeze; no-op when the solve is clean.
+  // Strict sliding-mechanism enforcement — the shared guard (enforceBoundNonincreasing),
+  // same one slideCurve uses. The interior-point solve keeps sⱼ·gⱼ≥0 only approximately
+  // near g≈0, so a fast drag can let the BOUND S⁻ tick up (rational closed: 4→6). S⁻ is the
+  // noise-robust neighbour-assigned sign-change count of the periodic complex-rational
+  // numerator (= the "S =" readout, cyclic). If it grew, pull the result back along the path
+  // toward the start (weights held). No freeze; no-op when the solve is clean.
   const rho = opts.rho ?? { re: 1, im: 0 }
-  const sOf = (cps: readonly ComplexPoint[]) =>
+  const boundOf = (cps: readonly ComplexPoint[]) =>
     cyclicSignChanges(
       assignSignsNeighbor(
         curvatureExtremaNumeratorComplexPeriodic(
@@ -789,18 +788,11 @@ export function slideComplexRational(
       ),
       true,
     )
-  const startS = sOf(controlPoints)
-  if (sOf(points) > startS) {
-    let lo = 0
-    let hi = 1
-    const lerp = (a: number) =>
-      controlPoints.map((p, i) => ({ re: p.re + a * (points[i].re - p.re), im: p.im + a * (points[i].im - p.im), w_re: p.w_re, w_im: p.w_im }))
-    for (let it = 0; it < 26; it++) {
-      const mid = (lo + hi) / 2
-      if (sOf(lerp(mid)) <= startS) lo = mid
-      else hi = mid
-    }
-    points = lerp(lo)
-  }
+  points = enforceBoundNonincreasing<ComplexPoint[]>(
+    controlPoints as ComplexPoint[],
+    points,
+    boundOf,
+    (a) => controlPoints.map((p, i) => ({ re: p.re + a * (points[i].re - p.re), im: p.im + a * (points[i].im - p.im), w_re: p.w_re, w_im: p.w_im })),
+  )
   return { points, converged: result.converged }
 }
