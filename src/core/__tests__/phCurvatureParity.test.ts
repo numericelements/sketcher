@@ -49,4 +49,24 @@ describe('PH in the set: Law 1 + FD Jacobian', () => {
     expect(S).toBeGreaterThanOrEqual(Z)
     expect(S % 2, `closed PH bound ${S} must be even`).toBe(0)
   })
+
+  it('PH exact Jacobian (analytic) matches the FD oracle — open and closed', () => {
+    const maxRelColErr = (A: number[][], B: number[][]) => {
+      const nG = A.length, cols = A[0]?.length ?? 0
+      let worst = 0
+      for (let j = 0; j < cols; j++) {
+        let scale = 1e-300, err = 0
+        for (let k = 0; k < nG; k++) { scale = Math.max(scale, Math.abs(B[k][j])); err = Math.max(err, Math.abs(A[k][j] - B[k][j])) }
+        worst = Math.max(worst, err / scale)
+      }
+      return worst
+    }
+    // open
+    expect(maxRelColErr(phJacobian(genU, genV, knots, m, false, 'analytic'), phJacobian(genU, genV, knots, m, false, 'fd'))).toBeLessThan(1e-4)
+    // closed
+    const n = 8, pk = Array.from({ length: n }, (_, i) => i / n)
+    const u = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n; return 60 + 30 * Math.cos(a) + 6 * Math.sin(2 * a) })
+    const v = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n; return 40 * Math.sin(a) + 5 * Math.cos(3 * a) })
+    expect(maxRelColErr(phJacobian(u, v, pk, m, true, 'analytic'), phJacobian(u, v, pk, m, true, 'fd'))).toBeLessThan(1e-4)
+  })
 })

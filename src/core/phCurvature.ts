@@ -60,19 +60,67 @@ export function phMarkers(
   return curvatureExtremaMarkersOfNumerator(curvatureExtremaNumeratorPH(u, v, knots, degree, closed), knots, degree, closed)
 }
 
-export type PHJacobianBackend = 'fd'
+/**
+ * Exact analytic Jacobian of the PH numerator g w.r.t. the GENERATOR control points,
+ * via the differential of g = Im(ā²·inner), a = w², inner = a·a″ − 3/2·a′².
+ * δa = 2·w·δw with δw = Nᵢ for uᵢ and δw = i·Nᵢ for vᵢ (Nᵢ the real Dirac basis). The
+ * value terms (a, a′, a″, ā², inner) are computed ONCE and reused per column.
+ * du[i] = ∂g/∂u_i, dv[i] = ∂g/∂v_i.
+ */
+export function phCurvatureGradient(
+  u: readonly number[], v: readonly number[], knots: readonly number[], degree: number, closed = false,
+): { g: BernsteinDecomposition; du: BernsteinDecomposition[]; dv: BernsteinDecomposition[] } {
+  const dec = closed ? decomposeToBernsteinPeriodic : decomposeToBernstein
+  const w = new ComplexBD(dec(u, knots, degree), dec(v, knots, degree))
+  const a = w.mul(w), a1 = a.derivative(), a2 = a1.derivative()
+  const abar = a.conj(), abar2 = abar.mul(abar)
+  const inner = a.mul(a2).sub(a1.mul(a1).scale(1.5))
+  const g = abar2.mul(inner).im
+
+  const n = u.length
+  const du: BernsteinDecomposition[] = [], dv: BernsteinDecomposition[] = []
+  // δg from a generator perturbation δw: δa = 2·w·δw; product rule through g.
+  const dgFromDw = (dw: ComplexBD): BernsteinDecomposition => {
+    const da = w.mul(dw).scale(2)
+    const da1 = da.derivative(), da2 = da1.derivative()
+    // δinner = δa·a″ + a·δa″ − 3·a′·δa′
+    const dInner = da.mul(a2).add(a.mul(da2)).sub(a1.mul(da1).scale(3))
+    // δ(ā²) = 2·ā·conj(δa)
+    const dAbar2 = abar.mul(da.conj()).scale(2)
+    return dAbar2.mul(inner).add(abar2.mul(dInner)).im
+  }
+  for (let i = 0; i < n; i++) {
+    const e = new Array<number>(n).fill(0)
+    e[i] = 1
+    const Nre = dec(e, knots, degree)
+    const zero = Nre.scale(0)
+    du.push(dgFromDw(new ComplexBD(Nre, zero)))      // δw = Nᵢ
+    dv.push(dgFromDw(new ComplexBD(zero, Nre)))      // δw = i·Nᵢ
+  }
+  return { g, du, dv }
+}
+
+export type PHJacobianBackend = 'fd' | 'analytic'
 
 /**
  * ∂g/∂(generator coords) for a PH curve. Columns are 2·m (m = generator control points):
  *   M[k][2i] = ∂g_k/∂u_i,  M[k][2i+1] = ∂g_k/∂v_i.
- * Only the FD oracle so far; an exact PH Jacobian (the sketcher's PHCurveProblem path) is
- * the next slice — FD validates it when it lands.
+ * 'analytic' — the exact differential (phCurvatureGradient); 'fd' — the numerical oracle.
  */
 export function phJacobian(
   u: readonly number[], v: readonly number[], knots: readonly number[], degree: number, closed = false,
   backend: PHJacobianBackend = 'fd',
 ): number[][] {
-  if (backend !== 'fd') throw new Error(`PH Jacobian backend '${backend}' not in the set yet (have: fd)`)
+  if (backend === 'analytic') {
+    const { g, du, dv } = phCurvatureGradient(u, v, knots, degree, closed)
+    const nG = g.flatCoeffs().length, m = u.length
+    const M = Array.from({ length: nG }, () => new Array<number>(2 * m).fill(0))
+    for (let i = 0; i < m; i++) {
+      const cu = du[i].flatCoeffs(), cv = dv[i].flatCoeffs()
+      for (let k = 0; k < nG; k++) { M[k][2 * i] = cu[k]; M[k][2 * i + 1] = cv[k] }
+    }
+    return M
+  }
   const base = curvatureExtremaNumeratorPH(u, v, knots, degree, closed).flatCoeffs()
   const nG = base.length, m = u.length
   const M = Array.from({ length: nG }, () => new Array<number>(2 * m).fill(0))
