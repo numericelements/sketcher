@@ -1027,32 +1027,45 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
                 strokeWidth={1}
               />
 
-              {/* Constraint control points */}
-              {constraintState.gCPs.map((_, i) => {
+              {/* Constraint control points. g is C⁰, so the last Bernstein coefficient of a
+                  span and the first of the next are ONE point of g duplicated by the per-span
+                  representation: identical parameter, value and sign. Drawing both stacked an
+                  inactive (freed) marker exactly under its active twin, hiding it — the "I
+                  expect 4 inactive but see 3" case. De-duplicate by parameter and draw one
+                  circle per distinct point; it's inactive if EITHER twin is freed, so every
+                  freed constraint shows with the original faded-dot look. */}
+              {(() => {
                 const tMin = curve.closed ? 0 : curve.knots[curve.degree]
                 const tMax = curve.closed ? 1 : curve.knots[curve.knots.length - curve.degree - 1]
                 const tRange = tMax - tMin
-                const x = padding.left + ((constraintState.grevilleAbscissae[i] - tMin) / tRange) * plotWidth
-                const isInactive = constraintState.inactiveIndices.includes(i)
-                const sign = constraintState.signs[i]
-
-                // Color based on sign: positive constraint (g > 0 means sign = -1) is red
-                // negative constraint (g < 0 means sign = 1) is green
-                const color = sign === -1 ? '#ef4444' : '#22c55e' // red for positive, green for negative
-
-                return (
-                  <circle
-                    key={i}
-                    cx={x}
-                    cy={gBarY}
-                    r={isInactive ? 4 : 5}
-                    fill={color}
-                    opacity={isInactive ? 0.3 : 0.9}
-                    stroke={isInactive ? 'none' : '#374151'}
-                    strokeWidth={0.5}
-                  />
-                )
-              })}
+                const inactive = new Set(constraintState.inactiveIndices)
+                // Group coefficient indices that share an exact parameter (boundary twins).
+                const byParam = new Map<number, number[]>()
+                constraintState.grevilleAbscissae.forEach((t, i) => {
+                  const g = byParam.get(t)
+                  if (g) g.push(i)
+                  else byParam.set(t, [i])
+                })
+                return [...byParam.entries()].map(([t, idxs]) => {
+                  const x = padding.left + ((t - tMin) / tRange) * plotWidth
+                  const isInactive = idxs.some((i) => inactive.has(i))
+                  const sign = constraintState.signs[idxs[0]]
+                  // Color by sign: positive constraint (g>0 → sign −1) red, negative green.
+                  const color = sign === -1 ? '#ef4444' : '#22c55e'
+                  return (
+                    <circle
+                      key={t}
+                      cx={x}
+                      cy={gBarY}
+                      r={isInactive ? 4 : 5}
+                      fill={color}
+                      opacity={isInactive ? 0.3 : 0.9}
+                      stroke={isInactive ? 'none' : '#374151'}
+                      strokeWidth={0.5}
+                    />
+                  )
+                })
+              })()}
             </>
           )}
 
