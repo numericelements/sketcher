@@ -48,7 +48,7 @@ describe('closed-curve arrowhead solve (cyclic.ts)', () => {
 
     const xTrue = Array.from({ length: NV }, (_, i) => 1 + i * 0.7 - (i % 3))
     const rhs = matvec(xTrue)
-    const x = solveArrowhead(a, seam, eSS, rhs)
+    const x = solveArrowhead(a, seam, eSS, rhs)!
     let maxErr = 0
     for (let i = 0; i < NV; i++) maxErr = Math.max(maxErr, Math.abs(x[i] - xTrue[i]))
     expect(maxErr).toBeLessThan(1e-9)
@@ -58,7 +58,7 @@ describe('closed-curve arrowhead solve (cyclic.ts)', () => {
     const A = [[2, 1, 0], [1, 3, 1], [0, 1, 2]]
     const xTrue = [1, -2, 3]
     const b = A.map((row) => row.reduce((s, v, j) => s + v * xTrue[j], 0))
-    const x = denseSolve(A, b)
+    const x = denseSolve(A, b)!
     for (let i = 0; i < 3; i++) expect(Math.abs(x[i] - xTrue[i])).toBeLessThan(1e-12)
   })
 
@@ -82,10 +82,10 @@ describe('closed-curve arrowhead solve (cyclic.ts)', () => {
     const toInt = (v: number) => (v < nCP ? 2 * v : 2 * (v - nCP) + 1)
     const rhsP = new Array<number>(n)
     for (let v = 0; v < n; v++) rhsP[toInt(v)] = rhs[v]
-    const xP = solveArrowhead(ah.band, ah.seam, ah.eSS, rhsP)
+    const xP = solveArrowhead(ah.band, ah.seam, ah.eSS, rhsP)!
     const x = new Array<number>(n)
     for (let v = 0; v < n; v++) x[v] = xP[toInt(v)]
-    const xRef = denseSolve(H, rhs)
+    const xRef = denseSolve(H, rhs)!
     let maxErr = 0
     for (let i = 0; i < n; i++) maxErr = Math.max(maxErr, Math.abs(x[i] - xRef[i]))
     expect(maxErr).toBeLessThan(1e-9)
@@ -99,7 +99,7 @@ describe('closed-curve arrowhead solve (cyclic.ts)', () => {
     const xTrue = [2, -1, 4, 0, 3]
     const rhs = aRef(xTrue)
     expect(ldlFactorBand(a)).toBe(true)
-    const x = solveArrowhead(a, [], [], rhs)
+    const x = solveArrowhead(a, [], [], rhs)!
     for (let i = 0; i < 5; i++) expect(Math.abs(x[i] - xTrue[i])).toBeLessThan(1e-9)
   })
 })

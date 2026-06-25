@@ -10,8 +10,6 @@ import {
   curvatureExtremaNumeratorPlanarPeriodic,
   inflectionNumeratorPlanar,
   inflectionNumeratorPlanarPeriodic,
-  openCurvatureExtremaParameters,
-  closedCurvatureExtremaParameters,
 } from './curvature'
 import {
   curvatureExtremaGradientPlanar,
@@ -814,6 +812,12 @@ export function slideCurve(
      * (well-conditioned scaled-robust regime). Same solver, faster linear algebra.
      */
     bandedSolve?: boolean
+    /**
+     * IPOPT only. Use the explicit seeded second-order AD constraint Hessian
+     * (full Newton) instead of Gauss-Newton. Open planar only; default OFF — it
+     * can overshoot the bound on fast drags (kept behind the flag for study).
+     */
+    enableExactHessian?: boolean
   } & Partial<OptimizerConfig> = {},
 ): { x: number[]; y: number[]; converged: boolean } {
   // Default to the robust IPOPT solver — it is the curvature-bound invariant

@@ -21,12 +21,21 @@ import { type OpenSeeds, precomputeOpenSeeds } from './gradient'
 /** Second-order forward-AD over Bernstein polynomials: value v, tangents along two
  *  independent seed directions (tA, tB), and the second-order cross term h = ∂²/∂a∂b. */
 class Jet2 {
+  readonly v: BernsteinDecomposition
+  readonly tA: BernsteinDecomposition
+  readonly tB: BernsteinDecomposition
+  readonly h: BernsteinDecomposition
   constructor(
-    readonly v: BernsteinDecomposition,
-    readonly tA: BernsteinDecomposition,
-    readonly tB: BernsteinDecomposition,
-    readonly h: BernsteinDecomposition,
-  ) {}
+    v: BernsteinDecomposition,
+    tA: BernsteinDecomposition,
+    tB: BernsteinDecomposition,
+    h: BernsteinDecomposition,
+  ) {
+    this.v = v
+    this.tA = tA
+    this.tB = tB
+    this.h = h
+  }
   add(o: Jet2): Jet2 {
     return new Jet2(this.v.add(o.v), this.tA.add(o.tA), this.tB.add(o.tB), this.h.add(o.h))
   }

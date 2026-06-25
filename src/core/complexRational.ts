@@ -780,7 +780,7 @@ export function slideComplexRational(
   // the result back along the path toward the start (weights fixed) just until S⁻ no
   // longer exceeds the start. No freeze; no-op when the solve is clean.
   const rho = opts.rho ?? { re: 1, im: 0 }
-  const sOf = (cps: ComplexPoint[]) =>
+  const sOf = (cps: readonly ComplexPoint[]) =>
     cyclicSignChanges(
       assignSignsNeighbor(
         curvatureExtremaNumeratorComplexPeriodic(
