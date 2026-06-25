@@ -26,6 +26,7 @@ import {
 import type { PeriodicSeeds, OpenSeeds } from './gradient'
 import { curvatureExtremaHessianPlanarWeighted } from './curvatureHessian'
 import type { BernsteinDecomposition } from './bernstein'
+import { cyclicSignChanges } from './bernstein'
 import type { PlanarCurvatureGradient } from './gradient'
 
 /** Per coefficient: −1 if g>0 (keep ≥0), +1 if g≤0 (keep ≤0). Exact-0 → +1. */
@@ -886,19 +887,24 @@ export function slideCurve(
     converged = result.converged
   }
 
-  // Extrema guard: never return a curve with MORE actual curvature extrema than
-  // the start. The count is the dense-sampled number of zeros of g(t) — robust
-  // to noise-level coefficients (unlike the Bernstein sign-change bound, a
-  // coefficient at ~1e-9·max never makes g(t) actually cross zero), so it does
-  // not fight the tiny structural-zero margin. If a solve still overshot (added
-  // a real extremum), bisect the straight path from the start to the solved
-  // curve for the furthest point that preserves the count: the dragged point
-  // follows the cursor as far as the bound allows and never past it.
-  const sOf = (x: readonly number[], y: readonly number[]) =>
-    (opts.closed
-      ? closedCurvatureExtremaParameters(x, y, knots, degree)
-      : openCurvatureExtremaParameters(x, y, knots, degree)
-    ).length
+  // Strict sliding-mechanism enforcement (NOT a freeze): the interior-point solve
+  // enforces sⱼ·gⱼ ≥ 0 only approximately near g≈0, so numerical slip can let the
+  // BOUND S⁻ — the sign changes of g's coefficients, exactly what the St-Malo theorem
+  // keeps monotone — tick up. After the solve we recompute S⁻ and, if it grew, pull the
+  // result back along the straight path toward THIS tick's start just until S⁻ no longer
+  // exceeds the start. The active set is re-evaluated every tick (the sliding mechanism
+  // adapts — anchors + same-sign, interiors free to merge), nothing is pinned; this only
+  // corrects the solver's numerical slip. S⁻ is counted on the NEIGHBOUR-ASSIGNED signs
+  // (assignSignsNeighbor) so a structurally-zero coefficient (|g| below the noise floor)
+  // takes its run's sign and does NOT fight the bound — the same noise-robust count the
+  // display shows, cyclic for closed curves.
+  const sOf = (x: readonly number[], y: readonly number[]) => {
+    const gc = (opts.closed
+      ? curvatureExtremaNumeratorPlanarPeriodic(x, y, knots, degree)
+      : curvatureExtremaNumeratorPlanar(x, y, knots, degree)
+    ).flatCoeffs()
+    return cyclicSignChanges(assignSignsNeighbor(gc), opts.closed ?? false)
+  }
   let rx = problem.cpX
   let ry = problem.cpY
   const startS = sOf(cpX, cpY)

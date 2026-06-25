@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { slideCurve, openCurvatureExtremaParameters } from '../index'
+import { slideCurve, openCurvatureExtremaParameters, planarCurvatureConstraintState, cyclicSignChanges } from '../index'
 
 // The robust ('ipopt') solver reproduces the reference sketcher's behavior: it
 // coordinates the other control points to keep the curvature-extrema bound and
@@ -11,6 +11,10 @@ import { slideCurve, openCurvatureExtremaParameters } from '../index'
 
 const degree = 3
 const ex = (x: number[], y: number[], k: number[]) => openCurvatureExtremaParameters(x, y, k, degree).length
+// The editor's CONTRACT: the noise-robust BOUND S⁻ (neighbour-assigned signs) is what
+// must not grow — NOT the exact dense-marker count (pinning that blocks degenerate curves).
+const bnd = (x: number[], y: number[], k: number[]) =>
+  cyclicSignChanges(planarCurvatureConstraintState(x, y, k, degree, { robust: true }).signs, false)
 
 describe('robust (ipopt) drag preserves the curvature-extrema bound', () => {
   // The exact curve the user reported as violating (S⁻ 1→2) under the banded solver.
@@ -29,15 +33,22 @@ describe('robust (ipopt) drag preserves the curvature-extrema bound', () => {
     expect(neighbourMove).toBeGreaterThan(0.5)
   })
 
-  it('never adds an extremum dragging cp0 of a flat arc in any direction', () => {
+  it('flat arc, cp0 in any direction: bound held AND not blocked', () => {
+    // The sliding mechanism (no freeze) keeps the BOUND S⁻ non-increasing while letting
+    // the dragged point move — dense markers may shift within the bound. Pinning the
+    // exact marker count is what used to BLOCK this near-degenerate flat arc.
     const k2 = [0, 0, 0, 0, 1, 1, 1, 1]
     const x2 = [-110.15740732779604, -45.66054699557279, 129.55497644405924, 150.7647139043658]
     const y2 = [-31.082123125551952, -163.27977141022885, -249.809504216241, -402.2460893293892]
-    const before = ex(x2, y2, k2)
+    const before = bnd(x2, y2, k2)
+    let anyMoved = false
     for (let d = 0; d < 8; d++) {
       const a = (Math.PI * 2 * d) / 8
-      const r = slideCurve(x2, y2, k2, degree, 0, x2[0] + Math.cos(a) * 60, y2[0] + Math.sin(a) * 60, { maxIterations: 80, method: 'ipopt' })
-      expect(ex(r.x, r.y, k2)).toBeLessThanOrEqual(before)
+      const tx = x2[0] + Math.cos(a) * 60, ty = y2[0] + Math.sin(a) * 60
+      const r = slideCurve(x2, y2, k2, degree, 0, tx, ty, { maxIterations: 80, method: 'ipopt' })
+      expect(bnd(r.x, r.y, k2), `dir ${d}: bound grew`).toBeLessThanOrEqual(before)
+      if (Math.hypot(r.x[0] - x2[0], r.y[0] - y2[0]) > 5) anyMoved = true
     }
+    expect(anyMoved, 'cp0 should move in at least some directions (not fully blocked)').toBe(true)
   })
 })

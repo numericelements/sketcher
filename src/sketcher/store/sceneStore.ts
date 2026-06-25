@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, planarCurvatureConstraintState, periodicCurvatureConstraintState, type CurvatureConstraintState } from '../../core'
+import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -1645,39 +1645,19 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     }))
   },
   snapshotDragStartCPs: (curveId) => {
-    const { curves, preserveCurvatureExtrema, symmetryMaps } = get()
-    const curve = curves.find((c) => c.id === curveId)
+    const curve = get().curves.find((c) => c.id === curveId)
     if (!curve) return
     const cps = curve.controlPoints
-    // Freeze the curvature constraint signs/active-set ONCE at drag start for the core
-    // b-spline path (open + clean-periodic closed). Reusing it every tick keeps the
-    // bound S⁻ non-increasing: recomputing signs per tick lets a near-zero coefficient
-    // get re-assigned and the boundary ratchet up over a fast drag (Rust freezes at
-    // pointer-down). Other kinds / legacy paths leave it null.
-    let dragConstraintState: CurvatureConstraintState | null = null
-    if (preserveCurvatureExtrema && curve.kind === 'bspline' && !symmetryMaps) {
-      const pts = curve.controlPoints as Point2D[]
-      const X = pts.map((p) => p.x)
-      const Y = pts.map((p) => p.y)
-      const k = curve.knots
-      const cleanPeriodic =
-        curve.closed &&
-        k.length === pts.length && k[0] < 1e-9 &&
-        k.every((v, i) => (i === 0 ? v >= 0 : v > k[i - 1])) && k[k.length - 1] < 1
-      try {
-        if (!curve.closed) {
-          dragConstraintState = planarCurvatureConstraintState(X, Y, k, curve.degree, { robust: true })
-        } else if (cleanPeriodic) {
-          dragConstraintState = periodicCurvatureConstraintState(X, Y, k, curve.degree, { robust: true })
-        }
-      } catch { /* leave null → per-tick signs (legacy behaviour) */ }
-    }
     // Snapshot the drag-start control points — used as the anchor (drift
-    // resistance) when anchorWeight > 0.
+    // resistance) when anchorWeight > 0. We deliberately do NOT freeze the
+    // curvature constraint signs/active-set: the St-Malo SLIDING mechanism must
+    // re-evaluate the active set every tick (anchors + same-sign neighbours; the
+    // alternating-run interiors slide → extrema merge → S⁻ non-increasing). Freezing
+    // pins the signs and disables the sliding, which over-constrains and blocks.
     set({
       dragStartCPsX: cps.map((p) => ('re' in p ? p.re : p.x)),
       dragStartCPsY: cps.map((p) => ('im' in p ? p.im : p.y)),
-      dragConstraintState,
+      dragConstraintState: null,
     })
   },
   clearDragStartCPs: () => set({ dragStartCPsX: null, dragStartCPsY: null, dragConstraintState: null }),
