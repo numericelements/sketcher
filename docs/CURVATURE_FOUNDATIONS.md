@@ -39,10 +39,14 @@ subsystem traces back here:
   small next to the endpoint spike (4–8 extrema → 1). Fixed by removing the amplitude band
   (count value crossings, screen flat curves robustly). → test `curvatureMarkers`.
 - **Solver ill-conditioning / "blocking" on closed curves.** The 1e12-range constraint system
-  gives the interior-point solver garbage Newton steps. Proven not-slow-convergence and
-  not-a-geometric-wall by the **retreat signature**: a dragged control point *reaches* its
-  target at 20 iterations and then drifts **back to the start** by 200 — a well-conditioned
-  solver converges monotonically toward the target, never away. (Status: open — see below.)
+  gives the interior-point solver garbage Newton steps. NOTE the subtlety: on a clustered-knot
+  closed curve, dragging some control points "left" partly *should* stall — moving them really
+  does want more extrema, and the bound must resist (Law 2). What is provably WRONG is the
+  **retreat signature**: with MORE iterations the dragged point tracks LESS (CP6: 5 units at 20
+  iters → 0 at 400; the bound stays held throughout). A well-conditioned optimizer converges
+  toward the constrained optimum monotonically — never away. The retreat is the oracle-free
+  proof of a conditioning bug; *how far* a point should ultimately travel is a separate
+  question only the reference (Rust / online sketcher) can answer. (Status: open.)
 
 **The cure (one fix dissolves the class).** Work in a **scale-normalized g**: divide each
 coefficient by its knot-span-derived scale so the dynamic range collapses to O(1), leaving

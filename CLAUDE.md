@@ -75,7 +75,39 @@ Freezing is **not** the mechanism and is never allowed — it blocks editing. Th
 is: re-evaluate the active set every tick, leave interiors free, enforce the run/anchor
 sign constraints. If numerical slip lets S⁻ tick up despite the constraints, the *only*
 permitted correction is to pull the result back along the straight path toward the tick's
-start until S⁻ no longer exceeds it — a slip correction, not a freeze.
+start until S⁻ no longer exceeds it — a slip correction, not a freeze. If that pull-back is
+doing more than removing a hair of slip, that is itself a solver-quality failure (below):
+the solve should have produced a feasible *reshaped* curve in the first place.
+
+**Reshape, don't block.** When a drag would push S⁻ up, the correct response is to **move
+more control points** — let the rest of the curve slide to absorb the curvature so the
+dragged point still follows the cursor — **not** to stop the dragged point. A point that
+won't move is a **solver failure**, not the bound doing its job. The bound may stop motion
+only at the TRUE feasible limit, where no coordinated slide can avoid a new extremum — and
+even there the curve sits at the reshaped feasible projection, never frozen. In practice we
+stall far short of that limit, and the cause is always solver quality (next section). How far
+a point *should* travel before the true limit is a question only the reference oracles
+(`../static-portfolio-rust`, the online sketcher) can answer — measure against them.
+
+### Standing investigation — solver quality (we return to this forever)
+
+Blocking, stalling, and the "retreat with more iterations" signature all trace back to how
+well the optimizer navigates the constrained landscape. **There is no one-time fix; this is
+a permanent line of work.** Whenever a curve blocks, do not invent a new clamp — ask which
+lever below is failing, measure it against the reference, and improve the solver so the point
+moves by *reshaping the curve*:
+
+- **Exact Hessian vs Gauss-Newton** — a true second-order step follows a curved constraint
+  boundary that a first-order step stalls against. (Kept behind a flag; measure, don't assume.)
+- **Gradient / Jacobian accuracy** — numerical error in ∂g/∂CP (finite-difference vs analytic
+  vs AD) sends the solver sideways; less error → straighter progress toward the cursor.
+- **Solver choice** — interior-point (IPOPT) vs primal-dual vs barrier navigate the boundary
+  differently. Keep them all; measure which both holds the bound AND tracks.
+- **Conditioning first** — scale g out of its span-driven ~1e12 dynamic range (FOUNDATIONS F1)
+  *before* the above, or every one of them inherits the ill-conditioning.
+
+The test of success is not "the bound held" (blocking holds it trivially) — it is "the bound
+held **and** the point tracked the cursor." Pin both (see `rustParityDrags.test.ts`).
 
 ## Law 3 — Honesty (nothing fake)
 
