@@ -108,14 +108,14 @@ describe('diagnostic matrix — bound non-increasing AND non-blocking (canonical
   it('polynomial OPEN near-straight (the formerly-blocking curve)', () =>
     runCase('poly-flat', { id: 'f', kind: 'bspline', degree: 3, closed: false, knots: FLAT_K, controlPoints: FLAT_CPS } as Curve, [0, 2, 4]))
 
-  // KNOWN GAPS — un-skip as the convergence closes them (docs §9):
-  // rational/complex CLOSED: the guard holds the bound in SOME directions but not all yet
-  // (its S⁻ uses a different numerator than the polynomial path) — Step 1 (one canonical
-  // metric) + Step 2 (shared guard) close this.
-  it.skip('rational CLOSED (clean periodic) — Step 1/2', () =>
-    runCase('rat-closed', { id: 'rc', kind: 'rational', degree: 3, closed: true, knots: CLOSED_K, controlPoints: CLOSED_CPS.map((p) => ({ ...p, w: 1 })) as WeightedPoint2D[] } as Curve, [4, 9, 0]))
-  it.skip('complex-rational CLOSED (clean periodic) — Step 1/2', () =>
-    runCase('cx-closed', { id: 'cc', kind: 'complex-rational', degree: 3, closed: true, knots: CLOSED_K, controlPoints: CLOSED_CPS.map((p) => ({ re: p.x, im: p.y, w_re: 1, w_im: 0 })) as ComplexPoint[] } as Curve, [4, 9, 0]))
+  // rational / complex-rational CLOSED: the BOUND holds (the guard works); editability is
+  // gated (some points still block) and the long timeout is the rational/complex DRAG SPEED
+  // (~180 ms/tick — Step 7), NOT a bound issue. The DISPLAY readout still uses a different
+  // numerator (shows a looser count) — Step 1 unifies that.
+  it('rational CLOSED (clean periodic) — bound held', () =>
+    runCase('rat-closed', { id: 'rc', kind: 'rational', degree: 3, closed: true, knots: CLOSED_K, controlPoints: CLOSED_CPS.map((p) => ({ ...p, w: 1 })) as WeightedPoint2D[] } as Curve, [4, 9, 0]), 30000)
+  it('complex-rational CLOSED (clean periodic) — bound held', () =>
+    runCase('cx-closed', { id: 'cc', kind: 'complex-rational', degree: 3, closed: true, knots: CLOSED_K, controlPoints: CLOSED_CPS.map((p) => ({ re: p.x, im: p.y, w_re: 1, w_im: 0 })) as ComplexPoint[] } as Curve, [4, 9, 0]), 30000)
   // legacy-routed, no S⁻ guard at all — Step 4 (migrate onto core):
   it.skip('rational OPEN (legacy path — Step 4)', () => {})
   it.skip('complex-rational OPEN (legacy path — Step 4)', () => {})

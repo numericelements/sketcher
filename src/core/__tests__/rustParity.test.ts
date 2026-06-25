@@ -117,10 +117,11 @@ describe('rust-parity: numerator equivalences (rational.rs / complex.rs)', () =>
 // becomes a real (green) test as its step lands; "done" = no todos remain.
 // ============================================================================
 describe('rust-parity: pending guarantees (convergence targets)', () => {
-  // Per-family drag bound preservation — diagnosticMatrix.test.ts has poly green;
-  // un-skip its rational/complex rows with Step 1 (one metric) + Step 2 (shared guard):
-  it.todo('faithful_rational_closed_drag_tracks_and_preserves_bound — Step 1/2')
-  it.todo('faithful_complex_closed_drag_tracks_and_preserves_bound — Step 1/2')
+  // ✓ DONE — per-family drag bound preservation for rational/complex CLOSED is now GREEN
+  // in diagnosticMatrix.test.ts (the guard holds the bound; what remained was test timeout
+  // = the rational/complex drag SPEED, a Step 7 concern, not a bound issue):
+  //   faithful_rational_closed_drag_tracks_and_preserves_bound
+  //   faithful_complex_closed_drag_tracks_and_preserves_bound
   // Legacy-routed open rational/complex (no guard) — Step 4 (migrate onto core):
   it.todo('faithful_rational_open_drag_tracks_and_preserves_bound — Step 4')
   it.todo('faithful_complex_open_drag_tracks_and_preserves_bound — Step 4')
