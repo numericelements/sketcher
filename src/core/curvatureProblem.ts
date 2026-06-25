@@ -68,7 +68,7 @@ export function assignSignsNeighbor(gc: number[]): number[] {
 /** Sliding active set driven by the ASSIGNED signs (robust regime): a near-zero
  *  coefficient that took its run's sign shares its neighbour's sign and so stays
  *  active. Within each alternating-sign run keep the largest-|g| anchor active. */
-function computeInactiveSetBySign(signs: number[], absVal: number[]): Set<number> {
+export function computeInactiveSetBySign(signs: number[], absVal: number[]): Set<number> {
   const inactive = new Set<number>()
   const n = signs.length
   let i = 0
@@ -251,7 +251,7 @@ export function planarCurvatureConstraintState(
  *  alternating cycle is one run keeping the single global anchor. Freeing only run-
  *  interior coefficients means a freed flip can merge two extrema, never create one —
  *  the closed analogue of the variation-diminishing argument. */
-function computeInactiveSetBySignCyclic(signs: number[], absVal: number[]): Set<number> {
+export function computeInactiveSetBySignCyclic(signs: number[], absVal: number[]): Set<number> {
   const n = signs.length
   const inactive = new Set<number>()
   if (n < 2) return inactive
