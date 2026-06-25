@@ -126,5 +126,17 @@ stop and fix the law-breaking code before doing anything else.
 
 ---
 
-*Implementation detail and architecture live in `docs/CURVATURE_ARCHITECTURE.md`. This file
-is the constitution; that file is the engineering.*
+## The three documents (and the rule against re-studying)
+
+- **`CLAUDE.md`** (this file) — the **constitution**: the laws, what must always hold.
+- **`docs/CURVATURE_FOUNDATIONS.md`** — the **textbook**: durable *facts* about our objects
+  (why g has a huge knot-driven dynamic range, why g is discontinuous at knots, …), each
+  established once with evidence and a pinning test. **Read it before investigating a
+  symptom; if the fact isn't there, study it once, then add it.** A bug teaches us something
+  new exactly once — after that it's a fact we build on, not a study we repeat.
+- **`docs/CURVATURE_ARCHITECTURE.md`** — the **engineering**: how it's built.
+
+A refactor for "cleaner code" may change structure but **never** the numbers a pinning test
+records. If a cleanup turns a test red, the cleanup is wrong. The reference implementations
+(the online sketcher, `../static-portfolio-rust`) are oracles — port faithfully and verify,
+don't re-derive.
