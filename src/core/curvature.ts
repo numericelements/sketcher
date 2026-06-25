@@ -211,11 +211,27 @@ function denseExtremaParams(
 }
 
 /**
- * CANONICAL curvature-extrema MARKERS for any curve kind — the dense zeros of the kind's
- * own g. One source for the editor's dots, using the SAME numerators as the bound/guard.
- * For bspline, wre/wim are ignored. A flat / zero-curvature curve (g with no robust sign
- * change — collinear control points, a straight span) has no genuine extrema and returns
- * []; this screen also stops the root-finder from smearing markers across a g≡0 region.
+ * CANONICAL markers from ANY family's g — the dense sign-change crossings (Z(g)), one
+ * implementation shared by every family. `degree` is the DOMAIN degree (the curve degree
+ * for algebraic families, the generator degree for PH): it locates the clamped parameter
+ * interval. A flat / zero-curvature curve (g with no robust sign change) returns [] — this
+ * screen also stops the root-finder from smearing markers across a g≡0 region.
+ */
+export function curvatureExtremaMarkersOfNumerator(
+  g: BernsteinDecomposition, knots: readonly number[], degree: number, closed: boolean, samples = 800,
+): number[] {
+  if (cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed) === 0) return []
+  let tMin: number, span: number
+  if (closed) { tMin = 0; span = 1 } // clean-periodic domain (period 1, knots[0]=0)
+  else { tMin = knots[degree]; span = knots[knots.length - 1 - degree] - tMin; if (!(span > 0)) return [] }
+  return denseExtremaParams(g, tMin, span, samples, closed)
+}
+
+/**
+ * CANONICAL curvature-extrema MARKERS for the algebraic curve kinds — the dense zeros of
+ * the kind's own g. One source for the editor's dots, using the SAME numerators as the
+ * bound/guard. For bspline, wre/wim are ignored. (PH markers come from
+ * curvatureExtremaMarkersOfNumerator over the PH numerator — see phCurvature.ts.)
  */
 export function curvatureExtremaMarkers(
   kind: 'bspline' | 'rational' | 'complex-rational',
@@ -226,14 +242,7 @@ export function curvatureExtremaMarkers(
   const g = kind === 'bspline'
     ? (closed ? curvatureExtremaNumeratorPlanarPeriodic(zre, zim, knots, degree) : curvatureExtremaNumeratorPlanar(zre, zim, knots, degree))
     : (closed ? curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree, rho) : curvatureExtremaNumeratorComplex(zre, zim, wre, wim, knots, degree))
-  // Flat / zero-curvature → no extrema. Use the NOISE-ROBUST count (the bound's own
-  // assignSignsNeighbor), so a collinear/straight curve whose g is all cancellation dust
-  // (~1e-9) screens to zero instead of the raw signChanges counting that dust as crossings.
-  if (cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed) === 0) return []
-  let tMin: number, span: number
-  if (closed) { tMin = 0; span = 1 } // clean-periodic domain (period 1, knots[0]=0)
-  else { tMin = knots[degree]; span = knots[knots.length - 1 - degree] - tMin; if (!(span > 0)) return [] }
-  return denseExtremaParams(g, tMin, span, samples, closed)
+  return curvatureExtremaMarkersOfNumerator(g, knots, degree, closed, samples)
 }
 
 /** Parameters t ∈ [0,1) of the inflections of a closed curve (zeros of periodic f = c′×c″). */
