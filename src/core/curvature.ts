@@ -1,4 +1,4 @@
-import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, decomposeBsplineGeneric } from './bernstein'
+import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, decomposeBsplineGeneric, assignSignsNeighbor, cyclicSignChanges } from './bernstein'
 import { ComplexBD, decomposeComplexCurvePeriodic } from './complexBernstein'
 import { complexScalarCoeffs } from './coeffs'
 import type { Complex } from './complex'
@@ -173,19 +173,17 @@ export function openCurvatureExtremaParameters(
   return zeros
 }
 
-const EXTREMA_DEADBAND_REL = 1e-3
 /**
- * Dense zeros of g over [tMin, tMin+span), counted with a relative DEADBAND: a zero is
- * recorded only where g genuinely SWINGS to ±epsRel·max|g| on both sides — so numerical
- * noise where g hovers near zero (a flat/dead region) is NOT counted as an extremum. This
- * is what keeps the displayed MARKERS consistent with the noise-robust bound (the readout /
- * the drag guard) instead of flickering on noise. `cyclic` closes the seam.
+ * Dense zeros of g over the domain — the genuine curvature extrema. We scan g's VALUE on
+ * a fine grid and bracket every sign change, exactly like the proven openCurvatureExtrema-
+ * Parameters; `cyclic` closes the seam (last sample ↔ first) for periodic g. No amplitude
+ * threshold: a real extremum where g is small (e.g. a gentle interior bend whose |g| is
+ * dwarfed by the large coefficients near a clamped endpoint) is counted just the same.
+ * Flat / zero-curvature curves are screened out by the caller before we get here.
  */
-function deadbandExtremaParams(
-  g: BernsteinDecomposition, tMin: number, span: number, samples: number, cyclic: boolean, epsRel: number,
+function denseExtremaParams(
+  g: BernsteinDecomposition, tMin: number, span: number, samples: number, cyclic: boolean,
 ): number[] {
-  const maxAbs = Math.max(1e-300, ...g.flatCoeffs().map(Math.abs))
-  const thr = epsRel * maxAbs
   const wrap = (t: number) => tMin + ((((t - tMin) % span) + span) % span)
   const ev = cyclic ? (t: number) => g.evaluate(wrap(t)) : (t: number) => g.evaluate(t)
   const bisect = (a0: number, b0: number) => {
@@ -194,39 +192,48 @@ function deadbandExtremaParams(
     return (a + b) / 2
   }
   const zeros: number[] = []
-  let confSign = 0, lastConfT = tMin, firstSign = 0, firstT = tMin
-  for (let i = 0; i <= samples; i++) {
+  let prevT = tMin
+  let prevV = ev(tMin)
+  for (let i = 1; i <= samples; i++) {
     const t = tMin + (i / samples) * span
     const v = ev(t)
-    if (Math.abs(v) <= thr) continue // in the deadband — ignore (noise / flat)
-    const s = v > 0 ? 1 : -1
-    if (confSign === 0) { firstSign = s; firstT = t }
-    else if (s !== confSign) zeros.push(bisect(lastConfT, t))
-    confSign = s
-    lastConfT = t
+    if (prevV === 0) zeros.push(prevT)
+    else if (prevV * v < 0) zeros.push(bisect(prevT, t))
+    prevT = t
+    prevV = v
   }
-  if (cyclic && confSign !== 0 && firstSign !== 0 && confSign !== firstSign) zeros.push(wrap(bisect(lastConfT, firstT + span)))
+  // Seam: close the loop for periodic g (sample[samples] is tMin again via wrap).
+  if (cyclic && prevV !== 0) {
+    const v0 = ev(tMin)
+    if (prevV * v0 < 0) zeros.push(wrap(bisect(prevT, tMin + span)))
+  }
   return zeros
 }
 
 /**
  * CANONICAL curvature-extrema MARKERS for any curve kind — the dense zeros of the kind's
- * own g (deadband-filtered so noise isn't drawn). One source for the editor's dots, using
- * the SAME numerators as the bound/guard. For bspline, wre/wim are ignored.
+ * own g. One source for the editor's dots, using the SAME numerators as the bound/guard.
+ * For bspline, wre/wim are ignored. A flat / zero-curvature curve (g with no robust sign
+ * change — collinear control points, a straight span) has no genuine extrema and returns
+ * []; this screen also stops the root-finder from smearing markers across a g≡0 region.
  */
 export function curvatureExtremaMarkers(
   kind: 'bspline' | 'rational' | 'complex-rational',
   zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
   knots: readonly number[], degree: number, closed: boolean,
-  rho: Complex = { re: 1, im: 0 }, samples = 600, epsRel: number = EXTREMA_DEADBAND_REL,
+  rho: Complex = { re: 1, im: 0 }, samples = 800,
 ): number[] {
   const g = kind === 'bspline'
     ? (closed ? curvatureExtremaNumeratorPlanarPeriodic(zre, zim, knots, degree) : curvatureExtremaNumeratorPlanar(zre, zim, knots, degree))
     : (closed ? curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree, rho) : curvatureExtremaNumeratorComplex(zre, zim, wre, wim, knots, degree))
+  // Flat / zero-curvature → no extrema. Use the NOISE-ROBUST count (the bound's own
+  // assignSignsNeighbor), so a collinear/straight curve whose g is all cancellation dust
+  // (~1e-9) screens to zero instead of the raw signChanges counting that dust as crossings.
+  if (cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed) === 0) return []
   let tMin: number, span: number
   if (closed) { tMin = 0; span = 1 } // clean-periodic domain (period 1, knots[0]=0)
   else { tMin = knots[degree]; span = knots[knots.length - 1 - degree] - tMin; if (!(span > 0)) return [] }
-  return deadbandExtremaParams(g, tMin, span, samples, closed, epsRel)
+  return denseExtremaParams(g, tMin, span, samples, closed)
 }
 
 /** Parameters t ∈ [0,1) of the inflections of a closed curve (zeros of periodic f = c′×c″). */

@@ -211,6 +211,37 @@ export function cyclicSignChanges(signs: readonly number[], cyclic: boolean): nu
   return changes
 }
 
+/** A coefficient is treated as a structural zero when |v| ≤ SIGN_NOISE_REL·max|coeff|. */
+export const SIGN_NOISE_REL = 1e-9
+
+/**
+ * Noise-robust signs of Bernstein coefficients: a coefficient below the relative noise
+ * floor (cancellation dust near g≈0) takes the sign of its NEAREST nonzero neighbour, so
+ * a structurally-zero coefficient does not register as a spurious sign change. Pair with
+ * cyclicSignChanges to get S⁻ — the bound the St-Malo sliding mechanism keeps monotone —
+ * and to screen out flat / zero-curvature curves (whose g is all dust). The returned signs
+ * use the optimizer's internal convention (+v → −1, −v → +1); only sign CHANGES matter.
+ */
+export function assignSignsNeighbor(gc: number[]): number[] {
+  const maxAbs = Math.max(1e-300, ...gc.map(Math.abs))
+  const noise = SIGN_NOISE_REL * maxAbs
+  const det = gc.map((v) => (Math.abs(v) <= noise ? 0 : v > 0 ? -1 : 1))
+  const out = det.slice()
+  const n = det.length
+  for (let i = 0; i < n; i++) {
+    if (det[i] !== 0) continue
+    let l = i - 1
+    while (l >= 0 && det[l] === 0) l--
+    let r = i + 1
+    while (r < n && det[r] === 0) r++
+    const dl = l >= 0 ? i - l : Infinity
+    const dr = r < n ? r - i : Infinity
+    out[i] = dl <= dr ? (l >= 0 ? det[l] : 1) : r < n ? det[r] : 1
+    if (out[i] === 0) out[i] = 1
+  }
+  return out
+}
+
 /**
  * Decompose a scalar B-spline function into Bernstein form. One implementation
  * for open and periodic, via the unified de Boor blossom (Indexing handles the

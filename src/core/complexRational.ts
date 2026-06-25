@@ -31,7 +31,8 @@ import type { Matrix } from './linalg'
 import type { OptimizationProblem, OptimizerConfig } from './optimize'
 import { PrimalDualOptimizer } from './optimize'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
-import { assignSignsNeighbor, enforceBoundNonincreasing, structuralMargins, computeInactiveSetBySign, computeInactiveSetBySignCyclic, type CurvatureConstraintState } from './curvatureProblem'
+import { assignSignsNeighbor } from './bernstein'
+import { enforceBoundNonincreasing, structuralMargins, computeInactiveSetBySign, computeInactiveSetBySignCyclic, type CurvatureConstraintState } from './curvatureProblem'
 import { cyclicSignChanges } from './bernstein'
 
 /**

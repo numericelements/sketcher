@@ -24,43 +24,16 @@ import {
 import type { PeriodicSeeds, OpenSeeds } from './gradient'
 import { curvatureExtremaHessianPlanarWeighted } from './curvatureHessian'
 import type { BernsteinDecomposition } from './bernstein'
-import { cyclicSignChanges } from './bernstein'
+// assignSignsNeighbor + SIGN_NOISE_REL now live in bernstein.ts (alongside cyclicSignChanges
+// — they're all Bernstein-coefficient sign operations). Moving them there broke a
+// curvature → curvatureProblem import cycle: the marker flat-guard in curvature.ts needs the
+// robust count too. Consumers import assignSignsNeighbor from core (bernstein's star export).
+import { cyclicSignChanges, assignSignsNeighbor, SIGN_NOISE_REL } from './bernstein'
 import type { PlanarCurvatureGradient } from './gradient'
 
 /** Per coefficient: −1 if g>0 (keep ≥0), +1 if g≤0 (keep ≤0). Exact-0 → +1. */
 function assignSigns(gc: number[]): number[] {
   return gc.map((v) => (v > 0 ? -1 : 1))
-}
-
-const SIGN_NOISE_REL = 1e-9
-/**
- * Neighbour-aware sign assignment for the robust (unscaled) regime. A
- * coefficient above the noise floor takes the sign of its own value; a near-zero
- * one — the STRUCTURALLY ZERO clamped-boundary coefficient our core computes as
- * exactly 0 — takes its nearest determined neighbour's sign. That mirrors what
- * the sketcher gets for free from its tiny roundoff residual (g[0] ≈ +7.8e-3):
- * the boundary coefficient joins its run, stays ACTIVE, and is enforced, so the
- * solve coordinates the neighbours to keep it feasible instead of letting it
- * slide across zero (a real extremum).
- */
-export function assignSignsNeighbor(gc: number[]): number[] {
-  const maxAbs = Math.max(1e-300, ...gc.map(Math.abs))
-  const noise = SIGN_NOISE_REL * maxAbs
-  const det = gc.map((v) => (Math.abs(v) <= noise ? 0 : v > 0 ? -1 : 1))
-  const out = det.slice()
-  const n = det.length
-  for (let i = 0; i < n; i++) {
-    if (det[i] !== 0) continue
-    let l = i - 1
-    while (l >= 0 && det[l] === 0) l--
-    let r = i + 1
-    while (r < n && det[r] === 0) r++
-    const dl = l >= 0 ? i - l : Infinity
-    const dr = r < n ? r - i : Infinity
-    out[i] = dl <= dr ? (l >= 0 ? det[l] : 1) : r < n ? det[r] : 1
-    if (out[i] === 0) out[i] = 1
-  }
-  return out
 }
 
 /**
