@@ -181,7 +181,7 @@ function scaleFor(coeffs: number[], activeIdx: number[]): number[] {
  * feasible-side margin then lives in those same scaled units — see
  * `structuralMarginsScaled` — so g=0 starts a hair off its wall and cannot cross.
  */
-function scaleForRobust(coeffs: number[], activeIdx: number[]): number[] {
+export function scaleForRobust(coeffs: number[], activeIdx: number[]): number[] {
   const maxAbs = Math.max(1e-300, ...coeffs.map(Math.abs))
   const noise = SIGN_NOISE_REL * maxAbs
   const floor = SCALE_FLOOR_REL * maxAbs
@@ -192,7 +192,7 @@ function scaleForRobust(coeffs: number[], activeIdx: number[]): number[] {
  *  (scaled by max|g|) gets MARGIN_REL, so its slack = margin − sign·(g/max) ≈
  *  MARGIN_REL > 0 — off its wall yet unable to cross (it can drift at most
  *  MARGIN_REL·max|g| in raw g, i.e. noise). Normal coefficients get 0. */
-function structuralMarginsScaled(gcAll: number[], activeIdx: number[]): number[] {
+export function structuralMarginsScaled(gcAll: number[], activeIdx: number[]): number[] {
   const maxAbs = Math.max(1e-300, ...gcAll.map(Math.abs))
   const noise = SIGN_NOISE_REL * maxAbs
   return activeIdx.map((i) => (Math.abs(gcAll[i]) <= noise ? MARGIN_REL : 0))
