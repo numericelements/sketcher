@@ -38,15 +38,10 @@ subsystem traces back here:
 - **Erased markers.** A `1e-3·max|g|` deadband threshold erased every extremum whose |g| was
   small next to the endpoint spike (4–8 extrema → 1). Fixed by removing the amplitude band
   (count value crossings, screen flat curves robustly). → test `curvatureMarkers`.
-- **Solver ill-conditioning / "blocking" on closed curves.** The 1e12-range constraint system
-  gives the interior-point solver garbage Newton steps. NOTE the subtlety: on a clustered-knot
-  closed curve, dragging some control points "left" partly *should* stall — moving them really
-  does want more extrema, and the bound must resist (Law 2). What is provably WRONG is the
-  **retreat signature**: with MORE iterations the dragged point tracks LESS (CP6: 5 units at 20
-  iters → 0 at 400; the bound stays held throughout). A well-conditioned optimizer converges
-  toward the constrained optimum monotonically — never away. The retreat is the oracle-free
-  proof of a conditioning bug; *how far* a point should ultimately travel is a separate
-  question only the reference (Rust / online sketcher) can answer. (Status: open.)
+- **Bound undercount and erased markers** are dynamic-range bugs (above). But **closed-drag
+  "blocking" is NOT** — see F4. It is solver step-strategy, not conditioning. (Originally this
+  bullet blamed conditioning for blocking; F4's solver matrix disproves that — corrected here so
+  we don't chase conditioning again.)
 
 **The cure (one fix dissolves the class).** Work in a **scale-normalized g**: divide each
 coefficient by its knot-span-derived scale so the dynamic range collapses to O(1), leaving
@@ -101,5 +96,53 @@ there is one place to be correct, and lean on Rust/sketcher as oracles rather th
 
 ---
 
-*Add F4, F5, … as we establish them. Never delete a fact that is still true; if a fact turns
-out wrong, replace it and say why (a wrong fact in here is worse than none).*
+## F4 — Closed-drag "blocking" is solver step-strategy, not conditioning
+
+**The fact.** On a clustered-knot closed curve, dragging certain control points stalls. This is
+**not** linear-algebra conditioning (F1's dynamic range) and **not** a single fixable bug — it
+depends on the solver, and no single available solver tracks every control point.
+
+**The evidence (lever matrix, the user's 14-CP curve, CP-by-CP left-drag of 80 units over 40
+ticks; every solver holds the bound S⁻=8 throughout):**
+
+```
+        ipopt+Gauss-Newton   primal-dual          notes
+CP6     5/80  (→0 at 400it)   76/80               GN blocks & RETREATS; PD tracks
+CP8     80/80                 15/80               GN tracks; PD blocks
+CP3     28/80                 28/80               both stall
+CP9     1/80                  3/80                both stall hard
+CP12    80/80                 62/80               GN better
+(others track ~full under both)
+```
+
+Whole-matrix levers tried: ipopt Gauss-Newton (default), ipopt+BFGS (CP6: 67/80 — also helps),
+ipopt+exact-Hessian (no-op for closed), primal-dual, barrier (CP6: 74/80). The bound held in
+every case.
+
+**What it proves.**
+- **Not conditioning.** Same Jacobian, same 1e12 range, opposite results across solvers (PD
+  tracks CP6 where GN fails; GN tracks CP8 where PD fails). A conditioning problem would hurt
+  all solvers equally. So scaling/preconditioning is the wrong lever — confirmed twice now.
+- **Often solver FAILURE, not a true limit.** For CP6 and CP8 one solver reaches the cursor
+  while holding the bound, so the other's stall is not the bound resisting — it is the solver
+  giving up. Per Law 2 ("reshape, don't block") that is a defect, not the feature.
+- **Gauss-Newton specifically RETREATS** (CP6: 5 at 20 iters → 0 at 400). primal-dual/barrier/
+  BFGS do not. The default editor closed path is ipopt+Gauss-Newton — the worst of the set here.
+- **CP3/9/10/11 stall under every solver.** These may be at the true feasible limit (moving
+  them left really does need a new extremum) — but only the reference oracle (Rust / online
+  sketcher) on these exact points can confirm "limit" vs "all solvers fail together."
+
+**Direction (not yet done).** No single solver wins, but for any point where one solver tracks
+further *while holding the bound*, that result is strictly better (Law 2). A **best-feasible-of-
+solvers** closed drag — run more than one, keep the furthest-tracking bound-holding result —
+never regresses and would rescue CP6 (PD) and CP8 (GN) at once. Cost: extra solves per tick (the
+curves are small). The remaining all-solver stalls (CP3/9/…) need the oracle to classify before
+we know if there is anything left to fix. Pinning test: `rustParityDrags` closed-conditioning
+block (currently asserts no-retreat; tighten to "tracks ≥ what the best solver achieves").
+
+**Pinning evidence.** Matrix above, reproduced via slideCurve `method` + `maxIterations`.
+
+---
+
+*Add F5, … as we establish them. Never delete a fact that is still true; if a fact turns out
+wrong, replace it and say why (a wrong fact in here is worse than none).*
