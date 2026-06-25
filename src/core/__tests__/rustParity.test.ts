@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   cyclicSignChanges, assignSignsNeighbor, computeInactiveSetBySign,
   curvatureExtremaNumeratorPlanar, curvatureExtremaNumeratorPlanarPeriodic,
-  curvatureExtremaNumeratorRational, curvatureExtremaNumeratorComplexPeriodic,
+  curvatureExtremaNumeratorRational, curvatureExtremaNumeratorComplex, curvatureExtremaNumeratorComplexPeriodic,
   openCurvatureExtremaParameters, closedCurvatureExtremaParameters,
 } from '../index'
 
@@ -110,6 +110,45 @@ describe('rust-parity: numerator equivalences (rational.rs / complex.rs)', () =>
     const pg = curvatureExtremaNumeratorPlanarPeriodic(x, y, knots, 3)
     expect(cyclicSignChanges(assignSignsNeighbor(cg.flatCoeffs()), true)).toBe(cyclicSignChanges(assignSignsNeighbor(pg.flatCoeffs()), true))
   })
+
+  // ports `complex_curvature_equals_real_polynomial_g` (OPEN, w=1) — the open analogue
+  it('complex-rational g reduces to the polynomial g when weights = (1,0) (open)', () => {
+    const { x, y } = squiggle(10), knots = openKnots(10, 3)
+    const cg = curvatureExtremaNumeratorComplex(x, y, x.map(() => 1), x.map(() => 0), knots, 3)
+    const pg = curvatureExtremaNumeratorPlanar(x, y, knots, 3)
+    expect(cyclicSignChanges(assignSignsNeighbor(cg.flatCoeffs()), false)).toBe(cyclicSignChanges(assignSignsNeighbor(pg.flatCoeffs()), false))
+  })
+})
+
+describe('rust-parity: closed bound parity across families (four-vertex even count)', () => {
+  // ports `closed_curve_count_is_even_and_at_least_four` for rational + complex: the cyclic
+  // bound of a periodic g is EVEN (the seam-wrap makes sign changes come in pairs).
+  const evenClosedBound = (
+    zre: number[], zim: number[], wre: number[], wim: number[], knots: number[],
+  ) => cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, 3, { re: 1, im: 0 }).flatCoeffs()), true)
+
+  it('CLOSED rational bound is even', () => {
+    for (let s = 0; s < 12; s++) {
+      const n = 10 + (s % 4), knots = periodicKnots(n)
+      const x = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n; return 150 * Math.cos(a) + 14 * Math.sin((2 + s) * a) })
+      const y = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n; return 95 * Math.sin(a) + 11 * Math.cos((3 + s) * a) })
+      const w = Array.from({ length: n }, (_, i) => 0.6 + 0.3 * (1 + Math.cos(i + s)))
+      const b = evenClosedBound(x, y, w, w.map(() => 0), knots)
+      expect(b % 2, `closed rational seed ${s}: bound ${b} must be even`).toBe(0)
+    }
+  })
+
+  it('CLOSED complex-rational bound is even', () => {
+    for (let s = 0; s < 12; s++) {
+      const n = 10 + (s % 4), knots = periodicKnots(n)
+      const zre = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n; return 150 * Math.cos(a) + 13 * Math.sin((2 + s) * a) })
+      const zim = Array.from({ length: n }, (_, i) => { const a = (2 * Math.PI * i) / n; return 95 * Math.sin(a) + 10 * Math.cos((3 + s) * a) })
+      const wre = Array.from({ length: n }, (_, i) => 0.8 + 0.2 * Math.cos(i + s))
+      const wim = Array.from({ length: n }, (_, i) => 0.1 * Math.sin(i * 1.2 + s))
+      const b = evenClosedBound(zre, zim, wre, wim, knots)
+      expect(b % 2, `closed complex seed ${s}: bound ${b} must be even`).toBe(0)
+    }
+  })
 })
 
 // ============================================================================
@@ -131,8 +170,8 @@ describe('rust-parity: pending guarantees (convergence targets)', () => {
   it.todo('ph_curvature_matches_generic_g_of_hodograph — Step 5 (have a partial sketcher test)')
   // Cross-family + properties for rational/complex/PH (we have them for polynomial):
   it.todo('sliding_never_increases_bound_across_families — Steps 1–5')
-  it.todo('rational_closed_bound_is_a_proper_upper_bound — Step 1')
-  it.todo('complex_rational_closed_bound_is_a_proper_upper_bound — Step 1')
+  // ✓ DONE — rational_/complex_rational_(open+closed)_bound_is_a_proper_upper_bound are
+  // GREEN in lawBoundIsUpperBound.test.ts ("Law 1 across families": S⁻ ≥ markers).
   it.todo('rational_hessian_backends_agree — needs the rational exact Hessian organ')
   // Tight bound (B-spline g) — needs Spline.product ported (relates to the loose-bound issue):
   it.todo('rational_bernstein_g_matches_spline_g_open — needs B-spline product algebra')
