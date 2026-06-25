@@ -7,11 +7,16 @@ import { computeRegionPreview } from '../utils/regionSmooth'
 import { basisFunctions, findKnotSpan, isClampedEndKnot, isPeriodicRepresentation, periodicBasisFunctions, findPeriodicKnotSpan } from '../utils/bspline'
 import { curvatureComb } from '../utils/curvature'
 import { getBasisColor } from '../utils/colors'
-import { computeClosedCurveConstraintState, computeRationalCurveConstraintState, computeClosedRationalCurveConstraintState, computeComplexCurvatureConstraintState, computeOpenComplexCurvatureConstraintState, computeCurvatureExtremaParameters } from '../optimizer'
-// Open planar B-spline: the displayed bound S and the marker count come from
-// core/ (what the core optimizer actually preserves), not the legacy code —
-// which computed them on a different g decomposition and could drift.
-import { curvatureExtremaNumeratorPlanar as coreCurvatureNumerator, planarCurvatureConstraintState as coreConstraintState, cyclicSignChanges } from '../../core'
+import { computeCurvatureExtremaParameters } from '../optimizer'
+// CANONICAL display metric: the displayed bound S and the constraint bar come from core/
+// for EVERY curve kind — the SAME numerator + noise-robust sign assignment the drag guard
+// enforces — so the readout can't disagree with the guard (the "guard holds 4, readout
+// shows 6" class of bug). (Convergence Step 1: docs/CURVATURE_ARCHITECTURE.md §9.)
+import {
+  curvatureExtremaNumeratorPlanar as coreCurvatureNumerator,
+  planarCurvatureConstraintState as coreConstraintState,
+  periodicCurvatureConstraintState, complexCurvatureConstraintState, cyclicSignChanges, cdiv,
+} from '../../core'
 
 export default function BottomPanel() {
   const { panelView, curves, selectedCurveId } = useSceneStore()
@@ -727,62 +732,30 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
       return null
     }
     try {
+      // ALL kinds → core, so the displayed bound uses the SAME numerator + noise-robust
+      // signs the drag guard enforces.
       if (curve.kind === 'complex-rational') {
-        const n = curve.controlPoints.length
-        const cpsZre: number[] = []
-        const cpsZim: number[] = []
-        const cpsWre: number[] = []
-        const cpsWim: number[] = []
-        for (let i = 0; i < n; i++) {
-          const cp = curve.controlPoints[i]
-          cpsZre.push(cp.re * cp.w_re - cp.im * cp.w_im)
-          cpsZim.push(cp.re * cp.w_im + cp.im * cp.w_re)
-          cpsWre.push(cp.w_re)
-          cpsWim.push(cp.w_im)
-        }
-        if (curve.closed) {
-          return computeComplexCurvatureConstraintState(
-            curve.degree, curve.knots, cpsZre, cpsZim, cpsWre, cpsWim,
-            1.0, curve.wrapWeight
-          )
-        } else {
-          return computeOpenComplexCurvatureConstraintState(
-            curve.knots, cpsZre, cpsZim, cpsWre, cpsWim
-          )
-        }
+        const cps = curve.controlPoints
+        const rho = curve.wrapWeight ? cdiv(curve.wrapWeight, { re: cps[0].w_re, im: cps[0].w_im }) : { re: 1, im: 0 }
+        return complexCurvatureConstraintState(
+          cps.map((p) => p.re), cps.map((p) => p.im), cps.map((p) => p.w_re), cps.map((p) => p.w_im),
+          curve.knots, curve.degree, curve.closed, rho,
+        )
       }
       if (curve.kind === 'rational') {
-        const cpsX = curve.controlPoints.map((p) => p.x * p.w)
-        const cpsY = curve.controlPoints.map((p) => p.y * p.w)
-        const cpsW = curve.controlPoints.map((p) => p.w)
-        if (curve.closed) {
-          return computeClosedRationalCurveConstraintState(
-            curve.knots, cpsX, cpsY, cpsW, curve.degree, 1.0, curve.wrapWeight
-          )
-        } else {
-          return computeRationalCurveConstraintState(
-            curve.knots, cpsX, cpsY, cpsW
-          )
-        }
-      }
-      if (curve.closed) {
-        return computeClosedCurveConstraintState(
-          curve.knots,
-          curve.controlPoints.map((p) => p.x),
-          curve.controlPoints.map((p) => p.y),
-          curve.degree
-        )
-      } else {
-        // Open planar B-spline: the constraint-bar coloring computes g's sign
-        // assignment fresh from the current curve.
-        return coreConstraintState(
-          curve.controlPoints.map((p) => p.x),
-          curve.controlPoints.map((p) => p.y),
-          curve.knots,
-          curve.degree,
-          { disableSliding, robust: true }, // robust (IPOPT) sign assignment
+        const cps = curve.controlPoints
+        const rho = curve.wrapWeight !== undefined ? { re: curve.wrapWeight / cps[0].w, im: 0 } : { re: 1, im: 0 }
+        return complexCurvatureConstraintState(
+          cps.map((p) => p.x), cps.map((p) => p.y), cps.map((p) => p.w), cps.map(() => 0),
+          curve.knots, curve.degree, curve.closed, rho,
         )
       }
+      // planar B-spline
+      const X = curve.controlPoints.map((p) => p.x)
+      const Y = curve.controlPoints.map((p) => p.y)
+      return curve.closed
+        ? periodicCurvatureConstraintState(X, Y, curve.knots, curve.degree, { robust: true })
+        : coreConstraintState(X, Y, curve.knots, curve.degree, { disableSliding, robust: true })
     } catch (e) {
       console.error('constraintState computation failed:', e)
       return null

@@ -20,6 +20,7 @@
 import type { Point2D, ComplexPoint } from './types'
 import { type Complex, cadd, csub, cmul, cdiv, cnorm } from './complex'
 import {
+  curvatureExtremaNumeratorComplex,
   curvatureExtremaNumeratorComplexPeriodic,
   curvatureExtremaGradientComplexPeriodicFixedWeight,
   curvatureExtremaGradientComplexPeriodicFixedWeightCols,
@@ -30,8 +31,35 @@ import type { Matrix } from './linalg'
 import type { OptimizationProblem, OptimizerConfig } from './optimize'
 import { PrimalDualOptimizer } from './optimize'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
-import { assignSignsNeighbor, structuralMargins } from './curvatureProblem'
+import { assignSignsNeighbor, structuralMargins, computeInactiveSetBySign, computeInactiveSetBySignCyclic, type CurvatureConstraintState } from './curvatureProblem'
 import { cyclicSignChanges } from './bernstein'
+
+/**
+ * CANONICAL rational / complex-rational constraint state — the core counterpart of
+ * planarCurvatureConstraintState/periodicCurvatureConstraintState, for the DISPLAY (the
+ * "S =" readout + the constraint bar) so they use the SAME numerator + noise-robust sign
+ * assignment the drag guard does (no more "guard holds 4, readout shows 6"). Euclidean
+ * (zre,zim) + weights; `rho` is the periodic monodromy for closed spirals.
+ */
+export function complexCurvatureConstraintState(
+  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
+  knots: readonly number[], degree: number, closed: boolean, rho: Complex = { re: 1, im: 0 },
+): CurvatureConstraintState {
+  const g = closed
+    ? curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree, rho)
+    : curvatureExtremaNumeratorComplex(zre, zim, wre, wim, knots, degree)
+  const gc = g.flatCoeffs()
+  const signs = assignSignsNeighbor(gc)
+  const inactive = closed
+    ? computeInactiveSetBySignCyclic(signs, gc.map(Math.abs))
+    : computeInactiveSetBySign(signs, gc.map(Math.abs))
+  const grevilleAbscissae: number[] = []
+  for (let s = 0; s < g.coeffs.length; s++) {
+    const a = g.breaks[s], b = g.breaks[s + 1], m = g.coeffs[s].length
+    for (let j = 0; j < m; j++) grevilleAbscissae.push(a + (m > 1 ? j / (m - 1) : 0) * (b - a))
+  }
+  return { gCPs: gc, signs, inactiveIndices: [...inactive], gScale: gc.map(() => 1), grevilleAbscissae }
+}
 
 export interface ComplexRationalCurve {
   degree: number
