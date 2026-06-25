@@ -132,15 +132,22 @@ every case.
   them left really does need a new extremum) — but only the reference oracle (Rust / online
   sketcher) on these exact points can confirm "limit" vs "all solvers fail together."
 
-**Direction (not yet done).** No single solver wins, but for any point where one solver tracks
-further *while holding the bound*, that result is strictly better (Law 2). A **best-feasible-of-
-solvers** closed drag — run more than one, keep the furthest-tracking bound-holding result —
-never regresses and would rescue CP6 (PD) and CP8 (GN) at once. Cost: extra solves per tick (the
-curves are small). The remaining all-solver stalls (CP3/9/…) need the oracle to classify before
-we know if there is anything left to fix. Pinning test: `rustParityDrags` closed-conditioning
-block (currently asserts no-retreat; tighten to "tracks ≥ what the best solver achieves").
+**RESOLVED (editor) — BFGS on the fast arrowhead path.** The cheap, shipped fix: switch the
+CLOSED drag from Gauss-Newton to **BFGS** (the Lagrangian-Hessian approximation) on the SAME
+fast arrowhead solve. BFGS captures the constraint curvature GN ignores, so it reshapes instead
+of stalling — CP6 0→75, CP9 1→75, CP8 stays 80, bound held, ~24ms/tick (vs GN 18ms; vs the dense
+generic best-of 86ms). One line in sceneStore (`enableBFGS: !!curve.closed`); pinned by the
+diagnostic matrix's poly-CLOSED case, now `editable: true` (non-blocking asserted). OPEN keeps GN
+(it never blocked there and GN is the feel that path already had).
 
-**Pinning evidence.** Matrix above, reproduced via slideCurve `method` + `maxIterations`.
+**Still available, not shipped — best-feasible-of-solvers** lives in the generic `slide()`
+(`solver: 'best'` runs ipopt + primal-dual, keeps the furthest bound-holding result; CP6 0→75,
+CP8 1→44). It's the general capability for when BFGS isn't enough, but the generic path is dense
+(86ms) so the editor uses the fast BFGS arrowhead instead until banded-generic lands. The
+remaining all-solver stalls (CP3/9 partial) still need the oracle to classify "true limit".
+
+**Pinning evidence.** Matrix above, reproduced via slideCurve `method`/`enableBFGS`. BFGS result
+pinned in the diagnostic matrix (poly-closed, editable).
 
 ---
 

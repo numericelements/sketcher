@@ -781,15 +781,15 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         const r = slideCurve(cpX, cpY, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y, {
           method: 'ipopt',
           bandedSolve: true,
-          maxIterations: 20,
-          enableBFGS: false,
-          // Gauss-Newton, NOT the exact full-Newton Hessian: the exact step is
-          // aggressive near the bound and OVERSHOOTS on a fast drag (flips a g
-          // coefficient → S⁻ grows, e.g. 7→9), while Gauss-Newton holds the bound in
-          // every case AND is ~2.5× faster (measured: diagnostic matrix + isolation).
-          // The exact Hessian stays available behind enableExactHessian for later.
+          maxIterations: curve.closed ? 24 : 20,
+          // CLOSED → BFGS (the Lagrangian-Hessian approximation). Gauss-Newton STALLS on
+          // clustered-knot closed curves — it cannot slide the other control points to keep
+          // S⁻, so the dragged point blocks (FOUNDATIONS F4). BFGS captures the constraint
+          // curvature and reshapes instead of blocking (Law 2), on the SAME fast arrowhead
+          // solve (~24ms; CP6 0→75, CP9 1→75, bound held). OPEN keeps Gauss-Newton — it
+          // doesn't block there and GN is faster + the feel the open path already had.
+          enableBFGS: !!curve.closed,
           ...(curve.closed ? { closed: true } : {}),
-          // Signs frozen at drag start → S⁻ can't ratchet up over a fast drag.
           ...(dragConstraintState ? { constraintState: dragConstraintState } : {}),
           ...(preserveInflections ? { preserveInflections } : {}),
           ...(disableSliding ? { disableSliding } : {}),

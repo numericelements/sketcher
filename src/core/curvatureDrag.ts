@@ -19,6 +19,7 @@ import { assignSignsNeighbor } from './bernstein'
 import type { OptimizationProblem } from './ipopt/types'
 import type { Matrix } from './ipopt/linearAlgebra'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
+import { PrimalDualOptimizer } from './optimize'
 import {
   computeInactiveSetBySign, computeInactiveSetBySignCyclic,
   scaleForRobust, structuralMarginsScaled, enforceBoundNonincreasing,
@@ -29,8 +30,15 @@ import {
 } from './curvatureFamilies'
 import type { Complex } from './complex'
 
+/** Which solver navigates the constrained step. 'best' runs ipopt AND primal-dual,
+ *  guards each, and keeps the one that tracks the cursor furthest — F4: no single
+ *  solver wins every control point, but the furthest bound-holding result never
+ *  regresses ("reshape, don't block"). */
+export type DragSolver = 'ipopt' | 'primal-dual' | 'best'
+
 export interface CurvatureDragOptions {
   jacobian?: JacobianBackend // 'fd' | 'analytic' | 'ad' (default 'fd' — universal)
+  solver?: DragSolver // default 'best'
   maxIterations?: number
   enableBFGS?: boolean
   disableSliding?: boolean
@@ -208,26 +216,34 @@ export function slide(
   const rho = opts.rho ?? { re: 1, im: 0 }
   const wRe = cps.map((p) => p.wRe)
   const wIm = cps.map((p) => p.wIm)
-  const problem = new CurvatureDragProblem(
-    kind, cps, knots, degree, topology, dragIndex, target,
-    wRe, wIm, opts.jacobian ?? 'fd', rho, opts,
-  )
-  const ip = new InteriorPointOptimizer(problem, {
-    maxIterations: opts.maxIterations ?? 40,
-    enableBFGS: opts.enableBFGS ?? false,
-    returnBestFeasible: true,
-  })
-  const r = ip.optimize()
-  problem.setVariables(r.variables)
-  let points = problem.result()
-
-  // Strict sliding-mechanism enforcement (the shared guard) — S⁻ must not rise.
   const boundOf = (p: readonly WeightedCP[]) => familyBound(kind, p, knots, degree, topology, rho)
-  points = enforceBoundNonincreasing(
-    cps as WeightedCP[],
-    points,
-    boundOf,
-    (a) => cps.map((p, i) => ({ re: p.re + a * (points[i].re - p.re), im: p.im + a * (points[i].im - p.im), wRe: p.wRe, wIm: p.wIm })),
-  )
-  return { points, converged: r.converged }
+
+  // One solve with the given method, then the strict-S⁻ guard (the result holds the bound).
+  const runOne = (method: 'ipopt' | 'primal-dual') => {
+    const problem = new CurvatureDragProblem(
+      kind, cps, knots, degree, topology, dragIndex, target,
+      wRe, wIm, opts.jacobian ?? 'fd', rho, opts,
+    )
+    const optimizer = method === 'primal-dual'
+      ? new PrimalDualOptimizer(problem, { maxIterations: opts.maxIterations ?? 80, returnBestFeasible: true })
+      : new InteriorPointOptimizer(problem, { maxIterations: opts.maxIterations ?? 40, enableBFGS: opts.enableBFGS ?? false, returnBestFeasible: true })
+    const r = optimizer.optimize()
+    problem.setVariables(r.variables)
+    let points = problem.result()
+    points = enforceBoundNonincreasing(
+      cps as WeightedCP[], points, boundOf,
+      (a) => cps.map((p, i) => ({ re: p.re + a * (points[i].re - p.re), im: p.im + a * (points[i].im - p.im), wRe: p.wRe, wIm: p.wIm })),
+    )
+    return { points, converged: r.converged }
+  }
+
+  const solver = opts.solver ?? 'best'
+  if (solver !== 'best') return runOne(solver)
+
+  // best-of-solvers: both hold the bound (guarded); keep the one that tracks the cursor
+  // furthest (its dragged point closest to the target). Never regresses — Law 2.
+  const distToTarget = (r: { points: WeightedCP[] }) =>
+    Math.hypot(r.points[dragIndex].re - target.x, r.points[dragIndex].im - target.y)
+  const a = runOne('ipopt'), b = runOne('primal-dual')
+  return distToTarget(b) < distToTarget(a) ? b : a
 }

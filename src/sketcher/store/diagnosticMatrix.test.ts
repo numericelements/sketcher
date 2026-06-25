@@ -103,7 +103,8 @@ describe('diagnostic matrix — bound non-increasing AND non-blocking (canonical
     runCase('poly-open', { id: 'p', kind: 'bspline', degree: 3, closed: false, knots: OPEN_K, controlPoints: OPEN_CPS } as Curve, [7, 3, 11]))
 
   it('polynomial CLOSED (clean periodic)', () =>
-    runCase('poly-closed', { id: 'pc', kind: 'bspline', degree: 3, closed: true, knots: CLOSED_K, controlPoints: CLOSED_CPS } as Curve, [4, 9, 0]))
+    // editable: BFGS on the closed path reshapes instead of blocking (FOUNDATIONS F4).
+    runCase('poly-closed', { id: 'pc', kind: 'bspline', degree: 3, closed: true, knots: CLOSED_K, controlPoints: CLOSED_CPS } as Curve, [4, 9, 0], { editable: true }), 30000)
 
   it('polynomial OPEN near-straight (the formerly-blocking curve)', () =>
     runCase('poly-flat', { id: 'f', kind: 'bspline', degree: 3, closed: false, knots: FLAT_K, controlPoints: FLAT_CPS } as Curve, [0, 2, 4]))
