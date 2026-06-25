@@ -8,11 +8,11 @@ import { curvePathAdaptive, getControlPointsAsPoints, sampleCurve, evaluateCurve
 import { computeRegionPreview } from '../utils/regionSmooth'
 import { computeRationalFarinPoints, computeComplexFarinPoints, computeEdgePerpendicular, computeComplexControlPolygonPath, type RationalFarinPoint, type ComplexFarinPoint } from '../utils/farinPoints'
 import { getBasisColor } from '../utils/colors'
-import { computeCurvatureExtremaParameters, computeClosedCurvatureExtremaParameters, computeRationalCurvatureExtremaParameters, computeClosedRationalCurvatureExtremaParameters, computeClosedComplexCurvatureExtremaParameters, computeOpenComplexCurvatureExtremaParameters, computeClosedInflectionParameters } from '../optimizer'
-// Open planar B-spline curvature-extrema markers now come from core/ (accurate
-// dense-scan zeros), replacing the legacy coefficient-root finder which reports
-// spurious extra markers on fine-knotted curves.
-import { openCurvatureExtremaParameters as coreOpenExtremaParams, curvatureExtremaNumeratorPlanar as coreCurvatureNumerator } from '../../core'
+import { computeCurvatureExtremaParameters, computeClosedInflectionParameters } from '../optimizer'
+// Curvature-extrema MARKERS for EVERY kind now come from ONE core function
+// (deadband-filtered dense zeros of the kind's own g) — the same numerators the
+// bound readout and the drag guard use, so dots, readout and guard never disagree.
+import { curvatureExtremaMarkers, cdiv } from '../../core'
 import TransformWidget from './TransformWidget'
 import { threeArcPointsFromNoisyPoints, circleArcFromThreePoints } from '../utils/circleArc'
 import { evaluatePHNormal, findNearestPointParam, computePHCurveFromUV, type PHMetadata } from '../optimizer/phCurve'
@@ -119,61 +119,31 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
     if (!curve || (curve.kind !== 'bspline' && curve.kind !== 'rational' && curve.kind !== 'complex-rational')) return []
 
     try {
+      // ONE source for the dots, for every kind: the deadband-filtered dense zeros of
+      // the kind's own g — the SAME numerators the bound readout (BottomPanel) and the
+      // drag guard use, so dots / readout / guard never disagree. The deadband drops
+      // noise crossings where g hovers near zero (flat / dead regions).
       let params: number[]
       if (curve.kind === 'complex-rational') {
-        const n = curve.controlPoints.length
-        const cpsZre: number[] = []
-        const cpsZim: number[] = []
-        const cpsWre: number[] = []
-        const cpsWim: number[] = []
-        for (let i = 0; i < n; i++) {
-          const cp = curve.controlPoints[i]
-          cpsZre.push(cp.re * cp.w_re - cp.im * cp.w_im)
-          cpsZim.push(cp.re * cp.w_im + cp.im * cp.w_re)
-          cpsWre.push(cp.w_re)
-          cpsWim.push(cp.w_im)
-        }
-        if (curve.closed) {
-          params = computeClosedComplexCurvatureExtremaParameters(
-            curve.degree, curve.knots, cpsZre, cpsZim, cpsWre, cpsWim,
-            1.0, curve.wrapWeight
-          )
-        } else {
-          params = computeOpenComplexCurvatureExtremaParameters(
-            curve.knots, cpsZre, cpsZim, cpsWre, cpsWim
-          )
-        }
+        const cps = curve.controlPoints
+        const rho = curve.wrapWeight ? cdiv(curve.wrapWeight, { re: cps[0].w_re, im: cps[0].w_im }) : { re: 1, im: 0 }
+        params = curvatureExtremaMarkers(
+          'complex-rational',
+          cps.map((p) => p.re), cps.map((p) => p.im), cps.map((p) => p.w_re), cps.map((p) => p.w_im),
+          curve.knots, curve.degree, !!curve.closed, rho,
+        )
       } else if (curve.kind === 'rational') {
-        const cpsX = curve.controlPoints.map((p) => p.x * p.w)
-        const cpsY = curve.controlPoints.map((p) => p.y * p.w)
-        const cpsW = curve.controlPoints.map((p) => p.w)
-        if (curve.closed) {
-          params = computeClosedRationalCurvatureExtremaParameters(
-            curve.knots, cpsX, cpsY, cpsW, curve.degree, curve.wrapWeight
-          )
-        } else {
-          params = computeRationalCurvatureExtremaParameters(
-            curve.knots, cpsX, cpsY, cpsW
-          )
-        }
-      } else if (curve.closed) {
-        params = computeClosedCurvatureExtremaParameters(
-          curve.knots,
-          curve.controlPoints.map((p) => p.x),
-          curve.controlPoints.map((p) => p.y),
-          curve.degree
+        const cps = curve.controlPoints
+        const rho = curve.wrapWeight !== undefined ? { re: curve.wrapWeight / cps[0].w, im: 0 } : { re: 1, im: 0 }
+        params = curvatureExtremaMarkers(
+          'rational',
+          cps.map((p) => p.x), cps.map((p) => p.y), cps.map((p) => p.w), cps.map(() => 0),
+          curve.knots, curve.degree, !!curve.closed, rho,
         )
       } else {
         const cx = curve.controlPoints.map((p) => p.x)
         const cy = curve.controlPoints.map((p) => p.y)
-        // A straight / zero-curvature segment has g ≡ 0, so it has no genuine
-        // curvature extrema — and the root-finder degenerates there, smearing
-        // markers along the whole curve. Skip when g has no sign changes (0
-        // extrema by variation diminishing).
-        if (coreCurvatureNumerator(cx, cy, curve.knots, curve.degree).signChanges() === 0) {
-          return []
-        }
-        params = coreOpenExtremaParams(cx, cy, curve.knots, curve.degree)
+        params = curvatureExtremaMarkers('bspline', cx, cy, [], [], curve.knots, curve.degree, !!curve.closed)
       }
 
       // Evaluate curve at each parameter to get (x, y) positions
