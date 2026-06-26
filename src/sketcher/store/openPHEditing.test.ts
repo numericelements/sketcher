@@ -5,9 +5,9 @@ import { createBSpline } from '../utils/bspline/utilities'
 import { curvatureExtremaNumeratorPlanar } from '../../core'
 import type { Curve, Point2D, PHMetadataAny } from '../types/curve'
 
-// The OPEN-PH editor drag now solves the generator with the core slideOpenPH (clamped
-// preimage) and keeps the editor's CURVE-span guard (F6 option b) — the same shape as the
-// closed path. It must hold the displayed bound (S⁻ never rises), stay OPEN, and TRACK.
+// The OPEN-PH editor drag must hold the displayed bound (S⁻ never rises), stay OPEN, and
+// TRACK the cursor. (Pins the legacy open-PH solve; the core slideOpenPH path was reverted —
+// F6: it holds g's gen-span bound while the editor displays/guards the curve-span bound.)
 
 function injectOpenPH(id = 'oph'): string {
   const pts: Point2D[] = []

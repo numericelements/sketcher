@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, slideClosedPH, slideOpenPH, phSeamMaps, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanar, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
+import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -601,24 +601,23 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             // CLAMPED curve while holding the curve closed (∮w²=0 + seam wrap) and
             // the curvature-extrema count (seam-aware sliding). Re-express periodic.
             const rm = refit.metadata as Extract<PHMetadataAny, { kind: 'polynomial' }>
-            // F6-b: solve the generator with the CORE closed-PH drag on a PERIODIC
-            // preimage (Rust's design — slideClosedPH), then keep the editor's
-            // CURVE-SPAN guard below as the authoritative, displayed bound. The core
-            // solve reshapes the generator more freely (better cursor tracking); the
-            // curve-span guard + hard backstop still own the honest bound. The
-            // periodic⇄clamped map is the free coords (slice 0..K) on periodicGenKnots
-            // ⇄ phSeamMaps.expand — an exact round-trip (FOUNDATIONS F5/F6).
-            const wrapSign = meta.wrapSign ?? 1
-            const nClamped = meta.uControlPoints.length
-            const pKnots = periodicGenKnots(meta.uvKnots, seamCont)
-            const { K, expand } = phSeamMaps(meta.uvKnots, GEN_DEGREE, nClamped, seamCont, wrapSign)
-            const sol = slideClosedPH(
-              meta.uControlPoints.slice(0, K), meta.vControlPoints.slice(0, K),
-              rm.uControlPoints.slice(0, K), rm.vControlPoints.slice(0, K),
-              pKnots, GEN_DEGREE, { maxIterations: 24 },
-            )
-            {
-              const om = { ...rm, uControlPoints: expand(sol.u), vControlPoints: expand(sol.v) }
+            // Solve the generator toward the re-fit's CLAMPED curve with the legacy
+            // optimizer (the known-good closed-PH path). NOTE: the CORE slideClosedPH
+            // path (F6 option b) was reverted — it holds g's GENERATOR-span bound while
+            // the editor displays/guards the CURVE-span bound (F6), and those disagree,
+            // so on a big drag step the curve-span guard bisects the core solve's motion
+            // away → the point stalls. The honest fix is F6 option (c): make the core
+            // solve hold the curve-span bound directly (curve construction in the loop).
+            const target = computePHCurveFromUV(rm.uControlPoints, rm.vControlPoints, rm.uvKnots, rm.uvDegree, rm.origin.x, rm.origin.y)
+            const t0 = target.controlPoints[0]
+            const result = optimizePHCurve(meta, target.controlPoints, t0.x, t0.y, 0, {
+              preserveCurvatureExtrema: true,
+              closed: { wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont },
+              maxIterations: 24,
+              enableBFGS: false,
+            })
+            if (result.converged || result.iterations > 0) {
+              const om = result.curveResult.metadata
               // Build the periodic PH bspline from a generator, projecting EXACTLY onto
               // closure + seam wrap first (the optimizer's equalities are penalty-soft).
               const buildFromGen = (u: number[], v: number[]) => {
@@ -696,69 +695,10 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           // iteration cap + Gauss-Newton (no BFGS) for interactivity.
           const valueBound = boundCurvatureValue && Number.isFinite(curvatureBound)
 
-          // OPEN PH extrema-preservation → CORE drag (slideOpenPH on the clamped preimage)
-          // with the editor's CURVE-span guard (F6 option b), mirroring the closed path.
-          // Re-fit the open PH from the dragged polygon → target generator, drive the
-          // generator to it in generator space holding the (gen-span) bound, then bisect on
-          // the CURVE-span bound — the SAME quantity the editor displays. The curvature-VALUE
-          // bound stays on the legacy optimizer (the core open drag doesn't model |κ| ≤ b).
-          if (preserveCurvatureExtrema && !valueBound) {
-            const editedCPs = curve.controlPoints.map((p, i) =>
-              i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: (p as Point2D).x, y: (p as Point2D).y },
-            )
-            const refit = fitPHSplineToBSpline(editedCPs, curve.knots, { generatorDegree: meta.uvDegree })
-            const rm = refit?.metadata as Extract<PHMetadataAny, { kind: 'polynomial' }> | undefined
-            if (rm && rm.uControlPoints.length === meta.uControlPoints.length) {
-              const sol = slideOpenPH(
-                meta.uControlPoints, meta.vControlPoints, rm.uControlPoints, rm.vControlPoints,
-                meta.uvKnots, meta.uvDegree, { maxIterations: 24 },
-              )
-              const om = { ...rm, uControlPoints: sol.u, vControlPoints: sol.v }
-              // CURVE-span bound = the displayed S⁻ (curvatureExtremaNumeratorPlanar.signChanges).
-              const curveBound = (cps: Point2D[], kn: number[], dg: number) =>
-                curvatureExtremaNumeratorPlanar(cps.map((p) => p.x), cps.map((p) => p.y), kn, dg).signChanges()
-              const buildFromGen = (u: number[], v: number[]) =>
-                computePHCurveFromUV(u, v, meta.uvKnots, meta.uvDegree, om.origin.x, om.origin.y)
-              const boundOfGen = (u: number[], v: number[]) => {
-                const b = buildFromGen(u, v)
-                return curveBound(b.controlPoints, b.knots, b.degree)
-              }
-              const prev = curve.controlPoints as Point2D[]
-              const startBound = curveBound(prev, curve.knots, curve.degree)
-              const lerp = (a: number) => ({
-                u: meta.uControlPoints.map((uu: number, i: number) => uu + a * (om.uControlPoints[i] - uu)),
-                v: meta.vControlPoints.map((vv: number, i: number) => vv + a * (om.vControlPoints[i] - vv)),
-              })
-              let chosen = { u: [...om.uControlPoints] as number[], v: [...om.vControlPoints] as number[] }
-              if (boundOfGen(chosen.u, chosen.v) > startBound) {
-                let lo = 0, hi = 1
-                for (let it = 0; it < 26; it++) {
-                  const mid = (lo + hi) / 2
-                  const g = lerp(mid)
-                  if (boundOfGen(g.u, g.v) <= startBound) lo = mid
-                  else hi = mid
-                }
-                chosen = lerp(lo)
-              }
-              const built = buildFromGen(chosen.u, chosen.v)
-              if (curveBound(built.controlPoints, built.knots, built.degree) <= startBound) {
-                const newPhMetadata = new Map(phMetadata)
-                newPhMetadata.set(curveId, built.metadata)
-                set((state) => ({
-                  curves: state.curves.map((c) =>
-                    c.id === curveId
-                      ? { ...c, controlPoints: built.controlPoints, knots: built.knots, degree: built.degree } as Curve
-                      : c,
-                  ),
-                  phMetadata: newPhMetadata,
-                }))
-                return
-              }
-              // HARD BACKSTOP: round-trip drift kept S⁻ above start — leave the curve.
-              return
-            }
-          }
-
+          // NOTE: the CORE slideOpenPH path (F6 option b) was reverted for the same reason
+          // as the closed path — it holds g's GENERATOR-span bound while the editor guards
+          // the CURVE-span bound (F6), so a big drag step gets bisected away → stall. The
+          // open PH extrema drag stays on the legacy optimizer until F6 option (c) lands.
           const phOptions: Parameters<typeof optimizePHCurve>[5] = {
             ...(valueBound ? { constrainCurvatureValue: true, curvatureBound } : {}),
             ...(preserveCurvatureExtrema ? { preserveCurvatureExtrema: true } : {}),

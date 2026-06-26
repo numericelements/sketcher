@@ -218,26 +218,32 @@ the editor's CURVE-span guard as the final check (combine better solver + right 
 the core drag's bound constraint use the curve-span g (needs curve construction in the loop — the
 integrate/recompose we deliberately left in the sketcher).
 
-**Status — RESOLVED via option (b) (slice 3 done).** The editor's closed-PH drag now SOLVES the
-generator with the core `slideClosedPH` (periodic preimage, Rust's design) and keeps its own
-CURVE-span guard (`polyBound` bisection + hard backstop) as the authoritative, DISPLAYED bound.
-The core solve reshapes the generator more freely (better tracking); the curve-span guard owns
-the honest bound, so the displayed S⁻ is never exceeded. The clamped↔periodic conversion is
-EXACT (round-trip maxDiff = 0 — free coords `slice(0,K)` + `periodicGenKnots` ↔ `phSeamMaps.expand`).
-Pinned by `closedPHEditing.test.ts`: the chained drag never raises S⁻, stays closed, AND the
-dragged point tracks the cursor (>30 units, no stall).
+**Tried option (b), REVERTED — it is structurally unsound for the editor.** We wired both PH
+editor drags (closed `slideClosedPH`, open `slideOpenPH`) to SOLVE in generator space and kept
+the editor's CURVE-span guard. It passed small-step tests but BLOCKS on a big drag step (the
+symptom: "I can't move the control point under curvature-extrema control"). Measured on a
+12-CP closed PH, one ~180px jump:
 
-**Open PH — also on core (option b).** The OPEN PH drag now solves the generator with the core
-`slideOpenPH` (clamped preimage — the closed case minus closure: no Gram, no seam, no periodic
-projection; interior-point solver, no equality border) and keeps the editor's CURVE-span guard
-(`curvatureExtremaNumeratorPlanar(...).signChanges()` — the SAME quantity the bottom panel
-displays). The open generator is already the clamped chart the editor stores, so there is no
-round-trip and no expand/fold — just re-fit (`fitPHSplineToBSpline`) → core solve → curve-span
-bisection + hard backstop. Pinned by `openPHEditing.test.ts` (S⁻ never rises, stays open, tracks
->25 units). The legacy `optimizePHCurve` now runs ONLY for the curvature-VALUE bound (|κ| ≤ b,
-the 2D PH workbench — the core open drag does not model it) and the no-curvature-control track
-(keeps the curve PH while dragging). Both PH editor drags (open + closed) are off the legacy
-optimizer's curvature-EXTREMA path.
+  startBound(curve-span) = 8 ;  core solve's built-curve bound = 10 (> 8!) ;  generator moved 2.38
+
+The core solve holds g's GENERATOR-span bound, but the built curve's CURVE-span bound ROSE to 10.
+Because the editor's guard enforces the curve-span bound, it then bisects the motion back toward
+the start → the point stalls. **The solve and the guard enforce DIFFERENT bounds that disagree
+(this very fact, F6), so they fight.** More iterations don't help (24/80/200 identical) — it's
+not a convergence issue, it's the wrong constraint. Small chained steps only worked because there
+the two bounds happen to move together. The legacy `optimizePHCurve` on the same jump kept the
+curve-span bound at 8 (it does not have this mismatch), which is why it "worked very well".
+
+So the editor's PH curvature-extrema drags are back on legacy `optimizePHCurve` (closed + open).
+`slideClosedPH` / `slideOpenPH` remain in core as tested references (phDrag.test.ts) but are NOT
+wired to the editor. Lesson: **for the editor, the solve MUST hold the SAME bound the editor
+displays/guards** — option (b) cannot, because gen-span ≠ curve-span.
+
+**The real fix is option (c).** Make the core PH drag's bound constraint use the CURVE-span g
+(construct the curve inside the solve loop and constrain its per-span numerator), so the solver
+holds exactly the displayed bound. Then there is no guard/solve disagreement and big steps reshape
+instead of stalling. Pin it with a BIG-single-step tracking test (not just chained small steps —
+that is what hid the bug). Until (c), legacy is the working path.
 
 ---
 
