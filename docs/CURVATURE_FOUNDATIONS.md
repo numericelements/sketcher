@@ -179,6 +179,21 @@ that same clamped representation before the drag will move.
 parity-tested. Slice 2b (the drag) is blocked on this representation fix — recorded here so
 it is resolved once, not re-discovered.
 
+**RESOLUTION (from ../static-portfolio-rust, ph.rs / optimizer.rs::slide_ph_closed).** Rust
+does closed PH on a **PERIODIC preimage** — `Knots::Periodic`, `Bernstein::from_periodic_spline`.
+The periodic basis makes seam continuity AUTOMATIC, so there is **no clamped chart, no
+expand/fold seam-parameterization, and no closure projection**. The only closure condition is
+`∮w² = 0` (two reals), computed as a direct sum over periodic spans
+(`width/(deg+1)·Σ Bézier coeffs of w²`) and enforced as an equality in the optimizer
+alongside the curvature-bound sign constraints (`curvature_numerator_closed`). So:
+- the CLEAN core closed-PH drag uses the PERIODIC preimage (our
+  `curvatureExtremaNumeratorPH(closed=true)` is already correct for it — slice 2b fed it the
+  clamped generator, the bug);
+- slices 1/2a (the clamped chart, Gram closure, projection) are the SKETCHER-side tooling for
+  the editor's clamped storage — keep them for the editor boundary, but build the core drag on
+  the periodic preimage and a direct-sum `∮w²` (port `ph_closure`), with closure as an equality
+  constraint. The editor converts clamped↔periodic at the boundary.
+
 ---
 
 *Add F6, … as we establish them. Never delete a fact that is still true; if a fact turns out
