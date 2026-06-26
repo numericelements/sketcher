@@ -20,8 +20,8 @@ import {
   curvatureExtremaNumeratorPlanarPeriodic,
   curvatureExtremaNumeratorComplex,
   curvatureExtremaNumeratorComplexPeriodic,
-  curvatureExtremaGradientComplexPeriodicFixedWeight,
-  curvatureExtremaGradientComplexFixedWeight,
+  curvatureExtremaGradientComplexPeriodicFixedWeightCols,
+  curvatureExtremaGradientComplexFixedWeightCols,
   curvatureExtremaMarkers,
 } from './curvature'
 import { curvatureExtremaGradientPlanar, curvatureExtremaGradientPlanarPeriodic } from './gradient'
@@ -150,19 +150,20 @@ export function familyJacobian(
 
   const closed = topology === 'closed'
   const re = cps.map((p) => p.re), im = cps.map((p) => p.im)
-  // Fill from a {g, dx, dy} gradient (dx[i] = ∂g/∂re_i, dy[i] = ∂g/∂im_i, full width).
-  let grad: { g: BernsteinDecomposition; dx: BernsteinDecomposition[]; dy: BernsteinDecomposition[] }
   if (kind === 'polynomial') {
     if (backend !== 'ad') throw new Error(`polynomial Jacobian backend '${backend}' not in the set yet (have: fd, ad)`)
-    grad = closed ? curvatureExtremaGradientPlanarPeriodic(re, im, knots, degree) : curvatureExtremaGradientPlanar(re, im, knots, degree)
-  } else {
-    if (backend !== 'analytic') throw new Error(`${kind}/${topology} Jacobian backend '${backend}' not in the set yet (have: fd, analytic)`)
-    const wRe = cps.map((p) => p.wRe), wIm = cps.map((p) => p.wIm)
-    grad = closed
-      ? curvatureExtremaGradientComplexPeriodicFixedWeight(re, im, wRe, wIm, knots, degree, undefined, rho)
-      : curvatureExtremaGradientComplexFixedWeight(re, im, wRe, wIm, knots, degree)
+    const grad = closed ? curvatureExtremaGradientPlanarPeriodic(re, im, knots, degree) : curvatureExtremaGradientPlanar(re, im, knots, degree)
+    return assembleFromColumns(grad.g.flatCoeffs().length, grad.dx, grad.dy)
   }
-  return assembleFromColumns(grad.g.flatCoeffs().length, grad.dx, grad.dy)
+  if (backend !== 'analytic') throw new Error(`${kind}/${topology} Jacobian backend '${backend}' not in the set yet (have: fd, analytic)`)
+  // complex/rational analytic: build from the LOCAL per-control-point cols gradient (compact
+  // support, ~2.5× cheaper than full-width columns) and scatter to the dense [nG][2n] matrix.
+  // Bit-identical to the old full-width path (localJacobianParity + the FD oracle pin it).
+  const wRe = cps.map((p) => p.wRe), wIm = cps.map((p) => p.wIm)
+  const cg = closed
+    ? curvatureExtremaGradientComplexPeriodicFixedWeightCols(re, im, wRe, wIm, knots, degree, undefined, rho)
+    : curvatureExtremaGradientComplexFixedWeightCols(re, im, wRe, wIm, knots, degree)
+  return assembleFromCols(cg)
 }
 
 function assembleFromColumns(nG: number, dx: BernsteinDecomposition[], dy: BernsteinDecomposition[]): number[][] {
@@ -171,6 +172,25 @@ function assembleFromColumns(nG: number, dx: BernsteinDecomposition[], dy: Berns
   for (let i = 0; i < n; i++) {
     const cx = dx[i].flatCoeffs(), cy = dy[i].flatCoeffs()
     for (let k = 0; k < nG; k++) { M[k][2 * i] = cx[k]; M[k][2 * i + 1] = cy[k] }
+  }
+  return M
+}
+
+/** Scatter a per-control-point local-cols gradient into the dense [nG][2n] Jacobian (g
+ *  coefficient rows × interleaved [reᵢ, imᵢ] columns). */
+function assembleFromCols(
+  cg: { gDeg: number; numSpans: number; cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] },
+): number[][] {
+  const gDeg1 = cg.gDeg + 1
+  const nG = cg.numSpans * gDeg1
+  const n = cg.cols.length
+  const M = Array.from({ length: nG }, () => new Array<number>(2 * n).fill(0))
+  for (let i = 0; i < n; i++) {
+    const col = cg.cols[i]
+    for (let ls = 0; ls < col.spans.length; ls++) {
+      const s = col.spans[ls], gxc = col.gx.coeffs[ls], gyc = col.gy.coeffs[ls]
+      for (let c = 0; c <= cg.gDeg; c++) { M[s * gDeg1 + c][2 * i] = gxc[c]; M[s * gDeg1 + c][2 * i + 1] = gyc[c] }
+    }
   }
   return M
 }

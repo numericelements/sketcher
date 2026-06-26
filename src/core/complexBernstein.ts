@@ -43,6 +43,10 @@ export class ComplexBD {
   gather(spans: readonly number[]): ComplexBD {
     return new ComplexBD(this.re.gather(spans), this.im.gather(spans))
   }
+  /** Restrict to the contiguous span run [start, end) — open-curve locality. See BernsteinDecomposition.subset. */
+  subset(start: number, end: number): ComplexBD {
+    return new ComplexBD(this.re.subset(start, end), this.im.subset(start, end))
+  }
 }
 
 /**

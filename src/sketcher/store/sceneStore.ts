@@ -912,12 +912,13 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     ) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: p.w, wIm: 0 }))
-        // analytic Jacobian (identical to FD, ~35% faster) + best-of-solvers (primal-dual is
-        // the one that tracks far on big steps). ~160ms/tick at this size — fine for now;
-        // the banded/local fast path is task #32.
+        // #32 fast path: SINGLE solver + the analytic LOCAL constraint Jacobian (compact
+        // support → familyJacobian scatters from per-CP cols, ~2.5× cheaper than full-width).
+        // solver:'primal-dual' (not best-of): measured it's the solver that TRACKS here (ipopt
+        // stalls ~85% regardless of iterations — F4), and one solver is ~2× faster than best-of.
         const r = slide('rational', cps, curve.knots, curve.degree, 'open', pointIndex,
           { x: newPosition.x, y: newPosition.y },
-          { jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
+          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
         const newControlPoints = r.points.map((p, i) => ({ x: p.re, y: p.im, w: curve.controlPoints[i].w }))
         set((state) => ({
           curves: state.curves.map((c) => (c.id === curveId ? { ...curve, controlPoints: newControlPoints } : c)),
@@ -1009,9 +1010,10 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     ) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.re, im: p.im, wRe: p.w_re, wIm: p.w_im }))
+        // Same fast recipe as open rational / the closed path: single IP solver + local Jacobian.
         const r = slide('complex', cps, curve.knots, curve.degree, 'open', pointIndex,
           { x: newPosition.x, y: newPosition.y },
-          { jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
+          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
         const newControlPoints = curve.controlPoints.map((p, i) => ({ ...p, re: r.points[i].re, im: r.points[i].im }))
         const updated = { ...curve, controlPoints: newControlPoints }
         const farinPositions = computeComplexFarinPoints(updated).map((f) => f.position)

@@ -39,8 +39,8 @@ describe('open complex-rational editing: core slide() holds the bound and FEELS 
     const w0 = cur(id).controlPoints.map((p) => ({ wr: p.w_re, wi: p.w_im }))
     const sx = cur(id).controlPoints[k].re, sy = cur(id).controlPoints[k].im
     const move = { x: 60, y: 220 }
-    for (let s = 1; s <= 12; s++) {
-      const t = s / 12
+    for (let s = 1; s <= 15; s++) {
+      const t = s / 15
       useSceneStore.getState().moveControlPoint(id, k, { x: sx + move.x * t, y: sy + move.y * t })
       expect(boundOf(cur(id)), `step ${s}: open complex bound rose past ${start}`).toBeLessThanOrEqual(start)
       expect(cur(id).closed).toBeFalsy()

@@ -28,6 +28,10 @@ import {
   familyNumerator, familyJacobian, familyBound,
   type AlgebraicFamily, type Topology, type WeightedCP, type JacobianBackend,
 } from './curvatureFamilies'
+import {
+  curvatureExtremaGradientComplexFixedWeightCols,
+  curvatureExtremaGradientComplexPeriodicFixedWeightCols,
+} from './curvature'
 import type { Complex } from './complex'
 
 /** Which solver navigates the constrained step. 'best' runs ipopt AND primal-dual,
@@ -64,6 +68,7 @@ export class CurvatureDragProblem implements OptimizationProblem {
   private readonly margins: number[]
   private cachedCons: number[] | null = null
   private cachedJac: Matrix | null = null
+  private cachedLocalJac: { vars: number[]; vals: number[] }[] | null = null
   private readonly kind: AlgebraicFamily
   private readonly knots: readonly number[]
   private readonly degree: number
@@ -146,6 +151,7 @@ export class CurvatureDragProblem implements OptimizationProblem {
     this.im = x.slice(n)
     this.cachedCons = null
     this.cachedJac = null
+    this.cachedLocalJac = null
   }
 
   computeObjective(): number {
@@ -179,6 +185,53 @@ export class CurvatureDragProblem implements OptimizationProblem {
       this.cachedJac = this.activeIdx.map((i, k) => J[i].map((v) => v / this.gScale[k]))
     }
     return this.cachedJac
+  }
+
+  /**
+   * LOCAL (sparse) constraint Jacobian — the interior-point solver consumes this instead of
+   * the dense one (O(active·d²) vs O(active·n²)), the #32 fast path. Each active g coefficient
+   * lives on one span and depends only on the control points supporting it, so its row has
+   * just ~2(degree+1) nonzeros. Computed from the per-control-point local-cols gradient
+   * (same value terms + differential as the dense path → bit-identical), in BLOCK var order
+   * (re_i → i, im_i → n+i), each row divided by gScale[k] exactly like the dense Jacobian.
+   * Returns null for the polynomial family (the editor drives polynomial through the banded
+   * `slideCurve`, not this generic problem) → the solver falls back to dense there.
+   */
+  computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] | null {
+    if (this.kind === 'polynomial') return null
+    if (this.cachedLocalJac) return this.cachedLocalJac
+    const closed = this.topology === 'closed'
+    const grad = closed
+      ? curvatureExtremaGradientComplexPeriodicFixedWeightCols(this.re, this.im, this.wRe, this.wIm, this.knots, this.degree, undefined, this.rho)
+      : curvatureExtremaGradientComplexFixedWeightCols(this.re, this.im, this.wRe, this.wIm, this.knots, this.degree)
+    const gDeg1 = grad.gDeg + 1
+    const n = this.re.length
+    const activePos = new Map<number, number>()
+    this.activeIdx.forEach((flat, k) => activePos.set(flat, k))
+    const rows = this.activeIdx.map(() => ({ vars: [] as number[], vals: [] as number[] }))
+    for (let i = 0; i < n; i++) {
+      const col = grad.cols[i]
+      const gxc = col.gx.coeffs, gyc = col.gy.coeffs
+      for (let ls = 0; ls < col.spans.length; ls++) {
+        const s = col.spans[ls]
+        for (let c = 0; c <= grad.gDeg; c++) {
+          const k = activePos.get(s * gDeg1 + c)
+          if (k === undefined) continue // this g coefficient is not an active constraint
+          const inv = 1 / this.gScale[k]
+          const vx = gxc[ls][c] * inv, vy = gyc[ls][c] * inv
+          if (vx !== 0) { rows[k].vars.push(i); rows[k].vals.push(vx) }
+          if (vy !== 0) { rows[k].vars.push(n + i); rows[k].vals.push(vy) }
+        }
+      }
+    }
+    // sort each row's vars ascending so the solver's Jᵢ·step sum matches the dense scan order
+    for (const r of rows) {
+      const ord = r.vars.map((_, idx) => idx).sort((a, b) => r.vars[a] - r.vars[b])
+      r.vars = ord.map((idx) => r.vars[idx])
+      r.vals = ord.map((idx) => r.vals[idx])
+    }
+    this.cachedLocalJac = rows
+    return rows
   }
 
   getConstraintSigns(): number[] { return this.signs }

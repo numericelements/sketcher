@@ -590,6 +590,44 @@ function complexDifferential(
   return dP.im
 }
 
+/** Local (sparse) form of curvatureExtremaGradientComplexFixedWeight (OPEN): each column
+ *  kept on its control point's CONTIGUOUS support span run [s0, s1) — O(n·d²), no full-width
+ *  column. The open analogue of …PeriodicFixedWeightCols (subset, not gather — open support
+ *  is contiguous). `spans` is the explicit list [s0…s1) so callers treat open/closed
+ *  uniformly. Bit-identical to the dense open gradient (same value terms + differential). */
+export function curvatureExtremaGradientComplexFixedWeightCols(
+  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
+  knots: readonly number[], degree: number,
+): { g: BernsteinDecomposition; gDeg: number; numSpans: number; cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] } {
+  const n = zre.length
+  const sds = precomputeComplexOpenSeeds(knots, degree, n)
+  const { g, V } = complexFixedWeightValueTermsOpen(zre, zim, wre, wim, knots, degree)
+  const cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] = []
+  for (let i = 0; i < n; i++) {
+    // Contiguous support span run [s0, s1) of control point i (where its real Dirac seed Nᵢ
+    // is nonzero) — the only spans where ∂g/∂cpᵢ is nonzero.
+    const Nre = sds.N[i].re
+    let s0 = -1, s1 = -1
+    for (let s = 0; s < Nre.numSpans; s++) {
+      if (Nre.coeffs[s].some((c) => Math.abs(c) > 1e-14)) { if (s0 < 0) s0 = s; s1 = s }
+    }
+    if (s0 < 0) { cols.push({ spans: [], gx: g.subset(0, 0), gy: g.subset(0, 0) }); continue }
+    s1 += 1
+    const spans: number[] = []
+    for (let s = s0; s < s1; s++) spans.push(s)
+    const N = sds.N[i].subset(s0, s1), N1 = sds.N1[i].subset(s0, s1), N2 = sds.N2[i].subset(s0, s1), N3 = sds.N3[i].subset(s0, s1)
+    const Vg: ComplexFixedWeightTerms = {
+      W: V.W.subset(s0, s1), Wu: V.Wu.subset(s0, s1), Wuu: V.Wuu.subset(s0, s1), Wuuu: V.Wuuu.subset(s0, s1),
+      D1: V.D1.subset(s0, s1), D2: V.D2.subset(s0, s1), D3: V.D3.subset(s0, s1), D21: V.D21.subset(s0, s1), D1c: V.D1c.subset(s0, s1),
+      T_Wbar: V.T_Wbar.subset(s0, s1), D1c2_Wbar: V.D1c2_Wbar.subset(s0, s1), WuD2_WuuD1: V.WuD2_WuuD1.subset(s0, s1),
+    }
+    const gx = complexDifferential(N, N1, N2, N3, wre[i], wim[i], Vg)
+    const gy = complexDifferential(N, N1, N2, N3, -wim[i], wre[i], Vg)
+    cols.push({ spans, gx, gy })
+  }
+  return { g, gDeg: g.degree, numSpans: g.numSpans, cols }
+}
+
 /** Local (sparse) form of curvatureExtremaGradientComplexPeriodicFixedWeight: each
  *  column kept on its control point's (wrapping) support spans — O(n·d²), no
  *  full-width column. The primitive the complex-rational drag uses to build a sparse
