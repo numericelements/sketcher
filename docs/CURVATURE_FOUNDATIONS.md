@@ -151,5 +151,35 @@ pinned in the diagnostic matrix (poly-closed, editable).
 
 ---
 
-*Add F5, … as we establish them. Never delete a fact that is still true; if a fact turns out
+## F5 — A closed PH curve's stored generator is CLAMPED, not periodic
+
+**The fact.** The editor stores a closed polynomial-PH curve's generator (u, v) in the
+**clamped** chart: `uvKnots = [0×(d+1), interior…, 1×(d+1)]`, with the seam continuity
+encoded by making the wrap control points follow the first ones (the anti-periodic
+"expand" map, `phSeamMaps`). It is NOT a periodic generator with periodic knots.
+
+**Why it matters.** `curvatureExtremaNumeratorPH(u, v, knots, degree, closed=true)` takes the
+`closed` flag to mean *decompose periodically* (`decomposeToBernsteinPeriodic`). That is
+correct only for a PERIODIC generator (periodic knots, #knots = #cps). Fed the editor's
+CLAMPED generator it is malformed → g, the bound, and the constraint Jacobian come out
+wrong. A core closed-PH **drag** built on it gets garbage and **blocks completely** (the
+generator won't move even though moving it keeps S⁻ — verified: +2/+5/+10 on a free coord
+all hold S⁻=8, yet the drag moved 0). The earlier closed-PH *numerator* test passed only
+because it fed *periodic* knots, masking this.
+
+**What to do (for the slice-2b core PH drag).** Operate on the generator in the
+representation g actually needs — either (a) convert clamped→periodic
+(`periodicGenKnots` + the matching control points) and decompose periodically, or (b)
+decompose the CLAMPED generator open and count the bound CYCLICALLY (seam: last g coeff ↔
+first). The closure side (`phClosure`) already uses the open/clamped decomposition + the
+Gram matrix and is correct (parity-tested) — so the bound side must be made consistent with
+that same clamped representation before the drag will move.
+
+**Status.** Slices 1 (closure ∮w²) and 2a (seam maps + closure projection) are in core and
+parity-tested. Slice 2b (the drag) is blocked on this representation fix — recorded here so
+it is resolved once, not re-discovered.
+
+---
+
+*Add F6, … as we establish them. Never delete a fact that is still true; if a fact turns out
 wrong, replace it and say why (a wrong fact in here is worse than none).*
