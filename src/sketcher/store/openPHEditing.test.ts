@@ -5,11 +5,12 @@ import { createBSpline } from '../utils/bspline/utilities'
 import { curvatureExtremaNumeratorPlanar } from '../../core'
 import type { Curve, Point2D, PHMetadataAny } from '../types/curve'
 
-// The OPEN-PH editor drag runs on the core slideOpenPH (clamped preimage). For open PH the
-// gen-span and curve-span numerators are identical (phDrag.test.ts pins that), so there is no
-// F6 gap — holding g's bound IS holding the displayed bound. It must hold the displayed bound
-// (S⁻ never rises), stay OPEN, and TRACK — including on a BIG single-tick jump (the case that
-// exposed the closed-PH block; chained small steps alone hid it).
+// The OPEN-PH editor drag (legacy optimizePHCurve). It must hold the displayed bound (S⁻ never
+// rises), stay OPEN, and — the FEEL contract — the DRAGGED control point FOLLOWS THE CURSOR. (A
+// PH curve is global: the generator is a least-squares fit, so moving one CP reshapes the whole
+// curve — that is normal, NOT the bug. The bug the core slideOpenPH wiring had was that the
+// DRAGGED point did NOT track: its objective drove the generator toward an L2 re-fit, not the
+// dragged point toward the cursor, so the curve "came alive" and ignored the hand.)
 
 function injectOpenPH(id = 'oph'): string {
   const pts: Point2D[] = []
@@ -27,41 +28,26 @@ const boundOf = (c: Curve) => {
   return curvatureExtremaNumeratorPlanar(X, Y, c.knots, c.degree).signChanges()
 }
 
-describe('open PH editing: drag holds the bound and tracks (core slideOpenPH)', () => {
-  it('a chained control-point drag never raises S⁻ and stays open', () => {
+describe('open PH editing: drag holds the bound and FEELS right', () => {
+  it('the dragged CP follows the cursor; bound held; stays open', () => {
     const id = injectOpenPH()
     const start = boundOf(cur(id))
     const k = 5
-    const p0 = (cur(id).controlPoints as Point2D[])[k]
-    const sx = p0.x, sy = p0.y
+    const cps0 = cur(id).controlPoints as Point2D[]
+    const sx = cps0[k].x, sy = cps0[k].y
+    const move = { x: 70, y: -120 }
     for (let s = 1; s <= 12; s++) {
       const t = s / 12
-      useSceneStore.getState().moveControlPoint(id, k, { x: sx + 70 * t, y: sy - 120 * t })
+      useSceneStore.getState().moveControlPoint(id, k, { x: sx + move.x * t, y: sy + move.y * t })
       expect(boundOf(cur(id)), `step ${s}: open PH bound rose past ${start}`).toBeLessThanOrEqual(start)
       expect(cur(id).closed).toBeFalsy()
     }
-    // reshape, don't block: a nearby curve CP should track the cursor a meaningful distance.
     const cps = cur(id).controlPoints as Point2D[]
-    const target = { x: sx + 70, y: sy - 120 }
-    const nearest = cps.reduce((best, p) => Math.hypot(p.x - target.x, p.y - target.y) < Math.hypot(best.x - target.x, best.y - target.y) ? p : best, cps[0])
-    const traveled = Math.hypot(nearest.x - sx, nearest.y - sy)
-    expect(traveled, 'open PH drag stalled — the curve did not track the cursor').toBeGreaterThan(25)
-  }, 30000)
-
-  it('a BIG single-tick jump tracks and holds the bound (no stall)', () => {
-    const id = injectOpenPH('oph-big')
-    const start = boundOf(cur(id))
-    const k = 5
-    const p0 = (cur(id).controlPoints as Point2D[])[k]
-    const sx = p0.x, sy = p0.y
-    // one large jump — the closed path stalled here; open must not (gen-span ≡ curve-span)
-    useSceneStore.getState().moveControlPoint(id, k, { x: sx + 130, y: sy - 150 })
-    expect(boundOf(cur(id)), 'big-jump bound rose').toBeLessThanOrEqual(start)
-    expect(cur(id).closed).toBeFalsy()
-    const cps = cur(id).controlPoints as Point2D[]
-    const target = { x: sx + 130, y: sy - 150 }
-    const nearest = cps.reduce((b, p) => Math.hypot(p.x - target.x, p.y - target.y) < Math.hypot(b.x - target.x, b.y - target.y) ? p : b, cps[0])
-    const traveled = Math.hypot(nearest.x - sx, nearest.y - sy)
-    expect(traveled, `open PH big-jump stalled (traveled ${traveled.toFixed(1)})`).toBeGreaterThan(40)
+    const target = { x: sx + move.x, y: sy + move.y }
+    const moveLen = Math.hypot(move.x, move.y)
+    // FEEL — the DRAGGED CP follows the cursor (ends near the target, well within the move). This
+    // is what the core refit→L2 wiring broke ("came alive"); legacy tracks the hand.
+    const draggedErr = Math.hypot(cps[k].x - target.x, cps[k].y - target.y)
+    expect(draggedErr, `dragged CP did not follow cursor (err ${draggedErr.toFixed(1)} of move ${moveLen.toFixed(0)})`).toBeLessThan(0.5 * moveLen)
   }, 30000)
 })

@@ -255,15 +255,33 @@ curve-span numerator (planar g on the built degree-5 curve, what the editor disp
 SAME polynomial — same spans, same 90 coeffs, machine-precision equal. (Makes sense: c′ = w² is
 the hodograph exactly, and the planar formula on c′ = the complex `Im(ā²(a·a″−3/2a′²))` form.)
 So for OPEN there is **no F6 gap**: holding the gen-span bound IS holding the displayed bound.
-`slideOpenPH` was correct all along — the earlier open revert was over-cautious (reverted by
-analogy with closed, without reproducing an open block). The editor's OPEN PH drag is now BACK
-on core `slideOpenPH`, pinned by `openPHEditing.test.ts` (incl. a BIG single-tick jump → tracks
->40, bound held) and the identity is pinned in `phDrag.test.ts`.
+`slideOpenPH` holds the right bound. The identity is pinned in `phDrag.test.ts`.
 
-The gap is **closed-only**: the periodic generator's g ≠ the periodic curve's g (different
-periodic decompositions; the `buildPeriodicPHCurve` LSQ rebuild also moves it). So CLOSED still
-needs option (c) — the curve-span numerator on the PERIODIC curve — and stays on legacy until
-then.
+**BUT the bound is necessary, not sufficient — FEEL also matters, and the refit→L2 objective
+breaks it.** Wiring the editor's OPEN drag to `slideOpenPH` (re-fit the dragged polygon →
+`slideOpenPH` drives the GENERATOR toward that re-fit in ½‖gen − target_gen‖²) made the curve
+"come alive": the dragged control point did NOT follow the cursor (in-app report). The objective
+targets a GENERATOR (an indirect, global least-squares proxy), not the dragged CURVE point, so the
+whole curve swims and ignores the hand. (A PH curve IS global — moving one CP reshapes the whole
+curve; that part is normal. The bug was specifically that the DRAGGED point didn't track.) The
+legacy `optimizePHCurve` optimizes the dragged CURVE point straight toward the cursor — it tracks.
+
+So OPEN PH is **back on legacy** too. `slideOpenPH` stays in core as a bound-correct reference but
+is NOT wired. Pinned by `openPHEditing.test.ts` — the FEEL contract: the DRAGGED CP follows the
+cursor (err < 0.5·move), bound held, stays open. (My first open test was too weak — it checked
+"some CP near the target moved," which passed despite broken feel. Lesson: a PH feel test MUST
+assert the DRAGGED point tracks the cursor, not that the curve changed.)
+
+**What a real core PH drag needs (both open AND closed):** variables = generator, objective =
+‖curveCP[dragIndex] − cursor‖² (+ a light anchor to the start generator), subject to the curvature
+bound. The DIRECT cursor-tracking objective is the missing piece — not the bound (open already has
+it; closed additionally needs option (c) for the bound). The refit→generator-L2 shortcut is the
+wrong objective and is abandoned.
+
+The gap is **closed-only** for the BOUND: the periodic generator's g ≠ the periodic curve's g
+(different periodic decompositions; the `buildPeriodicPHCurve` LSQ rebuild also moves it). CLOSED
+needs option (c) for the bound AND the direct objective for feel; OPEN needs only the direct
+objective. Both stay on legacy until a core PH drag has the direct cursor-tracking objective.
 
 ---
 
