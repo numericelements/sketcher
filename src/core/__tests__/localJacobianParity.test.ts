@@ -12,7 +12,10 @@ function build(kind: AlgebraicFamily, topo: Topology, n: number) {
   else { knots = []; for (let i=0;i<=deg;i++) knots.push(0); for (let i=1;i<n-deg;i++) knots.push(i/(n-deg)); for (let i=0;i<=deg;i++) knots.push(1) }
   const cps: WeightedCP[] = Array.from({ length: n }, (_, i) => ({
     re: -150 + 40 * i + 10 * Math.cos(i), im: 20 * Math.sin(0.8 * i),
-    wRe: kind === 'complex' ? 1 + 0.1 * Math.cos(i) : 1, wIm: kind === 'complex' ? 0.05 * Math.sin(i) : 0,
+    // NON-UNIT weights (rational: real, varying; complex: w_im≠0) — the coreComplexRationalDrag
+    // real-rational case uses non-unit weights, so the cols Jacobian must be correct for them too.
+    wRe: kind === 'complex' ? 1 + 0.1 * Math.cos(i) : 0.5 + 0.3 * Math.abs(Math.sin(0.6 * i)),
+    wIm: kind === 'complex' ? 0.05 * Math.sin(i) : 0,
   }))
   return new CurvatureDragProblem(kind, cps, knots, deg, topo, 2, { x: cps[2].re - 30, y: cps[2].im + 80 },
     cps.map((p) => p.wRe), cps.map((p) => p.wIm), 'analytic', { re: 1, im: 0 }, {})

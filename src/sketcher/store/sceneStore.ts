@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, slide, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slideComplexRational, slide, slideOpenPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -695,15 +695,33 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           // iteration cap + Gauss-Newton (no BFGS) for interactivity.
           const valueBound = boundCurvatureValue && Number.isFinite(curvatureBound)
 
-          // NOTE: open PH stays on the legacy optimizer. The core slideOpenPH HOLDS the bound
-          // correctly (open has no F6 gap — gen-span ≡ curve-span, proven), but its OBJECTIVE
-          // is wrong for editor FEEL: it re-fits the whole curve to the dragged polygon and
-          // drives the GENERATOR toward that re-fit in L2 — an indirect target that does NOT
-          // pin the dragged control point to the cursor, so the whole curve swims ("comes
-          // alive"). Legacy optimizePHCurve optimizes the dragged CURVE point straight toward
-          // the cursor, which tracks the hand. A proper core PH drag needs that DIRECT
-          // cursor-tracking objective (‖curveCP[drag] − cursor‖² + light anchor, variables =
-          // generator, s.t. the bound) — real work, tracked under F6/#31. Until then: legacy.
+          // OPEN PH extrema-preservation → CORE slideOpenPHTracking: the faithful port of the
+          // legacy PHCurveProblem — a DIRECT cursor-tracking objective (weighted ‖curveCPᵢ −
+          // targetᵢ‖², dragged CP → cursor) over [x0,y0,u,v], holding the curvature-extrema
+          // bound (generator-side g, which for OPEN equals the displayed curve-span bound —
+          // proven). Tracks the hand (unlike the reverted generator-L2 slideOpenPH) AND holds
+          // the bound. The curvature-VALUE bound (|κ|≤b, 2D workbench) stays on legacy below.
+          if (preserveCurvatureExtrema && !valueBound) {
+            const r = slideOpenPHTracking(
+              meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
+              meta.uvKnots, meta.uvDegree, curve.controlPoints as Point2D[], pointIndex,
+              newPosition.x, newPosition.y, { maxIterations: 24 },
+            )
+            const built = computePHCurveFromUV(r.u, r.v, meta.uvKnots, meta.uvDegree, r.x0, r.y0)
+            const newPhMetadata = new Map(phMetadata)
+            newPhMetadata.set(curveId, built.metadata)
+            set((state) => ({
+              curves: state.curves.map((c) =>
+                c.id === curveId
+                  ? { ...c, controlPoints: built.controlPoints, knots: built.knots, degree: built.degree } as Curve
+                  : c,
+              ),
+              phMetadata: newPhMetadata,
+            }))
+            return
+          }
+
+          // Legacy: curvature-VALUE bound (optionally with extrema), or plain PH tracking.
           const phOptions: Parameters<typeof optimizePHCurve>[5] = {
             ...(valueBound ? { constrainCurvatureValue: true, curvatureBound } : {}),
             ...(preserveCurvatureExtrema ? { preserveCurvatureExtrema: true } : {}),
