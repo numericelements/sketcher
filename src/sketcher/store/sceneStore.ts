@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
+import { slideCurve, slideComplexRational, slide, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -899,6 +899,35 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       }
     }
 
+    // Open REAL-rational CP-drag → core generic slide() (the uniform algebraic drag, weights
+    // held fixed). For a rational curve the control points ARE the variables and familyBound
+    // is curvatureExtremaNumeratorComplex with w_im = 0 + robust signs — EXACTLY the displayed
+    // bound (complexCurvatureConstraintState), so there is no F6-style gap. slide()'s objective
+    // pulls the dragged CP straight to the cursor (direct tracking, correct feel). Farin t-values
+    // are weight ratios (position-independent) → fixed weights leave them unchanged. Edge cases
+    // (symmetry, inflection preservation, anchored drag) stay on the legacy optimizer below.
+    if (
+      preserveCurvatureExtrema && curve.kind === 'rational' && !curve.closed &&
+      !symmetryMaps && !preserveInflections && anchorWeight === 0
+    ) {
+      try {
+        const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: p.w, wIm: 0 }))
+        // analytic Jacobian (identical to FD, ~35% faster) + best-of-solvers (primal-dual is
+        // the one that tracks far on big steps). ~160ms/tick at this size — fine for now;
+        // the banded/local fast path is task #32.
+        const r = slide('rational', cps, curve.knots, curve.degree, 'open', pointIndex,
+          { x: newPosition.x, y: newPosition.y },
+          { jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
+        const newControlPoints = r.points.map((p, i) => ({ x: p.re, y: p.im, w: curve.controlPoints[i].w }))
+        set((state) => ({
+          curves: state.curves.map((c) => (c.id === curveId ? { ...curve, controlPoints: newControlPoints } : c)),
+        }))
+        return
+      } catch (e) {
+        console.warn('core slide (open rational) failed; falling back to legacy optimizer:', e)
+      }
+    }
+
     // Use optimizer if preserveCurvatureExtrema is enabled and curve is compatible
     // (closed bsplines + rational — not yet migrated to core/).
     if (preserveCurvatureExtrema && (curve.kind === 'bspline' || curve.kind === 'rational')) {
@@ -965,6 +994,33 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         return
       } catch (e) {
         console.warn('core slideComplexRational failed; falling back to legacy optimizer:', e)
+      }
+    }
+
+    // Open COMPLEX-rational CP-drag → core generic slide() (uniform algebraic drag, complex
+    // weights held fixed). Same story as open rational: the CPs are the variables, familyBound
+    // == the displayed bound (curvatureExtremaNumeratorComplex + robust signs), and slide()'s
+    // objective tracks the cursor directly. Weights (w_re,w_im) are frozen; Farin handles are
+    // recomputed from the new positions + frozen weights (display aid, derived). Edge cases
+    // (symmetry, inflection, anchor) stay on the legacy optimizer below.
+    if (
+      preserveCurvatureExtrema && curve.kind === 'complex-rational' && !curve.closed &&
+      !symmetryMaps && !preserveInflections && anchorWeight === 0
+    ) {
+      try {
+        const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.re, im: p.im, wRe: p.w_re, wIm: p.w_im }))
+        const r = slide('complex', cps, curve.knots, curve.degree, 'open', pointIndex,
+          { x: newPosition.x, y: newPosition.y },
+          { jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
+        const newControlPoints = curve.controlPoints.map((p, i) => ({ ...p, re: r.points[i].re, im: r.points[i].im }))
+        const updated = { ...curve, controlPoints: newControlPoints }
+        const farinPositions = computeComplexFarinPoints(updated).map((f) => f.position)
+        set((state) => ({
+          curves: state.curves.map((c) => (c.id === curveId ? { ...updated, farinPositions } : c)),
+        }))
+        return
+      } catch (e) {
+        console.warn('core slide (open complex-rational) failed; falling back to legacy optimizer:', e)
       }
     }
 
