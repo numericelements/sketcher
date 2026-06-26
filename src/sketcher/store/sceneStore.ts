@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, enforceBoundNonincreasing, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
+import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -619,27 +619,51 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
                 const periodic = buildPeriodicPHCurve(clamped.controlPoints, clamped.knots, seamCont)
                 return { periodic, clampedMeta: clamped.metadata }
               }
-              // Strict-S⁻ guard for CLOSED PH (Law 2 — the one path that still let the bound
-              // grow, 4→6). A PH curve can't be bisected in CP space (breaks PH) nor in raw
-              // generator space (linear interp breaks closure), so we bisect the GENERATOR and
-              // re-project closure each step. The bound is the displayed periodic poly S⁻;
-              // enforceBoundNonincreasing only bisects when it actually grew.
-              const boundOf = (g: { u: number[]; v: number[] }) => {
-                const b = buildFromGen(g.u, g.v).periodic
-                const X = b.controlPoints.map((p) => p.x), Y = b.controlPoints.map((p) => p.y)
-                return cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorPlanarPeriodic(X, Y, b.knots, b.degree).flatCoeffs()), true)
+              // Strict-S⁻ guard for CLOSED PH (Law 2 / the HARD guarantee). A PH curve can't
+              // be bisected in CP space (breaks PH) nor in raw generator space (linear interp
+              // breaks closure), so we bisect the GENERATOR and re-project closure each step.
+              // The PH curve↔generator round-trip is LOSSY, so we anchor the reference to the
+              // ACTUAL previous curve's bound (not a rebuild), and add a HARD BACKSTOP: if the
+              // bisection still can't hold S⁻ (round-trip drift), REJECT the step — keep the
+              // previous curve. The bound is non-negotiable; a stalled drag is the fallback.
+              const polyBound = (X: number[], Y: number[], kn: number[], dg: number) =>
+                cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorPlanarPeriodic(X, Y, kn, dg).flatCoeffs()), true)
+              const prev = curve.controlPoints as Point2D[]
+              const startBound = polyBound(prev.map((p) => p.x), prev.map((p) => p.y), curve.knots, curve.degree)
+              const boundOfGen = (u: number[], v: number[]) => {
+                const b = buildFromGen(u, v).periodic
+                return polyBound(b.controlPoints.map((p) => p.x), b.controlPoints.map((p) => p.y), b.knots, b.degree)
               }
-              const startGen = { u: [...meta.uControlPoints], v: [...meta.vControlPoints] }
-              const resultGen = { u: [...om.uControlPoints], v: [...om.vControlPoints] }
-              const finalGen = enforceBoundNonincreasing(startGen, resultGen, boundOf, (a) => ({
-                u: startGen.u.map((uu, i) => uu + a * (resultGen.u[i] - uu)),
-                v: startGen.v.map((vv, i) => vv + a * (resultGen.v[i] - vv)),
-              }))
-              const { periodic, clampedMeta } = buildFromGen(finalGen.u, finalGen.v)
-              outCps = periodic.controlPoints
-              outKnots = periodic.knots
-              outDeg = periodic.degree
-              outMeta = { ...clampedMeta, closed: true, wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont }
+              const lerp = (a: number) => ({
+                u: meta.uControlPoints.map((uu: number, i: number) => uu + a * (om.uControlPoints[i] - uu)),
+                v: meta.vControlPoints.map((vv: number, i: number) => vv + a * (om.vControlPoints[i] - vv)),
+              })
+              let chosen = { u: [...om.uControlPoints] as number[], v: [...om.vControlPoints] as number[] }
+              if (boundOfGen(chosen.u, chosen.v) > startBound) {
+                let lo = 0, hi = 1
+                for (let it = 0; it < 26; it++) {
+                  const mid = (lo + hi) / 2
+                  const g = lerp(mid)
+                  if (boundOfGen(g.u, g.v) <= startBound) lo = mid
+                  else hi = mid
+                }
+                chosen = lerp(lo)
+              }
+              const built = buildFromGen(chosen.u, chosen.v)
+              const bx = built.periodic.controlPoints.map((p) => p.x), by = built.periodic.controlPoints.map((p) => p.y)
+              if (polyBound(bx, by, built.periodic.knots, built.periodic.degree) <= startBound) {
+                outCps = built.periodic.controlPoints
+                outKnots = built.periodic.knots
+                outDeg = built.periodic.degree
+                outMeta = { ...built.clampedMeta, closed: true, wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont }
+              } else {
+                // HARD BACKSTOP: the generator bisection cannot hold the bound (round-trip
+                // drift) — keep the PREVIOUS curve. Bound held; the drag stalls this tick.
+                outCps = curve.controlPoints
+                outKnots = curve.knots
+                outDeg = curve.degree
+                outMeta = meta
+              }
             }
           }
 
