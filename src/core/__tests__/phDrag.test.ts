@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  slideClosedPH, projectClosurePHPeriodic, generatorBasisGram, closureGap,
+  slideClosedPH, slideOpenPH, projectClosurePHPeriodic, generatorBasisGram, closureGap,
   curvatureExtremaNumeratorPH, assignSignsNeighbor, cyclicSignChanges,
 } from '../index'
 
@@ -37,5 +37,39 @@ describe('core closed-PH drag (periodic preimage, slice 2b)', () => {
       expect(Math.hypot(g.re, g.im), `step ${s}: closure gap`).toBeLessThan(1e-4)
     }
     expect(Math.abs(u[1] - sU1), 'the dragged coordinate did not track').toBeGreaterThan(3)
+  }, 30000)
+})
+
+// The core OPEN-PH drag on a CLAMPED preimage (the closed case minus closure). It must
+// hold the curvature bound (open numerator) and track the dragged generator coordinate.
+const clampedKnots = (segs: number, d: number) => {
+  const k: number[] = []
+  for (let i = 0; i <= d; i++) k.push(0)
+  for (let i = 1; i < segs; i++) k.push(i / segs)
+  for (let i = 0; i <= d; i++) k.push(1)
+  return k
+}
+const boundOpen = (u: number[], v: number[], k: number[], d: number) =>
+  cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorPH(u, v, k, d, false).flatCoeffs()), false)
+
+describe('core open-PH drag (clamped preimage)', () => {
+  it('holds the bound and tracks', () => {
+    const d = 2, segs = 6, knots = clampedKnots(segs, d)
+    const n = segs + d // clamped generator CPs
+    const u = Array.from({ length: n }, (_, i) => 20 + 4 * Math.cos(0.7 * i) + 0.5 * i)
+    const v = Array.from({ length: n }, (_, i) => 3 * Math.sin(0.9 * i) - 0.3 * i)
+    const startBound = boundOpen(u, v, knots, d)
+
+    let cu = u.slice(), cv = v.slice()
+    const k = 2
+    const sU = cu[k]
+    const tu = cu.slice(), tv = cv.slice(); tu[k] += 18; tv[k] -= 10
+    for (let s = 1; s <= 8; s++) {
+      const f = s / 8
+      const r = slideOpenPH(cu, cv, cu.map((x, i) => x + (tu[i] - x) * f), cv.map((x, i) => x + (tv[i] - x) * f), knots, d, { maxIterations: 30 })
+      cu = r.u; cv = r.v
+      expect(boundOpen(cu, cv, knots, d), `step ${s}: open PH bound rose past ${startBound}`).toBeLessThanOrEqual(startBound)
+    }
+    expect(Math.abs(cu[k] - sU), 'the dragged coordinate did not track').toBeGreaterThan(3)
   }, 30000)
 })

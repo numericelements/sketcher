@@ -14,14 +14,17 @@
 // ============================================================================
 import type { OptimizationProblem } from './ipopt/types'
 import type { Matrix } from './ipopt/linearAlgebra'
+import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
 import { PrimalDualOptimizer } from './optimize'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
-import { computeInactiveSetBySignCyclic } from './curvatureProblem'
+import { computeInactiveSetBySign, computeInactiveSetBySignCyclic } from './curvatureProblem'
 import { curvatureExtremaNumeratorPH, phJacobian } from './phCurvature'
 import { generatorBasisGram, closureGap, closureJacobian, projectClosurePHPeriodic } from './phClosure'
 
 const phBound = (u: readonly number[], v: readonly number[], knots: readonly number[], degree: number) =>
   cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorPH(u, v, knots, degree, true).flatCoeffs()), true)
+const phBoundOpen = (u: readonly number[], v: readonly number[], knots: readonly number[], degree: number) =>
+  cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorPH(u, v, knots, degree, false).flatCoeffs()), false)
 
 /**
  * Closed-PH drag over the PERIODIC preimage, variables in block order [u…, v…]. Objective
@@ -169,4 +172,142 @@ export function slideClosedPH(
     if (phBound(out.u, out.v, knots, degree) > startBound) out = { u: [...genU], v: [...genV] } // backstop
   }
   return { u: out.u, v: out.v, converged: r.converged }
+}
+
+// ============================================================================
+// OPEN polynomial-PH drag, in core — on a CLAMPED preimage. The open case is the
+// closed one minus closure: no ∮w² constraint, no Gram, no seam, no periodic
+// projection. The generator is already the clamped chart the editor stores, so
+// there is no curve↔generator round-trip and no expand/fold. We optimize the
+// generator toward a target holding the curvature-extrema bound (sign of g, the
+// OPEN numerator), through the interior-point solver (no equality border), then a
+// strict-S⁻ guard. The editor keeps its CURVE-span guard on top (FOUNDATIONS F6).
+// ============================================================================
+
+/**
+ * Open-PH drag over the CLAMPED preimage, variables in block order [u…, v…]. Objective
+ * ½‖(u,v) − target‖²; constraints = the curvature bound only (sign of each active g
+ * coefficient — the OPEN numerator, no closure). g and ∂g via curvatureExtremaNumeratorPH
+ * (closed = false) / phJacobian (open).
+ */
+class OpenPHDragProblem implements OptimizationProblem {
+  readonly numEqualityConstraints = 0
+  private u: number[]
+  private v: number[]
+  private readonly target: number[]
+  private readonly n: number
+  private readonly activeIdx: number[]
+  private signs: number[]
+  private readonly gScale: number[]
+  private readonly margins: number[]
+  private readonly knots: readonly number[]
+  private readonly degree: number
+
+  constructor(
+    genU: readonly number[], genV: readonly number[],
+    targetU: readonly number[], targetV: readonly number[],
+    knots: readonly number[],
+    degree: number,
+  ) {
+    this.knots = knots
+    this.degree = degree
+    this.n = genU.length
+    this.u = genU.slice()
+    this.v = genV.slice()
+    this.target = [...targetU, ...targetV]
+    const gc = this.numerator().flatCoeffs()
+    const s = assignSignsNeighbor(gc)
+    const scaleAbs = gc.map((x) => Math.max(Math.abs(x), 1e-12))
+    const inactive = computeInactiveSetBySign(s, gc.map(Math.abs))
+    // Hold only ACTIVE coefficients STRICTLY FEASIBLE at the start (slack > tol) — the same
+    // sliding-mechanism rule as the closed path (ne-core); a boundary coeff held rigid pins
+    // the drag, and the anchors/runs already permit it to merge.
+    this.activeIdx = gc.map((_, i) => i).filter((i) => !inactive.has(i) && s[i] * gc[i] / scaleAbs[i] < -1e-12)
+    this.signs = this.activeIdx.map((i) => s[i])
+    this.gScale = this.activeIdx.map((i) => scaleAbs[i])
+    this.margins = this.activeIdx.map(() => 0)
+  }
+
+  private numerator() { return curvatureExtremaNumeratorPH(this.u, this.v, this.knots, this.degree, false) }
+
+  get numVariables(): number { return 2 * this.n }
+  get numConstraints(): number { return this.activeIdx.length }
+  getVariables(): number[] { return [...this.u, ...this.v] }
+  setVariables(x: number[]): void { this.u = x.slice(0, this.n); this.v = x.slice(this.n) }
+
+  computeObjective(): number {
+    const x = this.getVariables()
+    let s = 0
+    for (let i = 0; i < x.length; i++) { const d = x[i] - this.target[i]; s += 0.5 * d * d }
+    return s
+  }
+  computeObjectiveGradient(): number[] { return this.getVariables().map((xi, i) => xi - this.target[i]) }
+  computeObjectiveHessianDiagonal(): number[] { return new Array<number>(2 * this.n).fill(1) }
+
+  computeConstraints(): number[] {
+    const gc = this.numerator().flatCoeffs()
+    return this.activeIdx.map((i, k) => gc[i] / this.gScale[k] - this.signs[k] * this.margins[k])
+  }
+  computeConstraintJacobian(): Matrix {
+    const J = phJacobian(this.u, this.v, this.knots, this.degree, false, 'analytic') // [nG][2n] interleaved
+    return this.activeIdx.map((i, k) => {
+      const row = J[i]
+      const block = new Array<number>(2 * this.n)
+      for (let j = 0; j < this.n; j++) { block[j] = row[2 * j] / this.gScale[k]; block[this.n + j] = row[2 * j + 1] / this.gScale[k] }
+      return block
+    })
+  }
+
+  getConstraintSigns(): number[] { return this.signs }
+  getInactiveConstraints(): Set<number> { return new Set<number>() }
+  updateConstraintState(): void {
+    const gc = this.numerator().flatCoeffs()
+    const s = assignSignsNeighbor(gc)
+    this.signs = this.activeIdx.map((i) => s[i])
+  }
+
+  result(): { u: number[]; v: number[] } { return { u: [...this.u], v: [...this.v] } }
+}
+
+export interface OpenPHDragOptions { maxIterations?: number; enableBFGS?: boolean }
+
+/**
+ * One open-PH drag (clamped preimage): optimize toward (targetU, targetV) holding the
+ * curvature bound (open numerator), then strict-S⁻-guard (bisect the generator back toward
+ * the start if numerical slip raised S⁻; hard backstop keeps the start). Returns the new
+ * clamped preimage. Bound-faithful in generator space — the editor adds its curve-span guard.
+ */
+export function slideOpenPH(
+  genU: readonly number[], genV: readonly number[],
+  targetU: readonly number[], targetV: readonly number[],
+  knots: readonly number[], degree: number,
+  opts: OpenPHDragOptions = {},
+): { u: number[]; v: number[]; converged: boolean } {
+  const startBound = phBoundOpen(genU, genV, knots, degree)
+
+  const problem = new OpenPHDragProblem(genU, genV, targetU, targetV, knots, degree)
+  const ip = new InteriorPointOptimizer(problem, {
+    maxIterations: opts.maxIterations ?? 40,
+    enableBFGS: opts.enableBFGS ?? false,
+    returnBestFeasible: true,
+  })
+  const r = ip.optimize()
+  problem.setVariables(r.variables)
+  let res = problem.result()
+
+  // strict-S⁻ guard: if the bound grew, bisect back toward the start (no closure to project).
+  if (phBoundOpen(res.u, res.v, knots, degree) > startBound) {
+    let lo = 0, hi = 1
+    for (let it = 0; it < 26; it++) {
+      const a = (lo + hi) / 2
+      const u = genU.map((g, i) => g + a * (res.u[i] - g))
+      const v = genV.map((g, i) => g + a * (res.v[i] - g))
+      if (phBoundOpen(u, v, knots, degree) <= startBound) lo = a
+      else hi = a
+    }
+    const u = genU.map((g, i) => g + lo * (res.u[i] - g))
+    const v = genV.map((g, i) => g + lo * (res.v[i] - g))
+    res = phBoundOpen(u, v, knots, degree) <= startBound ? { u, v } : { u: [...genU], v: [...genV] } // backstop
+  }
+  return { u: res.u, v: res.v, converged: r.converged }
 }

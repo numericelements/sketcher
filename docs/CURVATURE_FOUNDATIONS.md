@@ -225,8 +225,19 @@ The core solve reshapes the generator more freely (better tracking); the curve-s
 the honest bound, so the displayed S⁻ is never exceeded. The clamped↔periodic conversion is
 EXACT (round-trip maxDiff = 0 — free coords `slice(0,K)` + `periodicGenKnots` ↔ `phSeamMaps.expand`).
 Pinned by `closedPHEditing.test.ts`: the chained drag never raises S⁻, stays closed, AND the
-dragged point tracks the cursor (>30 units, no stall). The legacy `optimizePHCurve` is no longer
-on the closed-PH path (still used for the OPEN PH drag — slice 3-open is future work).
+dragged point tracks the cursor (>30 units, no stall).
+
+**Open PH — also on core (option b).** The OPEN PH drag now solves the generator with the core
+`slideOpenPH` (clamped preimage — the closed case minus closure: no Gram, no seam, no periodic
+projection; interior-point solver, no equality border) and keeps the editor's CURVE-span guard
+(`curvatureExtremaNumeratorPlanar(...).signChanges()` — the SAME quantity the bottom panel
+displays). The open generator is already the clamped chart the editor stores, so there is no
+round-trip and no expand/fold — just re-fit (`fitPHSplineToBSpline`) → core solve → curve-span
+bisection + hard backstop. Pinned by `openPHEditing.test.ts` (S⁻ never rises, stays open, tracks
+>25 units). The legacy `optimizePHCurve` now runs ONLY for the curvature-VALUE bound (|κ| ≤ b,
+the 2D PH workbench — the core open drag does not model it) and the no-curvature-control track
+(keeps the curve PH while dragging). Both PH editor drags (open + closed) are off the legacy
+optimizer's curvature-EXTREMA path.
 
 ---
 
