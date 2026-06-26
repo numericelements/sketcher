@@ -5,9 +5,11 @@ import { createBSpline } from '../utils/bspline/utilities'
 import { curvatureExtremaNumeratorPlanar } from '../../core'
 import type { Curve, Point2D, PHMetadataAny } from '../types/curve'
 
-// The OPEN-PH editor drag must hold the displayed bound (S⁻ never rises), stay OPEN, and
-// TRACK the cursor. (Pins the legacy open-PH solve; the core slideOpenPH path was reverted —
-// F6: it holds g's gen-span bound while the editor displays/guards the curve-span bound.)
+// The OPEN-PH editor drag runs on the core slideOpenPH (clamped preimage). For open PH the
+// gen-span and curve-span numerators are identical (phDrag.test.ts pins that), so there is no
+// F6 gap — holding g's bound IS holding the displayed bound. It must hold the displayed bound
+// (S⁻ never rises), stay OPEN, and TRACK — including on a BIG single-tick jump (the case that
+// exposed the closed-PH block; chained small steps alone hid it).
 
 function injectOpenPH(id = 'oph'): string {
   const pts: Point2D[] = []
@@ -44,5 +46,22 @@ describe('open PH editing: drag holds the bound and tracks (core slideOpenPH)', 
     const nearest = cps.reduce((best, p) => Math.hypot(p.x - target.x, p.y - target.y) < Math.hypot(best.x - target.x, best.y - target.y) ? p : best, cps[0])
     const traveled = Math.hypot(nearest.x - sx, nearest.y - sy)
     expect(traveled, 'open PH drag stalled — the curve did not track the cursor').toBeGreaterThan(25)
+  }, 30000)
+
+  it('a BIG single-tick jump tracks and holds the bound (no stall)', () => {
+    const id = injectOpenPH('oph-big')
+    const start = boundOf(cur(id))
+    const k = 5
+    const p0 = (cur(id).controlPoints as Point2D[])[k]
+    const sx = p0.x, sy = p0.y
+    // one large jump — the closed path stalled here; open must not (gen-span ≡ curve-span)
+    useSceneStore.getState().moveControlPoint(id, k, { x: sx + 130, y: sy - 150 })
+    expect(boundOf(cur(id)), 'big-jump bound rose').toBeLessThanOrEqual(start)
+    expect(cur(id).closed).toBeFalsy()
+    const cps = cur(id).controlPoints as Point2D[]
+    const target = { x: sx + 130, y: sy - 150 }
+    const nearest = cps.reduce((b, p) => Math.hypot(p.x - target.x, p.y - target.y) < Math.hypot(b.x - target.x, b.y - target.y) ? p : b, cps[0])
+    const traveled = Math.hypot(nearest.x - sx, nearest.y - sy)
+    expect(traveled, `open PH big-jump stalled (traveled ${traveled.toFixed(1)})`).toBeGreaterThan(40)
   }, 30000)
 })

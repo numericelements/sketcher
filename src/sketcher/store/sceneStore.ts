@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
+import { slideCurve, slideComplexRational, slideOpenPH, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanar, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -695,10 +695,68 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           // iteration cap + Gauss-Newton (no BFGS) for interactivity.
           const valueBound = boundCurvatureValue && Number.isFinite(curvatureBound)
 
-          // NOTE: the CORE slideOpenPH path (F6 option b) was reverted for the same reason
-          // as the closed path — it holds g's GENERATOR-span bound while the editor guards
-          // the CURVE-span bound (F6), so a big drag step gets bisected away → stall. The
-          // open PH extrema drag stays on the legacy optimizer until F6 option (c) lands.
+          // OPEN PH extrema-preservation → CORE drag (slideOpenPH on the clamped preimage).
+          // For OPEN PH the generator-span numerator and the curve-span numerator are the
+          // SAME polynomial (proven: identical coeffs to ~1e-14, phOpenGenEqualsCurveSpan
+          // test), so holding g's gen-span bound IS holding the displayed curve-span bound —
+          // there is NO F6 gap here (that gap is closed-only, from the periodic LSQ rebuild).
+          // Re-fit (fitPHSplineToBSpline) → core slideOpenPH → curve-span guard (a cheap
+          // safety that, by the identity above, never has to bisect). Value-bound stays legacy.
+          if (preserveCurvatureExtrema && !valueBound) {
+            const editedCPs = curve.controlPoints.map((p, i) =>
+              i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: (p as Point2D).x, y: (p as Point2D).y },
+            )
+            const refit = fitPHSplineToBSpline(editedCPs, curve.knots, { generatorDegree: meta.uvDegree })
+            const rm = refit?.metadata as Extract<PHMetadataAny, { kind: 'polynomial' }> | undefined
+            if (rm && rm.uControlPoints.length === meta.uControlPoints.length) {
+              const sol = slideOpenPH(
+                meta.uControlPoints, meta.vControlPoints, rm.uControlPoints, rm.vControlPoints,
+                meta.uvKnots, meta.uvDegree, { maxIterations: 24 },
+              )
+              const om = { ...rm, uControlPoints: sol.u, vControlPoints: sol.v }
+              const curveBound = (cps: Point2D[], kn: number[], dg: number) =>
+                curvatureExtremaNumeratorPlanar(cps.map((p) => p.x), cps.map((p) => p.y), kn, dg).signChanges()
+              const buildFromGen = (u: number[], v: number[]) =>
+                computePHCurveFromUV(u, v, meta.uvKnots, meta.uvDegree, om.origin.x, om.origin.y)
+              const boundOfGen = (u: number[], v: number[]) => {
+                const b = buildFromGen(u, v)
+                return curveBound(b.controlPoints, b.knots, b.degree)
+              }
+              const prev = curve.controlPoints as Point2D[]
+              const startBound = curveBound(prev, curve.knots, curve.degree)
+              const lerp = (a: number) => ({
+                u: meta.uControlPoints.map((uu: number, i: number) => uu + a * (om.uControlPoints[i] - uu)),
+                v: meta.vControlPoints.map((vv: number, i: number) => vv + a * (om.vControlPoints[i] - vv)),
+              })
+              let chosen = { u: [...om.uControlPoints] as number[], v: [...om.vControlPoints] as number[] }
+              if (boundOfGen(chosen.u, chosen.v) > startBound) {
+                let lo = 0, hi = 1
+                for (let it = 0; it < 26; it++) {
+                  const mid = (lo + hi) / 2
+                  const g = lerp(mid)
+                  if (boundOfGen(g.u, g.v) <= startBound) lo = mid
+                  else hi = mid
+                }
+                chosen = lerp(lo)
+              }
+              const built = buildFromGen(chosen.u, chosen.v)
+              if (curveBound(built.controlPoints, built.knots, built.degree) <= startBound) {
+                const newPhMetadata = new Map(phMetadata)
+                newPhMetadata.set(curveId, built.metadata)
+                set((state) => ({
+                  curves: state.curves.map((c) =>
+                    c.id === curveId
+                      ? { ...c, controlPoints: built.controlPoints, knots: built.knots, degree: built.degree } as Curve
+                      : c,
+                  ),
+                  phMetadata: newPhMetadata,
+                }))
+                return
+              }
+              return // hard backstop (should be unreachable for open — gen-span ≡ curve-span)
+            }
+          }
+
           const phOptions: Parameters<typeof optimizePHCurve>[5] = {
             ...(valueBound ? { constrainCurvatureValue: true, curvatureBound } : {}),
             ...(preserveCurvatureExtrema ? { preserveCurvatureExtrema: true } : {}),

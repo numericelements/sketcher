@@ -243,7 +243,27 @@ displays/guards** — option (b) cannot, because gen-span ≠ curve-span.
 (construct the curve inside the solve loop and constrain its per-span numerator), so the solver
 holds exactly the displayed bound. Then there is no guard/solve disagreement and big steps reshape
 instead of stalling. Pin it with a BIG-single-step tracking test (not just chained small steps —
-that is what hid the bug). Until (c), legacy is the working path.
+that is what hid the bug).
+
+**RESOLVED for OPEN — the gap is CLOSED-ONLY.** Measured the two numerators directly:
+
+  OPEN  (6-segment): gen-span g vs curve-span g → IDENTICAL coeffs, maxRel = 6.8e-14
+  CLOSED (12-CP):    gen-span S⁻ = 6  vs  curve-span S⁻ = 8  → genuinely different
+
+For an OPEN PH curve, g's generator-span numerator (`curvatureExtremaNumeratorPH`) and the
+curve-span numerator (planar g on the built degree-5 curve, what the editor displays) are the
+SAME polynomial — same spans, same 90 coeffs, machine-precision equal. (Makes sense: c′ = w² is
+the hodograph exactly, and the planar formula on c′ = the complex `Im(ā²(a·a″−3/2a′²))` form.)
+So for OPEN there is **no F6 gap**: holding the gen-span bound IS holding the displayed bound.
+`slideOpenPH` was correct all along — the earlier open revert was over-cautious (reverted by
+analogy with closed, without reproducing an open block). The editor's OPEN PH drag is now BACK
+on core `slideOpenPH`, pinned by `openPHEditing.test.ts` (incl. a BIG single-tick jump → tracks
+>40, bound held) and the identity is pinned in `phDrag.test.ts`.
+
+The gap is **closed-only**: the periodic generator's g ≠ the periodic curve's g (different
+periodic decompositions; the `buildPeriodicPHCurve` LSQ rebuild also moves it). So CLOSED still
+needs option (c) — the curve-span numerator on the PERIODIC curve — and stays on legacy until
+then.
 
 ---
 

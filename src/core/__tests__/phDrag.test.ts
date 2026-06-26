@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   slideClosedPH, slideOpenPH, projectClosurePHPeriodic, generatorBasisGram, closureGap,
-  curvatureExtremaNumeratorPH, assignSignsNeighbor, cyclicSignChanges,
+  curvatureExtremaNumeratorPH, curvatureExtremaNumeratorPlanar, assignSignsNeighbor, cyclicSignChanges,
 } from '../index'
+import { computePHCurveFromUV } from '../../sketcher/optimizer/phCurve'
 
 // Slice 2b: the core closed-PH drag on a PERIODIC preimage (Rust's design — F5). It must
 // hold the curvature bound, keep the curve closed (∮w² ≈ 0), and track the generator.
@@ -72,4 +73,29 @@ describe('core open-PH drag (clamped preimage)', () => {
     }
     expect(Math.abs(cu[k] - sU), 'the dragged coordinate did not track').toBeGreaterThan(3)
   }, 30000)
+})
+
+// WHY slideOpenPH is correct for the editor: for an OPEN PH curve, g's GENERATOR-span
+// numerator (curvatureExtremaNumeratorPH) is the SAME polynomial as the CURVE-span numerator
+// (planar g on the built degree-5 curve — what the editor displays/guards). So holding the
+// gen-span bound IS holding the displayed bound — no F6 gap (that gap is closed-only). This
+// pins the identity; if it ever breaks, the editor's open-PH core wiring is unsound.
+describe('open PH: gen-span numerator == curve-span numerator', () => {
+  it('identical coefficients to machine precision', () => {
+    const d = 2, segs = 6, knots: number[] = []
+    for (let i = 0; i <= d; i++) knots.push(0)
+    for (let i = 1; i < segs; i++) knots.push(i / segs)
+    for (let i = 0; i <= d; i++) knots.push(1)
+    const n = segs + d
+    const u = Array.from({ length: n }, (_, i) => 20 + 4 * Math.cos(0.7 * i) + 0.5 * i)
+    const v = Array.from({ length: n }, (_, i) => 3 * Math.sin(0.9 * i) - 0.3 * i)
+    const gGen = curvatureExtremaNumeratorPH(u, v, knots, d, false).flatCoeffs()
+    const built = computePHCurveFromUV(u, v, knots, d, 0, 0)
+    const gCurve = curvatureExtremaNumeratorPlanar(built.controlPoints.map((p) => p.x), built.controlPoints.map((p) => p.y), built.knots, built.degree).flatCoeffs()
+    expect(gCurve.length).toBe(gGen.length)
+    const scale = Math.max(...gGen.map(Math.abs), ...gCurve.map(Math.abs), 1)
+    let maxRel = 0
+    for (let i = 0; i < gGen.length; i++) maxRel = Math.max(maxRel, Math.abs(gGen[i] - gCurve[i]) / scale)
+    expect(maxRel, `gen-span vs curve-span diverged (maxRel ${maxRel.toExponential(2)})`).toBeLessThan(1e-10)
+  })
 })
