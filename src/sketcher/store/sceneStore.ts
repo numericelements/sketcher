@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState } from '../../core'
+import { slideCurve, slideComplexRational, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, enforceBoundNonincreasing, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -610,17 +610,36 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
               enableBFGS: false,
             })
             if (result.converged || result.iterations > 0) {
-              // The optimizer's closure/wrap equalities are penalty-soft; project
-              // the generator EXACTLY onto closure + seam wrap so the periodic
-              // re-fit is clean (no spurious seam curvature extrema).
               const om = result.curveResult.metadata
-              const proj = projectClosedPHGenerator(om.uControlPoints, om.vControlPoints, om.uvKnots, om.origin.x, om.origin.y, meta.wrapSign ?? 1, seamCont)
-              const clamped = computePHCurveFromUV(proj.uControlPoints, proj.vControlPoints, om.uvKnots, om.uvDegree, om.origin.x, om.origin.y)
-              const periodic = buildPeriodicPHCurve(clamped.controlPoints, clamped.knots, seamCont)
+              // Build the periodic PH bspline from a generator, projecting EXACTLY onto
+              // closure + seam wrap first (the optimizer's equalities are penalty-soft).
+              const buildFromGen = (u: number[], v: number[]) => {
+                const pr = projectClosedPHGenerator(u, v, om.uvKnots, om.origin.x, om.origin.y, meta.wrapSign ?? 1, seamCont)
+                const clamped = computePHCurveFromUV(pr.uControlPoints, pr.vControlPoints, om.uvKnots, om.uvDegree, om.origin.x, om.origin.y)
+                const periodic = buildPeriodicPHCurve(clamped.controlPoints, clamped.knots, seamCont)
+                return { periodic, clampedMeta: clamped.metadata }
+              }
+              // Strict-S⁻ guard for CLOSED PH (Law 2 — the one path that still let the bound
+              // grow, 4→6). A PH curve can't be bisected in CP space (breaks PH) nor in raw
+              // generator space (linear interp breaks closure), so we bisect the GENERATOR and
+              // re-project closure each step. The bound is the displayed periodic poly S⁻;
+              // enforceBoundNonincreasing only bisects when it actually grew.
+              const boundOf = (g: { u: number[]; v: number[] }) => {
+                const b = buildFromGen(g.u, g.v).periodic
+                const X = b.controlPoints.map((p) => p.x), Y = b.controlPoints.map((p) => p.y)
+                return cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorPlanarPeriodic(X, Y, b.knots, b.degree).flatCoeffs()), true)
+              }
+              const startGen = { u: [...meta.uControlPoints], v: [...meta.vControlPoints] }
+              const resultGen = { u: [...om.uControlPoints], v: [...om.vControlPoints] }
+              const finalGen = enforceBoundNonincreasing(startGen, resultGen, boundOf, (a) => ({
+                u: startGen.u.map((uu, i) => uu + a * (resultGen.u[i] - uu)),
+                v: startGen.v.map((vv, i) => vv + a * (resultGen.v[i] - vv)),
+              }))
+              const { periodic, clampedMeta } = buildFromGen(finalGen.u, finalGen.v)
               outCps = periodic.controlPoints
               outKnots = periodic.knots
               outDeg = periodic.degree
-              outMeta = { ...clamped.metadata, closed: true, wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont }
+              outMeta = { ...clampedMeta, closed: true, wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont }
             }
           }
 
