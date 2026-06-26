@@ -1890,22 +1890,34 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       const meta = state.phMetadata.get(id)!
 
       if (meta.kind === 'polynomial') {
-        // Polynomial PH: insert knot in u,v and recompute
+        // Polynomial PH: insert knot in the generator (u,v) and recompute.
         const uResult = insertKnot1D(meta.uControlPoints, meta.uvKnots, meta.uvDegree, t)
         const vResult = insertKnot1D(meta.vControlPoints, meta.uvKnots, meta.uvDegree, t)
-
-        const phResult = computePHCurveFromUV(
-          uResult.controlPoints, vResult.controlPoints, uResult.knots, meta.uvDegree, meta.origin.x, meta.origin.y
+        const clamped = computePHCurveFromUV(
+          uResult.controlPoints, vResult.controlPoints, uResult.knots, meta.uvDegree, meta.origin.x, meta.origin.y,
         )
-
+        // CLOSED → convert the clamped curve back to the PERIODIC form (same as the drag
+        // path). Otherwise computePHCurveFromUV's clamped knots (multiplicity degree+1 at
+        // both ends) would clamp the seam — a degree-6 stack at the closure, breaking the
+        // closed structure. buildPeriodicPHCurve restores the seam multiplicity.
+        let outC: WeightedPoint2D[] | Point2D[], outK: number[], outD: number, newMeta: PHMetadataAny
+        if (meta.closed) {
+          const periodic = buildPeriodicPHCurve(clamped.controlPoints, clamped.knots, meta.seamContinuity ?? 0)
+          outC = periodic.controlPoints
+          outK = periodic.knots
+          outD = periodic.degree
+          newMeta = { ...clamped.metadata, closed: true, wrapSign: meta.wrapSign ?? 1, seamContinuity: meta.seamContinuity ?? 0 }
+        } else {
+          outC = clamped.controlPoints
+          outK = clamped.knots
+          outD = clamped.degree
+          newMeta = clamped.metadata
+        }
         const newPhMetadata = new Map(state.phMetadata)
-        newPhMetadata.set(id, phResult.metadata)
-
+        newPhMetadata.set(id, newMeta)
         set((s) => ({
           curves: s.curves.map((c) =>
-            c.id === id
-              ? { ...c, controlPoints: phResult.controlPoints, knots: phResult.knots, degree: phResult.degree } as Curve
-              : c
+            c.id === id ? { ...c, controlPoints: outC, knots: outK, degree: outD, closed: meta.closed } as Curve : c,
           ),
           phMetadata: newPhMetadata,
         }))
