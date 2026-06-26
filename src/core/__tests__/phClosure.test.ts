@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { generatorBasisGram, closureGap, closureJacobian } from '../index'
+import { generatorBasisGram, closureGap, closureJacobian, projectClosurePH } from '../index'
 import { computePHCurveFromUV } from '../../sketcher/optimizer/phCurve'
+import { projectClosedPHGenerator } from '../../sketcher/optimizer/phClosedSplineFit'
 
 // The core closure gap ∮w² must equal the sketcher's curve-endpoint gap r(1)−r(0)
 // (the oracle), and its analytic Jacobian must match finite differences. This is the
@@ -54,6 +55,30 @@ describe('PH closure: core ∮w² matches the sketcher curve gap', () => {
       const dImDv = (closureGap(u, vp, G).im - closureGap(u, vm, G).im) / (2 * h)
       expect(Math.abs(J.reDv[k] - dReDv)).toBeLessThan(1e-4 * (Math.abs(dReDv) + 1))
       expect(Math.abs(J.imDv[k] - dImDv)).toBeLessThan(1e-4 * (Math.abs(dImDv) + 1))
+    }
+  })
+
+  it('projectClosurePH closes the curve and matches projectClosedPHGenerator', () => {
+    // A clamped quadratic generator with seam continuity 2 (the editor's closed PH default).
+    const seamCont = 2, wrapSign = 1
+    for (let s = 0; s < 5; s++) {
+      const n = 7 + s
+      const knots = genKnots(n)
+      const u = Array.from({ length: n }, (_, i) => 40 + 22 * Math.sin(i * 1.2 + s) - 3 * i)
+      const v = Array.from({ length: n }, (_, i) => 18 * Math.cos(i + s) + 2 * i)
+      const core = projectClosurePH(u, v, knots, 2, seamCont, wrapSign)
+      const G = generatorBasisGram(knots, 2, n)
+      // core projection actually closes the curve (∮w² ≈ 0)
+      const g = closureGap(core.u, core.v, G)
+      expect(Math.hypot(g.re, g.im), `seed ${s}: core gap not closed`).toBeLessThan(1e-6)
+      // and matches the sketcher's projection (same Newton least-norm, same closure metric)
+      const sk = projectClosedPHGenerator(u, v, knots, 0, 0, wrapSign, seamCont)
+      const maxDiff = Math.max(
+        ...core.u.map((x, i) => Math.abs(x - sk.uControlPoints[i])),
+        ...core.v.map((x, i) => Math.abs(x - sk.vControlPoints[i])),
+      )
+      const scale = Math.max(1, ...core.u.map(Math.abs), ...core.v.map(Math.abs))
+      expect(maxDiff / scale, `seed ${s}: core vs sketcher projection diff ${maxDiff}`).toBeLessThan(1e-5)
     }
   })
 })

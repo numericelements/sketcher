@@ -72,3 +72,67 @@ export function closureJacobian(
     imDv: Gu.map((x) => 2 * x),
   }
 }
+
+/**
+ * The seam parameterization of a CLOSED PH generator: the last `nWrap` control points are
+ * determined (anti-periodically, sign s) by the first ones so the generator wraps C^nWrap.
+ * `expand` maps the K free coordinates to the full n; `fold` is its transpose (chains a
+ * full-coordinate gradient back to the free coordinates). nWrap = seamContinuity ∈ {0,1,2}.
+ */
+export function phSeamMaps(
+  knots: readonly number[], degree: number, n: number, seamContinuity: number, wrapSign: number,
+): { K: number; expand: (f: readonly number[]) => number[]; fold: (full: readonly number[]) => number[] } {
+  const nWrap = Math.max(0, Math.min(2, seamContinuity))
+  const K = n - nWrap
+  const s = wrapSign
+  const hFirst = knots[degree + 1] - knots[degree]
+  const hLast = knots[n] - knots[n - 1]
+  const ratio = hFirst > 1e-12 ? hLast / hFirst : 1
+  const expand = (f: readonly number[]): number[] => {
+    const c = f.slice(0, K)
+    if (nWrap >= 2) c.push(s * ((1 + ratio) * f[0] - ratio * f[1]))
+    if (nWrap >= 1) c.push(s * f[0])
+    return c
+  }
+  const fold = (full: readonly number[]): number[] => {
+    const row = new Array<number>(K).fill(0)
+    for (let i = 0; i < K; i++) row[i] = full[i]
+    if (nWrap >= 1) row[0] += full[n - 1] * s
+    if (nWrap >= 2) { row[0] += full[n - 2] * s * (1 + ratio); row[1] += full[n - 2] * s * (-ratio) }
+    return row
+  }
+  return { K, expand, fold }
+}
+
+/**
+ * Newton-project a generator onto the closure manifold ∮w² = 0, holding the seam
+ * parameterization (the free coordinates move; the wrap coordinates follow). The core
+ * analog of the sketcher's projectClosedPHGenerator — same minimum-norm Newton step, but
+ * the closure gap/Jacobian come from the Gram matrix (no curve construction).
+ */
+export function projectClosurePH(
+  u: readonly number[], v: readonly number[], knots: readonly number[], degree: number,
+  seamContinuity: number, wrapSign: number, G?: number[][],
+): { u: number[]; v: number[] } {
+  const n = u.length
+  const { K, expand, fold } = phSeamMaps(knots, degree, n, seamContinuity, wrapSign)
+  const Gm = G ?? generatorBasisGram(knots, degree, n)
+  const uF = u.slice(0, K), vF = v.slice(0, K)
+  for (let iter = 0; iter < 8; iter++) {
+    const U = expand(uF), V = expand(vF)
+    const gap = closureGap(U, V, Gm)
+    if (Math.hypot(gap.re, gap.im) < 1e-12) break
+    const J = closureJacobian(U, V, Gm)
+    const Jx = [...fold(J.reDu), ...fold(J.reDv)] // ∂re/∂[uF,vF]
+    const Jy = [...fold(J.imDu), ...fold(J.imDv)] // ∂im/∂[uF,vF]
+    const a = dot(Jx, Jx), b = dot(Jx, Jy), c2 = dot(Jy, Jy), det = a * c2 - b * b
+    if (Math.abs(det) < 1e-20) break
+    const l0 = (c2 * gap.re - b * gap.im) / det, l1 = (-b * gap.re + a * gap.im) / det
+    for (let j = 0; j < 2 * K; j++) {
+      const step = -(Jx[j] * l0 + Jy[j] * l1)
+      if (j < K) uF[j] += step
+      else vF[j - K] += step
+    }
+  }
+  return { u: expand(uF), v: expand(vF) }
+}
