@@ -62,5 +62,13 @@ describe('closed PH editing: drag holds the bound (the guard)', () => {
       expect(boundOf(cur(id)), `step ${s}: closed PH bound rose past ${start}`).toBeLessThanOrEqual(start)
       expect(cur(id).closed).toBe(true)
     }
+    // F6-b: with the core periodic solve driving the generator, the dragged point must
+    // TRACK the cursor (reshape, don't block) — not stall at its start. The nearest CP to
+    // the (sx-120, sy+90) target should have moved a meaningful fraction of the way there.
+    const cps = cur(id).controlPoints as Point2D[]
+    const target = { x: sx - 120, y: sy + 90 }
+    const nearest = cps.reduce((best, p) => Math.hypot(p.x - target.x, p.y - target.y) < Math.hypot(best.x - target.x, best.y - target.y) ? p : best, cps[0])
+    const traveled = Math.hypot(nearest.x - sx, nearest.y - sy)
+    expect(traveled, 'closed PH drag stalled — the curve did not track the cursor').toBeGreaterThan(30)
   }, 30000)
 })

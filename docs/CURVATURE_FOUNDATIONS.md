@@ -212,16 +212,21 @@ LOOSER bound while showing the TIGHTER one — the displayed S⁻ could rise whi
 doesn't. So slice 3 is NOT a clean swap; the editor's existing clamped guard (which bisects the
 generator on the CURVE-span bound) already holds the correct displayed bound.
 
-**Reconciliation needed before wiring.** Either (a) display the generator-span PH bound (looser,
-worse UX), or (b) keep `slideClosedPH` for the SOLVE (movement + closure + the gen-span bound)
-but apply the editor's CURVE-span guard as the final check (combine better solver + right
-bound), or (c) make the core drag's bound constraint use the curve-span g (needs curve
-construction in the loop — the integrate/recompose we deliberately left in the sketcher).
+**Reconciliation, options considered.** (a) display the generator-span PH bound (looser, worse
+UX); (b) keep `slideClosedPH` for the SOLVE (movement + closure + the gen-span bound) but apply
+the editor's CURVE-span guard as the final check (combine better solver + right bound); (c) make
+the core drag's bound constraint use the curve-span g (needs curve construction in the loop — the
+integrate/recompose we deliberately left in the sketcher).
 
-**Status.** The clamped↔periodic generator conversion is verified EXACT (round-trip maxDiff =
-0 — free coords + `periodicGenKnots` ↔ `expand`). The core closed-PH drag (slice 2b) stands as
-the clean periodic reference. Slice 3 (editor → core) is blocked on this bound reconciliation;
-the editor's current guard is correct and keeps working.
+**Status — RESOLVED via option (b) (slice 3 done).** The editor's closed-PH drag now SOLVES the
+generator with the core `slideClosedPH` (periodic preimage, Rust's design) and keeps its own
+CURVE-span guard (`polyBound` bisection + hard backstop) as the authoritative, DISPLAYED bound.
+The core solve reshapes the generator more freely (better tracking); the curve-span guard owns
+the honest bound, so the displayed S⁻ is never exceeded. The clamped↔periodic conversion is
+EXACT (round-trip maxDiff = 0 — free coords `slice(0,K)` + `periodicGenKnots` ↔ `phSeamMaps.expand`).
+Pinned by `closedPHEditing.test.ts`: the chained drag never raises S⁻, stays closed, AND the
+dragged point tracks the cursor (>30 units, no stall). The legacy `optimizePHCurve` is no longer
+on the closed-PH path (still used for the OPEN PH drag — slice 3-open is future work).
 
 ---
 
