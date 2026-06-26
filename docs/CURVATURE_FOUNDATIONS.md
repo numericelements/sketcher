@@ -196,5 +196,34 @@ alongside the curvature-bound sign constraints (`curvature_numerator_closed`). S
 
 ---
 
-*Add F6, … as we establish them. Never delete a fact that is still true; if a fact turns out
+## F6 — PH bound on the GENERATOR spans ≠ PH bound on the CURVE spans
+
+**The fact.** For the SAME closed PH curve, the curvature-extrema bound S⁻ counted from g on
+the GENERATOR's spans (periodic preimage, `curvatureExtremaNumeratorPH`) differs from S⁻
+counted from g on the CURVE's spans (the periodic poly numerator on the built b-spline). On a
+16→18-CP test curve: generator-span S⁻ = 12, curve-span S⁻ = 8. Both are valid upper bounds on
+the same Z(g); they differ because S⁻ is a per-span Bernstein count and the two representations
+have different span structures (F2 looseness). The curve-span count is the tighter one here.
+
+**What it means for the editor wiring (slice 3).** The editor DISPLAYS and judges the
+curve-span bound (it shows `kind:'bspline'` periodic poly S⁻ = 8). The core closed-PH drag
+(`slideClosedPH`) holds the GENERATOR-span bound (12). Wiring the editor to it would hold the
+LOOSER bound while showing the TIGHTER one — the displayed S⁻ could rise while the held one
+doesn't. So slice 3 is NOT a clean swap; the editor's existing clamped guard (which bisects the
+generator on the CURVE-span bound) already holds the correct displayed bound.
+
+**Reconciliation needed before wiring.** Either (a) display the generator-span PH bound (looser,
+worse UX), or (b) keep `slideClosedPH` for the SOLVE (movement + closure + the gen-span bound)
+but apply the editor's CURVE-span guard as the final check (combine better solver + right
+bound), or (c) make the core drag's bound constraint use the curve-span g (needs curve
+construction in the loop — the integrate/recompose we deliberately left in the sketcher).
+
+**Status.** The clamped↔periodic generator conversion is verified EXACT (round-trip maxDiff =
+0 — free coords + `periodicGenKnots` ↔ `expand`). The core closed-PH drag (slice 2b) stands as
+the clean periodic reference. Slice 3 (editor → core) is blocked on this bound reconciliation;
+the editor's current guard is correct and keeps working.
+
+---
+
+*Add F7, … as we establish them. Never delete a fact that is still true; if a fact turns out
 wrong, replace it and say why (a wrong fact in here is worse than none).*
