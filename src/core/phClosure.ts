@@ -10,7 +10,7 @@
 // No curve construction (integrate/recompose) is needed — this is exact and
 // self-contained, the constraint the core PH drag will hold (∮w² = 0).
 // ============================================================================
-import { decomposeToBernstein, type BernsteinDecomposition } from './bernstein'
+import { decomposeToBernstein, decomposeToBernsteinPeriodic, type BernsteinDecomposition } from './bernstein'
 
 /** ∫ over a Bernstein decomposition's whole domain (∫₀ʰ of a degree-n Bézier = h/(n+1)·Σcoeffs). */
 function integrateBernstein(bd: BernsteinDecomposition): number {
@@ -29,12 +29,13 @@ function integrateBernstein(bd: BernsteinDecomposition): number {
  * Gram matrix G_ij = ∫ Nᵢ·Nⱼ dt of the generator's (clamped) B-spline basis. Geometry-
  * independent — depends only on (knots, degree, n) — so precompute once per generator.
  */
-export function generatorBasisGram(knots: readonly number[], degree: number, n: number): number[][] {
+export function generatorBasisGram(knots: readonly number[], degree: number, n: number, periodic = false): number[][] {
+  const decompose = periodic ? decomposeToBernsteinPeriodic : decomposeToBernstein
   const N: BernsteinDecomposition[] = []
   for (let i = 0; i < n; i++) {
     const e = new Array<number>(n).fill(0)
     e[i] = 1
-    N.push(decomposeToBernstein(e, knots, degree))
+    N.push(decompose(e, knots, degree))
   }
   const G = Array.from({ length: n }, () => new Array<number>(n).fill(0))
   for (let i = 0; i < n; i++) {
@@ -135,4 +136,34 @@ export function projectClosurePH(
     }
   }
   return { u: expand(uF), v: expand(vF) }
+}
+
+/**
+ * Newton-project a PERIODIC preimage onto closure ∮w² = 0 — minimum-norm step over ALL
+ * 2n coordinates (no seam parameterization; the periodic basis already makes the seam
+ * continuous). The clean closed-PH form Rust uses; for the editor's clamped chart use
+ * projectClosurePH instead.
+ */
+export function projectClosurePHPeriodic(
+  u: readonly number[], v: readonly number[], knots: readonly number[], degree: number, G?: number[][],
+): { u: number[]; v: number[] } {
+  const n = u.length
+  const Gm = G ?? generatorBasisGram(knots, degree, n, true)
+  const uu = u.slice(), vv = v.slice()
+  for (let iter = 0; iter < 8; iter++) {
+    const gap = closureGap(uu, vv, Gm)
+    if (Math.hypot(gap.re, gap.im) < 1e-12) break
+    const J = closureJacobian(uu, vv, Gm)
+    const Jx = [...J.reDu, ...J.reDv] // ∂re/∂[u,v]  (length 2n)
+    const Jy = [...J.imDu, ...J.imDv]
+    const a = dot(Jx, Jx), b = dot(Jx, Jy), c2 = dot(Jy, Jy), det = a * c2 - b * b
+    if (Math.abs(det) < 1e-20) break
+    const l0 = (c2 * gap.re - b * gap.im) / det, l1 = (-b * gap.re + a * gap.im) / det
+    for (let j = 0; j < 2 * n; j++) {
+      const step = -(Jx[j] * l0 + Jy[j] * l1)
+      if (j < n) uu[j] += step
+      else vv[j - n] += step
+    }
+  }
+  return { u: uu, v: vv }
 }
