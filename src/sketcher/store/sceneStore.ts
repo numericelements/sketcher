@@ -17,7 +17,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
 // and far faster on larger curves). Closed bsplines (periodic-junction knots) +
 // rational stay on the legacy optimizer until core covers those conventions.
-import { slideCurve, slideComplexRational, slide, slideOpenPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slideComplexRational, slide, slideOpenPHTracking, slideClosedPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -601,23 +601,19 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             // CLAMPED curve while holding the curve closed (∮w²=0 + seam wrap) and
             // the curvature-extrema count (seam-aware sliding). Re-express periodic.
             const rm = refit.metadata as Extract<PHMetadataAny, { kind: 'polynomial' }>
-            // Solve the generator toward the re-fit's CLAMPED curve with the legacy
-            // optimizer (the known-good closed-PH path). NOTE: the CORE slideClosedPH
-            // path (F6 option b) was reverted — it holds g's GENERATOR-span bound while
-            // the editor displays/guards the CURVE-span bound (F6), and those disagree,
-            // so on a big drag step the curve-span guard bisects the core solve's motion
-            // away → the point stalls. The honest fix is F6 option (c): make the core
-            // solve hold the curve-span bound directly (curve construction in the loop).
+            // CORE closed-PH tracking drag (faithful port of the legacy closed PHCurveProblem):
+            // direct objective toward the re-fit's CLAMPED curve, holding the seam-wrap/closure
+            // equalities + the curvature bound on the clamped generator (primal-dual). The editor
+            // keeps its CURVE-span guard below — the displayed PERIODIC bound (F6: closed gen-span
+            // ≠ periodic curve-span), so the solve and the displayed bound never fight.
             const target = computePHCurveFromUV(rm.uControlPoints, rm.vControlPoints, rm.uvKnots, rm.uvDegree, rm.origin.x, rm.origin.y)
-            const t0 = target.controlPoints[0]
-            const result = optimizePHCurve(meta, target.controlPoints, t0.x, t0.y, 0, {
-              preserveCurvatureExtrema: true,
-              closed: { wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont },
-              maxIterations: 24,
-              enableBFGS: false,
-            })
-            if (result.converged || result.iterations > 0) {
-              const om = result.curveResult.metadata
+            const sol = slideClosedPHTracking(
+              meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
+              meta.uvKnots, meta.uvDegree, target.controlPoints,
+              { wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont }, { maxIterations: 24 },
+            )
+            {
+              const om = { ...rm, uControlPoints: sol.u, vControlPoints: sol.v, origin: { x: sol.x0, y: sol.y0 } }
               // Build the periodic PH bspline from a generator, projecting EXACTLY onto
               // closure + seam wrap first (the optimizer's equalities are penalty-soft).
               const buildFromGen = (u: number[], v: number[]) => {

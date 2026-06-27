@@ -334,8 +334,10 @@ export function slideOpenPH(
  * low-degree PH numerator / analytic phJacobian; the curve value + ∂curveCP/∂var via the
  * core PH construction (g is translation-invariant, so the x0,y0 constraint columns are 0).
  */
+interface PHClosedConfig { wrapSign: number; seamContinuity: number }
+
 class OpenPHTrackingDragProblem implements OptimizationProblem {
-  readonly numEqualityConstraints = 0
+  readonly numEqualityConstraints: number
   private x0: number
   private y0: number
   private u: number[]
@@ -350,11 +352,17 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
   private signs: number[]
   private readonly gScale: number[]
   private _cpJac: CPDerivative[] | null = null
+  // Closed-curve seam wrap + closure (∮w²=0). nWrap = seam continuity matched (C⁰→0, C¹→1, C²→2).
+  private readonly isClosed: boolean
+  private readonly wrapSign: number
+  private readonly nWrap: number
+  private readonly wrapRatio: number
 
   constructor(
     genU: readonly number[], genV: readonly number[], x0: number, y0: number,
     knots: readonly number[], degree: number,
     curveCPs: readonly { x: number; y: number }[], dragIndex: number, targetX: number, targetY: number,
+    closed?: PHClosedConfig,
   ) {
     this.u = genU.slice()
     this.v = genV.slice()
@@ -372,6 +380,15 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
     this.cpWeights[dragIndex] = 10
     this.cpWeights[0] = 5
     this.cpWeights[m - 1] = 5
+    // Closed config: seam wrap (2 per matched derivative) + closure gap (2). wrapRatio = end
+    // knot-interval ratio (1 for uniform). Mirrors the legacy PHCurveProblem.
+    this.isClosed = !!closed
+    this.wrapSign = closed?.wrapSign ?? 1
+    this.nWrap = closed ? Math.max(0, Math.min(degree, closed.seamContinuity)) : 0
+    const hFirst = knots[degree + 1] - knots[degree]
+    const hLast = knots[this.n] - knots[this.n - 1]
+    this.wrapRatio = hFirst > 1e-12 ? hLast / hFirst : 1
+    this.numEqualityConstraints = this.isClosed ? 2 * this.nWrap + 2 : 0
     // Active set on the generator g (same sliding-mechanism rule as slideOpenPH): hold only
     // active coefficients strictly feasible at the start.
     const gc = this.numerator().flatCoeffs()
@@ -391,7 +408,7 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
   private curveCPs() { return computePHCurveFromUV(this.u, this.v, this.knots as number[], this.degree, this.x0, this.y0).controlPoints }
 
   get numVariables(): number { return 2 + 2 * this.n }
-  get numConstraints(): number { return this.activeIdx.length }
+  get numConstraints(): number { return this.numEqualityConstraints + this.activeIdx.length }
   getVariables(): number[] { return [this.x0, this.y0, ...this.u, ...this.v] }
   setVariables(x: number[]): void {
     this.x0 = x[0]; this.y0 = x[1]
@@ -437,21 +454,61 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
     })
   }
 
+  // Closed-curve equality residuals (driven to 0): seam-wrap matches first, then closure gap
+  // (lastCP − firstCP; origin cancels). Order matches equalityJacobian. (legacy PHCurveProblem)
+  private equalityConstraints(): number[] {
+    const out: number[] = []
+    const u = this.u, v = this.v, s = this.wrapSign, r = this.wrapRatio, n = this.n
+    if (this.nWrap >= 1) { out.push(u[n - 1] - s * u[0]); out.push(v[n - 1] - s * v[0]) }
+    if (this.nWrap >= 2) {
+      out.push(u[n - 2] - s * ((1 + r) * u[0] - r * u[1]))
+      out.push(v[n - 2] - s * ((1 + r) * v[0] - r * v[1]))
+    }
+    const cps = this.curveCPs(), last = cps.length - 1
+    out.push(cps[last].x - cps[0].x)
+    out.push(cps[last].y - cps[0].y)
+    return out
+  }
+  private equalityJacobian(): Matrix {
+    const nv = this.numVariables, s = this.wrapSign, r = this.wrapRatio, n = this.n
+    const uOff = 2, vOff = 2 + this.n
+    const zero = () => new Array<number>(nv).fill(0)
+    const rows: Matrix = []
+    if (this.nWrap >= 1) {
+      const ru = zero(); ru[uOff + (n - 1)] = 1; ru[uOff + 0] += -s; rows.push(ru)
+      const rv = zero(); rv[vOff + (n - 1)] = 1; rv[vOff + 0] += -s; rows.push(rv)
+    }
+    if (this.nWrap >= 2) {
+      const ru = zero(); ru[uOff + (n - 2)] = 1; ru[uOff + 0] += -s * (1 + r); ru[uOff + 1] += s * r; rows.push(ru)
+      const rv = zero(); rv[vOff + (n - 2)] = 1; rv[vOff + 0] += -s * (1 + r); rv[vOff + 1] += s * r; rows.push(rv)
+    }
+    const jac = this.cpJac(), last = jac[0].dx.length - 1
+    const gx = zero(), gy = zero()
+    for (let k = 0; k < nv; k++) { gx[k] = jac[k].dx[last] - jac[k].dx[0]; gy[k] = jac[k].dy[last] - jac[k].dy[0] }
+    rows.push(gx, gy)
+    return rows
+  }
+
   computeConstraints(): number[] {
     const gc = this.numerator().flatCoeffs()
-    return this.activeIdx.map((i, k) => gc[i] / this.gScale[k])
+    const bound = this.activeIdx.map((i, k) => gc[i] / this.gScale[k])
+    return this.isClosed ? [...this.equalityConstraints(), ...bound] : bound
   }
   computeConstraintJacobian(): Matrix {
     const J = phJacobian(this.u, this.v, this.knots, this.degree, false, 'analytic') // [nG][2n] interleaved
     const nv = this.numVariables
-    return this.activeIdx.map((i, k) => {
+    const boundRows = this.activeIdx.map((i, k) => {
       const row = J[i]
       const out = new Array<number>(nv).fill(0) // cols 0,1 = x0,y0 → 0 (g translation-invariant)
       for (let j = 0; j < this.n; j++) { out[2 + j] = row[2 * j] / this.gScale[k]; out[2 + this.n + j] = row[2 * j + 1] / this.gScale[k] }
       return out
     })
+    return this.isClosed ? [...this.equalityJacobian(), ...boundRows] : boundRows
   }
-  getConstraintSigns(): number[] { return this.signs }
+  getConstraintSigns(): number[] {
+    // Equality rows first (sign unused — equalities use a penalty, not the barrier).
+    return this.isClosed ? [...new Array<number>(this.numEqualityConstraints).fill(1), ...this.signs] : this.signs
+  }
   getInactiveConstraints(): Set<number> { return new Set<number>() }
   updateConstraintState(): void {
     const gc = this.numerator().flatCoeffs()
@@ -502,5 +559,31 @@ export function slideOpenPHTracking(
       ? { x0: x0 + lo * (res.x0 - x0), y0: y0 + lo * (res.y0 - y0), u, v }
       : { x0, y0, u: [...genU], v: [...genV] }
   }
+  return { u: res.u, v: res.v, x0: res.x0, y0: res.y0, converged: r.converged }
+}
+
+/**
+ * One CLOSED-PH drag tracking the curve toward `targetCurveCPs` (the re-fit's clamped curve) —
+ * the faithful core analogue of the legacy closed optimizePHCurve. Optimizes the CLAMPED
+ * generator [x0,y0,u,v] holding the curvature bound AND the closed-curve equalities (seam wrap +
+ * closure ∮w²=0), via the primal-dual solver (the equalities are the KKT border — the same
+ * solver the core closed paths use). The editor keeps its own curve-span guard on top (the
+ * displayed periodic bound; F6 — closed gen-span ≠ periodic curve-span). Returns origin + generator.
+ */
+export function slideClosedPHTracking(
+  genU: readonly number[], genV: readonly number[], x0: number, y0: number,
+  knots: readonly number[], degree: number,
+  targetCurveCPs: readonly { x: number; y: number }[], closed: PHClosedConfig,
+  opts: OpenPHTrackingOptions = {},
+): { u: number[]; v: number[]; x0: number; y0: number; converged: boolean } {
+  // dragIndex 0 with target = its own current value ⇒ the objective just tracks the whole
+  // target curve (the re-fit already encodes the drag), exactly like the legacy closed call.
+  const problem = new OpenPHTrackingDragProblem(
+    genU, genV, x0, y0, knots, degree, targetCurveCPs, 0, targetCurveCPs[0].x, targetCurveCPs[0].y, closed,
+  )
+  const pd = new PrimalDualOptimizer(problem, { maxIterations: opts.maxIterations ?? 24, returnBestFeasible: true })
+  const r = pd.optimize()
+  problem.setVariables(r.variables)
+  const res = problem.result()
   return { u: res.u, v: res.v, x0: res.x0, y0: res.y0, converged: r.converged }
 }

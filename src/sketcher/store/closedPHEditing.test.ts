@@ -62,14 +62,29 @@ describe('closed PH editing: drag holds the bound (the guard)', () => {
       expect(boundOf(cur(id)), `step ${s}: closed PH bound rose past ${start}`).toBeLessThanOrEqual(start)
       expect(cur(id).closed).toBe(true)
     }
-    // Reshape, don't block: the dragged point must TRACK the cursor — not stall at its
-    // start. The nearest CP to the (sx-120, sy+90) target should have moved a meaningful
-    // fraction of the way there. (Pins the legacy closed-PH solve; the core slideClosedPH
-    // path was reverted — F6: it holds the gen-span bound, not the displayed curve-span one.)
+    // Reshape, don't block: the dragged point must TRACK the cursor — not stall at its start.
+    // (Now on core slideClosedPHTracking: direct objective + closure equalities + curve-span guard.)
     const cps = cur(id).controlPoints as Point2D[]
     const target = { x: sx - 120, y: sy + 90 }
     const nearest = cps.reduce((best, p) => Math.hypot(p.x - target.x, p.y - target.y) < Math.hypot(best.x - target.x, best.y - target.y) ? p : best, cps[0])
     const traveled = Math.hypot(nearest.x - sx, nearest.y - sy)
     expect(traveled, 'closed PH drag stalled — the curve did not track the cursor').toBeGreaterThan(30)
+  }, 30000)
+
+  it('a BIG single-tick jump tracks, holds the bound, stays closed (the original stall case)', () => {
+    const id = injectClosedPH('cph-big')
+    const start = boundOf(cur(id))
+    const k = 3
+    const p0 = (cur(id).controlPoints as Point2D[])[k]
+    const sx = p0.x, sy = p0.y
+    // one large jump — this is exactly what stalled with the generator-bound core path
+    useSceneStore.getState().moveControlPoint(id, k, { x: sx - 160, y: sy + 120 })
+    expect(boundOf(cur(id)), 'big-jump closed PH bound rose').toBeLessThanOrEqual(start)
+    expect(cur(id).closed).toBe(true)
+    const cps = cur(id).controlPoints as Point2D[]
+    const target = { x: sx - 160, y: sy + 120 }
+    const nearest = cps.reduce((b, p) => Math.hypot(p.x - target.x, p.y - target.y) < Math.hypot(b.x - target.x, b.y - target.y) ? p : b, cps[0])
+    const traveled = Math.hypot(nearest.x - sx, nearest.y - sy)
+    expect(traveled, `closed PH big-jump stalled (traveled ${traveled.toFixed(1)})`).toBeGreaterThan(40)
   }, 30000)
 })
