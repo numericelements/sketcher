@@ -581,7 +581,13 @@ export function slideClosedPHTracking(
   const problem = new OpenPHTrackingDragProblem(
     genU, genV, x0, y0, knots, degree, targetCurveCPs, 0, targetCurveCPs[0].x, targetCurveCPs[0].y, closed,
   )
-  const pd = new PrimalDualOptimizer(problem, { maxIterations: opts.maxIterations ?? 24, returnBestFeasible: true })
+  // InteriorPoint (penalty equalities) — matches the legacy closed PHCurveProblem solver, which
+  // tracks; the primal-dual border stalled on this problem (closed PH tracking).
+  const pd = new InteriorPointOptimizer(problem, {
+    maxIterations: opts.maxIterations ?? 24,
+    enableBFGS: opts.enableBFGS ?? false,
+    returnBestFeasible: true,
+  })
   const r = pd.optimize()
   problem.setVariables(r.variables)
   const res = problem.result()
