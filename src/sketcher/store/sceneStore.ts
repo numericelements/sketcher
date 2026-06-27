@@ -13,10 +13,14 @@ import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeR
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
 import { weightedAveragePhi, threeArcPointsFromNoisyPoints, circleArcFromThreePoints, type CircleArcGeometry } from '../utils/circleArc'
 import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizePHCurve, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve, type OptimizeRationalResult } from '../optimizer'
-// MIGRATION: open planar B-spline curvature-extrema drag now runs on the clean
-// core/ engine (banded, scaled-robust: O(n) gradient + banded LDLᵀ solve, faithful
-// and far faster on larger curves). Closed bsplines (periodic-junction knots) +
-// rational stay on the legacy optimizer until core covers those conventions.
+// MIGRATION: curvature-extrema drag now runs on the clean core/ engine for the
+// CLEAN-PERIODIC + open cases of every algebraic family — open & closed polynomial
+// (slideCurve), and closed real-rational & complex-rational (slideComplexRational,
+// banded + low-rank seam = arrowhead, weights held fixed, ρ-aware). Open rational/
+// complex go through the generic slide(). Only the non-clean-periodic conventions
+// (periodic-junction/cusp knots) and symmetry-reduced/anchored drags still fall to
+// the legacy optimizer; PH is largely legacy. See docs/THE_IDEAS.md (idea VII) and
+// docs/CURVATURE_ARCHITECTURE.md for the convergence status.
 import { slideCurve, slideComplexRational, slide, slideOpenPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
@@ -984,14 +988,18 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // Control points carry the live complex weights, so the drag rides them along;
     // Farin handles are recomputed wrapWeight-aware via computeComplexFarinPoints.
     // ~13× faster than the dense path at 80 CPs; falls through to the legacy optimizer
-    // on any failure or a junction (non-clean) knot.
-    const crCleanPeriodic =
+    // on any failure or a domain core's periodic model doesn't represent (knots[0]≠0, last≥1,
+    // or count mismatch). JUNCTION/CUSP (repeated) knots ARE handled by core — verified: the
+    // numerator matches legacy to machine-ε and the analytic gradient matches FD on interior,
+    // cusp, and seam multiplicities (closedJunctionComplexParity.test.ts) — so we require only
+    // a NON-DECREASING period-[0,1) knot vector with one knot per CP, not strictly increasing.
+    const crPeriodic =
       curve.kind === 'complex-rational' && curve.closed &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
-      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
+      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v >= curve.knots[i - 1])) &&
       curve.knots[curve.knots.length - 1] < 1
-    if (preserveCurvatureExtrema && curve.kind === 'complex-rational' && crCleanPeriodic) {
+    if (preserveCurvatureExtrema && curve.kind === 'complex-rational' && crPeriodic) {
       try {
         const cw0 = curve.controlPoints[0]
         const rho = curve.wrapWeight ? complexSpiralRatio(curve.wrapWeight, { re: cw0.w_re, im: cw0.w_im }) : undefined
@@ -1020,11 +1028,14 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // weights held fixed). Same story as open rational: the CPs are the variables, familyBound
     // == the displayed bound (curvatureExtremaNumeratorComplex + robust signs), and slide()'s
     // objective tracks the cursor directly. Weights (w_re,w_im) are frozen; Farin handles are
-    // recomputed from the new positions + frozen weights (display aid, derived). Edge cases
-    // (symmetry, inflection, anchor) stay on the legacy optimizer below.
+    // recomputed from the new positions + frozen weights (display aid, derived).
+    // symmetry/inflection are no-ops for complex-rational — the LEGACY path ignores them too
+    // (OptimizeOptions wires them only for the polynomial/bspline solve), so routing those
+    // drags here is behaviour-preserving. Only anchorWeight>0 still defers to legacy (open-core
+    // anchor support is migration sub-step #2). See docs/THE_IDEAS.md (idea VI) / legacy-deletion.
     if (
       preserveCurvatureExtrema && curve.kind === 'complex-rational' && !curve.closed &&
-      !symmetryMaps && !preserveInflections && anchorWeight === 0
+      anchorWeight === 0
     ) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.re, im: p.im, wRe: p.w_re, wIm: p.w_im }))

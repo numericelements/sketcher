@@ -190,8 +190,9 @@ export function optimizeRationalCurve(
 
 /**
  * Optimize using the internal BSpline2D representation.
+ * Internal: only called by optimizeCurve in this file (not exported).
  */
-export function optimizeCurveInternal(
+function optimizeCurveInternal(
   curve: BSpline2D,
   targetX: number,
   targetY: number,
@@ -267,8 +268,9 @@ export function optimizeCurveInternal(
 
 /**
  * Optimize using the internal RationalBSpline2D representation.
+ * Internal: only called by optimizeRationalCurve in this file (not exported).
  */
-export function optimizeRationalCurveInternal(
+function optimizeRationalCurveInternal(
   curve: RationalBSpline2D,
   targetX: number,
   targetY: number,

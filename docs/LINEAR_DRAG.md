@@ -76,10 +76,13 @@ findings:
   - Sparse local Jacobian: `PlanarCurvatureProblem.computeConstraintJacobianLocal`.
   - All reachable ONLY via `slideCurve method:'barrier'|'primal-dual'`, which is itself
     used only by the cs2026 talk demos — doubly removed from the live drag.
-- **Missing entirely:** no `solveWindowed`; no arrowhead/cyclic solver for closed curves
-  (closed has NO near-linear path — `banded = !closed`); the sketcher optimizer has no
-  banded solver and emits dense full-width Jacobian rows; PH still uses an FD extrema
-  Jacobian (`O(n²)` assembly) and a dense solve.
+- **Present now (UPDATE 2026-06-27):** `core/cyclic.ts` (arrowhead/Woodbury) IS implemented
+  and wired for CLOSED rational & complex-rational (`slideComplexRational` → `bandedSolve:true,
+  closed:true`) and for closed polynomial (`slideCurve`). Measured closed complex-rational is
+  ~O(n) at editor sizes (proof point below).
+- **Still missing:** `solveWindowed`/hinge (Rust has it, open-rational only); PH still uses an
+  FD extrema Jacobian (`O(n²)` assembly) + a dense solve; the legacy sketcher optimizer (now
+  only the junction-knot/symmetry/PH closed cases) has no banded solver.
 
 ## Proof point — core's banded solver works (validates the whole direction)
 
@@ -214,8 +217,13 @@ assembly dominates the O(n³) solve we removed. So the banded solve is the valid
    bottleneck at these sizes (the gradient was), so building the band entry-by-entry just
    adds constant overhead. It's the right architecture for SURFACES (large n, where the dense
    n×n O(n²) dominates); revisit it there with the per-entry overhead tuned.
-3. **Arrowhead/cyclic solver for closed curves** — port `cyclic.rs`; closed has no
-   near-linear path today.
+3. ✅ **DONE (2026-06-27) — arrowhead/cyclic solver for closed curves.** `core/cyclic.ts`
+   ported and wired: closed rational & complex-rational (`slideComplexRational`) and closed
+   polynomial (`slideCurve`) run band + low-rank-seam (arrowhead/Woodbury). Measured closed
+   complex-rational ~O(n) (≈2×/doubling, n=8→128: 91→200→364→782→1584 ms/step). Caveat: at
+   editor sizes **dense ≈ banded** — the linear *solve* is not the bottleneck (per-iteration
+   numerator/assembly is); the arrowhead is the architecture that keeps the solve O(n) at large
+   n. Remaining closed gap: PH (still dense — step 4).
 4. **PH banded** — assembly is already cheap (low-degree g); give it an analytic/seeded
    extrema Jacobian + banded (interleaved-generator) ordering so the solve stops being
    dense. Greenfield (Rust hasn't done it either).
