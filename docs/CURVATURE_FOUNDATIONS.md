@@ -285,5 +285,35 @@ objective. Both stay on legacy until a core PH drag has the direct cursor-tracki
 
 ---
 
-*Add F7, … as we establish them. Never delete a fact that is still true; if a fact turns out
+## F7 — The PH curvature-extrema numerator reduces by σ²: g = 2·R·σ²
+
+For a polynomial PH curve the hodograph is `c′ = w²`, so the parametric speed `σ = ‖c′‖ =
+u²+v²` is a **polynomial** (no square root). Write `P = uv′−vu′` (the reduced curvature
+numerator, `κ = 2P/σ²`). Then the dκ/ds numerator factors:
+
+    g  =  2 · R · σ² ,    with    R = P′σ − 2Pσ'
+
+i.e. the general planar numerator `g = ‖c′‖²(c′×c‴) − 3(c′·c″)(c′×c″)` (degree **8m−2** = 14
+for a quintic, m = uvDegree) carries a **redundant σ²** for a PH curve. Cancel it and the
+extrema numerator is `R` (degree **4m−2** = 6). Since σ² > 0, **R has exactly the same sign
+changes — the same curvature extrema — as g.**
+
+**Evidence (pinning test `core/__tests__/phReducedNumerator.test.ts`):** across four open
+quintic-PH generators, `g(t)/(R(t)·σ(t)²) = 2.000…` with relative spread 1e-13…1e-16 (machine
+precision). Degrees: R = 6, g = 14.
+
+**Why it matters.** g's coefficient **dynamic range is catastrophic** — measured 5.6e5 up to
+**1.3e21** across those curves (the σ² blow-up, an extreme case of F1's span-driven range). R's
+stays ~1e1–1e3. So R is the same extrema at **half the degree and up to ~1e18× better
+conditioned.** Two consequences: (1) the F1 ill-conditioning is a prime driver of the
+closed-PH solver stall (#23, the [[ipopt-rho-load-bearing]] tuning wall) — an R-based
+constraint is a candidate fix *from the conditioning side*; (2) at 1e21 range g's own
+extrema/marker count is numerically unreliable (a Law-3 honesty risk), while R is trustworthy.
+
+Open PH only as stated (gen-span g ≡ curve-span g, F6); the **closed** reduction needs the
+periodic form of P, σ, R (the seam wrap) — not yet built/verified.
+
+---
+
+*Add F8, … as we establish them. Never delete a fact that is still true; if a fact turns out
 wrong, replace it and say why (a wrong fact in here is worse than none).*

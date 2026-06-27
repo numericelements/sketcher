@@ -100,6 +100,65 @@ export function phCurvatureGradient(
   return { g, du, dv }
 }
 
+// ============================================================================
+// REDUCED PH curvature-extrema numerator R (FOUNDATIONS F7 / docs/PH_CURVATURE_REDUCTION.md).
+//
+// PH speed σ = u²+v² is polynomial, so g = 2·R·σ² with R = P′σ − 2Pσ', P = uv′−vu'.
+// σ² > 0 (a square), so R has the SAME sign changes (curvature extrema) as g, at degree
+// 4m−2 instead of 8m−2 and ~10³–10¹⁸× better conditioning. R is the honest minimal object:
+// sign(R) = sign(dκ/dt). Same real B-spline algebra as g, but real (not complex).
+// ============================================================================
+
+/** Reduced PH curvature-extrema numerator R = P′σ − 2Pσ', P = uv′−vu', σ = u²+v². */
+export function curvatureExtremaReducedNumeratorPH(
+  u: readonly number[], v: readonly number[], knots: readonly number[], degree: number, closed = false,
+): BernsteinDecomposition {
+  const dec = closed ? decomposeToBernsteinPeriodic : decomposeToBernstein
+  const U = dec(u, knots, degree), V = dec(v, knots, degree)
+  const P = U.multiply(V.derivative()).subtract(V.multiply(U.derivative())) // uv'−vu'
+  const sigma = U.multiply(U).add(V.multiply(V))                            // u²+v²
+  return P.derivative().multiply(sigma).subtract(P.multiply(sigma.derivative()).scale(2)) // P'σ−2Pσ'
+}
+
+/** Forward-AD dual over the real B-spline algebra: (value, tangent) BernsteinDecompositions. */
+class RDual {
+  constructor(readonly val: BernsteinDecomposition, readonly tan: BernsteinDecomposition) {}
+  add(o: RDual) { return new RDual(this.val.add(o.val), this.tan.add(o.tan)) }
+  sub(o: RDual) { return new RDual(this.val.subtract(o.val), this.tan.subtract(o.tan)) }
+  mul(o: RDual) { return new RDual(this.val.multiply(o.val), this.val.multiply(o.tan).add(this.tan.multiply(o.val))) }
+  scale(s: number) { return new RDual(this.val.scale(s), this.tan.scale(s)) }
+  derivative() { return new RDual(this.val.derivative(), this.tan.derivative()) }
+}
+
+/**
+ * Exact analytic Jacobian of the REDUCED numerator R w.r.t. the generator control points,
+ * by forward-AD over the B-spline algebra (seed the perturbed coordinate's tangent with the
+ * Dirac basis Nᵢ). du[i] = ∂R/∂u_i, dv[i] = ∂R/∂v_i.
+ */
+export function reducedPHGradient(
+  u: readonly number[], v: readonly number[], knots: readonly number[], degree: number, closed = false,
+): { R: BernsteinDecomposition; du: BernsteinDecomposition[]; dv: BernsteinDecomposition[] } {
+  const dec = closed ? decomposeToBernsteinPeriodic : decomposeToBernstein
+  const Uv = dec(u, knots, degree), Vv = dec(v, knots, degree)
+  const zero = Uv.scale(0)
+  const computeR = (Ud: RDual, Vd: RDual): RDual => {
+    const P = Ud.mul(Vd.derivative()).sub(Vd.mul(Ud.derivative()))
+    const sigma = Ud.mul(Ud).add(Vd.mul(Vd))
+    return P.derivative().mul(sigma).sub(P.mul(sigma.derivative()).scale(2))
+  }
+  const R = computeR(new RDual(Uv, zero), new RDual(Vv, zero)).val
+  const n = u.length
+  const du: BernsteinDecomposition[] = [], dv: BernsteinDecomposition[] = []
+  for (let i = 0; i < n; i++) {
+    const e = new Array<number>(n).fill(0)
+    e[i] = 1
+    const Ni = dec(e, knots, degree)
+    du.push(computeR(new RDual(Uv, Ni), new RDual(Vv, zero)).tan) // ∂R/∂u_i
+    dv.push(computeR(new RDual(Uv, zero), new RDual(Vv, Ni)).tan) // ∂R/∂v_i
+  }
+  return { R, du, dv }
+}
+
 export type PHJacobianBackend = 'fd' | 'analytic'
 
 /**

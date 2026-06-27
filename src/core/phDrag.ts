@@ -18,7 +18,7 @@ import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
 import { PrimalDualOptimizer } from './optimize'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
 import { computeInactiveSetBySign, computeInactiveSetBySignCyclic } from './curvatureProblem'
-import { curvatureExtremaNumeratorPH, phJacobian } from './phCurvature'
+import { curvatureExtremaNumeratorPH, phJacobian, curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
 import { generatorBasisGram, closureGap, closureJacobian, projectClosurePHPeriodic } from './phClosure'
 import { computePHCurveFromUV, phControlPointJacobian, type CPDerivative } from './phCurveConstruction'
 
@@ -357,13 +357,18 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
   private readonly wrapSign: number
   private readonly nWrap: number
   private readonly wrapRatio: number
+  // Use the REDUCED numerator R (= dκ/dt numerator, deg 4m−2) instead of g (deg 8m−2) for the
+  // curvature-extrema constraint. Same sign changes (g = 2Rσ², σ²>0), but far better
+  // conditioned (FOUNDATIONS F7) — a candidate for easing the stiff closed-PH solve.
+  private readonly useReduced: boolean
 
   constructor(
     genU: readonly number[], genV: readonly number[], x0: number, y0: number,
     knots: readonly number[], degree: number,
     curveCPs: readonly { x: number; y: number }[], dragIndex: number, targetX: number, targetY: number,
-    closed?: PHClosedConfig,
+    closed?: PHClosedConfig, useReduced = false,
   ) {
+    this.useReduced = useReduced
     this.u = genU.slice()
     this.v = genV.slice()
     this.x0 = x0
@@ -400,7 +405,9 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
     this.gScale = this.activeIdx.map((i) => scaleAbs[i])
   }
 
-  private numerator() { return curvatureExtremaNumeratorPH(this.u, this.v, this.knots, this.degree, false) }
+  private numerator() {
+    return (this.useReduced ? curvatureExtremaReducedNumeratorPH : curvatureExtremaNumeratorPH)(this.u, this.v, this.knots, this.degree, false)
+  }
   private cpJac(): CPDerivative[] {
     if (!this._cpJac) this._cpJac = phControlPointJacobian(this.u, this.v, this.knots as number[], this.degree)
     return this._cpJac
@@ -495,11 +502,22 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
     return this.isClosed ? [...this.equalityConstraints(), ...bound] : bound
   }
   computeConstraintJacobian(): Matrix {
-    const J = phJacobian(this.u, this.v, this.knots, this.degree, false, 'analytic') // [nG][2n] interleaved
+    const J = this.useReduced
+      ? (() => {
+          const { R, du, dv } = reducedPHGradient(this.u, this.v, this.knots, this.degree, false)
+          const nR = R.flatCoeffs().length
+          const M = Array.from({ length: nR }, () => new Array<number>(2 * this.n).fill(0))
+          for (let i = 0; i < this.n; i++) {
+            const cu = du[i].flatCoeffs(), cv = dv[i].flatCoeffs()
+            for (let k = 0; k < nR; k++) { M[k][2 * i] = cu[k]; M[k][2 * i + 1] = cv[k] }
+          }
+          return M
+        })()
+      : phJacobian(this.u, this.v, this.knots, this.degree, false, 'analytic') // [nG][2n] interleaved
     const nv = this.numVariables
     const boundRows = this.activeIdx.map((i, k) => {
       const row = J[i]
-      const out = new Array<number>(nv).fill(0) // cols 0,1 = x0,y0 → 0 (g translation-invariant)
+      const out = new Array<number>(nv).fill(0) // cols 0,1 = x0,y0 → 0 (numerator translation-invariant)
       for (let j = 0; j < this.n; j++) { out[2 + j] = row[2 * j] / this.gScale[k]; out[2 + this.n + j] = row[2 * j + 1] / this.gScale[k] }
       return out
     })
@@ -519,7 +537,18 @@ class OpenPHTrackingDragProblem implements OptimizationProblem {
   result(): { x0: number; y0: number; u: number[]; v: number[] } { return { x0: this.x0, y0: this.y0, u: [...this.u], v: [...this.v] } }
 }
 
-export interface OpenPHTrackingOptions { maxIterations?: number; enableBFGS?: boolean }
+export interface OpenPHTrackingOptions {
+  maxIterations?: number
+  enableBFGS?: boolean
+  /** Solver / equality treatment (for diagnosis of stiff constrained drags):
+   *  'ipopt' (default) = barrier + trust region, equalities as a SOFT quadratic penalty;
+   *  'primal-dual' = Mehrotra predictor-corrector, equalities as a HARD KKT border (Lagrange
+   *  multipliers). Lets us compare the two on the same closed-PH problem (#23). */
+  solver?: 'ipopt' | 'primal-dual'
+  /** Use the reduced curvature-extrema numerator R (deg 4m−2) instead of g (deg 8m−2) for the
+   *  constraint — same extrema, far better conditioned (FOUNDATIONS F7). For the #23 stall. */
+  useReduced?: boolean
+}
 
 /**
  * One open-PH drag tracking the dragged CURVE control point to (targetX, targetY) — the
@@ -534,7 +563,7 @@ export function slideOpenPHTracking(
   opts: OpenPHTrackingOptions = {},
 ): { u: number[]; v: number[]; x0: number; y0: number; converged: boolean } {
   const startBound = phBoundOpen(genU, genV, knots, degree)
-  const problem = new OpenPHTrackingDragProblem(genU, genV, x0, y0, knots, degree, curveCPs, dragIndex, targetX, targetY)
+  const problem = new OpenPHTrackingDragProblem(genU, genV, x0, y0, knots, degree, curveCPs, dragIndex, targetX, targetY, undefined, opts.useReduced ?? false)
   const ip = new InteriorPointOptimizer(problem, {
     maxIterations: opts.maxIterations ?? 24,
     enableBFGS: opts.enableBFGS ?? false,
@@ -579,16 +608,23 @@ export function slideClosedPHTracking(
   // dragIndex 0 with target = its own current value ⇒ the objective just tracks the whole
   // target curve (the re-fit already encodes the drag), exactly like the legacy closed call.
   const problem = new OpenPHTrackingDragProblem(
-    genU, genV, x0, y0, knots, degree, targetCurveCPs, 0, targetCurveCPs[0].x, targetCurveCPs[0].y, closed,
+    genU, genV, x0, y0, knots, degree, targetCurveCPs, 0, targetCurveCPs[0].x, targetCurveCPs[0].y, closed, opts.useReduced ?? false,
   )
-  // InteriorPoint (penalty equalities) — matches the legacy closed PHCurveProblem solver, which
-  // tracks; the primal-dual border stalled on this problem (closed PH tracking).
-  const pd = new InteriorPointOptimizer(problem, {
-    maxIterations: opts.maxIterations ?? 24,
-    enableBFGS: opts.enableBFGS ?? false,
-    returnBestFeasible: true,
-  })
-  const r = pd.optimize()
+  // Solver toggle (#23 diagnosis). Default 'ipopt' = barrier + trust region, closure as a SOFT
+  // quadratic penalty (matches the legacy closed PHCurveProblem solver, which tracks).
+  // 'primal-dual' = hard-KKT closure border (Lagrange multipliers) — for comparing equality
+  // treatments on this stiff problem.
+  const opt = (opts.solver ?? 'ipopt') === 'primal-dual'
+    ? new PrimalDualOptimizer(problem, {
+        maxIterations: opts.maxIterations ?? 24,
+        returnBestFeasible: true,
+      })
+    : new InteriorPointOptimizer(problem, {
+        maxIterations: opts.maxIterations ?? 24,
+        enableBFGS: opts.enableBFGS ?? false,
+        returnBestFeasible: true,
+      })
+  const r = opt.optimize()
   problem.setVariables(r.variables)
   const res = problem.result()
   return { u: res.u, v: res.v, x0: res.x0, y0: res.y0, converged: r.converged }
