@@ -28,9 +28,12 @@
 
 import { computePHCurveFromUV, type PHCurveResult, type PHMetadata } from './phCurve'
 import { phControlPointJacobian } from './phCurveAnalytic'
-import { findKnotSpan, basisFunctions, evaluateBSpline, findPeriodicKnotSpan, periodicBasisFunctions } from '../utils/bspline/core'
-import { evaluatePeriodicBSpline } from '../utils/bspline/core'
-import { leastSquares, type Matrix } from './linearAlgebra'
+import {
+  buildPeriodicPHCurve as coreBuildPeriodicPHCurve,
+  periodicGenKnots as corePeriodicGenKnots,
+  clampedFromPeriodicGenKnots as coreClampedFromPeriodicGenKnots,
+  fitClosedPHSpline as coreFitClosedPHSpline,
+} from '../../core'
 import type { Point2D } from '../types/curve'
 
 /**
@@ -51,49 +54,7 @@ export function buildPeriodicPHCurve(
   clampedKnots: number[],
   seamContinuity: number,
 ): { controlPoints: Point2D[]; knots: number[]; degree: number } {
-  const degree = 5
-  // Distinct interior breakpoints (joins) in (0,1) WITH the curve's own knot
-  // multiplicity there (already genMult + 2 from the clamped recomposition). We
-  // copy it through — capped at degree — so a collided generator knot (curve C¹,
-  // mult 4) keeps its mult-4 join instead of being forced to a smooth mult-3 one.
-  const interior: { v: number; mult: number }[] = []
-  for (const k of clampedKnots) {
-    if (k > 1e-9 && k < 1 - 1e-9) {
-      const e = interior.find((x) => Math.abs(x.v - k) < 1e-9)
-      if (e) e.mult++; else interior.push({ v: k, mult: 1 })
-    }
-  }
-  interior.sort((a, b) => a.v - b.v)
-
-  // Periodic knot vector (length n = #control points): the seam at 0 carries
-  // degree − seamContinuity knots; each interior join keeps its own multiplicity.
-  const seamMult = degree - seamContinuity
-  const Kp: number[] = []
-  for (let r = 0; r < seamMult; r++) Kp.push(0)
-  for (const b of interior) { const cm = Math.min(degree, b.mult); for (let r = 0; r < cm; r++) Kp.push(b.v) }
-  const n = Kp.length
-
-  // Sample the exact clamped curve over [0,1) and least-squares fit the periodic
-  // control points (the periodic basis encodes the wrap).
-  const lo = clampedKnots[degree], hi = clampedKnots[clampedKnots.length - degree - 1]
-  const m = Math.max(4 * n, 240)
-  const A: Matrix = []
-  const bx: number[] = [], by: number[] = []
-  for (let i = 0; i < m; i++) {
-    const tt = i / m
-    const p = evaluateBSpline(clampedCPs, degree, clampedKnots, Math.min(lo + tt * (hi - lo), hi - 1e-9))
-    const span = findPeriodicKnotSpan(degree, Kp, tt)
-    const N = periodicBasisFunctions(span, tt, degree, Kp)
-    const row = new Array(n).fill(0)
-    for (let j = 0; j <= degree; j++) {
-      const idx = (((span - degree + j) % n) + n) % n
-      row[idx] += N[j]
-    }
-    A.push(row); bx.push(p.x); by.push(p.y)
-  }
-  const sx = leastSquares(A, bx), sy = leastSquares(A, by)
-  const controlPoints = sx.x.map((x, i) => ({ x, y: sy.x[i] }))
-  return { controlPoints, knots: Kp, degree }
+  return coreBuildPeriodicPHCurve(clampedCPs, clampedKnots, seamContinuity)
 }
 
 /** Closed PH generator degree (a quadratic generator ⇒ a quintic curve). */
@@ -109,13 +70,7 @@ export const GEN_DEGREE = 2
  * just the chart in which knot editing is natural.
  */
 export function periodicGenKnots(clampedKnots: number[], seamContinuity: number): number[] {
-  const muSeam = (GEN_DEGREE + 1) - Math.max(0, Math.min(GEN_DEGREE, seamContinuity))
-  const interior = clampedKnots.filter((k) => k > 1e-9 && k < 1 - 1e-9)
-  const out: number[] = []
-  for (let i = 0; i < muSeam; i++) out.push(0)
-  out.push(...interior)
-  out.sort((a, b) => a - b)
-  return out
+  return corePeriodicGenKnots(clampedKnots, seamContinuity, GEN_DEGREE)
 }
 
 /**
@@ -125,14 +80,7 @@ export function periodicGenKnots(clampedKnots: number[], seamContinuity: number)
  * knots become the clamped interior (boundary always clamped to degree+1).
  */
 export function clampedFromPeriodicGenKnots(periodic: number[]): { genKnots: number[]; seamContinuity: number } {
-  const muSeam = periodic.filter((k) => Math.abs(k) < 1e-9).length
-  const interior = periodic.filter((k) => k > 1e-9 && k < 1 - 1e-9).sort((a, b) => a - b)
-  const seamContinuity = Math.max(0, Math.min(GEN_DEGREE, (GEN_DEGREE + 1) - muSeam))
-  const genKnots: number[] = []
-  for (let i = 0; i <= GEN_DEGREE; i++) genKnots.push(0)
-  genKnots.push(...interior)
-  for (let i = 0; i <= GEN_DEGREE; i++) genKnots.push(1)
-  return { genKnots, seamContinuity }
+  return coreClampedFromPeriodicGenKnots(periodic, GEN_DEGREE)
 }
 
 /**
@@ -227,167 +175,23 @@ export function fitClosedPHSpline(
   strokeKnots: number[],
   options: ClosedPHSplineFitOptions = {},
 ): PHCurveResult | null {
-  if (strokeCPs.length < 3) return null
-  const genDegree = 2
-  // Generator segments m: from a custom knot vector if given (knot moving keeps
-  // the moved, possibly non-uniform knots), else uniform from the segment count.
-  const customKnots = options.genKnots
-  const m = customKnots ? customKnots.length - 2 * genDegree - 1 : Math.max(4, options.segments ?? strokeCPs.length)
-  const n = m + genDegree // generator control points (clamped quadratic)
-  const samples = Math.max(8 * m, options.samplesPerSegment ? options.samplesPerSegment * m : 8 * m)
-
-  // Periodic hodograph h(t) = C'(t) by central differences (the stroke wraps).
-  const evalStroke = (t: number) => evaluatePeriodicBSpline(strokeCPs, strokeDegree, strokeKnots, t)
-  const eps = 1e-4
-  const hAt = (t: number): { re: number; im: number } => {
-    const a = evalStroke(t - eps), b = evalStroke(t + eps)
-    return { re: (b.x - a.x) / (2 * eps), im: (b.y - a.y) / (2 * eps) }
-  }
-
-  // Turning number parity → wrap sign s. Sum signed angle steps of h around the
-  // full loop (including the wrap back to the start).
-  const NS = samples
-  let winding = 0
-  const h0 = hAt(0)
-  let prevAng = Math.atan2(h0.im, h0.re)
-  for (let k = 1; k <= NS; k++) {
-    const t = k / NS // includes t = 1 (== h(0)) to close the loop
-    const h = hAt(t % 1)
-    const ang = Math.atan2(h.im, h.re)
-    let d = ang - prevAng
-    while (d > Math.PI) d -= 2 * Math.PI
-    while (d < -Math.PI) d += 2 * Math.PI
-    winding += d
-    prevAng += d
-  }
-  const k = Math.round(winding / (2 * Math.PI))
-  const s = (k % 2 === 0) ? 1 : -1
-
-  // √h samples with a continuously unwrapped half-angle (the sign is then
-  // consistent with the wrap substitution below).
-  const ts: number[] = [], gRe: number[] = [], gIm: number[] = []
-  {
-    let ang = Math.atan2(hAt(0).im, hAt(0).re)
-    let prevA = ang
-    for (let i = 0; i < NS; i++) {
-      const t = (i + 0.5) / NS
-      const h = hAt(t)
-      const a = Math.atan2(h.im, h.re)
-      let d = a - prevA
-      while (d > Math.PI) d -= 2 * Math.PI
-      while (d < -Math.PI) d += 2 * Math.PI
-      ang += d; prevA = a
-      const half = ang / 2
-      const r = Math.sqrt(Math.hypot(h.re, h.im))
-      ts.push(t); gRe.push(r * Math.cos(half)); gIm.push(r * Math.sin(half))
-    }
-  }
-
-  // Clamped quadratic knot vector over [0,1]: the custom one (knot moving) or
-  // uniform with m segments.
-  let uvKnots: number[]
-  if (customKnots) {
-    uvKnots = [...customKnots]
-  } else {
-    uvKnots = []
-    for (let i = 0; i <= genDegree; i++) uvKnots.push(0)
-    for (let i = 1; i < m; i++) uvKnots.push(i / m)
-    for (let i = 0; i <= genDegree; i++) uvKnots.push(1)
-  }
-
-  // Wrap substitution by seam continuity (= number of wrap-derivative matches):
-  //   nWrap=0 (C⁰): no constraints, all n control points free.
-  //   nWrap=1 (C¹): c_{n-1} = s·c_0           (w continuous across the seam).
-  //   nWrap=2 (C²): c_{n-1} = s·c_0,  c_{n-2} = s·(2 c_0 − c_1)  (w, w′).
-  // Folding `c_{n-1}`/`c_{n-2}` back onto the free f_0/f_1 keeps the fit linear.
-  const nWrap = Math.max(0, Math.min(2, options.seamContinuity ?? 2))
-  const K = n - nWrap
-  // C² derivative match across the seam: w'(1)=s·w'(0). For a clamped quadratic
-  // that is c_{n-2} = s·c_0 − s·ratio·(c_1−c_0), ratio = h_last/h_first (the end
-  // knot intervals); ratio=1 for uniform knots. So c_{n-2} = s((1+r)f_0 − r f_1).
-  const hFirst = uvKnots[genDegree + 1] - uvKnots[genDegree]
-  const hLast = uvKnots[n] - uvKnots[n - 1]
-  const ratio = hFirst > 1e-12 ? hLast / hFirst : 1
-  const expand = (f: number[]): number[] => {
-    const c = f.slice(0, K)
-    if (nWrap >= 2) c.push(s * ((1 + ratio) * f[0] - ratio * f[1])) // c_{n-2}
-    if (nWrap >= 1) c.push(s * f[0]) // c_{n-1}
-    return c
-  }
-  // Fold the constrained boundary control points onto a row over the K free vars.
-  const foldRow = (bRow: number[]): number[] => {
-    const row = new Array(K).fill(0)
-    for (let i = 0; i < K; i++) row[i] = bRow[i]
-    if (nWrap >= 1) row[0] += bRow[n - 1] * s
-    if (nWrap >= 2) { row[0] += bRow[n - 2] * s * (1 + ratio); row[1] += bRow[n - 2] * s * (-ratio) }
-    return row
-  }
-
-  // Basis matrix B (samples × n) then M = B·S (samples × K) via the substitution.
-  const tHi = 1 - 1e-9
-  const M: Matrix = []
-  for (const t of ts) {
-    const tc = Math.min(t, tHi)
-    const span = findKnotSpan(genDegree, uvKnots, tc)
-    const N = basisFunctions(span, tc, genDegree, uvKnots)
-    const bRow = new Array(n).fill(0)
-    for (let j = 0; j <= genDegree; j++) bRow[span - genDegree + j] = N[j]
-    M.push(foldRow(bRow))
-  }
-
-  const solU = leastSquares(M, gRe)
-  const solV = leastSquares(M, gIm)
-  if (!solU.success || !solV.success) return null
-  const uFree = solU.x, vFree = solV.x
-
-  // Origin = the loop's start point, so the curve passes through it.
-  const o = evalStroke(0)
-
-  // Newton projection to close the gap r(1) − r(0) = ∮ w².
-  const buildCurve = () => computePHCurveFromUV(expand(uFree), expand(vFree), uvKnots, genDegree, o.x, o.y)
-  let curve = buildCurve()
-  for (let iter = 0; iter < 8; iter++) {
-    const cps = curve.controlPoints
-    const last = cps.length - 1
-    const gapX = cps[last].x - cps[0].x, gapY = cps[last].y - cps[0].y
-    if (Math.hypot(gapX, gapY) < 1e-7) break
-
-    // Jacobian of the gap w.r.t. the free variables [uFree, vFree] (2 × 2K).
-    // d(gap)/d(c_i) over all n control points, then fold through c = S·f (same
-    // substitution as the basis matrix, so foldRow does the chain rule).
-    const jac = phControlPointJacobian(expand(uFree), expand(vFree), uvKnots, genDegree)
-    const dGapUx: number[] = [], dGapUy: number[] = [], dGapVx: number[] = [], dGapVy: number[] = []
-    for (let i = 0; i < n; i++) {
-      dGapUx.push(jac[2 + i].dx[last] - jac[2 + i].dx[0])
-      dGapUy.push(jac[2 + i].dy[last] - jac[2 + i].dy[0])
-      dGapVx.push(jac[2 + n + i].dx[last] - jac[2 + n + i].dx[0])
-      dGapVy.push(jac[2 + n + i].dy[last] - jac[2 + n + i].dy[0])
-    }
-    const fUx = foldRow(dGapUx), fUy = foldRow(dGapUy), fVx = foldRow(dGapVx), fVy = foldRow(dGapVy)
-    const Jx = [...fUx, ...fVx], Jy = [...fUy, ...fVy] // length 2K
-
-    // Least-norm step Δf = −Jᵀ (J Jᵀ)⁻¹ gap, with J = [Jx; Jy] (2 × 2K).
-    const a = Jx.reduce((s2, v) => s2 + v * v, 0), b = Jx.reduce((s2, v, idx) => s2 + v * Jy[idx], 0), c2 = Jy.reduce((s2, v) => s2 + v * v, 0)
-    const det = a * c2 - b * b
-    if (Math.abs(det) < 1e-20) break
-    // (J Jᵀ)⁻¹ gap
-    const l0 = (c2 * gapX - b * gapY) / det, l1 = (-b * gapX + a * gapY) / det
-    for (let j = 0; j < 2 * K; j++) {
-      const step = -(Jx[j] * l0 + Jy[j] * l1)
-      if (j < K) uFree[j] += step; else vFree[j - K] += step
-    }
-    curve = buildCurve()
-  }
-
-  // Express the exact closed curve in the periodic representation, so it behaves
-  // like every other closed B-spline. The generator stays clamped (the PH source
-  // of truth); the periodic curve is the display geometry.
-  const periodic = buildPeriodicPHCurve(curve.controlPoints, curve.knots, nWrap)
+  const f = coreFitClosedPHSpline(strokeCPs, strokeDegree, strokeKnots, options)
+  if (!f) return null
   return {
-    controlPoints: periodic.controlPoints,
-    knots: periodic.knots,
-    degree: periodic.degree,
-    metadata: { ...curve.metadata, closed: true, wrapSign: s, seamContinuity: nWrap },
+    controlPoints: f.controlPoints,
+    knots: f.knots,
+    degree: f.degree,
+    metadata: {
+      kind: 'polynomial',
+      uvDegree: f.uvDegree,
+      uControlPoints: f.uControlPoints,
+      vControlPoints: f.vControlPoints,
+      uvKnots: f.uvKnots,
+      origin: f.origin,
+      closed: true,
+      wrapSign: f.wrapSign,
+      seamContinuity: f.seamContinuity,
+    },
   }
 }
 

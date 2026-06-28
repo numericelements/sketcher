@@ -15,9 +15,9 @@ import type { Point2D, WeightedPoint2D } from '../types/curve'
 import { type Complex, cmult, cdiv, cnorm } from '../utils/complex'
 import {
   decomposeToBernstein,
-  integrateBD,
   recomposeBD,
 } from './algebra'
+import { computePHCurveFromUV as coreComputePHCurveFromUV } from '../../core'
 import type { ABPHMetadata } from './abPHCurve'
 
 // ============================================================================
@@ -112,48 +112,14 @@ export function computePHCurveFromUV(
   x0: number,
   y0: number,
 ): PHCurveResult {
-  // Step 1: Decompose u and v to Bernstein form
-  const uBD = decomposeToBernstein({ knots: uvKnots, controlPoints: uCPs })
-  const vBD = decomposeToBernstein({ knots: uvKnots, controlPoints: vCPs })
-
-  // Step 2: Compute hodograph components
-  // x' = u² - v²
-  const u2 = uBD.multiply(uBD)
-  const v2 = vBD.multiply(vBD)
-  const xPrime = u2.subtract(v2)
-
-  // y' = 2uv
-  const uv = uBD.multiply(vBD)
-  const yPrime = uv.multiplyByScalar(2)
-
-  // Step 3: Integrate to get curve coordinates
-  const xBD = integrateBD(xPrime, x0)
-  const yBD = integrateBD(yPrime, y0)
-
-  // Step 4: Recompose to B-spline form.
-  // The curve's continuity is set PER interior breakpoint by that knot's
-  // generator multiplicity m: curve is C^(uvDegree − m + 1) there (the product
-  // u²,uv keeps the generator's C^(uvDegree−m); integration adds one). Using a
-  // single global value (the minimum) would force EVERY knot to the lowest
-  // continuity — so colliding two generator knots would wrongly thicken all
-  // interior knots, not just the merged pair.
-  const conts = uBD.numSpans > 1 ? curveBreakpointContinuities(xBD.distinctKnots, uvKnots, uvDegree) : undefined
-  const xSpline = recomposeBD(xBD, conts)
-  const ySpline = recomposeBD(yBD, conts)
-
-  // Build Point2D control points
-  const controlPoints: Point2D[] = []
-  for (let i = 0; i < xSpline.controlPoints.length; i++) {
-    controlPoints.push({ x: xSpline.controlPoints[i], y: ySpline.controlPoints[i] })
-  }
-
-  // Curve degree = 2*uvDegree + 1
-  const degree = 2 * uvDegree + 1
-
+  // Computation now lives in core (core/phCurveConstruction.ts, faithful port — validated
+  // control-point-identical). This thin wrapper only attaches the sketcher PHMetadata
+  // (the layer boundary: core returns a plain {controlPoints, knots, degree}).
+  const c = coreComputePHCurveFromUV(uCPs, vCPs, uvKnots, uvDegree, x0, y0)
   return {
-    controlPoints,
-    knots: xSpline.knots,
-    degree,
+    controlPoints: c.controlPoints,
+    knots: c.knots,
+    degree: c.degree,
     metadata: {
       kind: 'polynomial',
       uvDegree,
