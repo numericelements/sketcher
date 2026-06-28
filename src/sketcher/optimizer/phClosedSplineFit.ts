@@ -1,87 +1,15 @@
-// Being migrated to core/ incrementally; remove this once a file is on core.
-/**
- * Fit a CLOSED polynomial PH spline to a closed (periodic) B-spline stroke, by
- * the same hodograph-matching idea as the open case (see phSplineFit.ts) plus
- * the two extra conditions a closed PH curve needs:
- *
- *   1. SMOOTH SEAM — the generator must wrap continuously. For a closed loop the
- *      tangent turns by 2π·k (turning number k), so w = √(w²) picks up e^{iπk}:
- *      w(1) = s·w(0) with s = (−1)^k (anti-periodic for a simple loop, k odd).
- *      Either way w² is periodic, so the curve is smooth. For a uniform clamped
- *      QUADRATIC generator, C¹ wrap (⇒ C² curve at the seam) is two linear
- *      conditions on the boundary control points:
- *          c_{n-1} = s·c_0,     c_{n-2} = s·(2 c_0 − c_1).
- *      Baking these in leaves the interior control points free for a plain
- *      linear least-squares fit to √h.
- *
- *   2. CLOSURE — a periodic generator does NOT close the curve on its own;
- *      r(1) − r(0) = ∮ w² must vanish (two real, nonlinear conditions). The √h
- *      fit of a closed stroke already nearly closes (∮ h = 0), so a short
- *      Newton projection on the gap r(1)−r(0) finishes the job. The gap and its
- *      Jacobian come for free: gap = lastCP − firstCP, ∂gap/∂generator from
- *      phControlPointJacobian.
- *
- * Result: a clamped degree-5 B-spline marked closed (evaluated on [0,1], drawn
- * with a closing segment), C² at the seam and interior, carrying 'polynomial' PH
- * metadata for later editing.
- */
+// Closure-projection helpers for closed polynomial PH splines — the generator-space Newton
+// projections that drive the closure gap ∮w² → 0 (and re-impose the seam wrap). The fit and
+// construction math now lives in core (core/phFit.ts fitClosedPHSpline, core/phCurveConstruction.ts
+// buildPeriodicPHCurve / periodicGenKnots / clampedFromPeriodicGenKnots); the sketcher fit wrapper
+// lives in phCurve.ts. These two helpers are the remaining un-ported sketcher pieces (task #10).
 
 import { computePHCurveFromUV, type PHCurveResult, type PHMetadata } from './phCurve'
 import { phControlPointJacobian } from './phCurveAnalytic'
-import {
-  buildPeriodicPHCurve as coreBuildPeriodicPHCurve,
-  periodicGenKnots as corePeriodicGenKnots,
-  clampedFromPeriodicGenKnots as coreClampedFromPeriodicGenKnots,
-  fitClosedPHSpline as coreFitClosedPHSpline,
-} from '../../core'
-import type { Point2D } from '../types/curve'
-
-/**
- * Re-express an exact clamped closed PH curve in the PERIODIC representation
- * (closed, knots in [0,1) with a real seam junction), so it behaves like every
- * other closed B-spline — movable junction knots and all. The clamped curve
- * already lives in the periodic spline space (same interior breakpoints, the
- * seam differs only in representation), so a linear least-squares fit on the
- * periodic basis recovers it essentially exactly; this avoids fragile
- * clamped→periodic knot surgery.
- *
- * seamContinuity c sets the seam-junction multiplicity = degree − c (C⁰→5,
- * C¹→4, C²→3). Interior joins keep multiplicity 3 (C², from single generator
- * knots).
- */
-export function buildPeriodicPHCurve(
-  clampedCPs: Point2D[],
-  clampedKnots: number[],
-  seamContinuity: number,
-): { controlPoints: Point2D[]; knots: number[]; degree: number } {
-  return coreBuildPeriodicPHCurve(clampedCPs, clampedKnots, seamContinuity)
-}
+import { buildPeriodicPHCurve } from '../../core'
 
 /** Closed PH generator degree (a quadratic generator ⇒ a quintic curve). */
 export const GEN_DEGREE = 2
-
-/**
- * Reconstruct the generator's PERIODIC knot vector (knots in [0,1)) from the
- * clamped chart + seam continuity. This is the representation in which the seam
- * is an ORDINARY knot: it sits at value 0 with multiplicity
- *   μ_seam = (degree+1) − seamContinuity   (C⁰→3, C¹→2, C²→1),
- * and the interior generator knots keep their value & multiplicity. The clamped
- * storage and this periodic view describe the same closed generator — this is
- * just the chart in which knot editing is natural.
- */
-export function periodicGenKnots(clampedKnots: number[], seamContinuity: number): number[] {
-  return corePeriodicGenKnots(clampedKnots, seamContinuity, GEN_DEGREE)
-}
-
-/**
- * Inverse of {@link periodicGenKnots}: derive the clamped chart (genKnots) and
- * seam continuity from a periodic generator knot vector. μ_seam = number of
- * knots at the seam value 0 ⇒ seamContinuity = (degree+1) − μ_seam; the interior
- * knots become the clamped interior (boundary always clamped to degree+1).
- */
-export function clampedFromPeriodicGenKnots(periodic: number[]): { genKnots: number[]; seamContinuity: number } {
-  return coreClampedFromPeriodicGenKnots(periodic, GEN_DEGREE)
-}
 
 /**
  * Project a generator (u,v) EXACTLY onto the closed-curve manifold: re-impose the
@@ -150,49 +78,6 @@ export function projectClosedPHGenerator(
     curve = build()
   }
   return { uControlPoints: expand(uFree), vControlPoints: expand(vFree) }
-}
-
-export interface ClosedPHSplineFitOptions {
-  /** Generator segments around the loop (defaults to the stroke's CP count). */
-  segments?: number
-  /** Samples per generator segment for the √h fit (default 8). */
-  samplesPerSegment?: number
-  /** Seam continuity of the resulting curve: 0 = C⁰ corner, 1 = G¹, 2 = G²
-   *  (default 2). It equals the number of generator wrap-derivative matches. */
-  seamContinuity?: number
-  /** Explicit clamped generator knot vector (overrides `segments`). Used by knot
-   *  moving, which preserves the moved — possibly non-uniform — knots. */
-  genKnots?: number[]
-}
-
-/**
- * Fit a closed polynomial PH spline to a closed periodic B-spline stroke.
- * Returns a clamped, closed PHCurveResult, or null if the input is too small.
- */
-export function fitClosedPHSpline(
-  strokeCPs: Point2D[],
-  strokeDegree: number,
-  strokeKnots: number[],
-  options: ClosedPHSplineFitOptions = {},
-): PHCurveResult | null {
-  const f = coreFitClosedPHSpline(strokeCPs, strokeDegree, strokeKnots, options)
-  if (!f) return null
-  return {
-    controlPoints: f.controlPoints,
-    knots: f.knots,
-    degree: f.degree,
-    metadata: {
-      kind: 'polynomial',
-      uvDegree: f.uvDegree,
-      uControlPoints: f.uControlPoints,
-      vControlPoints: f.vControlPoints,
-      uvKnots: f.uvKnots,
-      origin: f.origin,
-      closed: true,
-      wrapSign: f.wrapSign,
-      seamContinuity: f.seamContinuity,
-    },
-  }
 }
 
 /**

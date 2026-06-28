@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { useSceneStore } from './sceneStore'
-import { fitClosedPHSpline } from '../optimizer/phClosedSplineFit'
+import { fitClosedPHSpline } from '../optimizer/phCurve'
 import { createBSpline } from '../utils/bspline/utilities'
 import { evaluateCurve } from '../utils/bspline/core'
 import type { Curve, Point2D, PHMetadataAny } from '../types/curve'

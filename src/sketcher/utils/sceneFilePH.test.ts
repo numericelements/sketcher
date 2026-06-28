@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { serializeScene, parseScene } from './sceneFile'
 import { fitPHSplineToBSpline } from '../optimizer/phCurve'
-import { fitClosedPHSpline } from '../optimizer/phClosedSplineFit'
+import { fitClosedPHSpline } from '../optimizer/phCurve'
 import { createBSpline } from './bspline/utilities'
 import { evaluateCurve } from './bspline/core'
 import type { Curve, Curve3D, Point2D, PHMetadataAny } from '../types/curve'

@@ -17,7 +17,13 @@ import {
   decomposeToBernstein,
   recomposeBD,
 } from './algebra'
-import { computePHCurveFromUV as coreComputePHCurveFromUV, fitOpenPHSpline, type PHFitResult } from '../../core'
+import {
+  computePHCurveFromUV as coreComputePHCurveFromUV,
+  fitOpenPHSpline,
+  fitClosedPHSpline as coreFitClosedPHSpline,
+  type PHFitResult,
+  type ClosedPHSplineFitOptions,
+} from '../../core'
 import type { ABPHMetadata } from './abPHCurve'
 
 // ============================================================================
@@ -167,6 +173,24 @@ export function fitPHSplineToBSpline(
 ): PHCurveResult | null {
   const degree = knots.length - controlPoints.length - 1
   const f = fitOpenPHSpline(controlPoints, knots, degree, options)
+  if (!f) return null
+  return { controlPoints: f.controlPoints, knots: f.knots, degree: f.degree, metadata: phMetaFromFit(f) }
+}
+
+export type { ClosedPHSplineFitOptions }
+
+/**
+ * Fit a closed polynomial PH spline to a closed periodic B-spline stroke. Computation is core's
+ * `fitClosedPHSpline` (periodic hodograph → wrap sign → √h fit → Newton closure → periodic);
+ * this attaches the PHMetadata (closed: seam fields included). Returns null if too small / fails.
+ */
+export function fitClosedPHSpline(
+  strokeCPs: Point2D[],
+  strokeDegree: number,
+  strokeKnots: number[],
+  options: ClosedPHSplineFitOptions = {},
+): PHCurveResult | null {
+  const f = coreFitClosedPHSpline(strokeCPs, strokeDegree, strokeKnots, options)
   if (!f) return null
   return { controlPoints: f.controlPoints, knots: f.knots, degree: f.degree, metadata: phMetaFromFit(f) }
 }
