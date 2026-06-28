@@ -885,7 +885,10 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         }))
         return
       } catch (e) {
-        console.warn('core slideCurve failed; falling back to legacy optimizer:', e)
+        // No legacy fallback (fix-core-not-toggle): core is the sole path for this drag. A
+        // failure here is a core bug to surface and fix, not to mask by toggling to legacy.
+        console.warn('core slideCurve failed (no legacy fallback):', e)
+        return
       }
     }
 
@@ -917,7 +920,8 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         }))
         return
       } catch (e) {
-        console.warn('core slideComplexRational (real rational) failed; falling back to legacy optimizer:', e)
+        console.warn('core slideComplexRational (real rational) failed (no legacy fallback):', e)
+        return
       }
     }
 
@@ -947,7 +951,8 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         }))
         return
       } catch (e) {
-        console.warn('core slide (open rational) failed; falling back to legacy optimizer:', e)
+        console.warn('core slide (open rational) failed (no legacy fallback):', e)
+        return
       }
     }
 
@@ -1020,7 +1025,8 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         }))
         return
       } catch (e) {
-        console.warn('core slideComplexRational failed; falling back to legacy optimizer:', e)
+        console.warn('core slideComplexRational failed (no legacy fallback):', e)
+        return
       }
     }
 
@@ -1051,7 +1057,8 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         }))
         return
       } catch (e) {
-        console.warn('core slide (open complex-rational) failed; falling back to legacy optimizer:', e)
+        console.warn('core slide (open complex-rational) failed (no legacy fallback):', e)
+        return
       }
     }
 
