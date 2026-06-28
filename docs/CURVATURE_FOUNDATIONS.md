@@ -315,5 +315,36 @@ periodic form of P, σ, R (the seam wrap) — not yet built/verified.
 
 ---
 
-*Add F8, … as we establish them. Never delete a fact that is still true; if a fact turns out
+## F8 — A curvature extremum is a SIGN CHANGE of g, jumps included; corners count, polygons don't
+
+**The fact.** The curvature extrema are the **sign changes of g**, and a sign change can be a
+smooth interior zero-crossing **or a jump across a knot** — both count. Concretely:
+- A **C⁰ corner** (a knot of multiplicity = degree) is a point where g flips sign by *jumping*
+  (no zero). It **is** a genuine curvature extremum (a curvature maximum) and **is marked.**
+- A **polygon / straight segment** has `g ≡ 0` (for degree 1, g's degree 4d−6 < 0) → **0**
+  extrema. A triangle reads **0**, not 6 — not because "corners are excluded" but because g is
+  identically zero there.
+
+**Why.** By F2, g is discontinuous at every knot (it carries c‴). For a C² cubic κ is
+continuous but dκ/ds is **not** — so a real extremum can occur exactly where dκ/ds reverses by
+*jumping* across a knot, with no smooth zero. A C⁰ corner is the maximal case of that same jump.
+So corner-jumps and ordinary smooth-spline knot-extrema are the **same phenomenon** — there is
+no honest rule that keeps one and drops the other. This restates Law 1's wording ("sign changes
+of g … the points where dκ/ds reverses — *not merely the zeros of g*").
+
+**What it forbids (a bug taught us this — CLAUDE.md).** A tempting "cleanup" is to keep a marker
+only where g is *actually ≈ 0*, to stop markers landing on a C⁰ seam. **This is wrong** and was
+measured wrong: it deleted real markers from a *smooth* curve (oval 8 → 4), because that curve's
+extrema sit on knot-jumps too. Suppressing corner markers as a pure display choice would also
+break Law 3 (displaying fewer than the honest sign-change count). `denseExtremaParams`
+(core/curvature.ts) therefore counts every sign change between dense samples (jumps included) —
+do not add a "real-zero only" filter.
+
+**Pinning.** The marker counts in the `curvatureExtremaMarkers` tests encode this; the
+oval/junction 8→4 drop is the canary that a filter has been wrongly added. (Conceptually
+checked: triangle `g ≡ 0` → 0; degree-3 C⁰ seam → a marker at the corner.)
+
+---
+
+*Add F9, … as we establish them. Never delete a fact that is still true; if a fact turns out
 wrong, replace it and say why (a wrong fact in here is worse than none).*
