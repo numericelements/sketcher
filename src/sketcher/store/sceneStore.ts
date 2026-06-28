@@ -4,10 +4,9 @@ import type { FairnessEnergyType } from '../lab/optimizer/jerkEnergy'
 import { computeRegionPreview, defaultEnergyForDegree, type SmoothMode } from '../utils/regionSmooth'
 import { createBSpline, elevateDegree, insertKnot, moveKnot, removeKnot, getControlPointsAsPoints, toRationalBSpline, toComplexRationalBSpline, toBSpline, periodicKnotsWithJunction, uniformPeriodicKnots, generateCurveId, findKnotSpan, isClampedEndKnot } from '../utils/bspline'
 import { createLine, createCircularArc, createFullCircle } from '../utils/shapes'
-import { createSpiralFromTwoPoints, computePHCurveFromUV, computePHOffset, fitPHSplineToBSpline, fitClosedPHSpline, type PHMetadata, type ComplexRationalPHMetadata } from '../optimizer/phCurve'
+import { createSpiralFromTwoPoints, computePHCurveFromUV, computePHOffset, fitPHSplineToBSpline, fitClosedPHSpline, closeOpenPHSpline, type PHMetadata, type ComplexRationalPHMetadata } from '../optimizer/phCurve'
 import { createStraightComplexRationalPH } from '../optimizer/complexRationalPHCurve'
-import { periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve } from '../../core'
-import { closeOpenPHSpline, projectClosedPHGenerator, GEN_DEGREE } from '../optimizer/phClosedSplineFit'
+import { periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve, projectClosurePH, GEN_DEGREE } from '../../core'
 import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexPointsToAB, type ABPHMetadata } from '../optimizer/abPHCurve'
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
@@ -625,8 +624,8 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
               // Build the periodic PH bspline from a generator, projecting EXACTLY onto
               // closure + seam wrap first (the optimizer's equalities are penalty-soft).
               const buildFromGen = (u: number[], v: number[]) => {
-                const pr = projectClosedPHGenerator(u, v, om.uvKnots, om.origin.x, om.origin.y, meta.wrapSign ?? 1, seamCont)
-                const clamped = computePHCurveFromUV(pr.uControlPoints, pr.vControlPoints, om.uvKnots, om.uvDegree, om.origin.x, om.origin.y)
+                const pr = projectClosurePH(u, v, om.uvKnots, om.uvDegree, seamCont, meta.wrapSign ?? 1)
+                const clamped = computePHCurveFromUV(pr.u, pr.v, om.uvKnots, om.uvDegree, om.origin.x, om.origin.y)
                 const periodic = buildPeriodicPHCurve(clamped.controlPoints, clamped.knots, seamCont)
                 return { periodic, clampedMeta: clamped.metadata }
               }

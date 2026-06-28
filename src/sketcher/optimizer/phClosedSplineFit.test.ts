@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { closeOpenPHSpline } from './phClosedSplineFit'
-import { fitClosedPHSpline, fitPHSplineToBSpline } from './phCurve'
+import { fitClosedPHSpline, fitPHSplineToBSpline, closeOpenPHSpline } from './phCurve'
 import { moveKnot1D } from './phBSplineOps'
 import { optimizePHCurve } from './index'
 import { createBSpline } from '../utils/bspline/utilities'

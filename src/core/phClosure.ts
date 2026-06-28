@@ -167,3 +167,8 @@ export function projectClosurePHPeriodic(
   }
   return { u: uu, v: vv }
 }
+
+
+/** Closed PH generator degree (a quadratic generator ⇒ a quintic curve). Used by the closed-PH
+ *  knot-edit guards; the closure projection itself is projectClosurePH (above). */
+export const GEN_DEGREE = 2
