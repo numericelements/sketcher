@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { fitOpenPHSpline } from '../phFit'
-import { fitPHSplineToBSpline } from '../../sketcher/optimizer/phSplineFit'
+import { fitPHSplineToBSpline } from '../../sketcher/optimizer/phCurve'
 import { createBSpline } from '../../sketcher/utils/bspline/utilities'
 import type { Point2D } from '../../sketcher/types/curve'
 

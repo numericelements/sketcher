@@ -17,7 +17,7 @@ import {
   decomposeToBernstein,
   recomposeBD,
 } from './algebra'
-import { computePHCurveFromUV as coreComputePHCurveFromUV } from '../../core'
+import { computePHCurveFromUV as coreComputePHCurveFromUV, fitOpenPHSpline, type PHFitResult } from '../../core'
 import type { ABPHMetadata } from './abPHCurve'
 
 // ============================================================================
@@ -129,6 +129,46 @@ export function computePHCurveFromUV(
       origin: { x: x0, y: y0 },
     },
   }
+}
+
+/**
+ * Map a core PH-fit result (a plain generator+curve, no sketcher types) to the sketcher's
+ * PHMetadata — the layer boundary (core must not depend on sketcher types). Closed fits carry
+ * the seam fields; open fits don't.
+ */
+export function phMetaFromFit(f: PHFitResult): PHMetadata {
+  return {
+    kind: 'polynomial',
+    uvDegree: f.uvDegree,
+    uControlPoints: f.uControlPoints,
+    vControlPoints: f.vControlPoints,
+    uvKnots: f.uvKnots,
+    origin: f.origin,
+    ...(f.closed ? { closed: true, wrapSign: f.wrapSign, seamContinuity: f.seamContinuity } : {}),
+  }
+}
+
+export interface PHSplineFitOptions {
+  /** Generator degree: 2 → quintic PH, C² joins (default). 3 → degree-7, C³. */
+  generatorDegree?: number
+  /** Samples per stroke span for the √h least-squares fit (default 12). */
+  samplesPerSpan?: number
+}
+
+/**
+ * Fit a polynomial PH spline to an open B-spline `{controlPoints, knots}` by hodograph matching
+ * (the √h linear least-squares trick). Computation is core's `fitOpenPHSpline`; this attaches
+ * the PHMetadata. Returns null if the input is too small / the solve fails.
+ */
+export function fitPHSplineToBSpline(
+  controlPoints: Point2D[],
+  knots: number[],
+  options: PHSplineFitOptions = {},
+): PHCurveResult | null {
+  const degree = knots.length - controlPoints.length - 1
+  const f = fitOpenPHSpline(controlPoints, knots, degree, options)
+  if (!f) return null
+  return { controlPoints: f.controlPoints, knots: f.knots, degree: f.degree, metadata: phMetaFromFit(f) }
 }
 
 // ============================================================================

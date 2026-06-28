@@ -6,7 +6,7 @@ import { createBSpline, elevateDegree, insertKnot, moveKnot, removeKnot, getCont
 import { createLine, createCircularArc, createFullCircle } from '../utils/shapes'
 import { createSpiralFromTwoPoints, computePHCurveFromUV, computePHOffset, type PHMetadata, type ComplexRationalPHMetadata } from '../optimizer/phCurve'
 import { createStraightComplexRationalPH } from '../optimizer/complexRationalPHCurve'
-import { fitPHSplineToBSpline } from '../optimizer/phSplineFit'
+import { fitPHSplineToBSpline } from '../optimizer/phCurve'
 import { fitClosedPHSpline, closeOpenPHSpline, periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve, projectClosedPHGenerator, GEN_DEGREE } from '../optimizer/phClosedSplineFit'
 import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexPointsToAB, type ABPHMetadata } from '../optimizer/abPHCurve'
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'

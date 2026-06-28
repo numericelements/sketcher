@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { phHodograph, phCurvatureExtremaNumerator } from '../optimizer/phCurvatureExtrema'
 import { decomposeToBernstein, derivativeBD, findZerosBD } from '../optimizer/algebra'
 import { computeOpenComplexCurvatureExtremaParameters } from '../optimizer/complexAlgebra'
-import { fitPHSplineToBSpline } from '../optimizer/phSplineFit'
+import { fitPHSplineToBSpline } from '../optimizer/phCurve'
 import { createBSpline } from '../utils/bspline/utilities'
 import type { Point2D } from '../types/curve'
 

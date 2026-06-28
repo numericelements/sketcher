@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fitPHSplineToBSpline } from './phSplineFit'
+import { fitPHSplineToBSpline } from './phCurve'
 import { optimizePHCurve } from './index'
 import { createBSpline } from '../utils/bspline/utilities'
 import { evaluateBSpline } from '../utils/bspline/core'
