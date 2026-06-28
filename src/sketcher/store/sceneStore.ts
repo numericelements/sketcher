@@ -605,12 +605,13 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             // the curvature-extrema count (seam-aware sliding). Re-express periodic.
             const rm = refit.metadata as Extract<PHMetadataAny, { kind: 'polynomial' }>
             // Closed PH solve → legacy optimizePHCurve (known-good). NOTE: the core
-            // slideClosedPHTracking port STALLS across curves (solver-dependent: primal-dual
-            // stalls on some, interior-point on others — core's IP optimizer lacks the legacy's
-            // SOC/filter/watchdog robustness that the harder closed-PH problem needs). Reverted
-            // until the core closed solve is robust across curves; open PH is on core (it's
-            // numerically easier — no closure/seam equalities). The editor's CURVE-span guard +
-            // buildFromGen below are unchanged.
+            // slideClosedPHTracking port stalled when it held closure as IN-SOLVER equalities
+            // (the stiff ∮w² coupling defeats core's IP, curve/solver-dependently — diagnosed #23).
+            // FIX available: slideClosedPHTracking({ decoupleClosure: true }) — track open-style,
+            // then restore closure by the Gram-based projectClosurePH (iterated). It tracks every
+            // curve + holds the bound (measured ≈ legacy; pinned by closedPHDragDecouple.test.ts).
+            // Still on legacy here pending an editor feel-test before flipping the live path.
+            // The editor's CURVE-span guard + buildFromGen below are unchanged.
             const target = computePHCurveFromUV(rm.uControlPoints, rm.vControlPoints, rm.uvKnots, rm.uvDegree, rm.origin.x, rm.origin.y)
             const t0 = target.controlPoints[0]
             const result = optimizePHCurve(meta, target.controlPoints, t0.x, t0.y, 0, {

@@ -19,7 +19,7 @@ import { PrimalDualOptimizer } from './optimize'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
 import { computeInactiveSetBySign, computeInactiveSetBySignCyclic } from './curvatureProblem'
 import { curvatureExtremaNumeratorPH, phJacobian, curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
-import { generatorBasisGram, closureGap, closureJacobian, projectClosurePHPeriodic } from './phClosure'
+import { generatorBasisGram, closureGap, closureJacobian, projectClosurePHPeriodic, projectClosurePH } from './phClosure'
 import { computePHCurveFromUV, phControlPointJacobian, type CPDerivative } from './phCurveConstruction'
 
 const phBound = (u: readonly number[], v: readonly number[], knots: readonly number[], degree: number) =>
@@ -548,6 +548,13 @@ export interface OpenPHTrackingOptions {
   /** Use the reduced curvature-extrema numerator R (deg 4m−2) instead of g (deg 8m−2) for the
    *  constraint — same extrema, far better conditioned (FOUNDATIONS F7). For the #23 stall. */
   useReduced?: boolean
+  /** #23 fix: DECOUPLE closure from the tracking solve — solve open-style (bound only, which
+   *  core's IP handles well), then restore ∮w²=0 + seam wrap by the exact Gram-based
+   *  projectClosurePH. Avoids the stiff in-solver closure equalities that stall core. */
+  decoupleClosure?: boolean
+  /** With decoupleClosure: how many solve→project passes (the projection pulls back some tracked
+   *  motion; iterating recovers it). Default 3 — matches legacy tracking + holds the bound (#23). */
+  closureProjectPasses?: number
 }
 
 /**
@@ -605,27 +612,42 @@ export function slideClosedPHTracking(
   targetCurveCPs: readonly { x: number; y: number }[], closed: PHClosedConfig,
   opts: OpenPHTrackingOptions = {},
 ): { u: number[]; v: number[]; x0: number; y0: number; converged: boolean } {
-  // dragIndex 0 with target = its own current value ⇒ the objective just tracks the whole
-  // target curve (the re-fit already encodes the drag), exactly like the legacy closed call.
-  const problem = new OpenPHTrackingDragProblem(
-    genU, genV, x0, y0, knots, degree, targetCurveCPs, 0, targetCurveCPs[0].x, targetCurveCPs[0].y, closed, opts.useReduced ?? false,
-  )
-  // Solver toggle (#23 diagnosis). Default 'ipopt' = barrier + trust region, closure as a SOFT
-  // quadratic penalty (matches the legacy closed PHCurveProblem solver, which tracks).
-  // 'primal-dual' = hard-KKT closure border (Lagrange multipliers) — for comparing equality
-  // treatments on this stiff problem.
-  const opt = (opts.solver ?? 'ipopt') === 'primal-dual'
-    ? new PrimalDualOptimizer(problem, {
-        maxIterations: opts.maxIterations ?? 24,
-        returnBestFeasible: true,
-      })
-    : new InteriorPointOptimizer(problem, {
-        maxIterations: opts.maxIterations ?? 24,
-        enableBFGS: opts.enableBFGS ?? false,
-        returnBestFeasible: true,
-      })
-  const r = opt.optimize()
-  problem.setVariables(r.variables)
-  const res = problem.result()
-  return { u: res.u, v: res.v, x0: res.x0, y0: res.y0, converged: r.converged }
+  // dragIndex 0 with target = its own current value ⇒ the objective tracks the whole target
+  // curve (the re-fit already encodes the drag), exactly like the legacy closed call.
+  const decouple = opts.decoupleClosure ?? false
+
+  // One tracking solve from (u,v,x0,y0). When decoupling, the problem omits the in-solver
+  // closure equalities (tracks open-style — which core's IP handles robustly).
+  const solveOnce = (u: readonly number[], v: readonly number[], ox: number, oy: number) => {
+    const problem = new OpenPHTrackingDragProblem(
+      u, v, ox, oy, knots, degree, targetCurveCPs, 0, targetCurveCPs[0].x, targetCurveCPs[0].y,
+      decouple ? undefined : closed, opts.useReduced ?? false,
+    )
+    const opt = (opts.solver ?? 'ipopt') === 'primal-dual'
+      ? new PrimalDualOptimizer(problem, { maxIterations: opts.maxIterations ?? 24, returnBestFeasible: true })
+      : new InteriorPointOptimizer(problem, { maxIterations: opts.maxIterations ?? 24, enableBFGS: opts.enableBFGS ?? false, returnBestFeasible: true })
+    const r = opt.optimize()
+    problem.setVariables(r.variables)
+    return { res: problem.result(), converged: r.converged }
+  }
+
+  // #23 FIX — DECOUPLE closure from the tracking solve. The stiff in-solver closure equalities
+  // (∮w²=0 couples every generator var) stall core's interior-point solver (it lacks the legacy
+  // optimizer's SOC/filter/watchdog), curve- and solver-dependently. Instead: track open-style
+  // (bound only), then restore ∮w²=0 + seam wrap EXACTLY by the Gram-based projectClosurePH.
+  // The projection pulls back some tracked motion, so iterate solve→project `closureProjectPasses`
+  // times (3 matches the legacy tracking AND holds the bound better — measured, #23). When not
+  // decoupling, a single solve holds closure as in-solver equalities (the legacy behaviour).
+  if (decouple) {
+    const passes = Math.max(1, opts.closureProjectPasses ?? 3)
+    let cu = [...genU], cv = [...genV], cx = x0, cy = y0, conv = false
+    for (let p = 0; p < passes; p++) {
+      const { res, converged } = solveOnce(cu, cv, cx, cy)
+      const proj = projectClosurePH(res.u, res.v, knots, degree, closed.seamContinuity, closed.wrapSign)
+      cu = proj.u; cv = proj.v; cx = res.x0; cy = res.y0; conv = converged
+    }
+    return { u: cu, v: cv, x0: cx, y0: cy, converged: conv }
+  }
+  const { res, converged } = solveOnce(genU, genV, x0, y0)
+  return { u: res.u, v: res.v, x0: res.x0, y0: res.y0, converged }
 }
