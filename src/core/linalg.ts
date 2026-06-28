@@ -63,3 +63,28 @@ export function luSolve(fact: LU, b: number[]): number[] {
   }
   return x
 }
+
+/**
+ * Least-squares solution of an overdetermined system A·x ≈ b (A is m×n, m ≥ n), via the
+ * regularized normal equations (AᵀA + reg·I)·x = Aᵀb solved with LU. `reg` stabilizes a
+ * near-singular AᵀA (matches the legacy leastSquares' Cholesky ridge). Returns x (length n).
+ */
+export function leastSquares(A: Matrix, b: readonly number[], reg = 1e-8): number[] {
+  const m = A.length
+  const n = m > 0 ? A[0].length : 0
+  const AtA: Matrix = Array.from({ length: n }, () => new Array<number>(n).fill(0))
+  const Atb = new Array<number>(n).fill(0)
+  for (let k = 0; k < m; k++) {
+    const row = A[k], bk = b[k]
+    for (let i = 0; i < n; i++) {
+      const aki = row[i]
+      if (aki === 0) continue
+      Atb[i] += aki * bk
+      for (let j = 0; j < n; j++) AtA[i][j] += aki * row[j]
+    }
+  }
+  for (let i = 0; i < n; i++) AtA[i][i] += reg
+  const fact = luFactor(AtA)
+  if (!fact) throw new Error('leastSquares: normal equations are singular')
+  return luSolve(fact, Atb)
+}

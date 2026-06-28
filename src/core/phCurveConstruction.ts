@@ -23,6 +23,10 @@
 // ============================================================================
 
 import { BernsteinDecomposition, decomposeToBernstein } from './bernstein'
+import { leastSquares } from './linalg'
+import { evaluate } from './evaluate'
+import { plainCoeffs } from './coeffs'
+import { findPeriodicSpan, periodicBasis, mod } from './basis'
 
 /** A scalar B-spline (the result of recomposing a Bernstein decomposition). */
 export interface SimpleBSpline {
@@ -471,4 +475,92 @@ export function phControlPointJacobian(
     out.push({ dx: recomp(integrateBD(dxPrime, 0)), dy: recomp(integrateBD(dyPrime, 0)) })
   }
   return out
+}
+
+// ----------------------------------------------------------------------------
+// Closed PH curve: clamped → periodic conversion (port of the sketcher's
+// buildPeriodicPHCurve, src/sketcher/optimizer/phClosedSplineFit.ts).
+// ----------------------------------------------------------------------------
+
+/**
+ * Build the PERIODIC (closed) PH curve from the CLAMPED PH curve. The clamped curve already
+ * lives in the periodic spline space (same interior breakpoints; the seam differs only in
+ * representation), so a linear least-squares fit on the periodic basis recovers it essentially
+ * exactly — avoiding fragile clamped→periodic knot surgery. seamContinuity c sets the seam
+ * junction multiplicity = degree − c (C⁰→5, C¹→4, C²→3); interior joins keep their own
+ * multiplicity. Core port: core periodic basis + core leastSquares. (FOUNDATIONS F5.)
+ */
+export function buildPeriodicPHCurve(
+  clampedCPs: { x: number; y: number }[],
+  clampedKnots: number[],
+  seamContinuity: number,
+): { controlPoints: { x: number; y: number }[]; knots: number[]; degree: number } {
+  const degree = 5
+  // Distinct interior breakpoints in (0,1) WITH the curve's knot multiplicity there.
+  const interior: { v: number; mult: number }[] = []
+  for (const k of clampedKnots) {
+    if (k > 1e-9 && k < 1 - 1e-9) {
+      const e = interior.find((x) => Math.abs(x.v - k) < 1e-9)
+      if (e) e.mult++; else interior.push({ v: k, mult: 1 })
+    }
+  }
+  interior.sort((a, b) => a.v - b.v)
+
+  // Periodic knot vector (length n = #control points): seam at 0 carries degree−seamContinuity
+  // knots; each interior join keeps its own multiplicity (capped at degree).
+  const seamMult = degree - seamContinuity
+  const Kp: number[] = []
+  for (let r = 0; r < seamMult; r++) Kp.push(0)
+  for (const b of interior) { const cm = Math.min(degree, b.mult); for (let r = 0; r < cm; r++) Kp.push(b.v) }
+  const n = Kp.length
+
+  // Sample the exact clamped curve over [0,1) and least-squares fit the periodic control points.
+  const lo = clampedKnots[degree], hi = clampedKnots[clampedKnots.length - degree - 1]
+  const m = Math.max(4 * n, 240)
+  const A: number[][] = []
+  const bx: number[] = [], by: number[] = []
+  for (let i = 0; i < m; i++) {
+    const tt = i / m
+    const p = evaluate(plainCoeffs, clampedCPs, degree, clampedKnots, Math.min(lo + tt * (hi - lo), hi - 1e-9), false)
+    const span = findPeriodicSpan(Kp, tt)
+    const N = periodicBasis(span, tt, degree, Kp)
+    const row = new Array<number>(n).fill(0)
+    for (let j = 0; j <= degree; j++) row[mod(span - degree + j, n)] += N[j]
+    A.push(row); bx.push(p.x); by.push(p.y)
+  }
+  const sx = leastSquares(A, bx), sy = leastSquares(A, by)
+  const controlPoints = sx.map((x, i) => ({ x, y: sy[i] }))
+  return { controlPoints, knots: Kp, degree }
+}
+
+// ----------------------------------------------------------------------------
+// Closed-PH generator knot helpers (clamped ⇄ periodic chart). Port of
+// periodicGenKnots / clampedFromPeriodicGenKnots (phClosedSplineFit.ts). FOUNDATIONS F5.
+// ----------------------------------------------------------------------------
+
+/**
+ * Periodic generator knot vector (knots in [0,1)) from the clamped chart + seam continuity:
+ * the seam sits at 0 with multiplicity μ = (genDegree+1) − seamContinuity (C⁰→3, C¹→2, C²→1);
+ * interior knots keep their value & multiplicity.
+ */
+export function periodicGenKnots(clampedKnots: number[], seamContinuity: number, genDegree = 2): number[] {
+  const muSeam = (genDegree + 1) - Math.max(0, Math.min(genDegree, seamContinuity))
+  const interior = clampedKnots.filter((k) => k > 1e-9 && k < 1 - 1e-9)
+  const out: number[] = []
+  for (let i = 0; i < muSeam; i++) out.push(0)
+  out.push(...interior)
+  out.sort((a, b) => a - b)
+  return out
+}
+
+/** Inverse of periodicGenKnots: clamped chart (genKnots) + seamContinuity from a periodic vector. */
+export function clampedFromPeriodicGenKnots(periodic: number[], genDegree = 2): { genKnots: number[]; seamContinuity: number } {
+  const muSeam = periodic.filter((k) => Math.abs(k) < 1e-9).length
+  const interior = periodic.filter((k) => k > 1e-9 && k < 1 - 1e-9).sort((a, b) => a - b)
+  const seamContinuity = Math.max(0, Math.min(genDegree, (genDegree + 1) - muSeam))
+  const genKnots: number[] = []
+  for (let i = 0; i <= genDegree; i++) genKnots.push(0)
+  genKnots.push(...interior)
+  for (let i = 0; i <= genDegree; i++) genKnots.push(1)
+  return { genKnots, seamContinuity }
 }
