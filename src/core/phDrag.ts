@@ -636,10 +636,13 @@ export function slideClosedPHTracking(
   // optimizer's SOC/filter/watchdog), curve- and solver-dependently. Instead: track open-style
   // (bound only), then restore ∮w²=0 + seam wrap EXACTLY by the Gram-based projectClosurePH.
   // The projection pulls back some tracked motion, so iterate solve→project `closureProjectPasses`
-  // times (3 matches the legacy tracking AND holds the bound better — measured, #23). When not
-  // decoupling, a single solve holds closure as in-solver equalities (the legacy behaviour).
+  // times. Default 2 — the measured knee (#23 perf): 1 pass can near-stall a hard curve (peanut
+  // 3%), 2 rescues it (25%) at 2/3 the cost of 3, and the 2→3 tracking gain is marginal and
+  // shrinks over a real many-tick drag. maxIterations can't be lowered to compensate (the solve
+  // needs its iters to track). When not decoupling, a single solve holds closure as in-solver
+  // equalities (the legacy behaviour).
   if (decouple) {
-    const passes = Math.max(1, opts.closureProjectPasses ?? 3)
+    const passes = Math.max(1, opts.closureProjectPasses ?? 2)
     let cu = [...genU], cv = [...genV], cx = x0, cy = y0, conv = false
     for (let p = 0; p < passes; p++) {
       const { res, converged } = solveOnce(cu, cv, cx, cy)
