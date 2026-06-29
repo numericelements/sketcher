@@ -20,7 +20,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // (periodic-junction/cusp knots) and symmetry-reduced/anchored drags still fall to
 // the legacy optimizer; PH is largely legacy. See docs/THE_IDEAS.md (idea VII) and
 // docs/CURVATURE_ARCHITECTURE.md for the convergence status.
-import { slideCurve, slideComplexRational, slide, slideOpenPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slideComplexRational, slide, slideOpenPHTracking, slideClosedPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -604,24 +604,21 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             // CLAMPED curve while holding the curve closed (∮w²=0 + seam wrap) and
             // the curvature-extrema count (seam-aware sliding). Re-express periodic.
             const rm = refit.metadata as Extract<PHMetadataAny, { kind: 'polynomial' }>
-            // Closed PH solve → legacy optimizePHCurve (known-good). NOTE: the core
-            // slideClosedPHTracking port stalled when it held closure as IN-SOLVER equalities
-            // (the stiff ∮w² coupling defeats core's IP, curve/solver-dependently — diagnosed #23).
-            // FIX available: slideClosedPHTracking({ decoupleClosure: true }) — track open-style,
-            // then restore closure by the Gram-based projectClosurePH (iterated). It tracks every
-            // curve + holds the bound (measured ≈ legacy; pinned by closedPHDragDecouple.test.ts).
-            // Still on legacy here pending an editor feel-test before flipping the live path.
-            // The editor's CURVE-span guard + buildFromGen below are unchanged.
+            // Closed PH solve → CORE slideClosedPHTracking with DECOUPLED closure (#23 fix):
+            // track open-style (bound only — which core's IP handles), then restore ∮w²=0 + seam
+            // wrap by the Gram-based projectClosurePH, iterated. Avoids the stiff in-solver closure
+            // equalities that stalled the naive port (diagnosed #23; ≈ legacy tracking + holds the
+            // bound, pinned by closedPHDragDecouple.test.ts). The CURVE-span strict-S⁻ guard +
+            // buildFromGen below are unchanged (the hard Law-2 backstop).
             const target = computePHCurveFromUV(rm.uControlPoints, rm.vControlPoints, rm.uvKnots, rm.uvDegree, rm.origin.x, rm.origin.y)
-            const t0 = target.controlPoints[0]
-            const result = optimizePHCurve(meta, target.controlPoints, t0.x, t0.y, 0, {
-              preserveCurvatureExtrema: true,
-              closed: { wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont },
-              maxIterations: 24,
-              enableBFGS: false,
-            })
-            if (result.converged || result.iterations > 0) {
-              const om = result.curveResult.metadata
+            const r = slideClosedPHTracking(
+              meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
+              meta.uvKnots, meta.uvDegree, target.controlPoints,
+              { wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont },
+              { maxIterations: 24, decoupleClosure: true },
+            )
+            {
+              const om = { uControlPoints: r.u, vControlPoints: r.v, uvKnots: meta.uvKnots, uvDegree: meta.uvDegree, origin: { x: r.x0, y: r.y0 } }
               // Build the periodic PH bspline from a generator, projecting EXACTLY onto
               // closure + seam wrap first (the optimizer's equalities are penalty-soft).
               const buildFromGen = (u: number[], v: number[]) => {
