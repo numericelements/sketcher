@@ -842,19 +842,22 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // interior-point solver (O(n) cached-seed gradient + banded LDLᵀ for open; band +
     // low-rank seam "arrowhead" solve for closed). Bound-faithful (per-solve identical
     // to the dense robust solver) and far faster on larger curves — ~6.8× open at 180
-    // CPs; ~3× closed at 320 CPs after the sparse-assembly work. Closed routes only on
-    // a CLEAN periodic knot vector (n strictly-increasing knots in [0,1), period 1 —
-    // core's smooth-periodic model); the C⁰ junction/cusp convention and rational /
-    // symmetry-reduced drags stay on the legacy optimizer below.
-    const cleanPeriodic =
+    // CPs; ~3× closed at 320 CPs after the sparse-assembly work. Closed routes on any
+    // periodic knot vector (n NON-decreasing knots in [0,1), period 1) — INCLUDING a C⁰
+    // junction (the seam knot at multiplicity = degree), which is the same periodic
+    // representation with a repeated seam knot (FOUNDATIONS F8). Core handles it (slideCurve
+    // holds the bound + tracks — junctionClosedDrag.test.ts), and the displayed bound/markers
+    // are already core, so routing the drag here keeps display==enforced (Law 3). Only
+    // rational/complex-with-symmetry and symmetry-reduced bspline drags stay on legacy.
+    const routablePeriodic =
       curve.kind === 'bspline' && curve.closed &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 && // period-1 domain starting at 0 (core's wrap = first + 1)
-      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
+      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v >= curve.knots[i - 1])) && // ≥ allows the C⁰ seam
       curve.knots[curve.knots.length - 1] < 1
     if (
       preserveCurvatureExtrema && curve.kind === 'bspline' && !symmetryMaps &&
-      (!curve.closed || cleanPeriodic)
+      (!curve.closed || routablePeriodic)
     ) {
       try {
         const pts = curve.controlPoints as Point2D[]
@@ -899,13 +902,13 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // gradient seeds carry the spiral, so it matches the rendered NURBS for ANY ρ
     // (gradient FD-verified at every control point). Farin t-values are weight ratios
     // (position-independent) → fixed weights leave them + wrapWeight unchanged.
-    const rrCleanPeriodic =
+    const rrRoutablePeriodic =
       curve.kind === 'rational' && curve.closed && !symmetryMaps &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
-      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v > curve.knots[i - 1])) &&
+      curve.knots.every((v, i) => (i === 0 ? v >= 0 : v >= curve.knots[i - 1])) && // ≥ allows the C⁰ seam (F8)
       curve.knots[curve.knots.length - 1] < 1
-    if (preserveCurvatureExtrema && curve.kind === 'rational' && rrCleanPeriodic) {
+    if (preserveCurvatureExtrema && curve.kind === 'rational' && rrRoutablePeriodic) {
       try {
         const cpx = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, w_re: p.w, w_im: 0 }))
         const rho = curve.wrapWeight !== undefined
