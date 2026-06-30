@@ -104,110 +104,143 @@ export function closedCurvatureExtremaParameters(
   y: readonly number[],
   knots: readonly number[],
   degree: number,
-  samples = 600,
 ): number[] {
-  const g = curvatureExtremaNumeratorPlanarPeriodic(x, y, knots, degree)
-  const f = (t: number) => g.evaluate(((t % 1) + 1) % 1)
-  const zeros: number[] = []
-  let prevT = 0
-  let prevV = f(0)
-  for (let i = 1; i <= samples; i++) {
-    const t = i / samples
-    const v = f(t)
-    if (prevV === 0) zeros.push(prevT)
-    else if (prevV * v < 0) {
-      let a = prevT
-      let b = t
-      for (let k = 0; k < 40; k++) {
-        const m = (a + b) / 2
-        if (f(a) * f(m) <= 0) b = m
-        else a = m
-      }
-      zeros.push((a + b) / 2)
-    }
-    prevT = t
-    prevV = v
-  }
-  return zeros
+  return signChangeParams(curvatureExtremaNumeratorPlanarPeriodic(x, y, knots, degree), true)
 }
 
 /**
- * Parameters t of the curvature extrema of an OPEN (clamped) planar B-spline —
- * the zeros of g on the curve's parameter domain [knots[degree], knots[n]].
- * Accurate (dense scan + bisection), unlike a coefficient-root finder that can
- * report spurious zeros on fine-knotted curves.
+ * Parameters t of the curvature extrema of an OPEN (clamped) planar B-spline — the sign
+ * changes of g on the curve's parameter domain. Located by variation-diminishing
+ * subdivision (no sampling): exact and zoom-proof, with no spurious zeros on fine knots.
  */
 export function openCurvatureExtremaParameters(
   x: readonly number[],
   y: readonly number[],
   knots: readonly number[],
   degree: number,
-  samples = 800,
 ): number[] {
-  const g = curvatureExtremaNumeratorPlanar(x, y, knots, degree)
-  const tMin = knots[degree]
-  const tMax = knots[knots.length - 1 - degree]
-  const span = tMax - tMin
-  if (!(span > 0)) return []
-  const f = (t: number) => g.evaluate(t)
-  const zeros: number[] = []
-  let prevT = tMin
-  let prevV = f(tMin)
-  for (let i = 1; i <= samples; i++) {
-    const t = tMin + (i / samples) * span
-    const v = f(t)
-    if (prevV === 0) zeros.push(prevT)
-    else if (prevV * v < 0) {
-      let a = prevT
-      let b = t
-      for (let k = 0; k < 40; k++) {
-        const m = (a + b) / 2
-        if (f(a) * f(m) <= 0) b = m
-        else a = m
-      }
-      zeros.push((a + b) / 2)
-    }
-    prevT = t
-    prevV = v
+  return signChangeParams(curvatureExtremaNumeratorPlanar(x, y, knots, degree), false)
+}
+
+// ============================================================================
+// Sign-change locator — variation-diminishing SUBDIVISION, never sampling.
+//
+// g is a chain of per-span Béziers (`g.coeffs[s]` on `[breaks[s], breaks[s+1]]`).
+// A curvature extremum is a SIGN CHANGE of g, of which there are three kinds:
+//   • an interior CROSSING of a span — isolated by de Casteljau bisection: a Bézier
+//     whose control polygon has no sign change has no zero (Schoenberg) so it is
+//     pruned; one that does is split until the crossing is bracketed, then placed
+//     by the endpoint line-zero;
+//   • a JUMP at an interior break — g is discontinuous at knots (FOUNDATIONS), so a
+//     span's exit value and the next span's entry value can straddle zero; and
+//   • for closed g, the SEAM jump (last span's exit ↔ first span's entry).
+// Only CROSSINGS count (a touch — same-sign bracket endpoints — is dropped): this is
+// the law's Z(g). Unlike a fixed grid the method cannot miss a feature under zoom —
+// subdivision adapts to the curve, so it succeeds where an N-sample scan eventually
+// fails. This is the Lyche–Mørken zero finder (port of old-sketcher's BSplineR1toR1
+// `zeros()`), expressed directly on the per-span Bernstein form.
+// ============================================================================
+
+const ROOT_TOL = 1e-9
+// Subdivide at a non-dyadic fraction (1/φ), NOT the midpoint: a symmetric curve's
+// extremum often sits exactly at a span's rational midpoint, and splitting there would
+// land the root on the split boundary (g = 0 at a shared endpoint) where both halves
+// prune and the crossing is lost. An irrational split never coincides with a rational root.
+const SPLIT = 0.6180339887498949
+
+/** Split a Bézier `c` at parameter u (de Casteljau): [left on [0,u], right on [u,1]]. */
+function splitAt(c: readonly number[], u: number): [number[], number[]] {
+  const n = c.length
+  const work = c.slice()
+  const left = [work[0]]
+  const right = [work[n - 1]]
+  for (let r = 1; r < n; r++) {
+    for (let i = 0; i < n - r; i++) work[i] = (1 - u) * work[i] + u * work[i + 1]
+    left.push(work[0])
+    right.unshift(work[n - 1 - r])
   }
-  return zeros
+  return [left, right]
+}
+
+/** The sub-Bézier of `c` (on [0,1]) restricted to [lo,hi] — extracted from the ORIGINAL
+ *  coefficients in a single two-sided de Casteljau, never by compounding earlier splits
+ *  (compounding near g's huge clamped-endpoint coefficients manufactures phantom signs). */
+function subBezier(c: readonly number[], lo: number, hi: number): number[] {
+  const onHi = splitAt(c, hi)[0] // Bézier on [0, hi]
+  return hi <= lo ? onHi : splitAt(onHi, lo / hi)[1] // restrict to [lo, hi]
+}
+
+/** Strict sign changes in a coefficient array (exact zeros skipped). Scale-free — no floor. */
+function polygonSignChanges(c: readonly number[]): number {
+  let changes = 0
+  let prev = 0
+  for (const v of c) {
+    const s = Math.sign(v)
+    if (s === 0) continue
+    if (prev !== 0 && s !== prev) changes++
+    prev = s
+  }
+  return changes
+}
+
+/** Interior crossings of one span's Bézier `c` over the absolute interval [A,B], by
+ *  variation-diminishing subdivision, appended to `out`. Each sub-interval is re-extracted
+ *  from `c` (well-conditioned, like a single g-evaluation) so phantom signs cannot accrue. */
+function bezierCrossings(c: readonly number[], A: number, B: number, out: number[]): void {
+  const rec = (lo: number, hi: number): void => {
+    const piece = subBezier(c, lo, hi)
+    if (polygonSignChanges(piece) === 0) return // Schoenberg: no polygon sign change ⇒ no zero
+    const a = A + (B - A) * lo
+    const b = A + (B - A) * hi
+    if (b - a <= ROOT_TOL) {
+      const v0 = piece[0]
+      const v1 = piece[piece.length - 1]
+      // A crossing only if the bracket endpoints have opposite, nonzero signs (else a touch).
+      if (v0 !== 0 && v1 !== 0 && Math.sign(v0) !== Math.sign(v1)) out.push(a + (b - a) * (v0 / (v0 - v1)))
+      return
+    }
+    const mid = lo + (hi - lo) * SPLIT
+    rec(lo, mid)
+    rec(mid, hi)
+  }
+  rec(0, 1)
 }
 
 /**
- * Dense zeros of g over the domain — the genuine curvature extrema. We scan g's VALUE on
- * a fine grid and bracket every sign change, exactly like the proven openCurvatureExtrema-
- * Parameters; `cyclic` closes the seam (last sample ↔ first) for periodic g. No amplitude
- * threshold: a real extremum where g is small (e.g. a gentle interior bend whose |g| is
- * dwarfed by the large coefficients near a clamped endpoint) is counted just the same.
- * Flat / zero-curvature curves are screened out by the caller before we get here.
+ * Parameters of the sign changes of g (its curvature extrema, Z(g)), located by
+ * variation-diminishing subdivision over g's break domain. Open or closed (`closed`
+ * wraps the seam). The single source of truth for every family's extrema markers.
  */
-function denseExtremaParams(
-  g: BernsteinDecomposition, tMin: number, span: number, samples: number, cyclic: boolean,
-): number[] {
-  const wrap = (t: number) => tMin + ((((t - tMin) % span) + span) % span)
-  const ev = cyclic ? (t: number) => g.evaluate(wrap(t)) : (t: number) => g.evaluate(t)
-  const bisect = (a0: number, b0: number) => {
-    let a = a0, b = b0
-    for (let k = 0; k < 40; k++) { const m = (a + b) / 2; if (ev(a) * ev(m) <= 0) b = m; else a = m }
-    return (a + b) / 2
+function signChangeParams(g: BernsteinDecomposition, closed: boolean): number[] {
+  const spans = g.coeffs.length
+  if (spans === 0) return []
+  // SCALE-FREE: no amplitude threshold. g spans a ~1e12 dynamic range, so any floor
+  // relative to max|g| would delete genuine low-amplitude interior crossings — the
+  // forbidden relative floor (Law 3). A real extremum where |g| is tiny is counted the same.
+  const firstSign = (c: readonly number[]) => {
+    for (const v of c) if (v !== 0) return Math.sign(v)
+    return 0
   }
-  const zeros: number[] = []
-  let prevT = tMin
-  let prevV = ev(tMin)
-  for (let i = 1; i <= samples; i++) {
-    const t = tMin + (i / samples) * span
-    const v = ev(t)
-    if (prevV === 0) zeros.push(prevT)
-    else if (prevV * v < 0) zeros.push(bisect(prevT, t))
-    prevT = t
-    prevV = v
+  const lastSign = (c: readonly number[]) => {
+    for (let i = c.length - 1; i >= 0; i--) if (c[i] !== 0) return Math.sign(c[i])
+    return 0
   }
-  // Seam: close the loop for periodic g (sample[samples] is tMin again via wrap).
-  if (cyclic && prevV !== 0) {
-    const v0 = ev(tMin)
-    if (prevV * v0 < 0) zeros.push(wrap(bisect(prevT, tMin + span)))
+  const out: number[] = []
+  // Closed: seed with the last span's exit sign so entering span 0 detects the seam jump.
+  // Open: nothing precedes span 0.
+  let prevRight = closed ? lastSign(g.coeffs[spans - 1]) : 0
+  for (let s = 0; s < spans; s++) {
+    const c = g.coeffs[s]
+    const a = g.breaks[s]
+    const left = firstSign(c)
+    // Sign change AT the break: a jump, the seam, or a crossing landing exactly on the knot.
+    if (prevRight !== 0 && left !== 0 && prevRight !== left) out.push(closed && s === 0 ? g.breaks[0] : a)
+    bezierCrossings(c, a, g.breaks[s + 1], out)
+    const right = lastSign(c)
+    if (right !== 0) prevRight = right // a flat (all-zero) span carries the sign across
   }
-  return zeros
+  out.sort((x, y) => x - y)
+  return out
 }
 
 /**
@@ -218,13 +251,10 @@ function denseExtremaParams(
  * screen also stops the root-finder from smearing markers across a g≡0 region.
  */
 export function curvatureExtremaMarkersOfNumerator(
-  g: BernsteinDecomposition, knots: readonly number[], degree: number, closed: boolean, samples = 800,
+  g: BernsteinDecomposition, closed: boolean,
 ): number[] {
-  if (cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed) === 0) return []
-  let tMin: number, span: number
-  if (closed) { tMin = 0; span = 1 } // clean-periodic domain (period 1, knots[0]=0)
-  else { tMin = knots[degree]; span = knots[knots.length - 1 - degree] - tMin; if (!(span > 0)) return [] }
-  return denseExtremaParams(g, tMin, span, samples, closed)
+  if (cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed) === 0) return [] // flat / g≡0
+  return signChangeParams(g, closed)
 }
 
 /**
@@ -237,12 +267,12 @@ export function curvatureExtremaMarkers(
   kind: 'bspline' | 'rational' | 'complex-rational',
   zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
   knots: readonly number[], degree: number, closed: boolean,
-  rho: Complex = { re: 1, im: 0 }, samples = 800,
+  rho: Complex = { re: 1, im: 0 },
 ): number[] {
   const g = kind === 'bspline'
     ? (closed ? curvatureExtremaNumeratorPlanarPeriodic(zre, zim, knots, degree) : curvatureExtremaNumeratorPlanar(zre, zim, knots, degree))
     : (closed ? curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree, rho) : curvatureExtremaNumeratorComplex(zre, zim, wre, wim, knots, degree))
-  return curvatureExtremaMarkersOfNumerator(g, knots, degree, closed, samples)
+  return curvatureExtremaMarkersOfNumerator(g, closed)
 }
 
 /** Parameters t ∈ [0,1) of the inflections of a closed curve (zeros of periodic f = c′×c″). */
@@ -251,31 +281,8 @@ export function closedInflectionParameters(
   y: readonly number[],
   knots: readonly number[],
   degree: number,
-  samples = 600,
 ): number[] {
-  const f = inflectionNumeratorPlanarPeriodic(x, y, knots, degree)
-  const fn = (t: number) => f.evaluate(((t % 1) + 1) % 1)
-  const zeros: number[] = []
-  let prevT = 0
-  let prevV = fn(0)
-  for (let i = 1; i <= samples; i++) {
-    const t = i / samples
-    const v = fn(t)
-    if (prevV === 0) zeros.push(prevT)
-    else if (prevV * v < 0) {
-      let a = prevT
-      let b = t
-      for (let k = 0; k < 40; k++) {
-        const m = (a + b) / 2
-        if (fn(a) * fn(m) <= 0) b = m
-        else a = m
-      }
-      zeros.push((a + b) / 2)
-    }
-    prevT = t
-    prevV = v
-  }
-  return zeros
+  return signChangeParams(inflectionNumeratorPlanarPeriodic(x, y, knots, degree), true)
 }
 
 // ============================================================================
@@ -691,30 +698,7 @@ export function closedComplexCurvatureExtremaParameters(
   wim: readonly number[],
   knots: readonly number[],
   degree: number,
-  samples = 600,
   rho: Complex = { re: 1, im: 0 },
 ): number[] {
-  const g = curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree, rho)
-  const f = (t: number) => g.evaluate(((t % 1) + 1) % 1)
-  const zeros: number[] = []
-  let prevT = 0
-  let prevV = f(0)
-  for (let i = 1; i <= samples; i++) {
-    const t = i / samples
-    const v = f(t)
-    if (prevV === 0) zeros.push(prevT)
-    else if (prevV * v < 0) {
-      let a = prevT
-      let b = t
-      for (let k = 0; k < 40; k++) {
-        const m = (a + b) / 2
-        if (f(a) * f(m) <= 0) b = m
-        else a = m
-      }
-      zeros.push((a + b) / 2)
-    }
-    prevT = t
-    prevV = v
-  }
-  return zeros
+  return signChangeParams(curvatureExtremaNumeratorComplexPeriodic(zre, zim, wre, wim, knots, degree, rho), true)
 }

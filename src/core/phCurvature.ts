@@ -57,7 +57,7 @@ export function phBound(
 export function phMarkers(
   u: readonly number[], v: readonly number[], knots: readonly number[], degree: number, closed = false,
 ): number[] {
-  return curvatureExtremaMarkersOfNumerator(curvatureExtremaNumeratorPH(u, v, knots, degree, closed), knots, degree, closed)
+  return curvatureExtremaMarkersOfNumerator(curvatureExtremaNumeratorPH(u, v, knots, degree, closed), closed)
 }
 
 /**

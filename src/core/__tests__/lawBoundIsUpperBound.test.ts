@@ -66,16 +66,24 @@ describe('Law 1: S⁻ is a true upper bound (S⁻ ≥ markers)', () => {
     }
   })
 
-  // REGRESSION: this exact curve read S⁻ = 4 with 6 markers (a 1e-9·max|g| relative floor
-  // deleting genuine coefficients on a g with ~1e10 dynamic range). The bound must be ≥ 6.
-  it('the false-bound curve now reads an honest bound (≥ its 6 markers)', () => {
+  // REGRESSION: this exact curve once read S⁻ = 4 with 6 markers (a 1e-9·max|g| relative
+  // floor deleting genuine coefficients on a g with ~1e10 dynamic range). S⁻ must stay ≥ Z.
+  //
+  // Z is 8, not 6: the marker finder is now variation-diminishing SUBDIVISION (not an 800-
+  // sample grid), which resolves TWO real sign changes the grid stepped over near the
+  // clamped end. Inside span 0 g descends smoothly −3.1e14 → … → +1.2e9 (a crossing ~5e-8
+  // before the knot 1/12), then JUMPS back negative at the knot (g discontinuous at knots,
+  // FOUNDATIONS F1; "jumps count"). Both confirmed against a 2e6-sample grid and direct
+  // evaluation; the positive sliver is ~5e-8 wide, narrower than any practical grid step.
+  // S⁻ = 10 ≥ Z = 8, so the bound is still honest.
+  it('the false-bound curve reads an honest bound (≥ its 8 markers)', () => {
     const d = 3
     const knots = [0, 0, 0, 0, 0.08333333333333333, 0.16666666666666666, 0.25, 0.3333333333333333, 0.4166666666666667, 0.5, 0.5833333333333334, 0.6666666666666666, 0.75, 0.8333333333333334, 0.9166666666666666, 1, 1, 1, 1]
     const cps = [[474.60628552551975, 33.7758328385152], [304.0932994418825, -320.09725965788573], [113.8899071963915, -357.14564319355077], [187.82605665798425, -267.80281271613717], [38.64906018050243, -232.67646381486583], [12.135113786368223, -226.43234631580773], [-109.88549495911165, -197.69573010049223], [-257.9971504525222, -121.83856860922164], [-352.3959987733299, 1.944900868343821], [-289.25062541348944, 94.6368801082222], [-161.54765674524504, 174.67654976486182], [21.758174886640372, 198.99100068702552], [186.5260077662114, 195.10570436592315], [295.07431169672003, 152.27930557736883], [321.8514919589602, 108.32000152425707]]
     const x = cps.map((p) => p[0]), y = cps.map((p) => p[1])
     const S = sMinusOpen(x, y, knots, d)
     const Z = curvatureExtremaMarkers('bspline', x, y, [], [], knots, d, false).length
-    expect(Z).toBe(6)
+    expect(Z).toBe(8)
     expect(S, `S⁻=${S} must be ≥ markers=${Z}`).toBeGreaterThanOrEqual(Z)
   })
 })
