@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { curvatureExtremaNumeratorComplexPeriodic } from '../curvature'
 import { familyJacobian, type WeightedCP } from '../curvatureFamilies'
-import { slideComplexRational, type ComplexPoint } from '../complexRational'
+import { slideComplexRational } from '../complexRational'
+import type { ComplexPoint } from '../types'
 import { assignSignsNeighbor, cyclicSignChanges } from '../bernstein'
 import { computeGCPsFromFixedWeightClosed } from '../../sketcher/optimizer/complexAlgebra'
 

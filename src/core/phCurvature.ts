@@ -122,7 +122,12 @@ export function curvatureExtremaReducedNumeratorPH(
 
 /** Forward-AD dual over the real B-spline algebra: (value, tangent) BernsteinDecompositions. */
 class RDual {
-  constructor(readonly val: BernsteinDecomposition, readonly tan: BernsteinDecomposition) {}
+  readonly val: BernsteinDecomposition
+  readonly tan: BernsteinDecomposition
+  constructor(val: BernsteinDecomposition, tan: BernsteinDecomposition) {
+    this.val = val
+    this.tan = tan
+  }
   add(o: RDual) { return new RDual(this.val.add(o.val), this.tan.add(o.tan)) }
   sub(o: RDual) { return new RDual(this.val.subtract(o.val), this.tan.subtract(o.tan)) }
   mul(o: RDual) { return new RDual(this.val.multiply(o.val), this.val.multiply(o.tan).add(this.tan.multiply(o.val))) }
