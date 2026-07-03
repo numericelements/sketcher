@@ -930,11 +930,13 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // is curvatureExtremaNumeratorComplex with w_im = 0 + robust signs — EXACTLY the displayed
     // bound (complexCurvatureConstraintState), so there is no F6-style gap. slide()'s objective
     // pulls the dragged CP straight to the cursor (direct tracking, correct feel). Farin t-values
-    // are weight ratios (position-independent) → fixed weights leave them unchanged. Edge cases
-    // (symmetry, inflection preservation, anchored drag) stay on the legacy optimizer below.
+    // are weight ratios (position-independent) → fixed weights leave them unchanged. Anchored
+    // drags (anchorWeight>0) ride along: core slide() carries the same additive anchor term as
+    // PlanarCurvatureProblem (legacy never implemented anchors for rational at all). Edge cases
+    // (symmetry, inflection preservation) stay on the legacy optimizer below.
     if (
       preserveCurvatureExtrema && curve.kind === 'rational' && !curve.closed &&
-      !symmetryMaps && !preserveInflections && anchorWeight === 0
+      !symmetryMaps && !preserveInflections
     ) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: p.w, wIm: 0 }))
@@ -944,7 +946,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         // stalls ~85% regardless of iterations — F4), and one solver is ~2× faster than best-of.
         const r = slide('rational', cps, curve.knots, curve.degree, 'open', pointIndex,
           { x: newPosition.x, y: newPosition.y },
-          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
+          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20,
+            ...(disableSliding ? { disableSliding } : {}),
+            ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
+              ? { anchorWeight, anchorX: dragStartCPsX, anchorY: dragStartCPsY }
+              : {}) })
         const newControlPoints = r.points.map((p, i) => ({ x: p.re, y: p.im, w: curve.controlPoints[i].w }))
         set((state) => ({
           curves: state.curves.map((c) => (c.id === curveId ? { ...curve, controlPoints: newControlPoints } : c)),
@@ -1037,18 +1043,20 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // recomputed from the new positions + frozen weights (display aid, derived).
     // symmetry/inflection are no-ops for complex-rational — the LEGACY path ignores them too
     // (OptimizeOptions wires them only for the polynomial/bspline solve), so routing those
-    // drags here is behaviour-preserving. Only anchorWeight>0 still defers to legacy (open-core
-    // anchor support is migration sub-step #2). See docs/THE_IDEAS.md (idea VI) / legacy-deletion.
-    if (
-      preserveCurvatureExtrema && curve.kind === 'complex-rational' && !curve.closed &&
-      anchorWeight === 0
-    ) {
+    // drags here is behaviour-preserving. Anchored drags (anchorWeight>0) ride along via core
+    // slide()'s additive anchor term (legacy never implemented complex-rational anchors).
+    // See docs/THE_IDEAS.md (idea VI) / legacy-deletion.
+    if (preserveCurvatureExtrema && curve.kind === 'complex-rational' && !curve.closed) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.re, im: p.im, wRe: p.w_re, wIm: p.w_im }))
         // Same fast recipe as open rational / the closed path: single IP solver + local Jacobian.
         const r = slide('complex', cps, curve.knots, curve.degree, 'open', pointIndex,
           { x: newPosition.x, y: newPosition.y },
-          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20, ...(disableSliding ? { disableSliding } : {}) })
+          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20,
+            ...(disableSliding ? { disableSliding } : {}),
+            ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
+              ? { anchorWeight, anchorX: dragStartCPsX, anchorY: dragStartCPsY }
+              : {}) })
         const newControlPoints = curve.controlPoints.map((p, i) => ({ ...p, re: r.points[i].re, im: r.points[i].im }))
         const updated = { ...curve, controlPoints: newControlPoints }
         const farinPositions = computeComplexFarinPoints(updated).map((f) => f.position)

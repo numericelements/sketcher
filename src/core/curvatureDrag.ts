@@ -48,6 +48,16 @@ export interface CurvatureDragOptions {
   disableSliding?: boolean
   dragWeight?: number
   rho?: Complex
+  /** Anchoring (drift resistance): adds a uniform ½·anchorWeight·Σ‖Pᵢ−anchorᵢ‖²
+   *  Tikhonov term pulling every point toward its drag-START position (the
+   *  targets already pull toward the tick-start positions). Identical semantics
+   *  to PlanarCurvatureProblem's anchors — on the dragged point it is damping,
+   *  so keep anchorWeight below the drag weight or the cursor loses the
+   *  tug-of-war. anchorX/anchorY are the affine (re/im) coordinates; weights
+   *  stay fixed. */
+  anchorX?: number[]
+  anchorY?: number[]
+  anchorWeight?: number
 }
 
 /**
@@ -77,6 +87,9 @@ export class CurvatureDragProblem implements OptimizationProblem {
   private readonly wIm: number[]
   private readonly backend: JacobianBackend
   private readonly rho: Complex
+  private readonly anchorRe: number[]
+  private readonly anchorIm: number[]
+  private readonly anchorWeight: number
 
   constructor(
     kind: AlgebraicFamily,
@@ -108,6 +121,9 @@ export class CurvatureDragProblem implements OptimizationProblem {
     this.targetIm[dragIndex] = target.y
     this.weights = this.re.map(() => 1)
     if (opts.dragWeight !== undefined) this.weights[dragIndex] = opts.dragWeight
+    this.anchorRe = opts.anchorX ?? [...this.re]
+    this.anchorIm = opts.anchorY ?? [...this.im]
+    this.anchorWeight = opts.anchorWeight ?? 0
 
     // Robust-scaled constraint state (the editor's regime), fixed at drag start.
     const gc = this.numerator().flatCoeffs()
@@ -156,20 +172,28 @@ export class CurvatureDragProblem implements OptimizationProblem {
 
   computeObjective(): number {
     let s = 0
+    const aw = this.anchorWeight
     for (let i = 0; i < this.re.length; i++) {
       const dx = this.re[i] - this.targetRe[i]
       const dy = this.im[i] - this.targetIm[i]
       s += 0.5 * this.weights[i] * (dx * dx + dy * dy)
+      if (aw > 0) {
+        const ax = this.re[i] - this.anchorRe[i]
+        const ay = this.im[i] - this.anchorIm[i]
+        s += 0.5 * aw * (ax * ax + ay * ay)
+      }
     }
     return s
   }
   computeObjectiveGradient(): number[] {
-    const gx = this.re.map((x, i) => this.weights[i] * (x - this.targetRe[i]))
-    const gy = this.im.map((y, i) => this.weights[i] * (y - this.targetIm[i]))
+    const aw = this.anchorWeight
+    const gx = this.re.map((x, i) => this.weights[i] * (x - this.targetRe[i]) + aw * (x - this.anchorRe[i]))
+    const gy = this.im.map((y, i) => this.weights[i] * (y - this.targetIm[i]) + aw * (y - this.anchorIm[i]))
     return [...gx, ...gy]
   }
   computeObjectiveHessianDiagonal(): number[] {
-    return [...this.weights, ...this.weights]
+    const aw = this.anchorWeight
+    return [...this.weights.map((w) => w + aw), ...this.weights.map((w) => w + aw)]
   }
 
   computeConstraints(): number[] {

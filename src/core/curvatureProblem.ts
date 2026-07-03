@@ -337,6 +337,11 @@ export class PlanarCurvatureProblem implements OptimizationProblem {
   private weights: number[]
   private anchorX: number[]
   private anchorY: number[]
+  // Anchor term is UNIFORM over all points (dragged included): a plain
+  // ½·aw·Σ‖Pᵢ−anchorᵢ‖² Tikhonov pull toward the drag-start positions. On the
+  // dragged point it acts as damping (the barrier quick-drag canary in
+  // boundPreservationSession.test.ts measurably relies on it); callers keep
+  // aw below the drag weight so the cursor always wins.
   private anchorWeight: number
   private signs: number[] // per ACTIVE g constraint
   private activeIdx: number[] // indices into g.flatCoeffs()
