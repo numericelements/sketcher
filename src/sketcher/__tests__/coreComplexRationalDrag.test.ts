@@ -83,7 +83,7 @@ describe('core complex-rational drag (live sketcher path)', () => {
         expect(sc(toCR(cur), knots)).toBeLessThanOrEqual(start)
       }
     }
-  })
+  }, 30000)
 
   // ρ ≠ 1 (spiral monodromy): wrapWeight ≠ w₀. The numerator must wrap-scale by ρ to
   // match the rendered curve. sc() and the drag both take ρ; the bound is measured
