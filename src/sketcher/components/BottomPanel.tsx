@@ -16,7 +16,7 @@ import {
   curvatureExtremaNumeratorPlanarPeriodic as coreCurvatureNumeratorPeriodic,
   planarCurvatureConstraintState as coreConstraintState,
   periodicCurvatureConstraintState, complexCurvatureConstraintState, cyclicSignChanges, cdiv,
-  closedPHConstraintState,
+  closedPHConstraintState, openPHConstraintState,
 } from '../../core'
 
 export default function BottomPanel() {
@@ -758,8 +758,10 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
       // guard, readout, dots (Law 3). Open PH needs no branch: its displayed
       // CPs ARE the solved object and its drag enforces their g.
       const phm = phMetadata.get(curve.id)
-      if (curve.closed && phm && phm.kind === 'polynomial' && 'uControlPoints' in phm) {
-        return closedPHConstraintState(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
+      if (phm && phm.kind === 'polynomial' && 'uControlPoints' in phm) {
+        return curve.closed
+          ? closedPHConstraintState(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
+          : openPHConstraintState(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
       }
       // planar B-spline
       const X = curve.controlPoints.map((p) => p.x)

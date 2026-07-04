@@ -542,3 +542,41 @@ unchanged (adopt deliberately if the same blink is ever measured there).
 
 **After:** S8/Z8 at every tick, all probed CPs. Pin extended: markers ≤ S every tick of
 the drag pin (closedPHDisplayMetric.test.ts).
+
+## E17 — open PH onto the trust-region engine, on R (2026-07-04)
+
+**Goal:** the last drag route off the old engine; one engine + one metric (R) + display
+coherence for the whole PH family.
+
+**Build:** `slideOpenPHCurveBound` = slideClosedPHCurveBound minus everything seam-related
+(no wrap coordinates, no closure projection, no passes/margins, no operator P — the open
+displayed CPs ARE the solved clamped object). Constraint = R, open counting; exact AD
+Jacobian; strict R guard with generator bisect + hard backstop inside the function.
+
+**The one experiment that mattered — objective weights are load-bearing:**
+    uniform weights:      nGen 7/13/25 → 42/56/49% tracked (anchors fight the drag 1:1)
+    legacy 10/5/1 weights: nGen 7/13/25 → 98/96/95% tracked
+    old engine (g):        nGen 7/13/25 → 87/92/85% @ 95/265/923 ms/tick
+    new engine (R):        same curves  → 98/96/95% @ 21/80/342 ms/tick
+Better tracking than legacy at ~1/4 the cost, R held everywhere. (Eric's weights, ported
+with the port — the E1 lesson generalized: the solver is a tuned ensemble; the objective's
+weighting is part of the design, not a detail.)
+
+**The F9 checkpoint, faced explicitly:** at nGen=7 the new drag let the loose degree-14
+g POLYGON count rise while R held. Not a violation: Z(g) ≡ Z(R) exactly (g = 2Rσ²), so no
+real extremum appeared — the loose polygon registers knife-edge pairs the R polygon does
+not. Legitimacy requires displayed == enforced, so the display switch (S=, markers, bar →
+openPHConstraintState / openPHExtremaMarkers, robust classifier) SHIPS WITH the solver
+switch — same commit. The old openPHEditing curve-span pin still passes (stricter than
+required on these fixtures; kept).
+
+**Pins:** openPHCurveBound.test.ts (3 sizes: tracked ≥80% floor, R non-increasing per tick,
+cost ceiling; display coherence S==enforced, markers ≤ S, domain [0,1]);
+openPHAllCPSweep.test.ts (every CP through the real store route: forward, no flying,
+median ≥10px — the E16 lesson applied before, not after, a feel report).
+
+**Still legacy:** PH value-bound (|κ|≤b workbench) — optimizePHCurve; when extrema
+preservation is combined with the value bound, enforcement is legacy-g while the display
+now reads R (rare workbench path; noted, acceptable until the value bound migrates).
+slideOpenPHTracking stays exported (phDrag tests still exercise it) until the legacy
+sweep (#5) deletes the old engine wholesale.

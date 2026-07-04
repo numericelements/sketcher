@@ -20,7 +20,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // (periodic-junction/cusp knots) and symmetry-reduced/anchored drags still fall to
 // the legacy optimizer; PH is largely legacy. See docs/THE_IDEAS.md (idea VII) and
 // docs/CURVATURE_ARCHITECTURE.md for the convergence status.
-import { slideCurve, slide, slideOpenPHTracking, slideClosedPHCurveBound, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -720,17 +720,22 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           // iteration cap + Gauss-Newton (no BFGS) for interactivity.
           const valueBound = boundCurvatureValue && Number.isFinite(curvatureBound)
 
-          // OPEN PH extrema-preservation → CORE slideOpenPHTracking: the faithful port of the
-          // legacy PHCurveProblem — a DIRECT cursor-tracking objective (weighted ‖curveCPᵢ −
-          // targetᵢ‖², dragged CP → cursor) over [x0,y0,u,v], holding the curvature-extrema
-          // bound (generator-side g, which for OPEN equals the displayed curve-span bound —
-          // proven). Tracks the hand (unlike the reverted generator-L2 slideOpenPH) AND holds
-          // the bound. The curvature-VALUE bound (|κ|≤b, 2D workbench) stays on legacy below.
+          // OPEN PH extrema-preservation → CORE slideOpenPHCurveBound: the trust-region
+          // engine constrained on the REDUCED numerator R (F7: g = 2·R·σ², same sign
+          // changes, degree 6 vs 14 per span). Same cursor-tracking objective and the
+          // legacy weights (dragged 10, endpoints 5, else 1 — measured: uniform weights
+          // let the anchors fight the drag, 42% vs 96% tracked). Bench vs the old
+          // engine at nGen 7/13/25: 87/92/85% → 98/96/95% tracked at ~1/4 the cost.
+          // Display (S=, markers, bar) reads the SAME R — Law 3. The curvature-VALUE
+          // bound (|κ|≤b, 2D workbench) stays on legacy below.
           if (preserveCurvatureExtrema && !valueBound) {
-            const r = slideOpenPHTracking(
+            const targets = (curve.controlPoints as Point2D[]).map((p, i) =>
+              i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
+            const M = targets.length
+            const targetWeights = targets.map((_, i) => (i === pointIndex ? 10 : i === 0 || i === M - 1 ? 5 : 1))
+            const r = slideOpenPHCurveBound(
               meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
-              meta.uvKnots, meta.uvDegree, curve.controlPoints as Point2D[], pointIndex,
-              newPosition.x, newPosition.y, { maxIterations: 24 },
+              meta.uvKnots, meta.uvDegree, targets, { maxNumSteps: 30, targetWeights },
             )
             const built = computePHCurveFromUV(r.u, r.v, meta.uvKnots, meta.uvDegree, r.x0, r.y0)
             const newPhMetadata = new Map(phMetadata)

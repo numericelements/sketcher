@@ -12,7 +12,7 @@ import { getBasisColor } from '../utils/colors'
 // (deadband-filtered dense zeros of the kind's own g) — the same numerators the
 // bound readout and the drag guard use, so dots, readout and guard never disagree.
 // Inflection dots come from core's closed inflection-numerator zeros too.
-import { curvatureExtremaMarkers, closedPHExtremaMarkers, closedInflectionParameters, cdiv } from '../../core'
+import { curvatureExtremaMarkers, closedPHExtremaMarkers, openPHExtremaMarkers, closedInflectionParameters, cdiv } from '../../core'
 import TransformWidget from './TransformWidget'
 import { threeArcPointsFromNoisyPoints, circleArcFromThreePoints } from '../utils/circleArc'
 import { evaluatePHNormal, findNearestPointParam, computePHCurveFromUV, type PHMetadata } from '../optimizer/phCurve'
@@ -146,8 +146,10 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
         // g flickers a marker pair in/out at a graze; R cannot (Law 3, see
         // closedPHConstraintState).
         const phm = phMetadata.get(curve.id)
-        if (curve.closed && phm && phm.kind === 'polynomial' && 'uControlPoints' in phm) {
-          params = closedPHExtremaMarkers(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
+        if (phm && phm.kind === 'polynomial' && 'uControlPoints' in phm) {
+          params = curve.closed
+            ? closedPHExtremaMarkers(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
+            : openPHExtremaMarkers(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
         } else {
           const cx = curve.controlPoints.map((p) => p.x)
           const cy = curve.controlPoints.map((p) => p.y)

@@ -35,7 +35,7 @@ import {
 } from './curvature'
 import { curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
-import { computeInactiveSetBySignCyclic, type CurvatureConstraintState } from './curvatureProblem'
+import { computeInactiveSetBySignCyclic, computeInactiveSetBySign, type CurvatureConstraintState } from './curvatureProblem'
 import { findPeriodicSpan, periodicBasis, findOpenSpan, openBasis, mod } from './basis'
 import {
   TrustRegionBarrierOptimizer, TRSymmetricMatrix,
@@ -464,6 +464,190 @@ export function closedPHReducedBound(
   )
 }
 
+/** The ENFORCED open-PH bound: non-cyclic robust count of the reduced numerator R
+ *  on the clamped generator chart (open: gen chart ≡ curve chart, no view gap). */
+export function openPHReducedBound(
+  u: readonly number[],
+  v: readonly number[],
+  uvKnots: readonly number[],
+  uvDegree: number,
+): number {
+  return cyclicSignChanges(
+    assignSignsNeighbor(curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false).flatCoeffs()),
+    false,
+  )
+}
+
+/**
+ * One OPEN-PH drag on the trust-region engine, constrained on the REDUCED
+ * numerator R (F7: g = 2·R·σ², σ² > 0 — same sign changes, degree 4m−2 instead
+ * of 8m−2, orders-of-magnitude better conditioned). The open sibling of
+ * slideClosedPHCurveBound with everything seam-related deleted: no wrap
+ * coordinates (all 2N generator coords are free), no closure projection, no
+ * passes/margins, and the displayed curve IS the solved clamped object (no
+ * operator P). Objective tracks the curve CPs (tick-start positions with the
+ * dragged one at the cursor); a strict R guard bisects the generator path back
+ * on numerical slip (hard backstop keeps the start — Law 2 is non-negotiable).
+ */
+export function slideOpenPHCurveBound(
+  u0: readonly number[],
+  v0: readonly number[],
+  x0in: number,
+  y0in: number,
+  uvKnots: readonly number[],
+  uvDegree: number,
+  /** Curve-CP targets: tick-start clamped CPs with the dragged one at the cursor. */
+  targetCPs: readonly { x: number; y: number }[],
+  opts: { maxNumSteps?: number; targetWeights?: readonly number[] } = {},
+): { u: number[]; v: number[]; x0: number; y0: number; converged: boolean } {
+  const N = u0.length
+  const nz = 2 + 2 * N
+  const M0 = computePHCurveFromUV(u0.slice(), v0.slice(), uvKnots as number[], uvDegree, x0in, y0in).controlPoints.length
+  if (targetCPs.length !== M0) throw new Error(`slideOpenPHCurveBound: ${targetCPs.length} targets for ${M0} curve CPs`)
+
+  const Rof = (uu: readonly number[], vv: readonly number[]) =>
+    curvatureExtremaReducedNumeratorPH(uu, vv, uvKnots as number[], uvDegree, false).flatCoeffs()
+  const buildClamped = (z: number[]) =>
+    computePHCurveFromUV(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree, z[0], z[1]).controlPoints
+
+  const startBound = openPHReducedBound(u0, v0, uvKnots, uvDegree)
+  let z = [x0in, y0in, ...u0, ...v0]
+
+  // RAW constraint state at tick start (pure signs; open runs, linear anchors).
+  const rc0 = Rof(u0, v0)
+  const signsAll = rc0.map((val) => (val > 0 ? -1 : 1))
+  const inactive = computeInactiveSetBySign(assignSignsNeighbor(rc0), rc0.map(Math.abs))
+  const active = rc0.map((_, i) => i).filter((i) => !inactive.has(i) && rc0[i] !== 0)
+
+  let atZ: { f: number[]; f0: number; g0: number[]; J: number[][] | null; JtJ: TRSymmetricMatrix | null } | null = null
+  let candidate: { dx: number[]; f: number[]; f0: number } | null = null
+
+  const fFrom = (z2: number[]) => {
+    const rc = Rof(z2.slice(2, 2 + N), z2.slice(2 + N))
+    return active.map((i) => signsAll[i] * rc[i])
+  }
+  const wCP = opts.targetWeights ?? new Array<number>(M0).fill(1)
+  const f0From = (clamped: { x: number; y: number }[]) => {
+    let sm = 0
+    for (let i = 0; i < M0; i++) {
+      const dx = clamped[i].x - targetCPs[i].x
+      const dy = clamped[i].y - targetCPs[i].y
+      sm += 0.5 * wCP[i] * (dx * dx + dy * dy)
+    }
+    return sm
+  }
+  const ensure = () => {
+    if (atZ) return atZ
+    atZ = { f: fFrom(z), f0: f0From(buildClamped(z)), g0: [], J: null, JtJ: null }
+    return atZ
+  }
+  const buildJ = () => {
+    const a = ensure()
+    if (a.J) return
+    const uu = z.slice(2, 2 + N)
+    const vv = z.slice(2 + N)
+    const rg = reducedPHGradient(uu, vv, uvKnots as number[], uvDegree, false)
+    const duFlat = rg.du.map((bd) => bd.flatCoeffs())
+    const dvFlat = rg.dv.map((bd) => bd.flatCoeffs())
+    const J: number[][] = active.map(() => new Array<number>(nz).fill(0))
+    for (let rI = 0; rI < active.length; rI++) {
+      const flat = active[rI]
+      const sgn = signsAll[flat]
+      for (let i = 0; i < N; i++) {
+        J[rI][2 + i] = sgn * duFlat[i][flat]
+        J[rI][2 + N + i] = sgn * dvFlat[i][flat]
+      }
+    }
+    const Jph = phControlPointJacobian(uu, vv, uvKnots as number[], uvDegree)
+    const clamped = buildClamped(z)
+    const res = clamped.map((pt, i) => ({ x: wCP[i] * (pt.x - targetCPs[i].x), y: wCP[i] * (pt.y - targetCPs[i].y) }))
+    const g0v = new Array<number>(nz).fill(0)
+    for (let c = 0; c < nz; c++) {
+      const d = Jph[c]
+      let gs = 0
+      for (let j = 0; j < M0; j++) gs += res[j].x * d.dx[j] + res[j].y * d.dy[j]
+      g0v[c] = gs
+    }
+    const JtJ = new TRSymmetricMatrix(nz)
+    for (let c = 0; c < nz; c++) {
+      for (let l = 0; l <= c; l++) {
+        let sm = 0
+        const dc = Jph[c]
+        const dl = Jph[l]
+        for (let j = 0; j < M0; j++) sm += wCP[j] * (dc.dx[j] * dl.dx[j] + dc.dy[j] * dl.dy[j])
+        JtJ.set(c, l, sm)
+      }
+    }
+    a.J = J
+    a.g0 = g0v
+    a.JtJ = JtJ
+  }
+  const visit = (dx: number[]) => {
+    if (candidate && candidate.dx === dx) return candidate
+    const zc = z.map((val, i) => val + dx[i])
+    candidate = { dx, f: fFrom(zc), f0: f0From(buildClamped(zc)) }
+    return candidate
+  }
+  const problem: TrustRegionProblem = {
+    get numberOfIndependentVariables() { return nz },
+    get f0() { return ensure().f0 },
+    get gradient_f0() { buildJ(); return ensure().g0 },
+    get hessian_f0(): TRMatrix { buildJ(); return ensure().JtJ! },
+    get numberOfConstraints() { return active.length },
+    get f() { return ensure().f },
+    get gradient_f(): TRMatrix {
+      buildJ()
+      const J = ensure().J!
+      return { shape: [active.length, nz], get: (r, c) => J[r][c] }
+    },
+    step(dx: number[]) {
+      z = z.map((val, i) => val + dx[i])
+      atZ = null
+      candidate = null
+    },
+    fStep(dx: number[]) { return visit(dx).f },
+    f0Step(dx: number[]) { return visit(dx).f0 },
+  }
+  let converged = false
+  try {
+    const opt = new TrustRegionBarrierOptimizer(problem)
+    opt.optimize(10e-8, 10, opts.maxNumSteps ?? 30)
+    converged = opt.success
+  } catch { /* committed steps are strictly feasible; the strict guard below closes Law 2 */ }
+
+  let u = z.slice(2, 2 + N)
+  let v = z.slice(2 + N)
+  let x0 = z[0]
+  let y0 = z[1]
+  // Strict R guard: bisect the straight generator path back toward the tick
+  // start on numerical slip (open: linear interpolation breaks nothing).
+  if (openPHReducedBound(u, v, uvKnots, uvDegree) > startBound) {
+    let lo = 0
+    let hi = 1
+    for (let it = 0; it < 26; it++) {
+      const a = (lo + hi) / 2
+      const ua = u0.map((g, i) => g + a * (u[i] - g))
+      const va = v0.map((g, i) => g + a * (v[i] - g))
+      if (openPHReducedBound(ua, va, uvKnots, uvDegree) <= startBound) lo = a
+      else hi = a
+    }
+    const ua = u0.map((g, i) => g + lo * (u[i] - g))
+    const va = v0.map((g, i) => g + lo * (v[i] - g))
+    if (openPHReducedBound(ua, va, uvKnots, uvDegree) <= startBound) {
+      u = ua
+      v = va
+      x0 = x0in + lo * (x0 - x0in)
+      y0 = y0in + lo * (y0 - y0in)
+    } else {
+      u = u0.slice()
+      v = v0.slice()
+      x0 = x0in
+      y0 = y0in
+    }
+  }
+  return { u, v, x0, y0, converged }
+}
+
 // ----------------------------------------------------------------------------
 // The closed-PH DISPLAY of the solved object (Law 3: displayed == enforced).
 //
@@ -521,6 +705,48 @@ export function closedPHExtremaMarkers(
   return curvatureExtremaMarkersOfNumeratorRobust(
     curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false),
     true,
+  )
+}
+
+/** Constraint-bar state of the SOLVED open-PH object — the open sibling of
+ *  closedPHConstraintState (linear runs, non-cyclic anchors). */
+export function openPHConstraintState(
+  u: readonly number[],
+  v: readonly number[],
+  uvKnots: readonly number[],
+  uvDegree: number,
+): CurvatureConstraintState {
+  const R = curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false)
+  const rc = R.flatCoeffs()
+  const signs = assignSignsNeighbor(rc)
+  const inactive = computeInactiveSetBySign(signs, rc.map(Math.abs))
+  const grevilleAbscissae: number[] = []
+  for (let sp = 0; sp < R.coeffs.length; sp++) {
+    const a = R.breaks[sp]
+    const b = R.breaks[sp + 1]
+    const m = R.coeffs[sp].length
+    for (let j = 0; j < m; j++) grevilleAbscissae.push(a + (m > 1 ? j / (m - 1) : 0) * (b - a))
+  }
+  return {
+    gCPs: rc,
+    signs,
+    inactiveIndices: [...inactive],
+    gScale: rc.map((c) => Math.max(Math.abs(c), 1e-12)),
+    grevilleAbscissae,
+  }
+}
+
+/** Curvature-extrema markers of the SOLVED open-PH object: robust crossings of R
+ *  (the count's own classifier — see curvatureExtremaMarkersOfNumeratorRobust). */
+export function openPHExtremaMarkers(
+  u: readonly number[],
+  v: readonly number[],
+  uvKnots: readonly number[],
+  uvDegree: number,
+): number[] {
+  return curvatureExtremaMarkersOfNumeratorRobust(
+    curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false),
+    false,
   )
 }
 
