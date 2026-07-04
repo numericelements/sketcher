@@ -31,7 +31,7 @@ import {
 import { projectClosurePH, generatorBasisGram, phSeamMaps } from './phClosure'
 import {
   curvatureExtremaNumeratorPlanarPeriodic,
-  curvatureExtremaMarkersOfNumerator,
+  curvatureExtremaMarkersOfNumeratorRobust,
 } from './curvature'
 import { curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
@@ -508,7 +508,9 @@ export function closedPHConstraintState(
 }
 
 /** Curvature-extrema marker parameters of the SOLVED closed-PH object: the sign-
- *  change crossings of R, counted cyclically (seam wrap). R lives on the same
+ *  change crossings of R, counted cyclically (seam wrap), CONSISTENT with the
+ *  robust sign assignment the displayed/enforced count uses (the raw finder
+ *  drew 10 dots under S=8 at a near-merge noise dip). R lives on the same
  *  parameter domain as the curve, so these t feed the displayed curve directly. */
 export function closedPHExtremaMarkers(
   u: readonly number[],
@@ -516,7 +518,7 @@ export function closedPHExtremaMarkers(
   uvKnots: readonly number[],
   uvDegree: number,
 ): number[] {
-  return curvatureExtremaMarkersOfNumerator(
+  return curvatureExtremaMarkersOfNumeratorRobust(
     curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false),
     true,
   )

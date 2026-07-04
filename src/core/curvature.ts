@@ -312,6 +312,32 @@ export function curvatureExtremaMarkersOfNumerator(
 }
 
 /**
+ * Markers CONSISTENT with the robust sign assignment — the displayed/enforced
+ * count's own classification. The raw finder reports every floating-point
+ * crossing; at a near-merge the numerator dips across zero INSIDE the noise
+ * band (|c| ≤ SIGN_NOISE_REL·max — the one permitted machine-zero threshold),
+ * so the screen briefly drew MORE markers than the displayed bound (measured:
+ * S=8 with 10 dots on a closed-PH drag). Law 3 requires dots and count to be
+ * ONE metric: flip each noise-band coefficient onto its ASSIGNED sign
+ * (magnitude kept — position error ≤ the noise band's own width, which is the
+ * genuine ambiguity of the data) and find crossings of THAT polygon. This is
+ * not a reshaping floor: it is the same classifier the count already uses.
+ */
+export function curvatureExtremaMarkersOfNumeratorRobust(
+  g: BernsteinDecomposition, closed: boolean,
+): number[] {
+  const flat = g.flatCoeffs()
+  const signs = assignSignsNeighbor(flat)
+  if (cyclicSignChanges(signs, closed) === 0) return [] // flat / g≡0
+  // assignSignsNeighbor convention: −1 ⇔ treated as positive, +1 ⇔ negative.
+  const denoised = flat.map((v, i) =>
+    v === 0 ? 0 : (v > 0) === (signs[i] === -1) ? v : -v)
+  let k = 0
+  const coeffs = g.coeffs.map((span) => span.map(() => denoised[k++]))
+  return signChangeParams(new BernsteinDecomposition(coeffs, g.breaks.slice()), closed)
+}
+
+/**
  * CANONICAL curvature-extrema MARKERS for the algebraic curve kinds — the dense zeros of
  * the kind's own g. One source for the editor's dots, using the SAME numerators as the
  * bound/guard. For bspline, wre/wim are ignored. (PH markers come from

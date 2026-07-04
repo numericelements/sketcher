@@ -62,7 +62,7 @@ describe('closed-PH display metric = the solved object', () => {
     // Away from a knife edge, R's crossings and the periodic VIEW's g crossings
     // are the same physical extrema (sign(R) = sign(g_curve); the view is a
     // ~1e-6 fit): same count here, positions within 1e-3 in t.
-    const cur = useSceneStore.getState().curves[0]
+    const cur = useSceneStore.getState().curves[0] as Curve & { controlPoints: Point2D[] }
     const viewMarkers = curvatureExtremaMarkers(
       'bspline',
       cur.controlPoints.map((p) => p.x), cur.controlPoints.map((p) => p.y), [], [],
@@ -83,6 +83,10 @@ describe('closed-PH display metric = the solved object', () => {
       const st = closedPHConstraintState(m.uControlPoints, m.vControlPoints, m.uvKnots, m.uvDegree)
       return cyclicSignChanges(st.signs, true)
     }
+    const markersDrawn = () => {
+      const m = meta()
+      return closedPHExtremaMarkers(m.uControlPoints, m.vControlPoints, m.uvKnots, m.uvDegree).length
+    }
     const curve = () => get().curves.find((c) => c.id === id)! as Curve & { controlPoints: Point2D[] }
     // Two dragged points (an interior and a near-seam CP), many small ticks —
     // the regime where the view's count flickered.
@@ -94,6 +98,11 @@ describe('closed-PH display metric = the solved object', () => {
         get().moveControlPoint(id, k, { x: start.x + 55 * t, y: start.y - 40 * t })
         const now = displayedBound()
         expect(now, `CP ${k} tick ${s}: displayed bound rose ${prev}→${now}`).toBeLessThanOrEqual(prev)
+        // The one test, on screen, every tick: S⁻ ≥ markers drawn. The RAW
+        // finder broke this (S=8 with 10 dots at a near-merge noise dip) —
+        // markers must come from the count's own robust sign assignment.
+        const nm = markersDrawn()
+        expect(nm, `CP ${k} tick ${s}: ${nm} markers drawn under S=${now}`).toBeLessThanOrEqual(now)
         prev = now
       }
     }

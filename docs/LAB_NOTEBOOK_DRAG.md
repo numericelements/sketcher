@@ -519,3 +519,26 @@ display the same day.
 = display domain [0,1]; S⁻ ≥ markers drawn (Law 1 on screen); R markers ↔ view markers
 1:1 within 1e-3 away from knife edges; and the contract itself — displayed bound
 non-increasing tick-to-tick across interior AND near-seam drags (the flicker regime).
+
+## E16-P3 — the dots themselves: markers must use the count's OWN classifier (2026-07-04)
+
+**Trigger:** after E16-P2 Eric confirmed S= and the κ panel are fixed but the extrema dots
+ON THE CURVE still blinked. The dots WERE already reading R — so the leak was inside the
+finder. Measured (16-tick drags, 6 CPs): at k=7 ticks 14–16 the raw finder drew **10 dots
+under S=8** — the one test (S⁻ ≥ markers drawn) violated on screen.
+
+**Mechanism:** `signChangeParams` reports every floating-point crossing. At a near-merge,
+R dips across zero INSIDE the noise band — coefficients the robust sign assignment
+(assignSignsNeighbor, SIGN_NOISE_REL machine-zero classifier — the one permitted
+threshold) classifies as zeros carrying neighbor signs. Count says 8 (robust), finder
+says 10 (raw): two metrics INSIDE one object.
+
+**Fix:** `curvatureExtremaMarkersOfNumeratorRobust` — flip each noise-band coefficient
+onto its ASSIGNED sign (magnitude kept; position error bounded by the noise band's own
+width, the genuine ambiguity of the data) and find crossings of that polygon. Not a
+reshaping floor: the SAME classifier the displayed/enforced count already uses, applied
+to the dots so screen and count are one metric. Closed-PH markers use it; other families
+unchanged (adopt deliberately if the same blink is ever measured there).
+
+**After:** S8/Z8 at every tick, all probed CPs. Pin extended: markers ≤ S every tick of
+the drag pin (closedPHDisplayMetric.test.ts).
