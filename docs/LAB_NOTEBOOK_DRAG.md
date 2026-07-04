@@ -97,27 +97,62 @@ Same solver, same weights, swap only the rule. Also: determine which rule Theore
 St-Malo monotonicity proof) is actually stated for — this is a correctness question, not
 just feel.
 
-### Next: E10 — why does core's IP fail where Eric's TR succeeds, given both have trust regions?
-Core's InteriorPointOptimizer HAS a dogleg trust region. The remaining differences to
-dissect one at a time on the SAME core problem: (i) barrier placement — Eric barriers the
-CONSTRAINTS directly (log(−f), iterates strictly feasible by the shrink loop); core
-barriers SLACK variables (iterates may sit at slack≈0 where the model degrades); (ii) the
-merit/acceptance rule — Eric's ρ on t·f0 + barrierValue vs core's filter/SOC machinery;
-(iii) the t-schedule; (iv) sliding-state update cadence (Eric: every accepted step; core:
-per outer iteration — E8 toggles the adapter's updateConstraintState to check this alone).
+### E8 — sliding cadence (factor iv)
+E7 adapter without per-accepted-step sign updates: **92%, unchanged.** Cadence irrelevant.
+
+### E10 — the dissection of core's IP (all single transplants FAIL, then two fixes COMPOSE)
+Single-variable results on the F9 bench (core IP @20 iters, baseline 46%):
+
+    E10b  skip fraction-to-boundary (FTB)          15%   ← WORSE: unscaled dogleg overshoots;
+                                                          FTB was salvaging small steps
+    E10c  feasibility rejections free of budget    44%   ← alone: no change
+    E10d  Eric's CGT TR subproblem inside core     31%   ← alone: worse (doesn't compose)
+    E10e  consistent ρ (predict for the TAKEN step) 45%  ← alone: no change
+    E10e  consistent ρ + free shrinks              74%   ← THE INTERACTION
+    E10f  ...+ no FTB                              17%   ← FTB is load-bearing in core's loop
+    E10f  ...+ no SOC/watchdog                     20%   ← SOC/watchdog earn their keep
+    E10g  consistent ρ + free shrinks @60 iters    90%
+    E10g  consistent ρ + free shrinks @200 iters   92%   ← PARITY with Eric; budget now HELPS
+
+**The mechanism (two defects, both acceptance arithmetic, neither in the math):**
+1. **The ρ ratchet.** Core computed predictedReduction from the FULL NEWTON step
+   (`dot(barrierGradient, negStep)`), not the δ-limited step actually taken. A radius-
+   limited step therefore always shows actual ≪ predicted, ρ never clears the 0.75
+   expansion gate, and the trust region can shrink but never re-expand. (Also explains
+   the filter regime: for always-feasible iterates θ≡0, the filter is vacuously empty and
+   acceptance is just monotone-φ; ρ's only real job was expansion — and it was broken.)
+2. **Feasibility search billed to the budget.** Every true-violation rejection consumed
+   an outer iteration; at 20 interactive iterations the search for a feasible candidate
+   ate the budget (7/15 ticks all-rejections in the F11 trace). Eric's loop performs the
+   same ×0.25 shrink as an inner sub-procedure — free.
+Each fix alone is useless because the OTHER defect still binds (no budget to exploit a
+breathing radius; no breathing radius to exploit freed budget). Together they reproduce
+Eric's loop dynamic — shrink to feasibility free, step, re-expand on an honest ρ — and
+close the whole 46→92 gap with core's own dogleg, FTB, SOC, watchdog and filter intact.
+This also RESOLVES the "worse with more iterations" pathology (E5): it was the ρ-ratchet +
+fast-t escalation compounding; with consistent ρ, budget scales tracking again.
+
+**What did NOT matter (refuted):** weight DOF (E1), sliding cadence (E8), inactive-set
+rule (identical by reading), scaled-Bernstein numerics (E7 used plain), Eric's exact TR
+subproblem (E10d — his CGT solve does not compose with core's loop and is not needed).
 
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**
    (E1: weights pinned → 96%; E7: his solver on core's problem → 92%; code reading:
    inactive-set rules identical.)
-2. **Within his solver, the trust-region subproblem + strict feasibility is the
+2. **Within his solver, the trust-region discipline + strict feasibility is the
    load-bearing pair; the log barrier alone fails** (E9: his line-search variant → 18%
    with Cholesky failures — same collapse mode as core's solvers).
-3. Mechanism picture so far: near the knife-edge coefficient the (barrier) Hessian is
-   near-singular. Solvers that need a well-conditioned factorization (Cholesky line
-   search, core primal-dual, core IP under its acceptance rules) either take garbage
-   steps (→ infeasible, guard kills them) or shrink to nothing (δ collapse). The TR
-   subproblem extracts a useful restricted step from the SAME near-singular model, and
-   the feasibility shrink guarantees it lands strictly inside — no dead ticks, steady
-   91%+ tracking.
+3. **SOLVED (E10): core's stall = the ρ ratchet × budgeted feasibility search.** ρ was
+   measured against the full-Newton prediction so the radius could never re-expand, and
+   the feasibility search consumed the iteration budget. Fixing BOTH (they only work
+   together) takes core's own IP from 46% to 74% @20 iters and 92% @200 — parity with
+   Eric's optimizer — and restores "more budget = better". Pinned:
+   `ipoptStallMechanism.test.ts`. Experimental flags: `consistentPredictedReduction`,
+   `freeFeasibilityShrinks` (ipopt config).
+4. **Remaining engineering (not research):** extend consistent-ρ to the banded/prebuilt
+   path (needs pᵀHp from the band), decide defaults, re-run every drag bench + the
+   editor feel test, then fold into the slideCurve/slide recipes. The knife-edge
+   conditioning itself (F1/F11) is still worth treating (compensated evaluation of the
+   near-zero coefficients), but it is no longer the binding constraint on tracking.

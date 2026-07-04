@@ -165,6 +165,50 @@ export interface OptimizerConfig {
   /** Enable Watchdog (default: true) */
   enableWatchdog: boolean
 
+  /**
+   * EXPERIMENTAL (lab notebook E10e): compute ρ's predicted reduction from the
+   * model decrease OF THE STEP ACTUALLY TAKEN, −(gᵀp + ½pᵀHp), instead of the
+   * full-Newton decrement supplied by computeBarrier. With the Newton-decrement
+   * prediction, a δ-limited step always looks bad (actual ≪ predicted-for-Newton),
+   * ρ never clears the 0.75 expansion gate, and the trust region becomes a
+   * ratchet: it shrinks but can never re-expand. Dense (non-banded) path only.
+   */
+  consistentPredictedReduction?: boolean
+
+  /**
+   * EXPERIMENTAL (lab notebook E10d): replace the DENSE dogleg trust-region solve
+   * with a caller-supplied near-exact solver (e.g. Moré–Sorensen / Conn–Gould–Toint
+   * 7.3.4 from Eric's closed-curve TrustRegionSubproblem). Dogleg quality depends
+   * on its Newton point, which is garbage when the barrier Hessian is
+   * near-singular at a knife-edge coefficient; the λ-iteration solve is not.
+   * Dense (non-banded) path only. Default undefined (unchanged behavior).
+   */
+  trustRegionSolverOverride?: (
+    gradient: number[],
+    hessian: number[][],
+    delta: number,
+  ) => { step: number[]; hitsBoundary: boolean; lambda: number }
+
+  /**
+   * EXPERIMENTAL (lab notebook E10c): a TRUE-constraint-violation rejection does
+   * not consume iteration budget (δ still shrinks ×0.25, bounded by
+   * minTrustRadius → restoration). This is the budget-accounting half of Eric's
+   * closed-curve discipline: his shrink-until-feasible search is an inner
+   * sub-procedure; iterations are only spent on feasible candidates.
+   */
+  freeFeasibilityShrinks?: boolean
+
+  /**
+   * EXPERIMENTAL (lab notebook E10): skip the fraction-to-boundary step scaling.
+   * The rule scales the whole step by αMax from the LINEARIZED constraints; at a
+   * knife-edge coefficient it measured as wrong in both directions at once —
+   * throttling accepted steps ~6× while the scaled step still violated the true
+   * nonlinear constraints. With this flag the step goes to evaluateStep unscaled
+   * and feasibility is enforced solely by true-evaluation reject + TR shrink
+   * (Eric's closed-curve discipline). Default false (unchanged behavior).
+   */
+  skipFractionToBoundary?: boolean
+
   /** Watchdog trial limit (default: 3) */
   watchdogTrialLimit: number
 

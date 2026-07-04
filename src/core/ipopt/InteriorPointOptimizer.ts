@@ -289,7 +289,9 @@ export class InteriorPointOptimizer {
             ? doglegFromArrowhead(gradient, barrier.prebuilt, state.delta, config.hessianRegularization, this.nCP)
             : doglegFromBand(gradient, barrier.prebuilt.band, state.delta, config.hessianRegularization, this.nCP))
         : !this.bandedEnabled
-          ? solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization)
+          ? (config.trustRegionSolverOverride
+              ? config.trustRegionSolverOverride(gradient, hessian, state.delta)
+              : solveTrustRegion(gradient, hessian, state.delta, config.hessianRegularization))
           : this.hasSeam
             ? solveTrustRegionArrowhead(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
             : solveTrustRegionBanded(gradient, hessian, state.delta, config.hessianRegularization, this.nCP, this.bandwidth)
@@ -299,7 +301,7 @@ export class InteriorPointOptimizer {
       // Only applied to inequality constraints (skip first numEq equality constraints).
       // For each constraint, compute max alpha such that sign*c(x + alpha*step) < 0
       // using the linear approximation c(x + alpha*step) ≈ c(x) + alpha * J * step.
-      {
+      if (!config.skipFractionToBoundary) {
         const constraints = state.c
         const signs = state.signs
         const numEq = this.problem.numEqualityConstraints
@@ -349,8 +351,24 @@ export class InteriorPointOptimizer {
         }
       }
 
-      // Evaluate step
-      const stepResult = this.evaluateStep(step, barrier.predictedReduction)
+      // Evaluate step. E10e experimental: predict the barrier-model decrease of
+      // THE step being evaluated, −(gᵀp + ½pᵀHp), so ρ is a true actual/predicted
+      // ratio for that step (the Newton-decrement default systematically
+      // under-rates δ-limited steps → the expansion gate never opens).
+      let predictedForStep = barrier.predictedReduction
+      if (config.consistentPredictedReduction && !barrier.prebuilt && hessian.length > 0) {
+        let gp = 0
+        for (let i = 0; i < step.length; i++) gp += gradient[i] * step[i]
+        let pHp = 0
+        for (let i = 0; i < step.length; i++) {
+          const Hi = hessian[i]
+          let s = 0
+          for (let j = 0; j < step.length; j++) s += Hi[j] * step[j]
+          pHp += step[i] * s
+        }
+        predictedForStep = -(gp + 0.5 * pHp)
+      }
+      const stepResult = this.evaluateStep(step, predictedForStep)
 
       // Apply Second-Order Correction if needed
       if (config.enableSOC && stepResult.violatesConstraints) {
@@ -373,6 +391,12 @@ export class InteriorPointOptimizer {
           console.log(`  Step rejected: violates constraints, theta=${stepResult.constraintViolation.toExponential(3)}, delta=${state.delta.toExponential(3)}`)
         }
         state.delta *= 0.25
+        // E10c experimental: feasibility-search shrinks are free — budget is
+        // only spent on feasible candidates (Eric's closed-curve discipline).
+        if (config.freeFeasibilityShrinks) {
+          state.iteration--
+          innerIter--
+        }
         continue
       }
 

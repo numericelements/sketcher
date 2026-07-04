@@ -114,3 +114,38 @@ it("E9: Eric's LINE-SEARCH solver on core's problem", () => {
   const err = Math.hypot(cps[k].re - target.x, cps[k].im - target.y)
   console.log(`E9 LINE-SEARCH/CORE-PROBLEM: tracked ${(100 - 100 * err / moveLen).toFixed(0)}%  bound ${start}->max ${maxB}  throws ${throws}/15`)
 }, 300000)
+
+// E8: same as E7 but WITHOUT per-accepted-step sliding updates — signs stay as
+// assigned at tick start (core's own solvers update once per outer iteration;
+// this variant is the extreme: never during the solve).
+class CoreProblemForEricFrozenSigns extends CoreProblemForEric {
+  step(dx: number[]) {
+    const core = (this as unknown as { core: CurvatureDragProblem }).core
+    const x = core.getVariables()
+    core.setVariables(x.map((v, i) => v + dx[i]))
+    // no updateConstraintState()
+  }
+}
+
+it("E8: E7 minus per-step sliding updates", () => {
+  const k = 3, target = { x: X0[3] + 55, y: Y0[3] + 200 }
+  const moveLen = Math.hypot(55, 200)
+  let cps: WeightedCP[] = X0.map((x, i) => rational(x, Y0[i], W0[i]))
+  const start = dispBound(X0, Y0, W0)
+  let maxB = start, throws = 0
+  const sx = X0[3], sy = Y0[3]
+  for (let s2 = 1; s2 <= 15; s2++) {
+    const t = s2 / 15
+    const tick = { x: sx + (target.x - sx) * t, y: sy + (target.y - sy) * t }
+    try {
+      const core = new CurvatureDragProblem('rational', cps, KNOTS, DEGREE, 'open', k, tick,
+        cps.map(p => p.wRe), cps.map(p => p.wIm), 'analytic', { re: 1, im: 0 }, {})
+      const adapter = new CoreProblemForEricFrozenSigns(core)
+      new Optimizer(adapter as never).optimize_using_trust_region(1e-8, 10, 50)
+      cps = core.result()
+    } catch { throws++ }
+    maxB = Math.max(maxB, dispBound(cps.map(p => p.re), cps.map(p => p.im), cps.map(p => p.wRe)))
+  }
+  const err = Math.hypot(cps[k].re - target.x, cps[k].im - target.y)
+  console.log(`E8 FROZEN-SIGNS: tracked ${(100 - 100 * err / moveLen).toFixed(0)}%  bound ${start}->max ${maxB}  throws ${throws}/15`)
+}, 300000)
