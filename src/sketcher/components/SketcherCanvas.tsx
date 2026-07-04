@@ -12,7 +12,7 @@ import { getBasisColor } from '../utils/colors'
 // (deadband-filtered dense zeros of the kind's own g) — the same numerators the
 // bound readout and the drag guard use, so dots, readout and guard never disagree.
 // Inflection dots come from core's closed inflection-numerator zeros too.
-import { curvatureExtremaMarkers, closedInflectionParameters, cdiv } from '../../core'
+import { curvatureExtremaMarkers, closedPHExtremaMarkers, closedInflectionParameters, cdiv } from '../../core'
 import TransformWidget from './TransformWidget'
 import { threeArcPointsFromNoisyPoints, circleArcFromThreePoints } from '../utils/circleArc'
 import { evaluatePHNormal, findNearestPointParam, computePHCurveFromUV, type PHMetadata } from '../optimizer/phCurve'
@@ -141,9 +141,18 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
           curve.knots, curve.degree, !!curve.closed, rho,
         )
       } else {
-        const cx = curve.controlPoints.map((p) => p.x)
-        const cy = curve.controlPoints.map((p) => p.y)
-        params = curvatureExtremaMarkers('bspline', cx, cy, [], [], curve.knots, curve.degree, !!curve.closed)
+        // CLOSED PH: markers from the SOLVED object — the crossings of R on the
+        // generator chart (same t domain; sign(R) = sign(g) exactly). The view's
+        // g flickers a marker pair in/out at a graze; R cannot (Law 3, see
+        // closedPHConstraintState).
+        const phm = phMetadata.get(curve.id)
+        if (curve.closed && phm && phm.kind === 'polynomial' && 'uControlPoints' in phm) {
+          params = closedPHExtremaMarkers(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
+        } else {
+          const cx = curve.controlPoints.map((p) => p.x)
+          const cy = curve.controlPoints.map((p) => p.y)
+          params = curvatureExtremaMarkers('bspline', cx, cy, [], [], curve.knots, curve.degree, !!curve.closed)
+        }
       }
 
       // Evaluate curve at each parameter to get (x, y) positions
@@ -151,7 +160,7 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
     } catch {
       return []
     }
-  }, [preserveCurvatureExtrema, panelView, selectedCurveId, curves, alwaysShowCurvatureExtrema])
+  }, [preserveCurvatureExtrema, panelView, selectedCurveId, curves, alwaysShowCurvatureExtrema, phMetadata])
 
   // Compute inflection point positions for selected closed bspline curve
   const inflectionPositions = useMemo(() => {

@@ -486,3 +486,36 @@ unmissable. The single feel report was the 15% of the curve where both diseases 
 **Still open (inherited):** k=45's projection tax (solve reaches +16.6/pass, ∮w²
 projection gives back ~11 — the projection is objective-blind; a closure-aware
 objective row could shrink it); display "S=" → R count; open-PH onto the TR engine.
+
+## E16-P2 — closed-PH display switched to the solved object (2026-07-04)
+
+**Trigger:** Eric saw "S =" tick 4→6→4 for a moment during a (now good-feeling) closed-PH
+drag, WITH the corresponding markers appearing/disappearing on the curve. Wondered what is
+different about closed PH — he never sees this on other families.
+
+**The difference:** closed PH is the ONLY family with a second representation between the
+solved object and the screen. The drag enforces R on the clamped generator chart; the
+screen showed the curve-span g of the PERIODIC LS VIEW (operator P, faithful ~1e-6).
+Counts are integers with knife edges: at a graze of g (touch, not crossing — F8), a 1e-6
+perturbation turns the touch into two crossings — the view honestly reads +2 (markers AND
+polygon count together, exactly as observed) while the enforced R count holds. Law 2 held
+the whole time; this was the residual Law 3 gap flagged in E14-P2.
+
+**Fix:** display reads the solved object — `closedPHConstraintState` (R's coefficients,
+robust signs, cyclic sliding active set — literally what slideClosedPHCurveBound computes)
+feeds the BottomPanel bar + "S =" readout; `closedPHExtremaMarkers` (R's crossings, cyclic)
+feeds the canvas dots (same t domain; sign(R) = sign(g) exactly, g = 2Rσ²). The periodic
+CPs remain the geometric view only. This is MORE honest, not less: the PH curve defined by
+(u, v, origin) is the exact object; the view is its fit. Side benefits: the bar shows R's
+degree-6 polygon (7 dots/span vs 15, F7 conditioning — no endpoint-blowup dwarfing), and
+the faded active/inactive dots are now the SOLVER'S OWN anchors/freed interiors, not a
+re-derivation on a polygon the solver never reads.
+
+**Open PH unchanged, deliberately:** its displayed clamped CPs ARE the solved object and
+its drag enforces their g — no gap. When open PH moves to the TR engine on R, switch its
+display the same day.
+
+**Pinned** (closedPHDisplayMetric.test.ts): displayed == enforced (same count); R domain
+= display domain [0,1]; S⁻ ≥ markers drawn (Law 1 on screen); R markers ↔ view markers
+1:1 within 1e-3 away from knife edges; and the contract itself — displayed bound
+non-increasing tick-to-tick across interior AND near-seam drags (the flicker regime).

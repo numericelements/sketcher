@@ -31,10 +31,11 @@ import {
 import { projectClosurePH, generatorBasisGram, phSeamMaps } from './phClosure'
 import {
   curvatureExtremaNumeratorPlanarPeriodic,
+  curvatureExtremaMarkersOfNumerator,
 } from './curvature'
 import { curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
-import { computeInactiveSetBySignCyclic } from './curvatureProblem'
+import { computeInactiveSetBySignCyclic, type CurvatureConstraintState } from './curvatureProblem'
 import { findPeriodicSpan, periodicBasis, findOpenSpan, openBasis, mod } from './basis'
 import {
   TrustRegionBarrierOptimizer, TRSymmetricMatrix,
@@ -459,6 +460,64 @@ export function closedPHReducedBound(
 ): number {
   return cyclicSignChanges(
     assignSignsNeighbor(curvatureExtremaReducedNumeratorPH(u as number[], v as number[], uvKnots as number[], uvDegree, false).flatCoeffs()),
+    true,
+  )
+}
+
+// ----------------------------------------------------------------------------
+// The closed-PH DISPLAY of the solved object (Law 3: displayed == enforced).
+//
+// The curve on screen is a second representation (the periodic LS view of the
+// clamped PH curve), faithful to ~1e-6 — but counts are integers with knife
+// edges: measured in the editor, a graze of g (a touch, not a crossing) read
+// 4→6→4 on the VIEW's curve-span polygon while the enforced R count held 4.
+// So the readout, the extrema markers, and the constraint bar must all read
+// the SOLVED object: R of the generator (g = 2·R·σ², σ² > 0 — the PH curve
+// defined by (u, v, origin) is the exact object; the periodic CPs are its
+// view). These two functions return exactly what slideClosedPHCurveBound
+// computes internally — one computation for solve, guard, and screen.
+// ----------------------------------------------------------------------------
+
+/** Constraint-bar state of the SOLVED closed-PH object: R's coefficients on the
+ *  clamped generator chart, robust signs, and the CYCLIC sliding active set —
+ *  the same quantities the drag constrains. Drop-in CurvatureConstraintState. */
+export function closedPHConstraintState(
+  u: readonly number[],
+  v: readonly number[],
+  uvKnots: readonly number[],
+  uvDegree: number,
+): CurvatureConstraintState {
+  const R = curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false)
+  const rc = R.flatCoeffs()
+  const signs = assignSignsNeighbor(rc)
+  const inactive = computeInactiveSetBySignCyclic(signs, rc.map(Math.abs))
+  const grevilleAbscissae: number[] = []
+  for (let sp = 0; sp < R.coeffs.length; sp++) {
+    const a = R.breaks[sp]
+    const b = R.breaks[sp + 1]
+    const m = R.coeffs[sp].length
+    for (let j = 0; j < m; j++) grevilleAbscissae.push(a + (m > 1 ? j / (m - 1) : 0) * (b - a))
+  }
+  return {
+    gCPs: rc,
+    signs,
+    inactiveIndices: [...inactive],
+    gScale: rc.map((c) => Math.max(Math.abs(c), 1e-12)),
+    grevilleAbscissae,
+  }
+}
+
+/** Curvature-extrema marker parameters of the SOLVED closed-PH object: the sign-
+ *  change crossings of R, counted cyclically (seam wrap). R lives on the same
+ *  parameter domain as the curve, so these t feed the displayed curve directly. */
+export function closedPHExtremaMarkers(
+  u: readonly number[],
+  v: readonly number[],
+  uvKnots: readonly number[],
+  uvDegree: number,
+): number[] {
+  return curvatureExtremaMarkersOfNumerator(
+    curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false),
     true,
   )
 }

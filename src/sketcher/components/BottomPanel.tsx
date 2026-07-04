@@ -16,6 +16,7 @@ import {
   curvatureExtremaNumeratorPlanarPeriodic as coreCurvatureNumeratorPeriodic,
   planarCurvatureConstraintState as coreConstraintState,
   periodicCurvatureConstraintState, complexCurvatureConstraintState, cyclicSignChanges, cdiv,
+  closedPHConstraintState,
 } from '../../core'
 
 export default function BottomPanel() {
@@ -677,7 +678,7 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
     smoothActive, smoothWindow, smoothAmount, smoothEnergy, smoothMode, smoothIterations,
     enterSmooth, cancelSmooth, applySmooth, setSmoothWindow, setSmoothAmount,
     setSmoothMode, setSmoothIterations,
-    disableSliding,
+    disableSliding, phMetadata,
   } = useSceneStore()
 
   const kSvgRef = useRef<SVGSVGElement>(null)
@@ -749,6 +750,17 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
           curve.knots, curve.degree, curve.closed, rho,
         )
       }
+      // CLOSED PH: read the SOLVED object — R of the generator, the quantity the
+      // drag enforces — not the periodic view's curve-span g. The view is a
+      // ~1e-6 LS fit of the exact PH curve; at a graze of g that hair turns a
+      // touch into two crossings and the view's count flickers (measured
+      // 4→6→4) while the enforced R count holds. One computation for solve,
+      // guard, readout, dots (Law 3). Open PH needs no branch: its displayed
+      // CPs ARE the solved object and its drag enforces their g.
+      const phm = phMetadata.get(curve.id)
+      if (curve.closed && phm && phm.kind === 'polynomial' && 'uControlPoints' in phm) {
+        return closedPHConstraintState(phm.uControlPoints, phm.vControlPoints, phm.uvKnots, phm.uvDegree)
+      }
       // planar B-spline
       const X = curve.controlPoints.map((p) => p.x)
       const Y = curve.controlPoints.map((p) => p.y)
@@ -759,7 +771,7 @@ function CurvaturePanel({ curve }: CurvePanelProps) {
       console.error('constraintState computation failed:', e)
       return null
     }
-  }, [curve, preserveCurvatureExtrema, disableSliding])
+  }, [curve, preserveCurvatureExtrema, disableSliding, phMetadata])
 
   // Current bound S(b): the number of sign changes of g = the curvature-extrema
   // count being held. Shown next to the toggle, mirroring the cs2026 talk slide.
