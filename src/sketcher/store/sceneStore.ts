@@ -844,8 +844,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // junction (the seam knot at multiplicity = degree), which is the same periodic
     // representation with a repeated seam knot (FOUNDATIONS F8). Core handles it (slideCurve
     // holds the bound + tracks — junctionClosedDrag.test.ts), and the displayed bound/markers
-    // are already core, so routing the drag here keeps display==enforced (Law 3). Only
-    // rational/complex-with-symmetry and symmetry-reduced bspline drags stay on legacy.
+    // are already core, so routing the drag here keeps display==enforced (Law 3). Symmetry-
+    // reduced drags ride core too: slideCurve enforces symmetryMaps by variable reduction
+    // inside the solve (symmetryInflection.test.ts pins symmetry + inflection + bound + track;
+    // the talks demos already drive core this way). The editor never sets symmetryMaps today,
+    // but routing it keeps the editor path ≡ demo path ≡ core.
     const routablePeriodic =
       curve.kind === 'bspline' && curve.closed &&
       curve.knots.length === curve.controlPoints.length &&
@@ -853,7 +856,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v >= curve.knots[i - 1])) && // ≥ allows the C⁰ seam
       curve.knots[curve.knots.length - 1] < 1
     if (
-      preserveCurvatureExtrema && curve.kind === 'bspline' && !symmetryMaps &&
+      preserveCurvatureExtrema && curve.kind === 'bspline' &&
       (!curve.closed || routablePeriodic)
     ) {
       try {
@@ -878,6 +881,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
             ? { anchorWeight, anchorX: dragStartCPsX, anchorY: dragStartCPsY }
             : {}),
+          ...(symmetryMaps ? { symmetryMaps } : {}),
         })
         const optimizedCurve: Curve = { ...curve, controlPoints: r.x.map((x, i) => ({ x, y: r.y[i] })) }
         set((state) => ({
@@ -899,8 +903,10 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // gradient seeds carry the spiral, so it matches the rendered NURBS for ANY ρ
     // (gradient FD-verified at every control point). Farin t-values are weight ratios
     // (position-independent) → fixed weights leave them + wrapWeight unchanged.
+    // symmetryMaps is NOT a guard here: legacy's rational problems never implemented
+    // symmetry (optimizeRationalCurveInternal ignores it), so there is nothing to defer to.
     const rrRoutablePeriodic =
-      curve.kind === 'rational' && curve.closed && !symmetryMaps &&
+      curve.kind === 'rational' && curve.closed &&
       curve.knots.length === curve.controlPoints.length &&
       curve.knots[0] < 1e-9 &&
       curve.knots.every((v, i) => (i === 0 ? v >= 0 : v >= curve.knots[i - 1])) && // ≥ allows the C⁰ seam (F8)
@@ -931,12 +937,14 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // bound (complexCurvatureConstraintState), so there is no F6-style gap. slide()'s objective
     // pulls the dragged CP straight to the cursor (direct tracking, correct feel). Farin t-values
     // are weight ratios (position-independent) → fixed weights leave them unchanged. Anchored
-    // drags (anchorWeight>0) ride along: core slide() carries the same additive anchor term as
-    // PlanarCurvatureProblem (legacy never implemented anchors for rational at all). Edge cases
-    // (symmetry, inflection preservation) stay on the legacy optimizer below.
+    // and symmetry-flagged drags ride along: core slide() carries the anchor term, and legacy
+    // never implemented anchors OR symmetry for rational (optimizeRationalCurveInternal ignores
+    // both), so neither flag has anything to defer to. Only inflection preservation still
+    // routes to the legacy optimizer below (rational inflection is unimplemented there too —
+    // migration will retire the flag or implement it in core, not silently drop it).
     if (
       preserveCurvatureExtrema && curve.kind === 'rational' && !curve.closed &&
-      !symmetryMaps && !preserveInflections
+      !preserveInflections
     ) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: p.w, wIm: 0 }))
