@@ -218,9 +218,15 @@ export class BandedTrustRegionSubproblem {
     this.cauchyPoint = zeroVector(gradient.length)
   }
 
-  solve(radius: number): { step: number[]; hitsBoundary: boolean; hardCase: boolean } {
+  solve(radius: number, lambdaHint?: number): { step: number[]; hitsBoundary: boolean; hardCase: boolean } {
     this.cauchyPoint = this.computeCauchyPoint(radius)
     this.lambda = this.initialLambdas(radius)
+    // Warm start: a caller-provided lambda from the previous (nearby) solve is a far
+    // better initial guess than 7.3.14's — CLAMPED into the freshly computed CGT
+    // bounds, so correctness and termination are untouched (only the path shortens).
+    if (lambdaHint !== undefined && lambdaHint > this.lambda.lowerBound && lambdaHint < this.lambda.upperBound) {
+      this.lambda.current = lambdaHint
+    }
     this.numberOfIterations = 0
     const maxIter = 300
     for (;;) {
@@ -464,6 +470,7 @@ const toInterleaved = (v: number, nCP: number): number => (v < nCP ? 2 * v : 2 *
 
 export class TrustRegionBarrierOptimizerBanded {
   success = false
+  private lastLambda: number | undefined
   private o: BandedTrustRegionProblem
   constructor(o: BandedTrustRegionProblem) {
     this.o = o
@@ -527,14 +534,16 @@ export class TrustRegionBarrierOptimizerBanded {
           H.add(I, I, t * d0[v])
         }
         const sub = new BandedTrustRegionSubproblem(gradI, H)
-        let tr = sub.solve(trustRadius)
+        let tr = sub.solve(trustRadius, this.lastLambda)
+        this.lastLambda = sub.lambda.current
         let stepBlock = this.toBlock(tr.step, nCP)
         let fStep = this.o.fStep(stepBlock)
         let numSteps2 = 0
         while (Math.max(...fStep) >= 0) {
           numSteps2 += 1
           trustRadius *= 0.25
-          tr = sub.solve(trustRadius)
+          tr = sub.solve(trustRadius, this.lastLambda)
+          this.lastLambda = sub.lambda.current
           stepBlock = this.toBlock(tr.step, nCP)
           fStep = this.o.fStep(stepBlock)
           if (numSteps2 > 100) throw new Error('TrustRegionBarrierOptimizerBanded: feasibility shrink exceeded 100')

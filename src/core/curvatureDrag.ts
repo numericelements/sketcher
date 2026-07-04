@@ -128,6 +128,11 @@ export class CurvatureDragProblem implements OptimizationProblem {
   private cachedCons: number[] | null = null
   private cachedJac: Matrix | null = null
   private cachedLocalJac: { vars: number[]; vals: number[] }[] | null = null
+  // g's flat coefficients at the current state — THE expensive evaluation; every
+  // consumer (constraints, sliding-sign refresh) reads through this cache so one
+  // state costs one numerator build (measured 4-5 redundant builds per inner
+  // trust-region iteration before this).
+  private cachedGc: number[] | null = null
   private readonly kind: AlgebraicFamily
   private readonly knots: readonly number[]
   private readonly degree: number
@@ -215,6 +220,10 @@ export class CurvatureDragProblem implements OptimizationProblem {
   private numerator(): BernsteinDecomposition {
     return familyNumerator(this.kind, this.cps(), this.knots, this.degree, this.topology, this.rho)
   }
+  private numeratorCoeffs(): number[] {
+    if (!this.cachedGc) this.cachedGc = this.numerator().flatCoeffs()
+    return this.cachedGc
+  }
   private inflectionNumerator(): BernsteinDecomposition {
     return familyInflectionNumerator(this.kind, this.cps(), this.knots, this.degree, this.topology)
   }
@@ -241,6 +250,7 @@ export class CurvatureDragProblem implements OptimizationProblem {
     this.cachedCons = null
     this.cachedJac = null
     this.cachedLocalJac = null
+    this.cachedGc = null
   }
 
   computeObjective(): number {
@@ -271,7 +281,7 @@ export class CurvatureDragProblem implements OptimizationProblem {
 
   computeConstraints(): number[] {
     if (!this.cachedCons) {
-      const gc = this.numerator().flatCoeffs()
+      const gc = this.numeratorCoeffs()
       this.cachedCons = this.activeIdx.map((i, k) => gc[i] / this.gScale[k] - this.signs[k] * this.margins[k])
       if (this.preserveInflections) {
         const fc = this.inflectionNumerator().flatCoeffs()
@@ -357,7 +367,7 @@ export class CurvatureDragProblem implements OptimizationProblem {
   updateConstraintState(): void {
     // Re-derive signs on the FIXED active set (the sliding mechanism: anchors + same-sign
     // stay active, signs follow the current g), matching PlanarCurvatureProblem.
-    const gc = this.numerator().flatCoeffs()
+    const gc = this.numeratorCoeffs()
     const signs = assignSignsNeighbor(gc)
     this.signs = this.activeIdx.map((i) => signs[i])
     if (this.preserveInflections) {
@@ -425,42 +435,57 @@ export function slide(
     const localAvailable = topology === 'open' && !opts.preserveInflections
       && problem.computeConstraintJacobianLocal() !== null
     if (localAvailable) {
+      // Constant-factor discipline: the numerator build is the drag's unit cost, so
+      // (a) all AT-STATE values are cached per accepted step (the restore after a
+      // candidate visit would otherwise force a full recomputation at x), and
+      // (b) a candidate visit computes constraints AND objective in ONE evaluation
+      // (the optimizer always asks fStep then f0Step for the same dx).
+      let atX: { f: number[]; rows: { vars: number[]; vals: number[] }[]; f0: number; g0: number[] } | null = null
+      let candidate: { dx: number[]; f: number[]; f0: number } | null = null
+      const hessDiag = problem.computeObjectiveHessianDiagonal() // constant for the drag objective
+      const ensureAtX = () => {
+        if (atX) return atX
+        const sg = problem.getConstraintSigns()
+        const rows = problem.computeConstraintJacobianLocal()!
+        atX = {
+          f: problem.computeConstraints().map((v, i) => sg[i] * v),
+          rows: rows.map((r, i) => ({ vars: r.vars, vals: r.vals.map((v) => sg[i] * v) })),
+          f0: problem.computeObjective(),
+          g0: problem.computeObjectiveGradient(),
+        }
+        return atX
+      }
+      const visitCandidate = (dx: number[]) => {
+        if (candidate && candidate.dx === dx) return candidate
+        const x = problem.getVariables()
+        problem.setVariables(x.map((v, i) => v + dx[i]))
+        const sg = problem.getConstraintSigns()
+        candidate = {
+          dx,
+          f: problem.computeConstraints().map((v, i) => sg[i] * v),
+          f0: problem.computeObjective(),
+        }
+        problem.setVariables(x)
+        return candidate
+      }
       const banded: BandedTrustRegionProblem = {
         get numberOfIndependentVariables() { return problem.numVariables },
         nCP: cps.length,
-        get f0() { return problem.computeObjective() },
-        get gradient_f0() { return problem.computeObjectiveGradient() },
-        get objectiveHessianDiagonal() { return problem.computeObjectiveHessianDiagonal() },
+        get f0() { return ensureAtX().f0 },
+        get gradient_f0() { return ensureAtX().g0 },
+        get objectiveHessianDiagonal() { return hessDiag },
         get numberOfConstraints() { return problem.numConstraints },
-        get f() {
-          const sg = problem.getConstraintSigns()
-          return problem.computeConstraints().map((v, i) => sg[i] * v)
-        },
-        localRows() {
-          const sg = problem.getConstraintSigns()
-          const rows = problem.computeConstraintJacobianLocal()!
-          return rows.map((r, i) => ({ vars: r.vars, vals: r.vals.map((v) => sg[i] * v) }))
-        },
+        get f() { return ensureAtX().f },
+        localRows() { return ensureAtX().rows },
         step(dx: number[]) {
           const x = problem.getVariables()
           problem.setVariables(x.map((v, i) => v + dx[i]))
           problem.updateConstraintState()
+          atX = null
+          candidate = null
         },
-        fStep(dx: number[]) {
-          const x = problem.getVariables()
-          problem.setVariables(x.map((v, i) => v + dx[i]))
-          const sg = problem.getConstraintSigns()
-          const out = problem.computeConstraints().map((v, i) => sg[i] * v)
-          problem.setVariables(x)
-          return out
-        },
-        f0Step(dx: number[]) {
-          const x = problem.getVariables()
-          problem.setVariables(x.map((v, i) => v + dx[i]))
-          const out = problem.computeObjective()
-          problem.setVariables(x)
-          return out
-        },
+        fStep(dx: number[]) { return visitCandidate(dx).f },
+        f0Step(dx: number[]) { return visitCandidate(dx).f0 },
       }
       const optimizer = new TrustRegionBarrierOptimizerBanded(banded)
       let converged = false
