@@ -34,12 +34,18 @@ import {
   curvatureExtremaGradientComplexPeriodicFixedWeightCols,
 } from './curvature'
 import type { Complex } from './complex'
+import {
+  TrustRegionBarrierOptimizer, TRDiagonalMatrix,
+  type TrustRegionProblem, type TRMatrix,
+} from './trustRegionOptimizer'
 
 /** Which solver navigates the constrained step. 'best' runs ipopt AND primal-dual,
  *  guards each, and keeps the one that tracks the cursor furthest — F4: no single
  *  solver wins every control point, but the furthest bound-holding result never
- *  regresses ("reshape, don't block"). */
-export type DragSolver = 'ipopt' | 'primal-dual' | 'best'
+ *  regresses ("reshape, don't block"). 'trust-region' is the ported closed-curve
+ *  optimizer (CGT near-exact subproblem + strict feasibility — lab notebook E15:
+ *  95/91/80% on the size column where ipopt/primal-dual reach 46/17/6). */
+export type DragSolver = 'ipopt' | 'primal-dual' | 'trust-region' | 'best'
 
 export interface CurvatureDragOptions {
   jacobian?: JacobianBackend // 'fd' | 'analytic' | 'ad' (default 'fd' — universal)
@@ -397,6 +403,70 @@ export function slide(
       )
     : (p: readonly WeightedCP[]) => familyBound(kind, p, knots, degree, topology, rho)
 
+  // The ported closed-curve trust-region solver over the SAME problem: f_i ≤ 0
+  // orientation via core's constraint signs (E7/E15c-verified adapter semantics,
+  // including the sliding-sign refresh on every ACCEPTED step).
+  const runTrustRegion = () => {
+    const problem = new CurvatureDragProblem(
+      kind, cps, knots, degree, topology, dragIndex, target,
+      wRe, wIm, opts.jacobian ?? 'fd', rho, opts,
+    )
+    const adapter: TrustRegionProblem = {
+      get numberOfIndependentVariables() { return problem.numVariables },
+      get f0() { return problem.computeObjective() },
+      get gradient_f0() { return problem.computeObjectiveGradient() },
+      get hessian_f0() { return new TRDiagonalMatrix(problem.computeObjectiveHessianDiagonal()) },
+      get numberOfConstraints() { return problem.numConstraints },
+      get f() {
+        const sg = problem.getConstraintSigns()
+        return problem.computeConstraints().map((v, i) => sg[i] * v)
+      },
+      get gradient_f(): TRMatrix {
+        const sg = problem.getConstraintSigns()
+        const J = problem.computeConstraintJacobian()
+        return {
+          shape: [J.length, problem.numVariables],
+          get: (r: number, c: number) => sg[r] * J[r][c],
+        }
+      },
+      step(dx: number[]) {
+        const x = problem.getVariables()
+        problem.setVariables(x.map((v, i) => v + dx[i]))
+        problem.updateConstraintState()
+      },
+      fStep(dx: number[]) {
+        const x = problem.getVariables()
+        problem.setVariables(x.map((v, i) => v + dx[i]))
+        const sg = problem.getConstraintSigns()
+        const out = problem.computeConstraints().map((v, i) => sg[i] * v)
+        problem.setVariables(x)
+        return out
+      },
+      f0Step(dx: number[]) {
+        const x = problem.getVariables()
+        problem.setVariables(x.map((v, i) => v + dx[i]))
+        const out = problem.computeObjective()
+        problem.setVariables(x)
+        return out
+      },
+    }
+    const optimizer = new TrustRegionBarrierOptimizer(adapter)
+    let converged = false
+    try {
+      optimizer.optimize(10e-8, 10, opts.maxIterations ?? 50)
+      converged = optimizer.success
+    } catch {
+      // A solver failure keeps whatever steps were already committed (each was
+      // strictly feasible); the guard below still enforces Law 2 on the result.
+    }
+    const raw = problem.result()
+    const points = enforceBoundNonincreasing(
+      cps as WeightedCP[], raw, boundOf,
+      (a) => cps.map((p, i) => ({ re: p.re + a * (raw[i].re - p.re), im: p.im + a * (raw[i].im - p.im), wRe: p.wRe, wIm: p.wIm })),
+    )
+    return { points, converged }
+  }
+
   // One solve with the given method, then the strict-S⁻ guard (the result holds the bound).
   const runOne = (method: 'ipopt' | 'primal-dual') => {
     const problem = new CurvatureDragProblem(
@@ -468,6 +538,7 @@ export function slide(
   }
 
   const solver = opts.solver ?? 'best'
+  if (solver === 'trust-region') return runTrustRegion()
   if (solver !== 'best') return runOne(solver)
 
   // best-of-solvers: both hold the bound (guarded); keep the one that tracks the cursor
