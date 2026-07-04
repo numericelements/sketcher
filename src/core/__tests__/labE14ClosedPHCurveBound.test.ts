@@ -6,7 +6,7 @@ import {
   computeInactiveSetBySignCyclic,
   TrustRegionBarrierOptimizer, TRDiagonalMatrix, type TrustRegionProblem, type TRMatrix,
 } from '../index'
-import { fitClosedPHSpline, computePHCurveFromUV } from '../../sketcher/optimizer/phCurve'
+import { fitClosedPHSpline } from '../../sketcher/optimizer/phCurve'
 import { createBSpline } from '../../sketcher/utils/bspline/utilities'
 import type { Point2D } from '../../sketcher/types/curve'
 
