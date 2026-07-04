@@ -172,6 +172,37 @@ the robust count +2; the guard trims the step; repeat every tick → 6%.
    known-structural-zeros as exact (never constraints, never sign carriers) — not more
    solver work. Then re-run this column.
 
+## E12 — precision at the knife edge (in progress, 2026-07-04)
+
+**E12-1 (ulp-jitter, START state, n=32):** all 725 robust signs AND the bound (15) are
+perfectly stable under 32 trials of ~1-ulp input jitter. The start curve is numerically
+clean — the noise sensitivity is NOT intrinsic to size alone.
+
+**E12-2 (ulp-jitter, MID-DRAG states):** the DRAG manufactures the knife edge. From
+tick 8 a coefficient sits at ~1e-12·max (exactly the SIGN_NOISE_REL floor) — parked
+there BY the sliding mechanism itself (merging extrema = driving a coefficient to zero
+and holding it). At those states, 1-ulp input jitter flips the DISPLAYED BOUND between
+15 and 17 in up to 11/16 trials. **Law 3 exposure, proven: at scale, mid-merge, the
+displayed count is not a well-defined function of the geometry at double precision.**
+
+**What is NOT yet decided — the E12-3 question:** at a violating step (E13a-2), is the
+flagged coefficient's zero-crossing (a) EVALUATION NOISE (double pipeline mis-computes
+the sign for fixed inputs → fix = compensated arithmetic in the numerator), or (b) a
+GENUINE crossing that the scaled/floored constraint row (SCALE_FLOOR_REL = 1e-12·max)
+is too weak to hold (→ fix = the constraint regime at the floor, e.g. F1's span-derived
+a-priori normalization, or raw-margin handling for floor-class rows)? Note the
+power-of-2 scaling trick CANNOT discriminate (exact exponent shifts leave every mantissa
+— hence every noise realization — bit-identical).
+**E12-3 design:** a self-contained double-double (Dekker TwoProduct + 2Sum — Eric's
+floatingPointArithmetic algorithms) implementation of the complex-family numerator,
+run at the pre/post states of one violating step; compare DD signs vs double signs of
+the flagged coefficient. (a) if signs differ → port compensated evaluation into the
+numerator (targeted, one pipeline); (b) if signs agree → the crossing is real and the
+work moves to the constraint regime at the floor. Either way the Law-3 wobble needs a
+resolution: near a merge the count is genuinely discontinuous; the display/enforcement
+must make a CONSISTENT choice (hysteresis at the floor, or exact structural-zero
+knowledge), never an ulp-lottery.
+
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**
