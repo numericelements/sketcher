@@ -728,3 +728,28 @@ open design question there; (2) span-derived normalization for solver CONDITIONI
 (row scaling) is untouched by this result and remains a separate lever; (3) whether
 ε·max should use a cheap running max-intermediate estimate instead of max|g| (C would
 tighten below 9).
+
+## E21-LANDED — the honest constants in production (2026-07-04)
+
+Eric's call: floor to 1e-14. Landed: `SIGN_NOISE_REL 1e-12 → 1e-14` (comment now cites
+the E21 measurement instead of a guess) and, for consistency, `MARGIN_REL 1e-9 → 1e-13`
+(the old margin corridor was ~5e5× the true noise ceiling — wide enough to hide the very
+crossings E12-3 dissected).
+
+**Two specimens HEALED at the root — the strongest validation the change could get:**
+- the E13a violating tick no longer occurs (labE21 now PINS the heal: 15 raw ipopt
+  steps, no bound violation — "the corridor is gone" is a regression test);
+- the F11 dead tick (slideDiagnostics' 15-tick specimen) no longer violates either —
+  the same drag in 4 coarse ticks still genuinely overshoots (raw 6>2, guard α→0,
+  4 knife-edge coefficients), and THAT is the diagnostics specimen now pinned. The
+  knife-edge detector itself moved from an ε-nudge to the full rejected step (the
+  instant-flip trick only worked inside the fat noise band).
+
+**One honest cost:** knotInsertionFreedom's canary recalibrated 70% → 63% (measured 67%):
+phantom "structural zeros" are now real constraints — the cage is slightly tighter
+because it stopped ignoring real walls. Bound behavior unchanged everywhere else;
+full suite 405 green.
+
+F1's textbook entry updated: classification half RESOLVED (with its own hypothesis
+corrected — the error law is absolute, not span-shaped); conditioning half (span-derived
+row scaling) remains the open lever.

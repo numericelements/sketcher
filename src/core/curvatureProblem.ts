@@ -111,8 +111,12 @@ export function computeInactiveSetBySign(signs: number[], absVal: number[]): Set
 /** Tiny feasible-side margin (in raw g units) for structurally-zero ACTIVE
  *  coefficients, so g=0 starts at a small POSITIVE slack — the analogue of the
  *  sketcher's roundoff residual — instead of exactly 0 (a barrier wall). The
- *  excursion it permits is MARGIN_REL·max|g| ≈ noise, never a real extremum. */
-const MARGIN_REL = 1e-9
+ *  excursion it permits is MARGIN_REL·max|g| ≈ noise, never a real extremum.
+ *  Scaled DOWN with the noise floor (E21): at 1e-9 the corridor was 1e-9·max —
+ *  ~5e5× the true noise ceiling (9ε·max), wide enough to hide a REAL crossing
+ *  (E12-3's chain, step 3). 1e-13 keeps it 10× the classification floor and
+ *  ~45× the worst measured error: room to breathe, no room to cross unseen. */
+const MARGIN_REL = 1e-13
 export function structuralMargins(gcAll: number[], activeIdx: number[]): number[] {
   const maxAbs = Math.max(1e-300, ...gcAll.map(Math.abs))
   const noise = SIGN_NOISE_REL * maxAbs

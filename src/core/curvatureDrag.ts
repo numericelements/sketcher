@@ -647,16 +647,15 @@ export function slide(
       }
     }
     // Knife edge: when the guard pulled back, which g coefficients flip their robust
-    // sign within an ε step along the solver's direction (the discontinuity F11 named).
+    // sign along the REJECTED step (the discontinuity F11 named). Detected on the
+    // full raw step: with the honest 1e-14 noise floor (E21) a killer coefficient
+    // flips somewhere ALONG the step, not within an ε-nudge — the old ε-probe only
+    // caught it instantly because the fat noise band flipped assigned signs early.
     let knifeEdge: { index: number; coeff: number }[] | undefined
     if (guardAlpha < 1) {
-      const eps = 1e-6
       const g0 = familyNumerator(kind, cps, knots, degree, topology, rho).flatCoeffs()
       const s0 = assignSignsNeighbor(g0)
-      const nudged = cps.map((p, i) => ({
-        re: p.re + eps * (raw[i].re - p.re), im: p.im + eps * (raw[i].im - p.im), wRe: p.wRe, wIm: p.wIm,
-      }))
-      const s1 = assignSignsNeighbor(familyNumerator(kind, nudged, knots, degree, topology, rho).flatCoeffs())
+      const s1 = assignSignsNeighbor(familyNumerator(kind, raw, knots, degree, topology, rho).flatCoeffs())
       knifeEdge = s0.flatMap((sv, i) => (sv !== s1[i] ? [{ index: i, coeff: g0[i] }] : []))
     }
     const diag: SlideDiagnostics = {

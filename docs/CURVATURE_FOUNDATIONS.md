@@ -49,11 +49,21 @@ only the geometric signal. Scaling by a positive factor **cannot change a sign**
 bound (Law 1) and the colors (Law 3) are untouched — this is conditioning, not faking. Then
 the bound is robust *and* the solver is well-conditioned from the **same** representation.
 
-**Current status.** Partially done. `scaleFor`/`scaleForRobust` (curvatureProblem.ts) already
-divide active constraint rows by |coeff| (floored at `SCALE_FLOOR_REL = 1e-12·max`). It is
-**not sufficient** for the clustered-knot closed case above (the retreat still happens), so
-the conditioning of the closed solve is the open task. The honest, principled direction is to
-normalize g by a **span-derived** scale (known a-priori from the knots), not just by |coeff|.
+**Current status (updated 2026-07-04, E21).** The CLASSIFICATION half is RESOLVED by
+measurement, and the answer corrected this section's own hypothesis. The BigInt exact
+oracle (every coefficient of the E13a state) measured the true evaluation error as
+**uniform-absolute ≈ (0.03…9)·ε·max|g|** — NOT span-shaped: span-locality under-predicts
+the specimen's error by 1.8e4×, and the abs-arithmetic magnitude envelope
+(core/structuralScale.ts — sound, and it does price the knot amplification, 2.7e14 on
+clustered knots) over-predicts by 5e6× (roundoff does not compound through cancellation:
+smoothness at each derivative level + Sterbenz). So the honest machine-zero separator is
+the ABSOLUTE floor ~45× the worst measured error: `SIGN_NOISE_REL = 1e-14` (was 1e-12 —
+~450× above true noise, which manufactured the E12-3 misclassification corridor;
+`MARGIN_REL` scaled down with it, 1e-9 → 1e-13). Landing the honest constants HEALED two
+long-standing specimens at the root: the E13a violating tick and the F11 dead tick no
+longer occur on their fixtures (both rode the phantom corridor). What remains OPEN from
+this section is only the CONDITIONING half: span-derived row scaling for the solvers is
+a separate lever, untouched by the classification result.
 
 **Pinning evidence.** Dynamic range measured 1e12 (min 7.3e7, max 7.3e19) on the clustered
 14-CP closed curve; retreat measured (CP0 dist-to-target: 0.0 at 20 it → 40.0 at 200 it).

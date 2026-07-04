@@ -80,8 +80,15 @@ describe('E21-1: the envelope is SOUND (s ≥ |g|) and reports honest tightness'
   })
 })
 
-describe('E21-2a: the E13a specimen under the envelope classifier', () => {
-  it('reproduce the violating tick; compare global-floor vs envelope-floor classification', () => {
+describe('E21-2a: the E13a specimen — HEALED under the honest constants', () => {
+  // HISTORY (measured before the E21 constants landed, floor 1e-12/margin 1e-9):
+  //   violating tick 3, flip at #225: |g| 3.43e3, |g|/globalFloor 1.3e-1
+  //   (misclassified as noise), |g|/(ε·envelope) 7.7e-5 (the envelope classifier
+  //   refutation — it called the exact-verified sign carrier noise even harder).
+  // Under floor 1e-14 + margin 1e-13 the phantom corridor is GONE and the raw
+  // ipopt walk produces NO violating tick on this fixture — the E12-3 causal
+  // chain closed at its root. This test now PINS the heal.
+  it('the raw ipopt walk produces no violating tick (the corridor is gone)', () => {
     const n = 32
     const knots = openKnots(n)
     let cps: WeightedCP[] = Array.from({ length: n }, (_, i) => {
@@ -106,39 +113,15 @@ describe('E21-2a: the E13a specimen under the envelope classifier', () => {
       const r = new InteriorPointOptimizer(problem, { maxIterations: 20, enableBFGS: false, returnBestFeasible: true }).optimize()
       problem.setVariables(r.variables)
       const moved = problem.result()
-      if (familyBound('rational', moved, knots, d, 'open') > startB) {
-        const g0 = gOf(cps)
-        const g1 = gOf(moved)
-        const s0 = assignSignsNeighbor(g0)
-        const s1 = assignSignsNeighbor(g1)
-        const inactive = computeInactiveSetBySign(s0, g0.map(Math.abs))
-        const flips = g0.map((_, i) => i).filter((i) => s0[i] !== s1[i] && !inactive.has(i))
-        const e0 = env(cps)
-        const mx = Math.max(...g0.map(Math.abs))
-        const globalFloor = 1e-12 * mx // SIGN_NOISE_REL · max — today's classifier
-        const nGlobalNoise = g0.filter((v) => Math.abs(v) <= globalFloor).length
-        const nEnvNoise = g0.filter((v, i) => Math.abs(v) <= 64 * EPS * e0[i]).length
-        console.log(`E21-2a violating tick ${s}: flips [${flips.join(',')}]  max|g| ${mx.toExponential(1)}`)
-        console.log(`E21-2a classifier census: global-floor noise ${nGlobalNoise} coeffs; envelope-floor (64ε·s) noise ${nEnvNoise} coeffs (of ${g0.length})`)
-        for (const i of flips) {
-          const ratioGlobal = Math.abs(g0[i]) / globalFloor
-          const ratioEnv = Math.abs(g0[i]) / (EPS * e0[i])
-          console.log(`E21-2a   #${i}: |g| ${Math.abs(g0[i]).toExponential(2)}  |g|/globalFloor ${ratioGlobal.toExponential(1)}  |g|/(ε·s) ${ratioEnv.toExponential(1)}`)
-          // MEASURED VERDICT (2026-07-04, notebook E21): the envelope classifies
-          // the E12-3-verified GENUINE sign carrier as noise EVEN HARDER than the
-          // global floor (7.7e-5 vs 1.3e-1) — the abs-arithmetic envelope is a
-          // sound magnitude bound but a REFUTED noise classifier: it loses the
-          // smoothness factor at every derivative level (real neighbor
-          // differences are small, and fp subtraction of nearby values is
-          // near-exact — Sterbenz — so true roundoff does not compound the way
-          // the envelope assumes). Pin the refutation so nobody re-proposes it.
-          expect(ratioEnv, `#${i}: envelope classifier refutation (should sit BELOW its floor)`).toBeLessThan(1)
-        }
-        return
-      }
+      const rawB = familyBound('rational', moved, knots, d, 'open')
+      expect(rawB, `tick ${s}: raw step violated the bound — the corridor is BACK (regression)`).toBeLessThanOrEqual(startB)
       cps = slide('rational', cps, knots, d, 'open', k, tick, { solver: 'ipopt', jacobian: 'analytic', maxIterations: 20 }).points
     }
-    throw new Error('no violating tick reproduced — fixture drifted, recalibrate')
+    // (env/gOf kept as helpers for future forensics on this fixture)
+    void env
+    void gOf
+    void assignSignsNeighbor
+    void computeInactiveSetBySign
   }, 240000)
 })
 

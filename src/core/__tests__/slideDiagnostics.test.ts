@@ -2,12 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { slide, rational, type WeightedCP } from '../index'
 
 // The F11 stall forensics, as an opt-in instrument on slide() (task #9).
-// Pins that the two validated alarms actually fire on the KNOWN dead tick
-// (F9 drag, primal-dual — unchanged by the E10 ipopt fixes): tick 9's solver
-// step violates the true bound, the Law-2 guard collapses to α≈0, the knife-
-// edge coefficients are identified, and the returned point is provably
-// non-stationary along the free translation direction (D ≪ 0). And that a
-// clean solve reports a clean bill (α = 1, no knife edge).
+// Pins that the alarms actually fire on a KNOWN dead tick, and that a clean
+// solve reports a clean bill (α = 1, no knife edge).
+// RECALIBRATED (E21): under the honest constants (floor 1e-14, margin 1e-13)
+// the ORIGINAL 15-tick specimen HEALED — the raw step no longer leaves the
+// feasible set, because the old violation rode the phantom margin corridor
+// the fat constants created. The same drag in 4 coarse ticks still produces
+// a true dead tick (raw 6>2, guard α→0, 4 knife-edge coefficients) — bigger
+// steps genuinely overshoot; that is the specimen pinned here.
 
 const DEGREE = 3
 const KNOTS = [0, 0, 0, 0, 0.25, 0.5, 0.75, 1, 1, 1, 1]
@@ -31,15 +33,16 @@ describe('slide() diagnostics (F11 stall forensics)', () => {
     expect(t1.diag!.knifeEdge).toBeUndefined()
     expect(t1.diag!.rawBound).toBeLessThanOrEqual(t1.diag!.startBound)
 
-    // Replay to the stall onset (ticks 1..8), then instrument tick 9.
+    // Replay the same move in 4 COARSE ticks (ticks 1..3), then instrument
+    // tick 4 — the dead tick under honest constants (see header).
     cps = X0.map((x, i) => rational(x, Y0[i], W0[i]))
-    for (let s = 1; s <= 8; s++) {
-      const t = s / 15
+    for (let s = 1; s <= 3; s++) {
+      const t = s / 4
       cps = slide('rational', cps, KNOTS, DEGREE, 'open', k,
         { x: sx + (target.x - sx) * t, y: sy + (target.y - sy) * t }, recipe).points
     }
     const t9 = slide('rational', cps, KNOTS, DEGREE, 'open', k,
-      { x: sx + (target.x - sx) * (9 / 15), y: sy + (target.y - sy) * (9 / 15) },
+      { x: sx + target.x - sx, y: sy + target.y - sy },
       { ...recipe, diagnostics: true })
     const d = t9.diag!
     expect(d, 'diagnostics missing').toBeDefined()

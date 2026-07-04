@@ -218,12 +218,15 @@ export function cyclicSignChanges(signs: readonly number[], cyclic: boolean): nu
  * This MUST stay at machine-roundoff scale. g's coefficients span a huge dynamic range
  * (they blow up near clamped endpoints), so a larger "small relative to the max" floor
  * deletes genuine low-amplitude coefficients and makes S⁻ read BELOW the true number of
- * sign changes — a FALSE bound (CLAUDE.md, Law 3). g is built from a short chain of
- * Bernstein products/derivatives, so accumulated roundoff is a few thousand·ε ≈ 1e-12
- * relative; real coefficients sit far above that. Erring smaller only ever makes S⁻
- * looser (still a valid upper bound), never false — so when in doubt, smaller.
+ * sign changes — a FALSE bound (CLAUDE.md, Law 3). The constant is MEASURED, not
+ * guessed (E21, BigInt oracle over every coefficient of the E13a state): the true
+ * per-coefficient error is uniform-absolute ≈ (0.03…9)·ε·max|g| — so 1e-14 sits ~45×
+ * above the worst measured error (9ε ≈ 2e-15) while the previous 1e-12 sat ~450×
+ * above it and MANUFACTURED a misclassification class (E12-3's specimen #225: a
+ * genuine +3.4e3 sign carrier classified as noise against a 2.6e16 max). Erring
+ * smaller only ever makes S⁻ looser (still a valid upper bound), never false.
  */
-export const SIGN_NOISE_REL = 1e-12
+export const SIGN_NOISE_REL = 1e-14
 
 /**
  * Signs of Bernstein coefficients with ONLY roundoff-level zeros resolved: a coefficient
