@@ -24,5 +24,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // The design-oracle test imports Eric's closed-curve project (different, older
+  // tsconfig dialect) — vitest runs it (esbuild, no typecheck); keep it out of
+  // this strict program so tsc -b stays clean.
+  "exclude": ["src/core/__tests__/ericClosedCurveOracle.test.ts"]
 }

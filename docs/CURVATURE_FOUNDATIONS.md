@@ -446,15 +446,79 @@ toward zero, the gradient/Jacobian information has been overwhelmed by error nea
 knot (0.375 → 83%) moves the knife edge out of the solve's path; a bad one (0.625 → 17%)
 manufactures a worse edge. Refinement is a conditioning lever, not a constraint lever.
 
+**Three-solver head-to-head on the same drag (guard applied identically).** Each solver
+fails DIFFERENTLY — the failure mode, not the tracking number, is the signature:
+
+    primal-dual  47% tracked   8/15 raw bound violations   7/15 guard collapses   47ms
+    barrier      18% tracked   0 violations                0 collapses            55ms
+    ipopt        46% tracked   0 violations                0 collapses            44ms
+
+primal-dual: feasibility failure (steps leave the true feasible set; the guard kills whole
+ticks → jerky feel: jumps + freezes). barrier: honest but under-converged crawl. ipopt:
+feasible steady progress, never needs the guard — but NOT stationary either
+(dObj/dTranslation down to −119 with the translation direction exactly free), so ~46% is
+far below the reachable optimum for ALL three. The old "ipopt stalls ~85% (F4)" claim is
+curve-specific — re-measure per case before trusting route comments.
+
+**Trust-region telemetry confirms Eric's stall signal exactly (ipopt, per tick).** Ticks
+1–2: δ = 3.5e2, converged in 13 iters, 100% of each pull (13.8 units). Tick 3 — stall
+onset — δ collapses 4 orders to ~2e-2, termination becomes max_iterations, movement drops
+to ~0.3/tick. Where δ partially recovers (ticks 12–14, up to 5.6) movement instantly
+returns (28.6, 18.4, 13.1). Collapsed δ = rejected dogleg steps = the model
+(gradient/Jacobian near a near-zero coefficient) disagreeing with actual constraint
+values. **δ is the stall alarm for trust-region solves; guard-α collapse is the alarm for
+the primal-dual path.**
+
 **How to apply.** (a) Instrument, don't guess: slide()/slideCurve should expose per-tick
-diagnostics — raw-step bound, guard α, step norm, trust-region radius (ipopt), and WHICH
-coefficient flips at small α. Guard-α collapse is the stall alarm. (b) The fix target is
-the solve/regime at near-zero coefficients (margins, scaling, active-set policy), not the
-guard — the guard is doing its job on a bad step. (c) Probe-and-keep insertion (F10)
-remains a legitimate palliative because legality is free; but it treats conditioning, and
-the standing investigation should treat the disease.
+diagnostics — raw-step bound, guard α, step norm, trust-region δ + termination reason
+(ipopt), translation-descent D (universal stationarity check), and WHICH coefficient
+flips at small α. (b) The fix target is the solve/regime at near-zero coefficients
+(margins, scaling, active-set policy), not the guard — the guard is doing its job on a
+bad step. (c) Probe-and-keep insertion (F10) remains a legitimate palliative because
+legality is free; but it treats conditioning, and the standing investigation should treat
+the disease.
 
 ---
 
-*Add F12, … as we establish them. Never delete a fact that is still true; if a fact turns
+## F12 — Eric's closed-curve optimizer beats current core 91% vs 47% on the stall drag: a DESIGN regression, and the drivers are identifiable
+
+**The measurement (2026-07-03).** Eric's own optimizer — imported unmodified from
+`../../numericelements/git/closed-curve` (his reference codebase; the one his understanding
+is based on) — run on the F9 stall drag, displayed bound measured with OUR robust count:
+
+    ERIC design @800 steps/tick   91% tracked   bound 2 held   967 ms/tick
+    ERIC design @50  steps/tick   91% tracked   bound 2 held    66 ms/tick
+    core primal-dual @20 iters    47% (8/15 infeasible raw steps, 7/15 dead ticks)
+    core ipopt @20 iters          46%           core ipopt @800 iters   18%
+
+Budget is ruled out twice: his design loses nothing at 50 steps, and core ipopt gets WORSE
+with 40× more budget (46%→18% — the "retreat with more iterations" signature CLAUDE.md's
+standing investigation predicted). The gap is structural.
+
+**Design deltas between his formulation and core's generic drag (ranked suspects):**
+1. **Free weights.** His rational problem has 3n variables — the homogeneous weights move.
+   Measured drift in the 91% run: 5–25× per CP (part projective gauge, but the per-CP
+   variation is real reshaping). Core's fixed-weight formulation amputated this DOF block.
+2. **Per-step feasibility** (F11): his trust region shrinks ×0.25 until every constraint
+   value at the candidate step is strictly negative — no infeasible excursions, no outer
+   guard, no dead ticks, ever.
+3. **Inactive-set rule**: his `computeInactiveConstraints` frees the coefficients CLOSEST
+   TO ZERO in each changing-sign sequence; core frees ALL run interiors keeping one
+   largest-|g| anchor. Different active sets → different sliding freedom → possibly a
+   different theorem (check which rule Theorem 2 was actually proven for!).
+4. **ScaledBernsteinDecomposition products** (binomial-premultiplied → plain convolution:
+   fewer ops, less roundoff) + an unused compensated-FP toolkit (Kahan/Dekker/Fast2Sum).
+
+**How to apply.** `ericClosedCurveOracle.test.ts` pins his design's capability in-repo
+(≥80% tracked, bound held; needs the sibling closed-curve checkout). Port-and-measure in
+this order: free weights in core's CurvatureDragProblem (FD Jacobian first — the 'fd'
+backend is universal), per-step feasibility in the solvers, then A/B the inactive-set
+rules. His import cycle (models↔optimizationProblems) is broken by importing
+CurveModel3d first. Caveat for the editor: free weights change edit semantics (weights
+drift under CP drags — decide with Eric how to expose/normalize; a projective gauge fix,
+e.g. renormalizing w so ∏w or w₀ stays 1, avoids unbounded homogeneous inflation).
+
+---
+
+*Add F13, … as we establish them. Never delete a fact that is still true; if a fact turns
 out wrong, replace it and say why (a wrong fact in here is worse than none).*

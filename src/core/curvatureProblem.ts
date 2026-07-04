@@ -60,9 +60,15 @@ export function enforceBoundNonincreasing<S>(
   boundOf: (state: S) => number,
   lerp: (a: number) => S,
   iters = 26,
+  /** Diagnostics tap: receives the kept step fraction α (1 = clean solve, ~0 =
+   *  the whole step was infeasible — the F11 "dead tick" alarm). */
+  onAlpha?: (alpha: number) => void,
 ): S {
   const startS = boundOf(start)
-  if (boundOf(result) <= startS) return result // clean solve — no-op
+  if (boundOf(result) <= startS) {
+    onAlpha?.(1)
+    return result // clean solve — no-op
+  }
   let lo = 0
   let hi = 1
   for (let it = 0; it < iters; it++) {
@@ -70,6 +76,7 @@ export function enforceBoundNonincreasing<S>(
     if (boundOf(lerp(mid)) <= startS) lo = mid
     else hi = mid
   }
+  onAlpha?.(lo)
   return lerp(lo)
 }
 

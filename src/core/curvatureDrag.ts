@@ -64,6 +64,42 @@ export interface CurvatureDragOptions {
    *  sliding mechanism as g. Throws for complex weights (no defined f — see
    *  familyInflectionNumerator). */
   preserveInflections?: boolean
+  /** Collect per-solve stall forensics (F11) in the result's `diag` field.
+   *  Costs a few extra numerator evaluations — leave off in production drags. */
+  diagnostics?: boolean
+}
+
+/**
+ * Per-solve stall forensics (FOUNDATIONS F11). The two validated alarms:
+ * `guardAlpha` ≈ 0 — the solver's whole step violated the true bound and the
+ * Law-2 guard kept nothing (primal-dual's failure mode: a dead tick);
+ * `finalDelta` collapsing (e.g. 3e2 → 2e-2) with `terminationReason:
+ * 'max_iterations'` — the trust region shrank against model error near a
+ * near-zero coefficient (ipopt's failure mode: a crawl). `translationDescent`
+ * is the universal check: the objective's directional derivative along the
+ * exactly-feasible translation toward the cursor, measured at the RETURNED
+ * point — significantly negative means the result is provably not a KKT point
+ * (rigid motions are never blocked by the bound).
+ */
+export interface SlideDiagnostics {
+  solver: 'ipopt' | 'primal-dual'
+  iterations: number
+  converged: boolean
+  terminationReason?: string
+  /** ipopt only: trust-region radius at termination (Eric's stall gauge). */
+  finalDelta?: number
+  /** ‖raw solver output − start‖ over all affine coordinates. */
+  rawStepNorm: number
+  startBound: number
+  /** S⁻ of the UNGUARDED solver output — above startBound = feasibility failure. */
+  rawBound: number
+  finalBound: number
+  /** Step fraction the Law-2 guard kept: 1 clean, ~0 dead tick. */
+  guardAlpha: number
+  translationDescent: number
+  /** When the guard pulled back: g coefficients whose robust sign flips within an
+   *  ε step along the solver's direction — the knife edge itself. */
+  knifeEdge?: { index: number; coeff: number }[]
 }
 
 /**
@@ -345,7 +381,7 @@ export function slide(
   dragIndex: number,
   target: { x: number; y: number },
   opts: CurvatureDragOptions = {},
-): { points: WeightedCP[]; converged: boolean } {
+): { points: WeightedCP[]; converged: boolean; diag?: SlideDiagnostics } {
   const rho = opts.rho ?? { re: 1, im: 0 }
   const wRe = cps.map((p) => p.wRe)
   const wIm = cps.map((p) => p.wIm)
