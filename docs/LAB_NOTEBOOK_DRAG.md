@@ -242,6 +242,46 @@ so the dynamic range collapses and relative thresholds become meaningful. Compen
 arithmetic (E12's original question) is exonerated for enforcement — possibly still
 useful later for marker display at extreme ranges, but nothing here needs it.
 
+## E15 — the size column, closed out (2026-07-04): Eric's design tracks 100% at EVERY size
+
+Context set by Eric: no new layers of machinery; bias to simplicity; the goal is that
+things WORK. So E15 tested subtraction and controls instead of new mechanisms.
+
+    open rational column          n=8     n=16    n=32
+    core ipopt, scaled @20        46%     17%      6%
+    core ipopt, RAW (Eric regime,
+      exact-zero exclusion) @20   47%     12%      6%     ← regime NOT binding per-tick
+    core RAW @200                 92%     56%      8%     ← but RAW kills the budget-
+                                                            REVERSAL (scaled @200: 5% at
+                                                            n=16; raw climbs monotonically)
+    ERIC solver + CORE problem
+      (fixed weights, scaled)     95%     91%     80%     ← E15c
+    ERIC full stack @50 steps    100%    100%    100%     ← E15b. No wall exists.
+
+**Readings.**
+1. There is NO feasible wall at n=32 — his stack tracks the cursor COMPLETELY with the
+   bound held (and ~1.2 s/tick dense; O(n) is a separate lever).
+2. Core's remaining scale gap decomposes: ~74 points = core's SOLVER internals (E15c:
+   swap the solver only → 6%→80%), ~20 points = formulation freedoms his stack has
+   (free weights and/or raw constraints; E1's "weights don't matter" was an n=7 result
+   and does NOT generalize to scale).
+3. The scaled regime's corridor is what made MORE budget WORSE (raw is monotone in
+   budget) — E12's chain confirmed from the opposite direction. At interactive budget
+   the regime choice doesn't move tracking; its harm is the corridor, its cost is the
+   misclassification. The raw regime is SIMPLER and never worse.
+4. Suspect for the ~74-point solver gap at scale (E10 already equalized ρ + budget
+   disciplines): the TRUST-REGION SUBPROBLEM — his Conn–Gould–Toint near-exact solve vs
+   core's dogleg, whose quality rests on a regularized Cholesky Newton point that
+   degrades on the 1e16-range barrier Hessian. (E10d's n=7 result — CGT-in-core hurt —
+   needs re-testing at n=32 before this is believed.)
+
+**The convergence recommendation (pending Eric's go):** stop repairing core's IP
+piecemeal. PORT ERIC'S OPTIMIZER (Optimizer.ts + TrustRegionSubproblem.ts, ~500 lines
+of code HE wrote and understands) into core as THE drag solver, driving core's family
+problems; keep core's family/constraint machinery (raw regime) and the Law-2 guard.
+Measured expectation: 80% at n=32 immediately (E15c), 100% with free weights if adopted.
+This is convergence to the author's design — not another layer.
+
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**

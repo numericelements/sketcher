@@ -31,6 +31,8 @@
   "exclude": [
     "src/core/__tests__/ericClosedCurveOracle.test.ts",
     "src/core/__tests__/labE1PinnedWeights.test.ts",
-    "src/core/__tests__/labE7EricSolverCoreProblem.test.ts"
+    "src/core/__tests__/labE7EricSolverCoreProblem.test.ts",
+    "src/core/__tests__/labE15bEricScale.test.ts",
+    "src/core/__tests__/labE15cEricSolverCoreProblemScale.test.ts"
   ]
 }
