@@ -203,6 +203,45 @@ resolution: near a merge the count is genuinely discontinuous; the display/enfor
 must make a CONSISTENT choice (hysteresis at the floor, or exact structural-zero
 knowledge), never an ulp-lottery.
 
+## E12-3 — the exact oracle: VERDICT, and a correction to E13a (2026-07-04)
+
+Method: the full complex-Chen numerator pipeline reimplemented in EXACT rational
+arithmetic (BigInt fractions; doubles are dyadic rationals, every pipeline op is
+rational — Boehm Bézier-ization, binomial products, derivatives). Run on the violating
+tick's pre/post states at n=32.
+
+    Sanity: all 725 coefficients, |double − exact| ≤ 3.2e-15 · max  → DOUBLE IS ACCURATE.
+    Specimen #225: PRE  +3.428e3 (double sign +, exact sign +)   |g|/max = 1.3e-13
+                   POST −2.025e7 (double sign −, exact sign −)
+    VERDICT: GENUINE CROSSING. Not evaluation noise. Compensated arithmetic is NOT the fix.
+
+**The complete causal chain (every link verified):**
+1. `SIGN_NOISE_REL·max = 2.6e4` at n=32's range — so coefficient #225 (+3.4e3), a
+   GENUINE sign carrier (exact-verified), is CLASSIFIED as a structural zero.
+2. As "structural zero" it gets `scaleForRobust` scale = max|g| = 2.6e16 and
+   `structuralMarginsScaled` margin = MARGIN_REL = 1e-9 (scaled units).
+3. That margin's ABSOLUTE width is 1e-9 · 2.6e16 = **2.6e7 raw g units** — a crossing
+   corridor ~7,600× the coefficient's own size. The observed crossing (−2.0e7) sits
+   just inside it: internal slack 7.7e-10 < margin 1e-9 → the solver's feasibility
+   test sees NOTHING. The solver obeyed its constraints perfectly.
+4. The robust display count then (correctly) reads the flip (|−2e7| ≫ noise) → bound
+   +2 → the guard trims the step → 6% tracking.
+
+**CORRECTION to E13a:** "the coefficient's sign is roundoff noise" was WRONG — the sign
+is real and double-precision computes it fine. The truth is sharper: **max|g|-relative
+thresholds misclassify genuine small coefficients at scale.** This is precisely the
+"global relative floor" that CLAUDE.md (Law 3) forbids for the display — alive inside
+the ENFORCEMENT regime, and F1 warned about it verbatim ("such a floor deletes real
+features"). The E12-2 ulp-wobble of the displayed bound is the same phenomenon's
+display-side shadow (a real coefficient parked at the classification boundary).
+
+**The fix direction is F1's open prescription, now with a causal specimen:** classify
+structural zeros STRUCTURALLY (knot/boundary position — or the exact oracle offline),
+not by magnitude-relative-to-max; and/or normalize g by the a-priori span-derived scale
+so the dynamic range collapses and relative thresholds become meaningful. Compensated
+arithmetic (E12's original question) is exonerated for enforcement — possibly still
+useful later for marker display at extreme ranges, but nothing here needs it.
+
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**
