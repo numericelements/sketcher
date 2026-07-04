@@ -810,3 +810,29 @@ Task #8 closed without building the UI; F10 (insertion legality) remains a valid
 and user-driven insertion for *shape* freedom is untouched — what died is insertion as
 a STALL remedy. (If #28's tight B-spline polygon lands, revisit: on the minimal polygon
 insertion is count-neutral by construction.)
+
+## E24 — the seam projection tax, paid off: the closure-aware objective (2026-07-04)
+
+**E16's leftover:** the ∮w²=0 projection is objective-blind; at the seam CP (k=45) it
+returned ~2/3 of each pass's progress (+6.6px on a 50px pull vs 20–35 elsewhere).
+
+**Fix:** the closure gap ∮w² IS the curve's endpoint displacement gap in curve units —
+so it rides the tracking objective directly as a soft penalty ½λ‖gap‖² (exact gradient
+via closureJacobian folded to the free seam coordinates; two rank-1 GN terms). The
+solve stays near the closure manifold; the exact projection afterwards has less to
+undo. The decoupled design is UNCHANGED — closure is still restored exactly by the
+projection; the objective just stops pretending it won't happen.
+
+**λ dose-response (3-tick 50px pulls; k=45 seam, k=42 near-seam, k=7 interior):**
+
+    λ=  0:  k45  6.6   k42 31.7   k7 23.7    (the tax)
+    λ=  2:  k45 13.0   k42 26.7   k7 23.6
+    λ= 10:  k45 18.9   k42 22.2   k7 23.6
+    λ= 50:  k45 22.1   k42 19.9   k7 24.5    ← chosen: seam region EQUALIZED
+    λ=200:  k45 22.4   k42 19.4   k7 24.5    (saturated)
+
+The seam CP recovers 3.4×; its neighbor pays some back; the region's spread collapses
+from 6.6–31.7 to 19.9–22.1 (the worst-CP criterion — uniform feel — is what the E16
+sweep contract measures). Interiors untouched. Wired in the store at λ=50; all-CP
+sweep, display-metric, editor pins green; E14-PROD bench 83% unchanged. Article §9.3
+graduates from open problem to result.

@@ -633,7 +633,12 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
               meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
               meta.uvKnots, meta.uvDegree, periodicTargets,
               { seamContinuity: seamCont, wrapSign: meta.wrapSign ?? 1 },
-              { maxNumSteps: 30, passes: 2 },
+              // closureWeight (E24): the ∮w² gap rides the objective (it IS the
+              // endpoint gap in curve units), so the solve stays near the closure
+              // manifold and the objective-blind projection has less to undo.
+              // λ=50 measured: seam CP 6.6→22px along a 50px pull, seam region
+              // equalized (19.9–22.1 vs 6.6–31.7), interiors unchanged.
+              { maxNumSteps: 30, passes: 2, closureWeight: 50 },
             )
             {
               const om = { uControlPoints: r.u, vControlPoints: r.v, uvKnots: meta.uvKnots, uvDegree: meta.uvDegree, origin: { x: r.x0, y: r.y0 } }

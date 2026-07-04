@@ -28,7 +28,7 @@
 import {
   computePHCurveFromUV, phControlPointJacobian,
 } from './phCurveConstruction'
-import { projectClosurePH, generatorBasisGram, phSeamMaps } from './phClosure'
+import { projectClosurePH, generatorBasisGram, phSeamMaps, closureGap, closureJacobian } from './phClosure'
 import {
   curvatureExtremaNumeratorPlanarPeriodic,
   curvatureExtremaMarkersOfNumeratorRobust,
@@ -184,6 +184,12 @@ export interface ClosedPHCurveBoundOptions {
   targetWeights?: readonly number[]
   /** Diagnostic hook: called after each pass's solve and after its projection. */
   onStage?: (stage: 'solve' | 'project', pass: number, u: readonly number[], v: readonly number[], x0: number, y0: number) => void
+  /** Closure-AWARE objective (E24, the seam projection tax): weight on the soft
+   *  penalty ½·λ·‖∮w²‖². The closure gap ∮w² IS the endpoint displacement gap in
+   *  curve units, so λ is commensurate with the CP-tracking weights. The solve
+   *  stays near the closure manifold and the objective-blind exact projection
+   *  afterwards has less to undo. 0 = the pre-E24 behavior. */
+  closureWeight?: number
 }
 
 export function slideClosedPHCurveBound(
@@ -291,12 +297,19 @@ export function slideClosedPHCurveBound(
       return active.map((i) => signsAll[i] * rc[i] + (margins.get(i) ?? 0))
     }
     const wCP = opts.targetWeights ?? new Array<number>(nPer).fill(1)
-    const f0From = (per: { x: number; y: number }[]) => {
+    const lamClosure = opts.closureWeight ?? 0
+    const f0From = (z2: number[]) => {
+      const per = periodicOf(z2)
       let sm = 0
       for (let i = 0; i < nPer; i++) {
         const dx = per[i].x - targetCPs[i].x
         const dy = per[i].y - targetCPs[i].y
         sm += 0.5 * wCP[i] * (dx * dx + dy * dy)
+      }
+      if (lamClosure > 0) {
+        const { u: uu, v: vv } = uvOf(z2)
+        const gap = closureGap(uu, vv, G)
+        sm += 0.5 * lamClosure * (gap.re * gap.re + gap.im * gap.im)
       }
       return sm
     }
@@ -304,7 +317,7 @@ export function slideClosedPHCurveBound(
       if (atZ) return atZ
       atZ = {
         f: fFrom(z),
-        f0: f0From(periodicOf(z)),
+        f0: f0From(z),
         g0: [],
         J: null,
         JtJ: null,
@@ -388,6 +401,31 @@ export function slideClosedPHCurveBound(
           JtJ.set(c, l, sm)
         }
       }
+      if (lamClosure > 0) {
+        // Closure penalty rows: gradient λ·(gapRe·∇gapRe + gapIm·∇gapIm), GN Hessian
+        // λ·(∇gapRe∇gapReᵀ + ∇gapIm∇gapImᵀ) — exact ∇gap via closureJacobian, folded
+        // to the free seam coordinates (x₀,y₀ columns are zero).
+        const gap = closureGap(uu, vv, G)
+        const cj = closureJacobian(uu, vv, G)
+        const rowRe = new Array<number>(nz).fill(0)
+        const rowIm = new Array<number>(nz).fill(0)
+        const fReU = fold(cj.reDu)
+        const fReV = fold(cj.reDv)
+        const fImU = fold(cj.imDu)
+        const fImV = fold(cj.imDv)
+        for (let j = 0; j < K; j++) {
+          rowRe[2 + j] = fReU[j]
+          rowRe[2 + K + j] = fReV[j]
+          rowIm[2 + j] = fImU[j]
+          rowIm[2 + K + j] = fImV[j]
+        }
+        for (let c = 0; c < nz; c++) {
+          g0v[c] += lamClosure * (gap.re * rowRe[c] + gap.im * rowIm[c])
+          for (let l = 0; l <= c; l++) {
+            JtJ.addAt(c, l, lamClosure * (rowRe[c] * rowRe[l] + rowIm[c] * rowIm[l]))
+          }
+        }
+      }
       a.J = J
       a.g0 = g0v
       a.JtJ = JtJ
@@ -398,7 +436,7 @@ export function slideClosedPHCurveBound(
       candidate = {
         dx,
         f: fFrom(zc),
-        f0: f0From(periodicOf(zc)),
+        f0: f0From(zc),
       }
       return candidate
     }
