@@ -23,6 +23,10 @@ import {
   curvatureExtremaGradientComplexPeriodicFixedWeightCols,
   curvatureExtremaGradientComplexFixedWeightCols,
   curvatureExtremaMarkers,
+  inflectionNumeratorPlanar,
+  inflectionNumeratorPlanarPeriodic,
+  inflectionNumeratorRational,
+  inflectionNumeratorRationalPeriodic,
 } from './curvature'
 import { curvatureExtremaGradientPlanar, curvatureExtremaGradientPlanarPeriodic } from './gradient'
 import type { Complex } from './complex'
@@ -118,6 +122,78 @@ export function familyMarkers(
     cps.map((p) => p.re), cps.map((p) => p.im), cps.map((p) => p.wRe), cps.map((p) => p.wIm),
     knots, degree, closed, rho,
   )
+}
+
+/**
+ * The INFLECTION numerator f for the families that have one. Polynomial:
+ * f = c′×c″; rational: f = det[H, H′, H″] (same sign changes as r′×r″ for
+ * positive weights). Complex weights THROW — under a complex weight the curve
+ * carries a Möbius structure and "inflection of the drawn curve" is not this
+ * determinant; the slot stays an explicit gap, not a silent wrong answer.
+ */
+export function familyInflectionNumerator(
+  kind: AlgebraicFamily,
+  cps: readonly WeightedCP[],
+  knots: readonly number[],
+  degree: number,
+  topology: Topology,
+): BernsteinDecomposition {
+  const closed = topology === 'closed'
+  const re = cps.map((p) => p.re)
+  const im = cps.map((p) => p.im)
+  if (kind === 'polynomial') {
+    return closed
+      ? inflectionNumeratorPlanarPeriodic(re, im, knots, degree)
+      : inflectionNumeratorPlanar(re, im, knots, degree)
+  }
+  if (kind === 'rational') {
+    const w = cps.map((p) => p.wRe)
+    return closed
+      ? inflectionNumeratorRationalPeriodic(re, im, w, knots, degree)
+      : inflectionNumeratorRational(re, im, w, knots, degree)
+  }
+  throw new Error('inflection numerator for complex weights is not defined (Möbius geometry) — explicit gap')
+}
+
+/** S⁻ of f — the inflection-count upper bound, same sign machinery as familyBound. */
+export function familyInflectionBound(
+  kind: AlgebraicFamily,
+  cps: readonly WeightedCP[],
+  knots: readonly number[],
+  degree: number,
+  topology: Topology,
+): number {
+  const closed = topology === 'closed'
+  return cyclicSignChanges(assignSignsNeighbor(familyInflectionNumerator(kind, cps, knots, degree, topology).flatCoeffs()), closed)
+}
+
+/** ∂f/∂(affine coords), weights fixed — FD (the universal oracle backend), same
+ *  matrix shape as familyJacobian: rows = f coefficients, cols = [reᵢ, imᵢ] interleaved.
+ *  f = det[H,H′,H″] takes ONE entry per determinant row, so it is LINEAR in each
+ *  affine coordinate — central differences are exact here up to roundoff. */
+export function familyInflectionJacobianFD(
+  kind: AlgebraicFamily,
+  cps: readonly WeightedCP[],
+  knots: readonly number[],
+  degree: number,
+  topology: Topology,
+): number[][] {
+  const nF = familyInflectionNumerator(kind, cps, knots, degree, topology).flatCoeffs().length
+  const n = cps.length
+  const M = Array.from({ length: nF }, () => new Array<number>(2 * n).fill(0))
+  const work = cps.map((p) => ({ ...p }))
+  const diff = (i: number, key: 're' | 'im', col: number) => {
+    const c0 = work[i][key]
+    const h = 1e-6 * (Math.abs(c0) + 1)
+    work[i][key] = c0 + h
+    const fp = familyInflectionNumerator(kind, work, knots, degree, topology).flatCoeffs()
+    work[i][key] = c0 - h
+    const fm = familyInflectionNumerator(kind, work, knots, degree, topology).flatCoeffs()
+    work[i][key] = c0
+    for (let k = 0; k < nF; k++) M[k][col] = (fp[k] - fm[k]) / (2 * h)
+  }
+  for (let i = 0; i < n; i++) { diff(i, 're', 2 * i); diff(i, 'im', 2 * i + 1) }
+  return M
 }
 
 // ============================================================================

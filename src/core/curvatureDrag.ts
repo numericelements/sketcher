@@ -26,6 +26,7 @@ import {
 } from './curvatureProblem'
 import {
   familyNumerator, familyJacobian, familyBound,
+  familyInflectionNumerator, familyInflectionBound, familyInflectionJacobianFD,
   type AlgebraicFamily, type Topology, type WeightedCP, type JacobianBackend,
 } from './curvatureFamilies'
 import {
@@ -58,6 +59,11 @@ export interface CurvatureDragOptions {
   anchorX?: number[]
   anchorY?: number[]
   anchorWeight?: number
+  /** Also hold the INFLECTION-count bound: sign constraints on the active
+   *  coefficients of f (polynomial: c′×c″; rational: det[H,H′,H″]) via the same
+   *  sliding mechanism as g. Throws for complex weights (no defined f — see
+   *  familyInflectionNumerator). */
+  preserveInflections?: boolean
 }
 
 /**
@@ -90,6 +96,13 @@ export class CurvatureDragProblem implements OptimizationProblem {
   private readonly anchorRe: number[]
   private readonly anchorIm: number[]
   private readonly anchorWeight: number
+  // Inflection constraint block (preserveInflections): the same sliding
+  // mechanism applied to f's control polygon, appended after the g rows.
+  private readonly preserveInflections: boolean
+  private readonly fActiveIdx: number[] = []
+  private fSigns: number[] = []
+  private readonly fScale: number[] = []
+  private readonly fMargins: number[] = []
 
   constructor(
     kind: AlgebraicFamily,
@@ -137,6 +150,20 @@ export class CurvatureDragProblem implements OptimizationProblem {
     this.signs = this.activeIdx.map((i) => signs[i])
     this.gScale = scaleForRobust(gc, this.activeIdx)
     this.margins = structuralMarginsScaled(gc, this.activeIdx)
+
+    // Inflection block — identical regime on f's control polygon.
+    this.preserveInflections = opts.preserveInflections ?? false
+    if (this.preserveInflections) {
+      const fc = this.inflectionNumerator().flatCoeffs()
+      const fSignsAll = assignSignsNeighbor(fc)
+      const fInactive = opts.disableSliding
+        ? new Set<number>()
+        : (closed ? computeInactiveSetBySignCyclic(fSignsAll, fc.map(Math.abs)) : computeInactiveSetBySign(fSignsAll, fc.map(Math.abs)))
+      this.fActiveIdx = fc.map((_, i) => i).filter((i) => !fInactive.has(i))
+      this.fSigns = this.fActiveIdx.map((i) => fSignsAll[i])
+      this.fScale = scaleForRobust(fc, this.fActiveIdx)
+      this.fMargins = structuralMarginsScaled(fc, this.fActiveIdx)
+    }
   }
 
   private cps(): WeightedCP[] {
@@ -144,6 +171,9 @@ export class CurvatureDragProblem implements OptimizationProblem {
   }
   private numerator(): BernsteinDecomposition {
     return familyNumerator(this.kind, this.cps(), this.knots, this.degree, this.topology, this.rho)
+  }
+  private inflectionNumerator(): BernsteinDecomposition {
+    return familyInflectionNumerator(this.kind, this.cps(), this.knots, this.degree, this.topology)
   }
   /** g's Jacobian, remapped from familyJacobian's interleaved cols to block order. */
   private jacobianBlock(): number[][] {
@@ -158,7 +188,7 @@ export class CurvatureDragProblem implements OptimizationProblem {
 
   readonly numEqualityConstraints = 0
   get numVariables(): number { return this.re.length * 2 }
-  get numConstraints(): number { return this.activeIdx.length }
+  get numConstraints(): number { return this.activeIdx.length + this.fActiveIdx.length }
 
   getVariables(): number[] { return [...this.re, ...this.im] }
   setVariables(x: number[]): void {
@@ -200,6 +230,10 @@ export class CurvatureDragProblem implements OptimizationProblem {
     if (!this.cachedCons) {
       const gc = this.numerator().flatCoeffs()
       this.cachedCons = this.activeIdx.map((i, k) => gc[i] / this.gScale[k] - this.signs[k] * this.margins[k])
+      if (this.preserveInflections) {
+        const fc = this.inflectionNumerator().flatCoeffs()
+        this.cachedCons.push(...this.fActiveIdx.map((i, k) => fc[i] / this.fScale[k] - this.fSigns[k] * this.fMargins[k]))
+      }
     }
     return this.cachedCons
   }
@@ -207,6 +241,18 @@ export class CurvatureDragProblem implements OptimizationProblem {
     if (!this.cachedJac) {
       const J = this.jacobianBlock()
       this.cachedJac = this.activeIdx.map((i, k) => J[i].map((v) => v / this.gScale[k]))
+      if (this.preserveInflections) {
+        // f rows: FD Jacobian (exact for f — linear in each affine coordinate),
+        // remapped from interleaved to block order like the g rows.
+        const n = this.re.length
+        const JF = familyInflectionJacobianFD(this.kind, this.cps(), this.knots, this.degree, this.topology)
+        this.cachedJac.push(...this.fActiveIdx.map((i, k) => {
+          const row = JF[i]
+          const out = new Array<number>(2 * n)
+          for (let c = 0; c < n; c++) { out[c] = row[2 * c] / this.fScale[k]; out[n + c] = row[2 * c + 1] / this.fScale[k] }
+          return out
+        }))
+      }
     }
     return this.cachedJac
   }
@@ -223,6 +269,9 @@ export class CurvatureDragProblem implements OptimizationProblem {
    */
   computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] | null {
     if (this.kind === 'polynomial') return null
+    // Inflection rows have no local-cols path yet — fall back to the dense
+    // Jacobian (PlanarCurvatureProblem does the same for its inflection rows).
+    if (this.preserveInflections) return null
     if (this.cachedLocalJac) return this.cachedLocalJac
     const closed = this.topology === 'closed'
     const grad = closed
@@ -258,7 +307,9 @@ export class CurvatureDragProblem implements OptimizationProblem {
     return rows
   }
 
-  getConstraintSigns(): number[] { return this.signs }
+  getConstraintSigns(): number[] {
+    return this.preserveInflections ? [...this.signs, ...this.fSigns] : this.signs
+  }
   getInactiveConstraints(): Set<number> { return new Set<number>() }
   updateConstraintState(): void {
     // Re-derive signs on the FIXED active set (the sliding mechanism: anchors + same-sign
@@ -266,6 +317,11 @@ export class CurvatureDragProblem implements OptimizationProblem {
     const gc = this.numerator().flatCoeffs()
     const signs = assignSignsNeighbor(gc)
     this.signs = this.activeIdx.map((i) => signs[i])
+    if (this.preserveInflections) {
+      const fc = this.inflectionNumerator().flatCoeffs()
+      const fSignsAll = assignSignsNeighbor(fc)
+      this.fSigns = this.fActiveIdx.map((i) => fSignsAll[i])
+    }
     this.cachedCons = null
     this.cachedJac = null
   }
@@ -293,7 +349,17 @@ export function slide(
   const rho = opts.rho ?? { re: 1, im: 0 }
   const wRe = cps.map((p) => p.wRe)
   const wIm = cps.map((p) => p.wIm)
-  const boundOf = (p: readonly WeightedCP[]) => familyBound(kind, p, knots, degree, topology, rho)
+  // Strict-guard metric: g's bound alone, or — with preserveInflections — the worst
+  // EXCESS of either bound over its start value (0 at the start point, ≤ 0 iff both
+  // bounds held), so one bisection enforces both Law-2 monotonicities at once.
+  const gStart = familyBound(kind, cps, knots, degree, topology, rho)
+  const fStart = opts.preserveInflections ? familyInflectionBound(kind, cps, knots, degree, topology) : 0
+  const boundOf = opts.preserveInflections
+    ? (p: readonly WeightedCP[]) => Math.max(
+        familyBound(kind, p, knots, degree, topology, rho) - gStart,
+        familyInflectionBound(kind, p, knots, degree, topology) - fStart,
+      )
+    : (p: readonly WeightedCP[]) => familyBound(kind, p, knots, degree, topology, rho)
 
   // One solve with the given method, then the strict-S⁻ guard (the result holds the bound).
   const runOne = (method: 'ipopt' | 'primal-dual') => {

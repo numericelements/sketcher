@@ -939,9 +939,10 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // are weight ratios (position-independent) → fixed weights leave them unchanged. The
     // anchor / symmetry / inflection flags no longer divert to legacy: legacy's rational
     // optimizer ignores ALL of them (optimizeRationalCurveInternal reads none), so the guards
-    // deferred to no-ops. Core carries anchors; symmetry and inflection preservation for
-    // rational curves are UNIMPLEMENTED in both engines (honest gap — implementing the
-    // rational inflection numerator det(H,H′,H″) in core is tracked future work).
+    // deferred to no-ops. Core carries anchors, and preserveInflections is now REAL here:
+    // core enforces the rational inflection numerator f = det[H,H′,H″] (same sign changes as
+    // r′×r″ for positive weights) with the same sliding mechanism as g — something legacy
+    // never had (rationalInflection.test.ts + openRationalFlagsRouting.test.ts pin it).
     if (preserveCurvatureExtrema && curve.kind === 'rational' && !curve.closed) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: p.w, wIm: 0 }))
@@ -949,10 +950,12 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         // support → familyJacobian scatters from per-CP cols, ~2.5× cheaper than full-width).
         // solver:'primal-dual' (not best-of): measured it's the solver that TRACKS here (ipopt
         // stalls ~85% regardless of iterations — F4), and one solver is ~2× faster than best-of.
+        // (With preserveInflections the local-Jacobian fast path yields to the dense one.)
         const r = slide('rational', cps, curve.knots, curve.degree, 'open', pointIndex,
           { x: newPosition.x, y: newPosition.y },
           { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20,
             ...(disableSliding ? { disableSliding } : {}),
+            ...(preserveInflections ? { preserveInflections } : {}),
             ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
               ? { anchorWeight, anchorX: dragStartCPsX, anchorY: dragStartCPsY }
               : {}) })

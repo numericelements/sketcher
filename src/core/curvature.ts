@@ -41,6 +41,60 @@ export function inflectionNumeratorPlanar(
 }
 
 /**
+ * Inflection numerator for a planar RATIONAL B-spline curve r = (X/W, Y/W)
+ * with homogeneous coordinates H = (X, Y, W), X = w·x, Y = w·y:
+ *
+ *     f = det[H, H′, H″]
+ *       = X(Y′W″ − Y″W′) − Y(X′W″ − X″W′) + W(X′Y″ − X″Y′)
+ *
+ * (degree 3d−3). The classical identity r′ × r″ = f / W³ means f has the same
+ * sign changes as r′ × r″ wherever W > 0 (the editor's weights are positive),
+ * so the inflections of r are the sign changes of f and S⁻ of f's control
+ * polygon bounds their number (Law 1, verbatim). W ≡ 1 reduces f to the
+ * polynomial x′y″ − y′x″; W ≡ c scales it by c³ (both pinned).
+ */
+export function inflectionNumeratorRational(
+  x: readonly number[],
+  y: readonly number[],
+  w: readonly number[],
+  knots: readonly number[],
+  degree: number,
+): BernsteinDecomposition {
+  const X = decomposeToBernstein(x.map((xi, i) => xi * w[i]), knots, degree)
+  const Y = decomposeToBernstein(y.map((yi, i) => yi * w[i]), knots, degree)
+  const W = decomposeToBernstein([...w], knots, degree)
+  return inflectionDetHomogeneous(X, Y, W)
+}
+
+/** Inflection numerator f = det[H, H′, H″] for a CLOSED (periodic) rational curve. */
+export function inflectionNumeratorRationalPeriodic(
+  x: readonly number[],
+  y: readonly number[],
+  w: readonly number[],
+  knots: readonly number[],
+  degree: number,
+): BernsteinDecomposition {
+  const X = decomposeToBernsteinPeriodic(x.map((xi, i) => xi * w[i]), knots, degree)
+  const Y = decomposeToBernsteinPeriodic(y.map((yi, i) => yi * w[i]), knots, degree)
+  const W = decomposeToBernsteinPeriodic([...w], knots, degree)
+  return inflectionDetHomogeneous(X, Y, W)
+}
+
+/** det[H, H′, H″] expanded along the first column (shared by open/periodic). */
+function inflectionDetHomogeneous(
+  X: BernsteinDecomposition,
+  Y: BernsteinDecomposition,
+  W: BernsteinDecomposition,
+): BernsteinDecomposition {
+  const Xu = X.derivative(), Xuu = Xu.derivative()
+  const Yu = Y.derivative(), Yuu = Yu.derivative()
+  const Wu = W.derivative(), Wuu = Wu.derivative()
+  return X.multiply(Yu.multiply(Wuu).subtract(Yuu.multiply(Wu)))
+    .subtract(Y.multiply(Xu.multiply(Wuu).subtract(Xuu.multiply(Wu))))
+    .add(W.multiply(Xu.multiply(Yuu).subtract(Xuu.multiply(Yu))))
+}
+
+/**
  * Curvature-derivative numerator g(t) = ‖c′‖²(c′ × c‴) − 3(c′ · c″)(c′ × c″)
  * (degree 4d−6). Its zeros are the curvature extrema; sign changes of its
  * Bernstein coefficients bound their number (the anchor theorem).

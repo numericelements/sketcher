@@ -1,14 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import { useSceneStore } from './sceneStore'
-import { complexCurvatureConstraintState, cyclicSignChanges } from '../../core'
+import { complexCurvatureConstraintState, cyclicSignChanges, familyInflectionBound, rational } from '../../core'
 import type { Curve, WeightedPoint2D, PHMetadataAny } from '../types/curve'
 
 // Migration (fable branch): open RATIONAL drags with preserveInflections used to divert
 // to the legacy optimizer — but legacy ignores that flag for rational curves entirely
 // (optimizeRationalCurveInternal reads neither preserveInflections, symmetryMaps, nor
 // anchors), so the guard deferred to a no-op. All open rational extrema drags now take
-// core slide(). Pins the core-path signature: weights frozen to 9 dp, bound never rises,
-// the CP tracks. (Rational inflection ENFORCEMENT is an honest gap in both engines.)
+// core slide(), where preserveInflections is REAL: core enforces f = det[H,H′,H″]
+// (rationalInflection.test.ts). Pins the core-path signature: weights frozen to 9 dp,
+// curvature bound never rises, INFLECTION bound never rises, the CP tracks.
 
 const DEGREE = 3
 const KNOTS = [0, 0, 0, 0, 0.25, 0.5, 0.75, 1, 1, 1, 1]
@@ -42,6 +43,9 @@ describe('open rational with preserveInflections: now on core (fable migration)'
   it('bound never rises, weights frozen to 9 dp (core signature), CP tracks the cursor', () => {
     const id = injectOpenRational()
     const start = boundOf(cur(id))
+    const fBoundOf = (c: Curve & { controlPoints: WeightedPoint2D[] }) =>
+      familyInflectionBound('rational', c.controlPoints.map((p) => rational(p.x, p.y, p.w)), c.knots, c.degree, 'open')
+    const fStart = fBoundOf(cur(id))
     const k = 3
     const sx = cur(id).controlPoints[k].x, sy = cur(id).controlPoints[k].y
     const move = { x: 55, y: 200 }
@@ -49,6 +53,7 @@ describe('open rational with preserveInflections: now on core (fable migration)'
       const t = s / 15
       useSceneStore.getState().moveControlPoint(id, k, { x: sx + move.x * t, y: sy + move.y * t })
       expect(boundOf(cur(id)), `step ${s}: bound rose past ${start}`).toBeLessThanOrEqual(start)
+      expect(fBoundOf(cur(id)), `step ${s}: inflection bound rose past ${fStart}`).toBeLessThanOrEqual(fStart)
     }
     const cps = cur(id).controlPoints
     cps.forEach((p, i) => {

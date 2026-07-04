@@ -362,8 +362,15 @@ in `PeriodicBSplineCurveProblem` (closed bspline) and symmetry/inflections ONLY 
 polynomial bspline problems. For rational and complex-rational curves, `anchorWeight`,
 `symmetryMaps`, and `preserveInflections` were silently ignored — every `!flag` guard in
 `moveControlPoint` that "deferred" those drags to legacy deferred them to a no-op. Rational
-inflection ENFORCEMENT is an honest gap in both engines (the rational inflection numerator
-det(H, H′, H″) in core is the correct future implementation).
+inflection enforcement was an honest gap in both engines until core implemented it (same
+day): f = det[H, H′, H″] over H = (w·x, w·y, w), degree 3d−3, with r′×r″ = f/W³ — so for
+positive weights the inflections are the sign changes of f, S⁻ of f's polygon bounds them,
+and the drag holds that bound with the same sliding mechanism as g. f is LINEAR in each
+affine coordinate (one determinant row), so central-FD Jacobian rows are exact to roundoff.
+With w ≡ 1, f is the degree-ELEVATED representation of the polynomial numerator (same
+function, more coefficients — a valid, possibly looser polygon per Law 1). Complex weights
+THROW (Möbius geometry; explicit gap, not a silent wrong answer). Pinned:
+`rationalInflection.test.ts`.
 
 **What it forbids.** Rerouting any rational/complex drag back to legacy "because it tracks
 better." It tracks better because it cheats. Better tracking must come from solver quality
