@@ -55,4 +55,21 @@ describe('closed-PH drag through the editor store (E14 wiring)', () => {
     const moved = Math.hypot(move.x, move.y) - nearest
     expect(moved, `dragged CP moved only ${moved.toFixed(1)}px of ${Math.hypot(move.x, move.y).toFixed(0)}`).toBeGreaterThan(10)
   }, 120000)
+
+  it('a NEAR-SEAM control point also moves (the dual-image seam mapping)', () => {
+    const id = injectClosedPH('ph-editor-seam')
+    const get = () => useSceneStore.getState().curves.find((c) => c.id === id)! as Curve & { controlPoints: Point2D[] }
+    const k = get().controlPoints.length - 1 // last periodic CP: its clamped image wraps
+    const start = { ...get().controlPoints[k] }
+    const move = { x: 40, y: 35 }
+    for (let s = 1; s <= 5; s++) {
+      const t = s / 5
+      useSceneStore.getState().moveControlPoint(id, k, { x: start.x + move.x * t, y: start.y + move.y * t })
+      expect(get().controlPoints.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)), `step ${s}: NaN`).toBe(true)
+    }
+    const after = get().controlPoints
+    const nearest = after.reduce((m, p) => Math.min(m, Math.hypot(p.x - (start.x + move.x), p.y - (start.y + move.y))), Infinity)
+    const moved = Math.hypot(move.x, move.y) - nearest
+    expect(moved, `near-seam CP moved only ${moved.toFixed(1)}px of ${Math.hypot(move.x, move.y).toFixed(0)}`).toBeGreaterThan(8)
+  }, 120000)
 })

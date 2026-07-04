@@ -622,16 +622,18 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
               meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree,
               meta.origin.x, meta.origin.y,
             )
-            // STRUCTURAL periodic→clamped index map: the clamped chart carries
-            // seamMult = degree − seamContinuity duplicated seam CPs up front, so
-            // periodic CP i corresponds to clamped CP i + seamMult. (A nearest-
-            // point map RE-DERIVED per tick drifts once the curve moves and
-            // silently changes which point is being dragged — measured as the
-            // advance-then-retreat freeze.)
+            // STRUCTURAL periodic→clamped index map: clamped i ↔ periodic
+            // (i − seamMult) mod nPer. A near-seam periodic CP therefore has TWO
+            // clamped images (the seam duplicates) — BOTH must follow the cursor,
+            // or the anchored duplicate fights the drag at the seam (the "points
+            // don't move as expected" feel). (A nearest-point map re-derived per
+            // tick drifts once the curve moves — measured as advance-then-retreat.)
             const seamMult = (curve.degree ?? 5) - seamCont
-            const ci = Math.min(pointIndex + seamMult, clampedCur.controlPoints.length - 1)
+            const nPerCP = curve.controlPoints.length
+            const ciMain = pointIndex + seamMult
+            const ciDup = ciMain - nPerCP // ≥ 0 only for near-seam points
             const clampedTargets = clampedCur.controlPoints.map((p, i) =>
-              i === ci ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
+              i === ciMain || i === ciDup ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
             const r = slideClosedPHCurveBound(
               meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
               meta.uvKnots, meta.uvDegree, clampedTargets,
