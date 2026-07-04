@@ -282,6 +282,19 @@ problems; keep core's family/constraint machinery (raw regime) and the Law-2 gua
 Measured expectation: 80% at n=32 immediately (E15c), 100% with free weights if adopted.
 This is convergence to the author's design — not another layer.
 
+## The port (2026-07-04, d1c215b): the trust-region barrier optimizer is IN CORE
+
+`src/core/trustRegionOptimizer.ts` — faithful port of the closed-curve Optimizer +
+CGT TrustRegionSubproblem (+ packed SymmetricMatrix / Cholesky). Same algorithms,
+same constants. Available as `slide({solver:'trust-region'})` over every algebraic
+family. Acceptance GREEN: reproduces the E15c column (95/91/80) through core's own
+slide(), bound held every step; full suite green. Selected by measurement (E15),
+not authorship — it simply beat everything else on the same problems.
+Remaining to productionize: family×topology measurement sweep (closed curves esp.),
+editor recipe decision, then THE BANDED O(n) FACTORIZATION inside this design (the
+CGT λ-iteration re-factors H+λI per iterate — banded LDLᵀ makes each factorization
+O(n·b²); target: 30–50 CP curves interactive).
+
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**
