@@ -61,9 +61,14 @@ the ABSOLUTE floor ~45× the worst measured error: `SIGN_NOISE_REL = 1e-14` (was
 ~450× above true noise, which manufactured the E12-3 misclassification corridor;
 `MARGIN_REL` scaled down with it, 1e-9 → 1e-13). Landing the honest constants HEALED two
 long-standing specimens at the root: the E13a violating tick and the F11 dead tick no
-longer occur on their fixtures (both rode the phantom corridor). What remains OPEN from
-this section is only the CONDITIONING half: span-derived row scaling for the solvers is
-a separate lever, untouched by the classification result.
+longer occur on their fixtures (both rode the phantom corridor). The CONDITIONING half
+closed the same day (E22): with honest margins ≈ 0 the log barrier is SCALE-INVARIANT
+per row (∇log(f/s) = ∇f/f), and measurement confirms it — the production trust-region
+engine tracks IDENTICALLY under robust/raw/envelope row scaling on every cell, uniform
+and clustered. Row conditioning was never the production engine's problem. The envelope
+DOES matter for slack-based machinery: ipopt on clustered knots goes 2.2% → 59.5%
+tracked under envelope row scaling (its FTB/filter/complementarity read raw f values) —
+a documented lever (`rowScale: 'envelope'`), not a production change.
 
 **Pinning evidence.** Dynamic range measured 1e12 (min 7.3e7, max 7.3e19) on the clustered
 14-CP closed curve; retreat measured (CP0 dist-to-target: 0.0 at 20 it → 40.0 at 200 it).

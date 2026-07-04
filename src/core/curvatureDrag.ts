@@ -20,6 +20,7 @@ import type { OptimizationProblem } from './ipopt/types'
 import type { Matrix } from './ipopt/linearAlgebra'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
 import { PrimalDualOptimizer } from './optimize'
+import { planarNumeratorEnvelope, complexNumeratorEnvelope } from './structuralScale'
 import {
   computeInactiveSetBySign, computeInactiveSetBySignCyclic,
   scaleForRobust, structuralMarginsScaled, enforceBoundNonincreasing,
@@ -55,6 +56,13 @@ export type DragSolver = 'ipopt' | 'primal-dual' | 'trust-region' | 'best'
 export interface CurvatureDragOptions {
   jacobian?: JacobianBackend // 'fd' | 'analytic' | 'ad' (default 'fd' — universal)
   solver?: DragSolver // default 'best'
+  /** EXPERIMENTAL (E22, #26): constraint-row scaling regime. 'robust' (default) =
+   *  scaleForRobust (|g_i| floored); 'none' = raw rows, no margins; 'envelope' =
+   *  the structural magnitude envelope as a smooth state-independent row scale
+   *  (no blowup as a coefficient approaches its wall). With honest margins ≈ 0
+   *  the log barrier is scale-invariant in exact arithmetic — this flag exists
+   *  to MEASURE whether that holds numerically, not to tune feel. */
+  rowScale?: 'robust' | 'none' | 'envelope'
   maxIterations?: number
   enableBFGS?: boolean
   disableSliding?: boolean
@@ -200,8 +208,31 @@ export class CurvatureDragProblem implements OptimizationProblem {
       : (closed ? computeInactiveSetBySignCyclic(signs, abs) : computeInactiveSetBySign(signs, abs))
     this.activeIdx = gc.map((_, i) => i).filter((i) => !inactive.has(i))
     this.signs = this.activeIdx.map((i) => signs[i])
-    this.gScale = scaleForRobust(gc, this.activeIdx)
-    this.margins = structuralMarginsScaled(gc, this.activeIdx)
+    const mode = opts.rowScale ?? 'robust'
+    if (mode === 'robust') {
+      this.gScale = scaleForRobust(gc, this.activeIdx)
+      this.margins = structuralMarginsScaled(gc, this.activeIdx)
+    } else {
+      // Pure-scale A/B (E22): SAME absolute margins as the robust regime
+      // (noise rows keep their MARGIN_REL·max slack — a noise row with margin 0
+      // starts at f = 0 exactly and the barrier can never accept a step),
+      // converted into each mode's row units. Only the SCALE varies.
+      const maxAbs = Math.max(1e-300, ...gc.map(Math.abs))
+      const rawMargins = structuralMarginsScaled(gc, this.activeIdx).map((m) => m * maxAbs)
+      if (mode === 'none') {
+        this.gScale = this.activeIdx.map(() => 1)
+        this.margins = rawMargins
+      } else {
+        const env = kind === 'polynomial'
+          ? planarNumeratorEnvelope(cps.map((p) => p.re), cps.map((p) => p.im), knots, degree, topology === 'closed')
+          : (() => {
+              if (topology === 'closed') throw new Error('rowScale envelope: closed complex envelope not built (E22 scope)')
+              return complexNumeratorEnvelope(cps.map((p) => p.re), cps.map((p) => p.im), wRe, wIm, knots, degree)
+            })()
+        this.gScale = this.activeIdx.map((i) => Math.max(env[i], 1e-300))
+        this.margins = rawMargins.map((m, k2) => m / this.gScale[k2])
+      }
+    }
 
     // Inflection block — identical regime on f's control polygon.
     this.preserveInflections = opts.preserveInflections ?? false

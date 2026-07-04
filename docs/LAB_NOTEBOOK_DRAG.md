@@ -753,3 +753,45 @@ full suite 405 green.
 F1's textbook entry updated: classification half RESOLVED (with its own hypothesis
 corrected — the error law is absolute, not span-shaped); conditioning half (span-derived
 row scaling) remains the open lever.
+
+## E22 — row scaling: a proven no-op for the production engine; a 27× lever for ipopt (2026-07-04)
+
+**Question (#26, F1's conditioning half):** does span-derived / envelope row scaling
+improve solver step quality?
+
+**Theory first:** with honest margins ≈ 0 (E21), the log barrier is scale-invariant per
+row — ∇log(f/s) = ∇f/f, the scale cancels in the barrier gradient AND Hessian term by
+term. Prediction: row scaling cannot move the trust-region trajectory at all.
+
+**Measured (rowScale ∈ {robust, none, envelope} × {TR, ipopt} × 3 fixtures, 15-tick
+drags):**
+
+    TRUST-REGION: uniform n=16  87.9 / 87.9 / 87.9
+                  uniform n=32  81.0 / 81.0 / 81.0
+                  clustered n=24 97.4 / 97.4 / 97.4     ← invariance CONFIRMED, all cells
+    ipopt:        uniform n=16  17.0 / 12.0 / 12.1
+                  uniform n=32   5.2 /  6.2 /  4.9
+                  clustered n=24 2.2 /  7.1 / 59.5     ← the envelope's 27× cell
+
+**One experimental trap worth recording:** the first A/B contaminated scale with
+MARGINS — modes with margin 0 collapsed to 0% on clustered knots, not because of
+scaling but because a noise-class row with zero margin starts at f = 0 exactly and the
+barrier can never accept a step. Margins equalized across modes (same absolute slack,
+converted to each mode's units) → the pure-scale comparison above.
+
+**Verdicts:**
+1. F1's conditioning worry does NOT apply to the production engine's row space —
+   proven (barrier algebra) and measured (identical trajectories). No production change;
+   default stays 'robust'.
+2. The envelope earns its keep as a LEVER for slack-based solvers: ipopt's
+   FTB/filter/complementarity read raw f values, and envelope scaling equalizes the
+   knot-driven range exactly where F1 predicted (clustered 2.2 → 59.5%). Documented as
+   `rowScale: 'envelope'` (experimental), relevant only if an ipopt-class solver
+   returns to a hot path.
+3. ipopt's UNIFORM-knot collapse is untouched by any scaling — step strategy (E13a),
+   already superseded by the TR engine.
+
+Pinned live (labE22.test.ts): TR tracking identical across the three regimes on a
+uniform and a clustered cell — if a future margin/barrier change silently reintroduces
+scale sensitivity, this alarm fires. F1 is now fully closed: both halves resolved by
+measurement.
