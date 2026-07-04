@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  slideClosedPHCurveBound, closedPHCurveBoundOf, periodicFitOperator, projectClosurePH,
+  slideClosedPHCurveBound, closedPHReducedBound, periodicFitOperator, projectClosurePH,
   computePHCurveFromUV as corePHCurve, buildPeriodicPHCurve, generatorBasisGram, closureGap,
 } from '../index'
 import { fitClosedPHSpline } from '../../sketcher/optimizer/phCurve'
@@ -60,14 +60,14 @@ describe('closed-PH curve-span drag (E14 production)', () => {
       const f = s / 10
       const cursor = { x: start0.x + move.x * f, y: start0.y + move.y * f }
       const tickU = u.slice(), tickV = v.slice()
-      const tickStartBound = closedPHCurveBoundOf(u, v, uvKnots, uvDeg, x0, y0, seamContinuity)
+      const tickStartBound = closedPHReducedBound(u, v, uvKnots, uvDeg)
       const cur = corePHCurve(u, v, uvKnots, uvDeg, x0, y0)
       const targets = cur.controlPoints.map((p, i) => (i === dragIdx ? cursor : { x: p.x, y: p.y }))
       const r = slideClosedPHCurveBound(u, v, x0, y0, uvKnots, uvDeg, targets,
         { seamContinuity, wrapSign }, { maxNumSteps: 30, passes: 2 })
       u = r.u; v = r.v; x0 = r.x0; y0 = r.y0
       // EDITOR GUARD (faithful): bisect the generator path w/ re-projection on violation
-      if (closedPHCurveBoundOf(u, v, uvKnots, uvDeg, x0, y0, seamContinuity) > tickStartBound) {
+      if (closedPHReducedBound(u, v, uvKnots, uvDeg) > tickStartBound) {
         const at = (a: number) => {
           const ua = tickU.map((val, i) => val + a * (u[i] - val))
           const va = tickV.map((val, i) => val + a * (v[i] - val))
@@ -77,13 +77,13 @@ describe('closed-PH curve-span drag (E14 production)', () => {
         for (let it2 = 0; it2 < 20; it2++) {
           const mid = (lo + hi) / 2
           const cand = at(mid)
-          if (closedPHCurveBoundOf(cand.u, cand.v, uvKnots, uvDeg, x0, y0, seamContinuity) <= tickStartBound) lo = mid
+          if (closedPHReducedBound(cand.u, cand.v, uvKnots, uvDeg) <= tickStartBound) lo = mid
           else hi = mid
         }
         const kept = at(lo)
         u = kept.u; v = kept.v
       }
-      const bNow = closedPHCurveBoundOf(u, v, uvKnots, uvDeg, x0, y0, seamContinuity)
+      const bNow = closedPHReducedBound(u, v, uvKnots, uvDeg)
       expect(bNow, `tick ${s}: bound rose`).toBeLessThanOrEqual(tickStartBound)
       const gap = closureGap(u, v, G)
       expect(Math.hypot(gap.re, gap.im), `tick ${s}: not closed`).toBeLessThan(1e-5)
@@ -92,7 +92,7 @@ describe('closed-PH curve-span drag (E14 production)', () => {
     const fin = corePHCurve(u, v, uvKnots, uvDeg, x0, y0)
     const err = Math.hypot(fin.controlPoints[dragIdx].x - (start0.x + move.x), fin.controlPoints[dragIdx].y - (start0.y + move.y))
     const tracked = 100 - (100 * err) / Math.hypot(move.x, move.y)
-    console.log(`E14-PROD nCP=${probe.controlPoints.length}: tracked ${tracked.toFixed(0)}%  ${ms.toFixed(0)}ms/tick  (FD bench: ~20% @850ms; census editor: ~0%)`)
+    console.log(`E14-PROD nCP=${probe.controlPoints.length}: tracked ${tracked.toFixed(0)}%  ${ms.toFixed(0)}ms/tick  (R metric; g_per metric read 49% @306ms — see notebook: the tight cage registers merges)`)
     expect(tracked, `tracked ${tracked.toFixed(0)}%`).toBeGreaterThanOrEqual(12)
     expect(ms, `ms/tick ${ms.toFixed(0)}`).toBeLessThan(2000)
   }, 240000)

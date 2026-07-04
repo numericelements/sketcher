@@ -32,7 +32,7 @@ import { projectClosurePH, generatorBasisGram } from './phClosure'
 import {
   curvatureExtremaNumeratorPlanarPeriodic,
 } from './curvature'
-import { curvatureExtremaGradientPlanarPeriodicLocalCols } from './gradient'
+import { curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
 import { computeInactiveSetBySignCyclic } from './curvatureProblem'
 import { findPeriodicSpan, periodicBasis, findOpenSpan, openBasis, mod } from './basis'
@@ -187,7 +187,7 @@ export function slideClosedPHCurveBound(
   y0in: number,
   uvKnots: readonly number[],
   uvDegree: number,
-  /** Curve-CP targets: tick-start CPs with the dragged one at the cursor (NO refit). */
+  /** Curve-CP targets: tick-start CLAMPED CPs with the dragged one at the cursor (NO refit). */
   targetCPs: readonly { x: number; y: number }[],
   seam: { seamContinuity: number; wrapSign: number },
   opts: ClosedPHCurveBoundOptions = {},
@@ -199,34 +199,19 @@ export function slideClosedPHCurveBound(
   let v = v0.slice()
   let x0 = x0in
   let y0 = y0in
+  const M0 = computePHCurveFromUV(u, v, uvKnots as number[], uvDegree, x0, y0).controlPoints.length
 
-  const clamped0 = computePHCurveFromUV(u, v, uvKnots as number[], uvDegree, x0, y0)
-  const M = clamped0.controlPoints.length
-  const fitOp = periodicFitOperator(clamped0.knots, seam.seamContinuity, M)
-  const nPer = fitOp.P.length
+  // Constraints: the REDUCED PH numerator R (F7: g_curve = 2·R·σ², σ² > 0 → same
+  // sign changes as the curve-span g — verified pointwise 400/400), computed on
+  // the CLAMPED generator chart and counted CYCLICALLY (R is continuous across
+  // the seam: all its ingredients are quadratic in w). Degree 4m−2 on generator
+  // spans — the PH structure exploited to its fullest; no curve build needed for
+  // constraint evaluation, and the Jacobian is the exact AD reduced gradient.
+  const Rof = (uu: readonly number[], vv: readonly number[]) =>
+    curvatureExtremaReducedNumeratorPH(uu, vv, uvKnots as number[], uvDegree, false).flatCoeffs()
 
-  const perOf = (cps: { x: number; y: number }[]) => {
-    const xs = new Array<number>(nPer).fill(0)
-    const ys = new Array<number>(nPer).fill(0)
-    for (let r = 0; r < nPer; r++) {
-      const row = fitOp.P[r]
-      let sx = 0
-      let sy = 0
-      for (let j = 0; j < M; j++) {
-        sx += row[j] * cps[j].x
-        sy += row[j] * cps[j].y
-      }
-      xs[r] = sx
-      ys[r] = sy
-    }
-    return { xs, ys }
-  }
   const buildClamped = (z: number[]) =>
     computePHCurveFromUV(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree, z[0], z[1]).controlPoints
-  const gPerOf = (cps: { x: number; y: number }[]) => {
-    const { xs, ys } = perOf(cps)
-    return curvatureExtremaNumeratorPlanarPeriodic(xs, ys, fitOp.knots, fitOp.degree).flatCoeffs()
-  }
 
   const margins = new Map<number, number>()
   const passes = Math.max(1, opts.passes ?? 2)
@@ -235,15 +220,13 @@ export function slideClosedPHCurveBound(
   for (let pass = 0; pass < passes; pass++) {
     let z = [x0, y0, ...u, ...v]
     // --- RAW constraint state at pass start (pure signs, cyclic anchors) ---
-    const clampedS = buildClamped(z)
-    const gc0 = gPerOf(clampedS)
-    const signsAll = gc0.map((val) => (val > 0 ? -1 : 1))
-    const inactive = computeInactiveSetBySignCyclic(assignSignsNeighbor(gc0), gc0.map(Math.abs))
-    const active = gc0.map((_, i) => i).filter((i) => !inactive.has(i) && gc0[i] !== 0)
+    const rc0 = Rof(u, v)
+    const signsAll = rc0.map((val) => (val > 0 ? -1 : 1))
+    const inactive = computeInactiveSetBySignCyclic(assignSignsNeighbor(rc0), rc0.map(Math.abs))
+    const active = rc0.map((_, i) => i).filter((i) => !inactive.has(i) && rc0[i] !== 0)
 
-    // --- per-state caches (version bumps on committed steps) ---
+    // --- per-state caches (bumped on committed steps) ---
     let atZ: {
-      clamped: { x: number; y: number }[]
       f: number[]
       f0: number
       g0: number[]
@@ -252,99 +235,80 @@ export function slideClosedPHCurveBound(
     } | null = null
     let candidate: { dx: number[]; f: number[]; f0: number } | null = null
 
-    const fFrom = (clamped: { x: number; y: number }[]) => {
-      const gc = gPerOf(clamped)
-      return active.map((i) => signsAll[i] * gc[i] + (margins.get(i) ?? 0))
+    const fFrom = (uu: readonly number[], vv: readonly number[]) => {
+      const rc = Rof(uu, vv)
+      return active.map((i) => signsAll[i] * rc[i] + (margins.get(i) ?? 0))
     }
     const f0From = (clamped: { x: number; y: number }[]) => {
-      let s = 0
-      for (let i = 0; i < M; i++) {
+      let sm = 0
+      for (let i = 0; i < M0; i++) {
         const dx = clamped[i].x - targetCPs[i].x
         const dy = clamped[i].y - targetCPs[i].y
-        s += 0.5 * (dx * dx + dy * dy)
+        sm += 0.5 * (dx * dx + dy * dy)
       }
-      return s
+      return sm
     }
     const ensure = () => {
       if (atZ) return atZ
-      const clamped = buildClamped(z)
-      // objective gradient = J_phᵀ · residual (computed with the analytic chain below when J is built)
-      atZ = { clamped, f: fFrom(clamped), f0: f0From(clamped), g0: [], J: null, JtJ: null }
+      atZ = {
+        f: fFrom(z.slice(2, 2 + N), z.slice(2 + N)),
+        f0: f0From(buildClamped(z)),
+        g0: [],
+        J: null,
+        JtJ: null,
+      }
       return atZ
     }
-    /** Analytic ∂f/∂z rows (signed) + objective gradient + GN Hessian — one build per state. */
+    /** Analytic Jacobians — one build per state: R rows via the exact AD reduced
+     *  gradient (x₀,y₀ columns are zero: R depends only on the generator);
+     *  objective gradient/GN Hessian via phControlPointJacobian. */
     const buildJ = () => {
       const a = ensure()
       if (a.J) return
-      const Jph = phControlPointJacobian(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree)
-      // periodic images of each variable's CP-derivative: pdx_k = P·dx_k, pdy_k = P·dy_k
-      const { xs, ys } = perOf(a.clamped)
-      const cols = curvatureExtremaGradientPlanarPeriodicLocalCols(xs, ys, fitOp.knots, fitOp.degree)
-      const gDeg1 = cols.gDeg + 1
-      const nG = cols.numSpans * gDeg1
-      // dense G_per (nG × nPer) per coordinate, from the sparse cols
-      const Gx: number[][] = Array.from({ length: nG }, () => new Array<number>(nPer).fill(0))
-      const Gy: number[][] = Array.from({ length: nG }, () => new Array<number>(nPer).fill(0))
-      for (let r = 0; r < nPer; r++) {
-        const col = cols.cols[r]
-        for (let ls = 0; ls < col.spans.length; ls++) {
-          const sp = col.spans[ls]
-          for (let c = 0; c <= cols.gDeg; c++) {
-            Gx[sp * gDeg1 + c][r] = col.gx.coeffs[ls][c]
-            Gy[sp * gDeg1 + c][r] = col.gy.coeffs[ls][c]
-          }
+      const rg = reducedPHGradient(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree, false)
+      const duF = rg.du.map((bd) => bd.flatCoeffs())
+      const dvF = rg.dv.map((bd) => bd.flatCoeffs())
+      const J: number[][] = active.map(() => new Array<number>(nz).fill(0))
+      for (let rI = 0; rI < active.length; rI++) {
+        const flat = active[rI]
+        const sgn = signsAll[flat]
+        for (let i = 0; i < N; i++) {
+          J[rI][2 + i] = sgn * duF[i][flat]
+          J[rI][2 + N + i] = sgn * dvF[i][flat]
         }
       }
-      const J: number[][] = active.map(() => new Array<number>(nz).fill(0))
-      const residualGrad = new Array<number>(nz).fill(0)
-      const res = a.clamped.map((p, i) => ({ x: p.x - targetCPs[i].x, y: p.y - targetCPs[i].y }))
-      const pdx = new Array<number>(nPer)
-      const pdy = new Array<number>(nPer)
+      const Jph = phControlPointJacobian(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree)
+      const clamped = buildClamped(z)
+      const res = clamped.map((pt, i) => ({ x: pt.x - targetCPs[i].x, y: pt.y - targetCPs[i].y }))
+      const g0v = new Array<number>(nz).fill(0)
       for (let k = 0; k < nz; k++) {
         const d = Jph[k]
-        for (let r = 0; r < nPer; r++) {
-          const row = fitOp.P[r]
-          let sx = 0
-          let sy = 0
-          for (let j = 0; j < M; j++) {
-            sx += row[j] * d.dx[j]
-            sy += row[j] * d.dy[j]
-          }
-          pdx[r] = sx
-          pdy[r] = sy
-        }
-        for (let rI = 0; rI < active.length; rI++) {
-          const flat = active[rI]
-          const gxRow = Gx[flat]
-          const gyRow = Gy[flat]
-          let s = 0
-          for (let r = 0; r < nPer; r++) s += gxRow[r] * pdx[r] + gyRow[r] * pdy[r]
-          J[rI][k] = signsAll[flat] * s
-        }
-        let gsum = 0
-        for (let j = 0; j < M; j++) gsum += res[j].x * d.dx[j] + res[j].y * d.dy[j]
-        residualGrad[k] = gsum
+        let gs = 0
+        for (let j = 0; j < M0; j++) gs += res[j].x * d.dx[j] + res[j].y * d.dy[j]
+        g0v[k] = gs
       }
-      // Gauss-Newton objective Hessian J_phᵀ J_ph (nz × nz)
       const JtJ = new TRSymmetricMatrix(nz)
       for (let k = 0; k < nz; k++) {
         for (let l = 0; l <= k; l++) {
-          let s = 0
+          let sm = 0
           const dk = Jph[k]
           const dl = Jph[l]
-          for (let j = 0; j < M; j++) s += dk.dx[j] * dl.dx[j] + dk.dy[j] * dl.dy[j]
-          JtJ.set(k, l, s)
+          for (let j = 0; j < M0; j++) sm += dk.dx[j] * dl.dx[j] + dk.dy[j] * dl.dy[j]
+          JtJ.set(k, l, sm)
         }
       }
       a.J = J
-      a.g0 = residualGrad
+      a.g0 = g0v
       a.JtJ = JtJ
     }
     const visit = (dx: number[]) => {
       if (candidate && candidate.dx === dx) return candidate
       const zc = z.map((val, i) => val + dx[i])
-      const clamped = buildClamped(zc)
-      candidate = { dx, f: fFrom(clamped), f0: f0From(clamped) }
+      candidate = {
+        dx,
+        f: fFrom(zc.slice(2, 2 + N), zc.slice(2 + N)),
+        f0: f0From(buildClamped(zc)),
+      }
       return candidate
     }
     const problem: TrustRegionProblem = {
@@ -377,18 +341,33 @@ export function slideClosedPHCurveBound(
     u = z.slice(2, 2 + N)
     v = z.slice(2 + N)
 
-    // --- decoupled closure (Eric's design) + projection-sized margins for the next pass ---
-    const gBefore = gPerOf(buildClamped([x0, y0, ...u, ...v]))
+    // --- decoupled closure (Eric's design) + projection-sized margins next pass ---
+    const rBefore = Rof(u, v)
     const pr = projectClosurePH(u, v, uvKnots as number[], uvDegree, seam.seamContinuity, seam.wrapSign, G)
     u = pr.u
     v = pr.v
-    const gAfter = gPerOf(buildClamped([x0, y0, ...u, ...v]))
+    const rAfter = Rof(u, v)
     for (const i of active) {
-      const dgi = Math.abs(gAfter[i] - gBefore[i])
-      margins.set(i, Math.max(margins.get(i) ?? 0, 1.2 * dgi))
+      const dRi = Math.abs(rAfter[i] - rBefore[i])
+      margins.set(i, Math.max(margins.get(i) ?? 0, 1.2 * dRi))
     }
   }
   return { u, v, x0, y0, converged }
+}
+
+/** The ENFORCED closed-PH bound: cyclic robust count of the REDUCED numerator R
+ *  on the clamped generator chart (same sign changes as the curve-span g — F7;
+ *  the drag, the guard, and — eventually — the display must all read THIS). */
+export function closedPHReducedBound(
+  u: readonly number[],
+  v: readonly number[],
+  uvKnots: readonly number[],
+  uvDegree: number,
+): number {
+  return cyclicSignChanges(
+    assignSignsNeighbor(curvatureExtremaReducedNumeratorPH(u as number[], v as number[], uvKnots as number[], uvDegree, false).flatCoeffs()),
+    true,
+  )
 }
 
 /** Build the PERIODIC representation via the cached linear operator — the SAME

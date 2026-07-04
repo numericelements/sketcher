@@ -330,6 +330,33 @@ Census baseline at nCP=51: tracking −30%, raw curve bound 8→12, editor ≈ 0
    bench → editor-grade), then wire slideClosedPHTracking's successor.
 Bench kept: labE14ClosedPHCurveBound.test.ts (skipped).
 
+## E14-P2 — the REDUCED numerator R for closed PH (2026-07-04)
+
+**Verification chain (the census 16-gon, wrapSign −1):**
+- A periodic-chart R via the seam FOLD is WRONG (305/400 sign mismatches): phSeamMaps'
+  fold handles wrap relations INSIDE the clamped chart — it is not a chart conversion
+  (F5 said so; re-learned by experiment).
+- **The CLAMPED-chart R counted CYCLICALLY is exactly right: 400/400 pointwise sign
+  agreement with the curve-span g** (g = 2Rσ² empirically confirmed), R continuous
+  across the seam (all ingredients quadratic in w). At the start state: R polygon = 8,
+  g_per polygon = 8, dense Z = 8 — all tight, 112 coeffs vs 240, degree 6 vs 14.
+
+**Landed:** slideClosedPHCurveBound constraints = R rows with the exact AD reduced
+gradient (reducedPHGradient) — no curve build, no G_per·P·J_ph chain for constraints
+(that chain remains only for the objective); guard + acceptance + store all on the ONE
+R metric (closedPHReducedBound, generator-level — the guard needs no curve rebuild).
+183ms/tick (was 306 on the curve-span metric, 850 FD, ~1500 census).
+
+**The honest surprise: tracked 30% on the R metric vs 49% on the loose curve-span
+metric.** Interpretation: the tight cage REGISTERS extrema merges the loose degree-14
+polygon missed; Law 2 then correctly holds the lower count — a stricter cage BY DESIGN.
+The loose metric's extra 19 points of tracking were partly motion through unregistered
+merges. OPEN PROBE (decides if any of the 30% ceiling is still slack): along the bench
+path, does dense Z actually drop where the R count drops (real merges — the cage is
+exactly right), or does R's polygon inflate without crossings (residual slack)? Also
+remaining: display switch to the R count ("S=" readout for closed PH), open-PH onto
+the TR engine, periodic-CP anchoring.
+
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**

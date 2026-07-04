@@ -6,7 +6,7 @@ import { createBSpline, elevateDegree, insertKnot, moveKnot, removeKnot, getCont
 import { createLine, createCircularArc, createFullCircle } from '../utils/shapes'
 import { createSpiralFromTwoPoints, computePHCurveFromUV, computePHOffset, fitPHSplineToBSpline, fitClosedPHSpline, closeOpenPHSpline, type PHMetadata, type ComplexRationalPHMetadata } from '../optimizer/phCurve'
 import { createStraightComplexRationalPH } from '../optimizer/complexRationalPHCurve'
-import { periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve, buildPeriodicPHViaOperator, projectClosurePH, GEN_DEGREE } from '../../core'
+import { periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve, buildPeriodicPHViaOperator, closedPHReducedBound, projectClosurePH, GEN_DEGREE } from '../../core'
 import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexPointsToAB, type ABPHMetadata } from '../optimizer/abPHCurve'
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
@@ -20,7 +20,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // (periodic-junction/cusp knots) and symmetry-reduced/anchored drags still fall to
 // the legacy optimizer; PH is largely legacy. See docs/THE_IDEAS.md (idea VII) and
 // docs/CURVATURE_ARCHITECTURE.md for the convergence status.
-import { slideCurve, slide, slideOpenPHTracking, slideClosedPHCurveBound, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHTracking, slideClosedPHCurveBound, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -663,13 +663,14 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
               // ACTUAL previous curve's bound (not a rebuild), and add a HARD BACKSTOP: if the
               // bisection still can't hold S⁻ (round-trip drift), REJECT the step — keep the
               // previous curve. The bound is non-negotiable; a stalled drag is the fallback.
-              const polyBound = (X: number[], Y: number[], kn: number[], dg: number) =>
-                cyclicSignChanges(assignSignsNeighbor(curvatureExtremaNumeratorPlanarPeriodic(X, Y, kn, dg).flatCoeffs()), true)
-              const prev = curve.controlPoints as Point2D[]
-              const startBound = polyBound(prev.map((p) => p.x), prev.map((p) => p.y), curve.knots, curve.degree)
+              // ONE metric for solve + guard (the two-representation knife edge
+              // clawed back solved ticks — see 1fee898): the ENFORCED reduced-R
+              // count on the generator (F7: same sign changes as the curve-span
+              // g). Generator-level — the guard needs no curve rebuild per trial.
+              const startBound = closedPHReducedBound(meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree)
               const boundOfGen = (u: number[], v: number[]) => {
-                const b = buildFromGen(u, v).periodic
-                return polyBound(b.controlPoints.map((p) => p.x), b.controlPoints.map((p) => p.y), b.knots, b.degree)
+                const pr = projectClosurePH(u, v, om.uvKnots, om.uvDegree, seamCont, meta.wrapSign ?? 1)
+                return closedPHReducedBound(pr.u, pr.v, meta.uvKnots, meta.uvDegree)
               }
               const lerp = (a: number) => ({
                 u: meta.uControlPoints.map((uu: number, i: number) => uu + a * (om.uControlPoints[i] - uu)),
@@ -687,8 +688,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
                 chosen = lerp(lo)
               }
               const built = buildFromGen(chosen.u, chosen.v)
-              const bx = built.periodic.controlPoints.map((p) => p.x), by = built.periodic.controlPoints.map((p) => p.y)
-              if (polyBound(bx, by, built.periodic.knots, built.periodic.degree) <= startBound) {
+              // Final acceptance on the SAME R metric (the chosen generator was
+              // already validated by boundOfGen; this re-check guards the exact
+              // projected state that ships).
+              const prFinal = projectClosurePH(chosen.u, chosen.v, om.uvKnots, om.uvDegree, seamCont, meta.wrapSign ?? 1)
+              if (closedPHReducedBound(prFinal.u, prFinal.v, meta.uvKnots, meta.uvDegree) <= startBound) {
                 outCps = built.periodic.controlPoints
                 outKnots = built.periodic.knots
                 outDeg = built.periodic.degree
