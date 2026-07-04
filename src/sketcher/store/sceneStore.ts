@@ -11,7 +11,7 @@ import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexP
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
 import { weightedAveragePhi, threeArcPointsFromNoisyPoints, circleArcFromThreePoints, type CircleArcGeometry } from '../utils/circleArc'
-import { optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizePHCurve, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
+import { optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
 // Curvature-extrema CP drags run ONLY on core/'s trust-region engine — every
 // algebraic family (polynomial/rational/complex, open + closed, junction/cusp
 // knots, symmetry, anchors, inflections) and both PH topologies (R metric).
@@ -21,7 +21,7 @@ import { optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optim
 // a known-hard open problem), the PH curvature-VALUE bound workbench, plain
 // (no-extrema) PH tracking, and the AB/complex-rational/real-rational PH
 // variants. See docs/CURVATURE_ARCHITECTURE.md.
-import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -765,20 +765,26 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             return
           }
 
-          // Legacy: PLAIN PH tracking only (no extrema, no value bound) — the last
-          // open-PH capability on the old engine (task #5).
-          const result = optimizePHCurve(
-            meta, curve.controlPoints, newPosition.x, newPosition.y, pointIndex,
-            {},
-          )
-          if (result.converged || result.iterations > 0) {
+          // PLAIN PH tracking (no extrema, no value bound) → core damped GN
+          // (trackOpenPHPlain, legacy weights) — the editor no longer calls
+          // optimizePHCurve at all.
+          {
+            const targets = (curve.controlPoints as Point2D[]).map((p, i) =>
+              i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
+            const M = targets.length
+            const targetWeights = targets.map((_, i) => (i === pointIndex ? 10 : i === 0 || i === M - 1 ? 5 : 1))
+            const r = trackOpenPHPlain(
+              meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
+              meta.uvKnots, meta.uvDegree, targets, { maxIterations: 12, targetWeights },
+            )
+            const built = computePHCurveFromUV(r.u, r.v, meta.uvKnots, meta.uvDegree, r.x0, r.y0)
             const newPhMetadata = new Map(phMetadata)
-            newPhMetadata.set(curveId, result.curveResult.metadata)
+            newPhMetadata.set(curveId, built.metadata)
             set((state) => ({
               curves: state.curves.map((c) =>
                 c.id === curveId
-                  ? { ...c, controlPoints: result.curveResult.controlPoints, knots: result.curveResult.knots, degree: result.curveResult.degree } as Curve
-                  : c
+                  ? { ...c, controlPoints: built.controlPoints, knots: built.knots, degree: built.degree } as Curve
+                  : c,
               ),
               phMetadata: newPhMetadata,
             }))

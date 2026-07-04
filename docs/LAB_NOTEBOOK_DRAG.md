@@ -645,3 +645,26 @@ legacy index. Closed PH now WARNS that the value bound is not enforced there
 (dormant-flag law) instead of silently ignoring the toggle.
 
 **E17's known gap closed:** no route enforces legacy-g under an R display anymore.
+
+## E20 — consolidation: the direction contract on all eight routes; the editor is legacy-free for every CP drag (2026-07-04)
+
+**1. The E16 lesson generalized.** algebraicAllCPSweep.test.ts drags EVERY control point
+of all six algebraic routes (polynomial/rational/complex-rational × open/closed) through
+the real store route, 3 ticks, 50px pull. Measured at landing — all healthy:
+    bspline   open 40.9 (min 24.7)   closed 42.4 (min 30.2)   [median along, px]
+    rational  open 38.2 (min 14.6)   closed 36.5 (min 26.5)
+    complex   open 44.2 (min 23.9)   closed 39.5 (min 28.0)
+No backward movers, no flyers. With the two PH sweeps, ALL EIGHT drag routes now carry
+the same pinned contract: every CP follows the mouse. A CP that cannot move also fails
+the pin — the warn+drop path firing IS a routing regression, and this is its alarm.
+
+**2. Plain PH tracking → core.** trackOpenPHPlain: a damped Gauss-Newton on the weighted
+tracking objective — no constraints, no barrier (the TR barrier cannot run with zero
+constraints; plain tracking needs none). Legacy weights. The editor no longer calls
+optimizePHCurve AT ALL — every control-point drag in the editor, constrained or plain,
+runs on core. optimizePHCurve stays exported only for the fit tests; the legacy ledger
+for #5 is now exactly: Farin drags (research-hard) + the AB/complex-rational/
+real-rational PH variant drags.
+
+Pinned: plain tracking follows the cursor <5px over a 108px drag and keeps the PH
+metadata (openPHEditing.test.ts).

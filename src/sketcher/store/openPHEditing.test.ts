@@ -51,3 +51,26 @@ describe('open PH editing: drag holds the bound and FEELS right', () => {
     expect(draggedErr, `dragged CP did not follow cursor (err ${draggedErr.toFixed(1)} of move ${moveLen.toFixed(0)})`).toBeLessThan(0.5 * moveLen)
   }, 30000)
 })
+
+describe('open PH PLAIN tracking (no flags): core damped GN', () => {
+  it('preserve OFF: the dragged CP follows the cursor closely; curve stays PH', () => {
+    const id = injectOpenPH('oph-plain')
+    useSceneStore.setState({ preserveCurvatureExtrema: false })
+    const k = 4
+    const cps0 = cur(id).controlPoints as Point2D[]
+    const sx = cps0[k].x, sy = cps0[k].y
+    const move = { x: 60, y: -90 }
+    for (let s = 1; s <= 8; s++) {
+      const t = s / 8
+      useSceneStore.getState().moveControlPoint(id, k, { x: sx + move.x * t, y: sy + move.y * t })
+    }
+    const cps = cur(id).controlPoints as Point2D[]
+    const err = Math.hypot(cps[k].x - (sx + move.x), cps[k].y - (sy + move.y))
+    // Plain tracking has no constraints — the dragged point should essentially
+    // reach the cursor (legacy behaved the same; measured < 1px here).
+    expect(err, `dragged CP ended ${err.toFixed(1)}px from the cursor`).toBeLessThan(5)
+    // Still a PH curve: metadata regenerated each tick (u,v generator present).
+    const meta = useSceneStore.getState().phMetadata.get(id)
+    expect(meta && meta.kind === 'polynomial' && 'uControlPoints' in meta).toBe(true)
+  })
+})

@@ -749,6 +749,88 @@ export function closedPHExtremaMarkers(
   )
 }
 
+/**
+ * PLAIN open-PH tracking (no curvature flags): a damped Gauss-Newton on the
+ * weighted CP-tracking objective — no constraints, no guard. The core
+ * replacement for the editor's last legacy optimizePHCurve call. (The TR
+ * barrier optimizer cannot run with zero constraints — t = m/f0 = 0 — and
+ * plain tracking needs no barrier anyway.)
+ */
+export function trackOpenPHPlain(
+  u0: readonly number[],
+  v0: readonly number[],
+  x0in: number,
+  y0in: number,
+  uvKnots: readonly number[],
+  uvDegree: number,
+  targetCPs: readonly { x: number; y: number }[],
+  opts: { maxIterations?: number; targetWeights?: readonly number[] } = {},
+): { u: number[]; v: number[]; x0: number; y0: number } {
+  const N = u0.length
+  const nz = 2 + 2 * N
+  let z = [x0in, y0in, ...u0, ...v0]
+  const M0 = computePHCurveFromUV(u0.slice(), v0.slice(), uvKnots as number[], uvDegree, x0in, y0in).controlPoints.length
+  const wCP = opts.targetWeights ?? new Array<number>(M0).fill(1)
+  const buildClamped = (zz: number[]) =>
+    computePHCurveFromUV(zz.slice(2, 2 + N), zz.slice(2 + N), uvKnots as number[], uvDegree, zz[0], zz[1]).controlPoints
+  const f0Of = (zz: number[]) => {
+    const cl = buildClamped(zz)
+    let sm = 0
+    for (let i = 0; i < M0; i++) {
+      const dx = cl[i].x - targetCPs[i].x
+      const dy = cl[i].y - targetCPs[i].y
+      sm += 0.5 * wCP[i] * (dx * dx + dy * dy)
+    }
+    return sm
+  }
+  let f0 = f0Of(z)
+  for (let it = 0; it < (opts.maxIterations ?? 12); it++) {
+    const uu = z.slice(2, 2 + N)
+    const vv = z.slice(2 + N)
+    const Jph = phControlPointJacobian(uu, vv, uvKnots as number[], uvDegree)
+    const cl = buildClamped(z)
+    const res = cl.map((pt, i) => ({ x: wCP[i] * (pt.x - targetCPs[i].x), y: wCP[i] * (pt.y - targetCPs[i].y) }))
+    const g = new Array<number>(nz).fill(0)
+    const JtJ = new TRSymmetricMatrix(nz)
+    for (let c = 0; c < nz; c++) {
+      const d = Jph[c]
+      let gs = 0
+      for (let j = 0; j < M0; j++) gs += res[j].x * d.dx[j] + res[j].y * d.dy[j]
+      g[c] = gs
+      for (let l = 0; l <= c; l++) {
+        let sm = 0
+        const dl = Jph[l]
+        for (let j = 0; j < M0; j++) sm += wCP[j] * (d.dx[j] * dl.dx[j] + d.dy[j] * dl.dy[j])
+        JtJ.set(c, l, sm)
+      }
+    }
+    for (let c = 0; c < nz; c++) JtJ.addAt(c, c, 1e-9)
+    let step: number[]
+    try {
+      step = new TRCholeskyLike(JtJ).solve(g.map((x) => -x))
+    } catch {
+      break
+    }
+    // damped line search: halve until the objective decreases
+    let alpha = 1
+    let accepted = false
+    for (let ls = 0; ls < 8; ls++) {
+      const zc = z.map((val, i) => val + alpha * step[i])
+      const f0c = f0Of(zc)
+      if (f0c < f0) {
+        z = zc
+        f0 = f0c
+        accepted = true
+        break
+      }
+      alpha *= 0.5
+    }
+    if (!accepted) break
+    if (f0 < 1e-16) break
+  }
+  return { u: z.slice(2, 2 + N), v: z.slice(2 + N), x0: z[0], y0: z[1] }
+}
+
 /** Constraint-bar state of the SOLVED open-PH object — the open sibling of
  *  closedPHConstraintState (linear runs, non-cyclic anchors). */
 export function openPHConstraintState(
