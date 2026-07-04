@@ -668,3 +668,63 @@ real-rational PH variant drags.
 
 Pinned: plain tracking follows the cursor <5px over a 108px drag and keeps the PH
 metadata (openPHEditing.test.ts).
+
+## E21 — structural scale: the envelope, the true error law, and the 450× floor (2026-07-04)
+
+**Question (#18, F1's open task, E12's fix):** what is the principled per-coefficient
+machine-zero scale for g's polygon — the replacement for the global 1e-12·max|g| floor
+that E12-3 proved misclassifies genuine small coefficients?
+
+**Built:** `core/structuralScale.ts` — the magnitude ENVELOPE: the same numerator
+pipeline in absolute-value arithmetic (inputs |·|, subtraction → addition, derivative
+p·(|cᵢ|+|cᵢ₊₁|)/h). Planar open/periodic + complex-rational open. Properties measured
+(E21-1, pinned live): SOUND everywhere (s ≥ |g|, all fixtures); prices the knot-driven
+amplification per-coefficient (envelope range 2.7e14 on clustered knots vs 16 uniform —
+F1 quantified); and exposes g's cancellation depth (|g|/s ~ 1e-6…1e-8 median).
+
+**REFUTED (E21-2a, pinned as a negative result):** the envelope as a NOISE CLASSIFIER.
+At the E13a violating tick, specimen #225 (exact-oracle-verified GENUINE sign carrier,
+|g| = 3.4e3) sits at |g|/(ε·s) = 7.7e-5 — the envelope calls it noise HARDER than the
+global floor does (1.3e-1). Why: worst-case error propagation is wildly pessimistic
+through this pipeline — real neighbor differences carry the smoothness factor at each
+of the six derivative levels, and fp subtraction of nearby values is near-exact
+(Sterbenz), so true roundoff does NOT compound the way the envelope assumes.
+
+**THE TRUE ERROR LAW (E21-2b, BigInt oracle, all 725 coefficients at the violating
+pre-state; lab test kept, skipped):**
+
+    predictor            C = max errᵢ/predᵢ   median
+    (a) ε·max|g| global      9.0e0            3.1e-1     ← THE model
+    (b) ε·envelope sᵢ        2.1e-7           1.1e-8     (5e6× pessimistic — refuted)
+    (c) ε·spanMax|g|         1.8e4 (at #225)  2.9e2      (locality UNDER-predicts)
+
+The per-coefficient error is UNIFORM-ABSOLUTE: errᵢ ≈ (0.03…9)·ε·max|g|, set by the
+global largest intermediates, independent of the coefficient's own span. Specimen #225:
+true err 0.70 vs |g| 3.4e3 — its sign is solid by 5000×. And: **zero exact structural
+zeros among all 725** — at this state the entire "structural-zero class" is an artifact
+of the floor's height.
+
+**The floor verdict:** true noise ceiling ≈ 9·ε·max ≈ 2e-15·max. SIGN_NOISE_REL = 1e-12
+sits **~450× above the actual noise** — that excess IS the misclassification corridor of
+E12-3 (its 2.6e7-unit margin at #225). The honest constant is ~30·ε ≈ 7e-15 (say 1e-14
+with margin).
+
+**The A/B that keeps us honest (E21-3):** lowering the floor to 3e-14 changes NO
+tracking — ipopt column 46/17/6 → 46/16/7 (its collapse is step strategy, already
+superseded: the TRUST-REGION engine tracks the same column 95/88/81 stock AND at 3e-14,
+bounds held). Full suite at 3e-14: **406/407 pass** — the single failure is
+slideDiagnostics' manufactured knife-edge state no longer classifying as a knife edge
+(diagnostics calibration, not a law).
+
+**So the floor fix buys HONESTY, not speed:** no phantom "structural zeros", no
+450×-inflated margin corridors, no enforcement leaning on a fiction — Law 3 hygiene at
+scale. It costs one diagnostics recalibration and touches every robust-sign consumer
+(display, markers, enforcement — one constant, one metric, everywhere).
+
+**Still open, now sharply separated from the floor:** (1) the E12-2 knife edge is
+INPUT-sensitivity at a genuine merge (the exact value passes through zero; 1-ulp input
+jitter legitimately flips it) — hysteresis or exact structural knowledge remains the
+open design question there; (2) span-derived normalization for solver CONDITIONING
+(row scaling) is untouched by this result and remains a separate lever; (3) whether
+ε·max should use a cheap running max-intermediate estimate instead of max|g| (C would
+tighten below 9).
