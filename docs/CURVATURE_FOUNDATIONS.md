@@ -413,5 +413,48 @@ free (this fact), profit must be measured per-case. Pinned: `knotInsertionFreedo
 
 ---
 
-*Add F11, … as we establish them. Never delete a fact that is still true; if a fact turns out
-wrong, replace it and say why (a wrong fact in here is worse than none).*
+## F11 — Drag stalls are numerical, PROVEN: the bound never closes off motion
+
+**The theorem half (Eric's rigid-motion argument, made exact).** g is built from
+derivatives, cross and dot products of c′, c″, c‴ — all exactly invariant under rigid
+motion of the control points. So the constraint Jacobian annihilates the translation
+directions identically (verified numerically: max relative drift of g's coefficients under
+translation = 3×10⁻¹⁴). The bound therefore NEVER closes off the translation direction; a
+solve that returns zero motion while the dragged residual is nonzero has abandoned an
+exactly-feasible first-order descent direction — provably not a KKT point, i.e. a
+numerical failure, never "the constraint stopped it."
+
+**The measurement (2026-07-03, the F9 stall drag).** KKT-along-translation probe, per
+tick: dObj/dTranslation ≈ 0 through tick 8 (honest stationary trade-offs — partial
+tracking there is the objective's own optimum, not a failure), then from tick 9 on
+D = −‖pull‖ exactly — the solver returns its input untouched. Tick-9 forensics, guard
+removed: the primal-dual solver "converges" (13 iters, converged=true) with stepNorm 18
+that tracks half the pull — but its terminal point violates the DISPLAYED bound (2→4).
+The Law-2 guard then bisects the straight path and collapses to α≈0: even an
+infinitesimal step in that direction flips the robust sign count — a near-zero g
+coefficient sits on a knife edge, so the count is discontinuous at the start point.
+
+**The failure chain, named.** (1) solver satisfies its scaled-margin surrogate on the
+wrong side of the true robust count; (2) guard, given an all-or-nothing straight path
+through a knife edge, keeps nothing; (3) drag freezes. Both halves are numerics at a
+near-zero coefficient (F1's dynamic range; the structural-margin regime is evidently not
+sufficient here) — matching Eric's trust-region intuition: when the step/radius collapses
+toward zero, the gradient/Jacobian information has been overwhelmed by error near zero.
+
+**This also resolves F10's placement mystery.** Insertion never relaxes a real constraint
+(none was binding — this fact); it REDISTRIBUTES which coefficients sit near zero. A good
+knot (0.375 → 83%) moves the knife edge out of the solve's path; a bad one (0.625 → 17%)
+manufactures a worse edge. Refinement is a conditioning lever, not a constraint lever.
+
+**How to apply.** (a) Instrument, don't guess: slide()/slideCurve should expose per-tick
+diagnostics — raw-step bound, guard α, step norm, trust-region radius (ipopt), and WHICH
+coefficient flips at small α. Guard-α collapse is the stall alarm. (b) The fix target is
+the solve/regime at near-zero coefficients (margins, scaling, active-set policy), not the
+guard — the guard is doing its job on a bad step. (c) Probe-and-keep insertion (F10)
+remains a legitimate palliative because legality is free; but it treats conditioning, and
+the standing investigation should treat the disease.
+
+---
+
+*Add F12, … as we establish them. Never delete a fact that is still true; if a fact turns
+out wrong, replace it and say why (a wrong fact in here is worse than none).*
