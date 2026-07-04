@@ -615,28 +615,16 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             // extrema; lab notebook E14). Census->now at nCP=51: ~0% -> 49%
             // tracked @306ms/tick with the bound strictly held by the guard
             // below (which stays, unchanged, as the Law-2 backstop).
-            // Targets must be CLAMPED-curve CPs (the drag problem lives in the clamped
-            // chart); the editor's curve.controlPoints are the PERIODIC representation.
-            // Map the dragged periodic CP to the nearest clamped CP and anchor the rest.
-            const clampedCur = computePHCurveFromUV(
-              meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree,
-              meta.origin.x, meta.origin.y,
-            )
-            // STRUCTURAL periodic→clamped index map: clamped i ↔ periodic
-            // (i − seamMult) mod nPer. A near-seam periodic CP therefore has TWO
-            // clamped images (the seam duplicates) — BOTH must follow the cursor,
-            // or the anchored duplicate fights the drag at the seam (the "points
-            // don't move as expected" feel). (A nearest-point map re-derived per
-            // tick drifts once the curve moves — measured as advance-then-retreat.)
-            const seamMult = (curve.degree ?? 5) - seamCont
-            const nPerCP = curve.controlPoints.length
-            const ciMain = pointIndex + seamMult
-            const ciDup = ciMain - nPerCP // ≥ 0 only for near-seam points
-            const clampedTargets = clampedCur.controlPoints.map((p, i) =>
-              i === ciMain || i === ciDup ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
+            // Targets are the PERIODIC CPs — exactly the handles the user drags.
+            // (Mapping targets onto the clamped chart was structurally wrong: the
+            // clamped end CPs are clamping BLENDS of the periodic seam CPs, not
+            // copies, so any clamped correspondence pulls the wrong points near
+            // the seam — measured as backward/flying seam CPs in the all-CP sweep.)
+            const periodicTargets = curve.controlPoints.map((p, i) =>
+              i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
             const r = slideClosedPHCurveBound(
               meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
-              meta.uvKnots, meta.uvDegree, clampedTargets,
+              meta.uvKnots, meta.uvDegree, periodicTargets,
               { seamContinuity: seamCont, wrapSign: meta.wrapSign ?? 1 },
               { maxNumSteps: 30, passes: 2 },
             )

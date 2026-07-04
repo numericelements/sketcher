@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  slideClosedPHCurveBound, closedPHReducedBound, periodicFitOperator, projectClosurePH,
+  slideClosedPHCurveBound, closedPHReducedBound, periodicFitOperator, projectClosurePH, buildPeriodicPHViaOperator,
   computePHCurveFromUV as corePHCurve, buildPeriodicPHCurve, generatorBasisGram, closureGap,
 } from '../index'
 import { fitClosedPHSpline } from '../../sketcher/optimizer/phCurve'
@@ -51,7 +51,7 @@ describe('closed-PH curve-span drag (E14 production)', () => {
     const G = generatorBasisGram(uvKnots, uvDeg, N)
     let u = m0.uControlPoints.slice(), v = m0.vControlPoints.slice()
     let x0 = m0.origin.x, y0 = m0.origin.y
-    const probe = corePHCurve(u, v, uvKnots, uvDeg, x0, y0)
+    const probe = buildPeriodicPHViaOperator(u, v, uvKnots, uvDeg, x0, y0, seamContinuity)
     const dragIdx = Math.min(4, probe.controlPoints.length - 1)
     const start0 = probe.controlPoints[dragIdx]
     const move = { x: 70, y: -55 }
@@ -61,7 +61,7 @@ describe('closed-PH curve-span drag (E14 production)', () => {
       const cursor = { x: start0.x + move.x * f, y: start0.y + move.y * f }
       const tickU = u.slice(), tickV = v.slice()
       const tickStartBound = closedPHReducedBound(u, v, uvKnots, uvDeg)
-      const cur = corePHCurve(u, v, uvKnots, uvDeg, x0, y0)
+      const cur = buildPeriodicPHViaOperator(u, v, uvKnots, uvDeg, x0, y0, seamContinuity)
       const targets = cur.controlPoints.map((p, i) => (i === dragIdx ? cursor : { x: p.x, y: p.y }))
       const r = slideClosedPHCurveBound(u, v, x0, y0, uvKnots, uvDeg, targets,
         { seamContinuity, wrapSign }, { maxNumSteps: 30, passes: 2 })
@@ -89,7 +89,7 @@ describe('closed-PH curve-span drag (E14 production)', () => {
       expect(Math.hypot(gap.re, gap.im), `tick ${s}: not closed`).toBeLessThan(1e-5)
     }
     const ms = (performance.now() - t0) / 10
-    const fin = corePHCurve(u, v, uvKnots, uvDeg, x0, y0)
+    const fin = buildPeriodicPHViaOperator(u, v, uvKnots, uvDeg, x0, y0, seamContinuity)
     const err = Math.hypot(fin.controlPoints[dragIdx].x - (start0.x + move.x), fin.controlPoints[dragIdx].y - (start0.y + move.y))
     const tracked = 100 - (100 * err) / Math.hypot(move.x, move.y)
     console.log(`E14-PROD nCP=${probe.controlPoints.length}: tracked ${tracked.toFixed(0)}%  ${ms.toFixed(0)}ms/tick  (R metric; g_per metric read 49% @306ms — see notebook: the tight cage registers merges)`)

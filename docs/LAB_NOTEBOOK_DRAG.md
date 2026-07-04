@@ -432,3 +432,57 @@ HELD in every algebraic cell. tracked% (ipopt / primal-dual):
    latency AND tracking penalties — the linear-drag port (windowed/banded, Rust
    design; docs/LINEAR_DRAG.md, docs/WINDOWED_SOLVE.md) is now load-bearing for feel,
    not an optimization luxury.
+
+## E16 — "one control point moves the opposite direction": the seam-region anatomy (2026-07-04)
+
+**Trigger (Eric's feel report):** closed-PH drag "much better", but one CP moves
+backward. Ask: "Can you test if all control point follow more or less the mouse?"
+
+**Instrument:** an all-48-CP sweep through the real editor route (moveControlPoint,
+3 ticks, 50px pull; measure displacement ALONG the pull), plus a stage-by-stage probe
+(onStage hook: after each pass's solve and after its projection separately).
+
+**Sweep, before:** k=41–44 moved BACKWARD (−1.9 to −5.8px); k=45 FLEW (+80.6 along,
+|disp| 92 — on a 50px pull); interiors weak (+1 to +8px). The probe split the blame:
+the SOLVE was healthy everywhere (k=42: +16px toward cursor, 17px collateral), then
+projectClosurePH threw the seam region 60–170px (k=45 collateral: 168px at clamped 45).
+
+**Two diseases, both structural (no solver tuning involved):**
+1. **The solve ran over the FULL generator, but the wrap tail is not free.** The last
+   nWrap generator coefficients are expand()-dependent (phSeamMaps, F5). The solver
+   happily moved them off their wrap values; projectClosurePH then SNAPPED them back
+   (expand of the free head) — a 60–170px discontinuous yank that landed anywhere
+   (backward at k=42, sideways-past-the-cursor at k=45). Passes couldn't help: the
+   giant projection deltas produced giant margins, making pass 2 instantly infeasible
+   (it silently did nothing — measured identical numbers).
+2. **The clamped-target correspondence model was WRONG.** The "seam duplicate pair"
+   story (clamped 0..2 ≡ clamped 48..50 as points) is false: clamped end CPs are
+   clamping BLENDS of the periodic seam CPs (measured: clamped[0] sits 16px from
+   periodic 45 while clamped[48] coincides exactly). Dual-targeting ciMain+ciDup
+   therefore pulled TWO DIFFERENT points to the cursor (the k=45 overshoot), and the
+   ½-weight patch was a fix to a model that doesn't hold.
+
+**Fix (both parts are eliminations, not penalties):**
+1. Solve in phSeamMaps' FREE coordinates (fold/expand are linear-exact; Jacobians
+   folded per row/column, ≤3 nonzeros per expand column). Seam continuity now holds
+   EXACTLY during the solve; the projection is reduced to the min-norm Newton on the
+   two ∮w²=0 conditions — small by construction.
+2. Track the PERIODIC CPs through the fit operator P (periodic = P·clamped, linear;
+   d(per)/dz = P·Jph). The user's handle IS the tracked object — the entire
+   periodic→clamped correspondence problem (structural map, dual images, seam
+   weights) is DELETED, not repaired.
+
+**Sweep, after:** all 48 CPs forward: +6.6 (k=45, projection tax) to +35.2px; none
+backward, none flying; interiors ~tripled (13–33px). E14-PROD bench: tracked 30% → **83%**
+@356ms/tick — the "30% R-cage ceiling" question from E14-P2 is largely ANSWERED: most
+of that ceiling was the clamped-objective fighting itself, not the cage. Pinned:
+closedPHAllCPSweep.test.ts (seam region + interior spread: along>0, |disp|<1.2·pull,
+median ≥10px).
+
+**WHY it read as "one" bad point:** the seam region is 6–7 of 48 CPs; interiors were
+merely weak (masked by many ticks), but a seam CP moving −5.8px against the hand is
+unmissable. The single feel report was the 15% of the curve where both diseases stack.
+
+**Still open (inherited):** k=45's projection tax (solve reaches +16.6/pass, ∮w²
+projection gives back ~11 — the projection is objective-blind; a closure-aware
+objective row could shrink it); display "S=" → R count; open-PH onto the TR engine.

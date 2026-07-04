@@ -28,7 +28,7 @@
 import {
   computePHCurveFromUV, phControlPointJacobian,
 } from './phCurveConstruction'
-import { projectClosurePH, generatorBasisGram } from './phClosure'
+import { projectClosurePH, generatorBasisGram, phSeamMaps } from './phClosure'
 import {
   curvatureExtremaNumeratorPlanarPeriodic,
 } from './curvature'
@@ -178,6 +178,10 @@ export interface ClosedPHCurveBoundOptions {
   maxNumSteps?: number
   /** solve→project rounds (default 2; pass 2 carries projection-sized margins). */
   passes?: number
+  /** Optional per-PERIODIC-CP objective weights (default all 1). */
+  targetWeights?: readonly number[]
+  /** Diagnostic hook: called after each pass's solve and after its projection. */
+  onStage?: (stage: 'solve' | 'project', pass: number, u: readonly number[], v: readonly number[], x0: number, y0: number) => void
 }
 
 export function slideClosedPHCurveBound(
@@ -187,19 +191,48 @@ export function slideClosedPHCurveBound(
   y0in: number,
   uvKnots: readonly number[],
   uvDegree: number,
-  /** Curve-CP targets: tick-start CLAMPED CPs with the dragged one at the cursor (NO refit). */
+  /** PERIODIC curve-CP targets: tick-start periodic CPs with the dragged one at
+   *  the cursor. The periodic handles ARE what the user drags — tracking them
+   *  through the fit operator P kills the whole clamped-correspondence problem
+   *  (clamped end CPs are clamping BLENDS, not copies of periodic CPs; mapping
+   *  targets onto them pulled the wrong points near the seam). */
   targetCPs: readonly { x: number; y: number }[],
   seam: { seamContinuity: number; wrapSign: number },
   opts: ClosedPHCurveBoundOptions = {},
 ): { u: number[]; v: number[]; x0: number; y0: number; converged: boolean } {
   const N = u0.length
-  const nz = 2 + 2 * N
+  // FREE seam coordinates: the wrap tail of the generator is expand()-dependent
+  // (phSeamMaps). Solving over the full generator let the tail drift off its wrap
+  // values, and projectClosurePH's expand SNAP then threw the seam region 60-170px
+  // per tick (the all-CP sweep's backward/flying points). In free coordinates the
+  // seam continuity holds EXACTLY throughout the solve and the projection is back
+  // to the small min-norm Newton on the two closure conditions.
+  const { K, expand, fold } = phSeamMaps(uvKnots as number[], uvDegree, N, seam.seamContinuity, seam.wrapSign)
+  const nz = 2 + 2 * K
   const G = generatorBasisGram(uvKnots as number[], uvDegree, N)
-  let u = u0.slice()
-  let v = v0.slice()
+  let uF = u0.slice(0, K)
+  let vF = v0.slice(0, K)
   let x0 = x0in
   let y0 = y0in
-  const M0 = computePHCurveFromUV(u, v, uvKnots as number[], uvDegree, x0, y0).controlPoints.length
+
+  const clamped0 = computePHCurveFromUV(u0.slice(), v0.slice(), uvKnots as number[], uvDegree, x0, y0)
+  const M0 = clamped0.controlPoints.length
+  const fitOp = periodicFitOperator(clamped0.knots, seam.seamContinuity, M0)
+  const P = fitOp.P
+  const nPer = P.length
+  if (targetCPs.length !== nPer) throw new Error(`slideClosedPHCurveBound: ${targetCPs.length} targets for ${nPer} periodic CPs`)
+
+  // expand's matrix columns (identity + the wrap tail rows; ≤3 nonzeros each) —
+  // used to fold full-generator Jacobian columns to the free coordinates.
+  const expandCols: { i: number; c: number }[][] = []
+  for (let j = 0; j < K; j++) {
+    const e = new Array<number>(K).fill(0)
+    e[j] = 1
+    const col = expand(e)
+    const entries: { i: number; c: number }[] = []
+    for (let i = 0; i < N; i++) if (col[i] !== 0) entries.push({ i, c: col[i] })
+    expandCols.push(entries)
+  }
 
   // Constraints: the REDUCED PH numerator R (F7: g_curve = 2·R·σ², σ² > 0 → same
   // sign changes as the curve-span g — verified pointwise 400/400), computed on
@@ -210,17 +243,32 @@ export function slideClosedPHCurveBound(
   const Rof = (uu: readonly number[], vv: readonly number[]) =>
     curvatureExtremaReducedNumeratorPH(uu, vv, uvKnots as number[], uvDegree, false).flatCoeffs()
 
-  const buildClamped = (z: number[]) =>
-    computePHCurveFromUV(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree, z[0], z[1]).controlPoints
+  const uvOf = (z: number[]) => ({ u: expand(z.slice(2, 2 + K)), v: expand(z.slice(2 + K)) })
+  const periodicOf = (z: number[]) => {
+    const { u: uu, v: vv } = uvOf(z)
+    const cl = computePHCurveFromUV(uu, vv, uvKnots as number[], uvDegree, z[0], z[1]).controlPoints
+    const per: { x: number; y: number }[] = []
+    for (let r = 0; r < nPer; r++) {
+      const row = P[r]
+      let x = 0
+      let y = 0
+      for (let j = 0; j < M0; j++) {
+        x += row[j] * cl[j].x
+        y += row[j] * cl[j].y
+      }
+      per.push({ x, y })
+    }
+    return per
+  }
 
   const margins = new Map<number, number>()
   const passes = Math.max(1, opts.passes ?? 2)
   let converged = false
 
   for (let pass = 0; pass < passes; pass++) {
-    let z = [x0, y0, ...u, ...v]
+    let z = [x0, y0, ...uF, ...vF]
     // --- RAW constraint state at pass start (pure signs, cyclic anchors) ---
-    const rc0 = Rof(u, v)
+    const rc0 = Rof(expand(uF), expand(vF))
     const signsAll = rc0.map((val) => (val > 0 ? -1 : 1))
     const inactive = computeInactiveSetBySignCyclic(assignSignsNeighbor(rc0), rc0.map(Math.abs))
     const active = rc0.map((_, i) => i).filter((i) => !inactive.has(i) && rc0[i] !== 0)
@@ -235,24 +283,26 @@ export function slideClosedPHCurveBound(
     } | null = null
     let candidate: { dx: number[]; f: number[]; f0: number } | null = null
 
-    const fFrom = (uu: readonly number[], vv: readonly number[]) => {
+    const fFrom = (z2: number[]) => {
+      const { u: uu, v: vv } = uvOf(z2)
       const rc = Rof(uu, vv)
       return active.map((i) => signsAll[i] * rc[i] + (margins.get(i) ?? 0))
     }
-    const f0From = (clamped: { x: number; y: number }[]) => {
+    const wCP = opts.targetWeights ?? new Array<number>(nPer).fill(1)
+    const f0From = (per: { x: number; y: number }[]) => {
       let sm = 0
-      for (let i = 0; i < M0; i++) {
-        const dx = clamped[i].x - targetCPs[i].x
-        const dy = clamped[i].y - targetCPs[i].y
-        sm += 0.5 * (dx * dx + dy * dy)
+      for (let i = 0; i < nPer; i++) {
+        const dx = per[i].x - targetCPs[i].x
+        const dy = per[i].y - targetCPs[i].y
+        sm += 0.5 * wCP[i] * (dx * dx + dy * dy)
       }
       return sm
     }
     const ensure = () => {
       if (atZ) return atZ
       atZ = {
-        f: fFrom(z.slice(2, 2 + N), z.slice(2 + N)),
-        f0: f0From(buildClamped(z)),
+        f: fFrom(z),
+        f0: f0From(periodicOf(z)),
         g0: [],
         J: null,
         JtJ: null,
@@ -260,41 +310,80 @@ export function slideClosedPHCurveBound(
       return atZ
     }
     /** Analytic Jacobians — one build per state: R rows via the exact AD reduced
-     *  gradient (x₀,y₀ columns are zero: R depends only on the generator);
-     *  objective gradient/GN Hessian via phControlPointJacobian. */
+     *  gradient folded to the free coordinates; objective gradient/GN Hessian via
+     *  phControlPointJacobian folded, then pushed through P to the periodic CPs. */
     const buildJ = () => {
       const a = ensure()
       if (a.J) return
-      const rg = reducedPHGradient(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree, false)
-      const duF = rg.du.map((bd) => bd.flatCoeffs())
-      const dvF = rg.dv.map((bd) => bd.flatCoeffs())
+      const { u: uu, v: vv } = uvOf(z)
+      const rg = reducedPHGradient(uu, vv, uvKnots as number[], uvDegree, false)
+      const duFlat = rg.du.map((bd) => bd.flatCoeffs())
+      const dvFlat = rg.dv.map((bd) => bd.flatCoeffs())
       const J: number[][] = active.map(() => new Array<number>(nz).fill(0))
+      const fullU = new Array<number>(N)
+      const fullV = new Array<number>(N)
       for (let rI = 0; rI < active.length; rI++) {
         const flat = active[rI]
         const sgn = signsAll[flat]
         for (let i = 0; i < N; i++) {
-          J[rI][2 + i] = sgn * duF[i][flat]
-          J[rI][2 + N + i] = sgn * dvF[i][flat]
+          fullU[i] = duFlat[i][flat]
+          fullV[i] = dvFlat[i][flat]
+        }
+        const fu = fold(fullU)
+        const fv = fold(fullV)
+        for (let j = 0; j < K; j++) {
+          J[rI][2 + j] = sgn * fu[j]
+          J[rI][2 + K + j] = sgn * fv[j]
         }
       }
-      const Jph = phControlPointJacobian(z.slice(2, 2 + N), z.slice(2 + N), uvKnots as number[], uvDegree)
-      const clamped = buildClamped(z)
-      const res = clamped.map((pt, i) => ({ x: pt.x - targetCPs[i].x, y: pt.y - targetCPs[i].y }))
+      // Clamped-CP Jacobian columns (full generator) → free columns → periodic CPs.
+      const Jph = phControlPointJacobian(uu, vv, uvKnots as number[], uvDegree)
+      const perD: { dx: number[]; dy: number[] }[] = []
+      const foldClampedCol = (base: number, entries: { i: number; c: number }[]) => {
+        const dx = new Array<number>(M0).fill(0)
+        const dy = new Array<number>(M0).fill(0)
+        for (const { i, c } of entries) {
+          const col = Jph[base + i]
+          for (let j = 0; j < M0; j++) {
+            dx[j] += c * col.dx[j]
+            dy[j] += c * col.dy[j]
+          }
+        }
+        return { dx, dy }
+      }
+      const toPeriodic = (cl: { dx: number[]; dy: number[] }) => {
+        const dx = new Array<number>(nPer).fill(0)
+        const dy = new Array<number>(nPer).fill(0)
+        for (let r = 0; r < nPer; r++) {
+          const row = P[r]
+          for (let j = 0; j < M0; j++) {
+            dx[r] += row[j] * cl.dx[j]
+            dy[r] += row[j] * cl.dy[j]
+          }
+        }
+        return { dx, dy }
+      }
+      perD.push(toPeriodic({ dx: Jph[0].dx.slice(), dy: Jph[0].dy.slice() }))
+      perD.push(toPeriodic({ dx: Jph[1].dx.slice(), dy: Jph[1].dy.slice() }))
+      for (let j = 0; j < K; j++) perD.push(toPeriodic(foldClampedCol(2, expandCols[j])))
+      for (let j = 0; j < K; j++) perD.push(toPeriodic(foldClampedCol(2 + N, expandCols[j])))
+      const per = periodicOf(z)
+      const res = per.map((pt, i) => ({ x: wCP[i] * (pt.x - targetCPs[i].x), y: wCP[i] * (pt.y - targetCPs[i].y) }))
       const g0v = new Array<number>(nz).fill(0)
-      for (let k = 0; k < nz; k++) {
-        const d = Jph[k]
+      for (let c = 0; c < nz; c++) {
+        const d = perD[c]
         let gs = 0
-        for (let j = 0; j < M0; j++) gs += res[j].x * d.dx[j] + res[j].y * d.dy[j]
-        g0v[k] = gs
+        for (let r = 0; r < nPer; r++) gs += res[r].x * d.dx[r] + res[r].y * d.dy[r]
+        g0v[c] = gs
       }
       const JtJ = new TRSymmetricMatrix(nz)
-      for (let k = 0; k < nz; k++) {
-        for (let l = 0; l <= k; l++) {
+      for (let c = 0; c < nz; c++) {
+        for (let l = 0; l <= c; l++) {
           let sm = 0
-          const dk = Jph[k]
-          const dl = Jph[l]
-          for (let j = 0; j < M0; j++) sm += dk.dx[j] * dl.dx[j] + dk.dy[j] * dl.dy[j]
-          JtJ.set(k, l, sm)
+          const dc = perD[c]
+          const dl = perD[l]
+          for (let r = 0; r < nPer; r++) sm += wCP[r] * (dc.dx[r] * dl.dx[r] + dc.dy[r] * dl.dy[r])
+          JtJ.set(c, l, sm)
         }
       }
       a.J = J
@@ -306,8 +395,8 @@ export function slideClosedPHCurveBound(
       const zc = z.map((val, i) => val + dx[i])
       candidate = {
         dx,
-        f: fFrom(zc.slice(2, 2 + N), zc.slice(2 + N)),
-        f0: f0From(buildClamped(zc)),
+        f: fFrom(zc),
+        f0: f0From(periodicOf(zc)),
       }
       return candidate
     }
@@ -338,21 +427,25 @@ export function slideClosedPHCurveBound(
     } catch { /* committed steps are strictly feasible; the editor guard closes Law 2 */ }
     x0 = z[0]
     y0 = z[1]
-    u = z.slice(2, 2 + N)
-    v = z.slice(2 + N)
+    uF = z.slice(2, 2 + K)
+    vF = z.slice(2 + K)
+    opts.onStage?.('solve', pass, expand(uF), expand(vF), x0, y0)
 
-    // --- decoupled closure (Eric's design) + projection-sized margins next pass ---
-    const rBefore = Rof(u, v)
-    const pr = projectClosurePH(u, v, uvKnots as number[], uvDegree, seam.seamContinuity, seam.wrapSign, G)
-    u = pr.u
-    v = pr.v
-    const rAfter = Rof(u, v)
+    // --- decoupled closure (Eric's design) + projection-sized margins next pass.
+    // In free coordinates the projection only enforces the two ∮w²=0 conditions
+    // (min-norm Newton) — the seam wrap is already exact. ---
+    const rBefore = Rof(expand(uF), expand(vF))
+    const pr = projectClosurePH(expand(uF), expand(vF), uvKnots as number[], uvDegree, seam.seamContinuity, seam.wrapSign, G)
+    uF = pr.u.slice(0, K)
+    vF = pr.v.slice(0, K)
+    opts.onStage?.('project', pass, pr.u, pr.v, x0, y0)
+    const rAfter = Rof(pr.u, pr.v)
     for (const i of active) {
       const dRi = Math.abs(rAfter[i] - rBefore[i])
       margins.set(i, Math.max(margins.get(i) ?? 0, 1.2 * dRi))
     }
   }
-  return { u, v, x0, y0, converged }
+  return { u: expand(uF), v: expand(vF), x0, y0, converged }
 }
 
 /** The ENFORCED closed-PH bound: cyclic robust count of the REDUCED numerator R
