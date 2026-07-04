@@ -936,16 +936,13 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // is curvatureExtremaNumeratorComplex with w_im = 0 + robust signs — EXACTLY the displayed
     // bound (complexCurvatureConstraintState), so there is no F6-style gap. slide()'s objective
     // pulls the dragged CP straight to the cursor (direct tracking, correct feel). Farin t-values
-    // are weight ratios (position-independent) → fixed weights leave them unchanged. Anchored
-    // and symmetry-flagged drags ride along: core slide() carries the anchor term, and legacy
-    // never implemented anchors OR symmetry for rational (optimizeRationalCurveInternal ignores
-    // both), so neither flag has anything to defer to. Only inflection preservation still
-    // routes to the legacy optimizer below (rational inflection is unimplemented there too —
-    // migration will retire the flag or implement it in core, not silently drop it).
-    if (
-      preserveCurvatureExtrema && curve.kind === 'rational' && !curve.closed &&
-      !preserveInflections
-    ) {
+    // are weight ratios (position-independent) → fixed weights leave them unchanged. The
+    // anchor / symmetry / inflection flags no longer divert to legacy: legacy's rational
+    // optimizer ignores ALL of them (optimizeRationalCurveInternal reads none), so the guards
+    // deferred to no-ops. Core carries anchors; symmetry and inflection preservation for
+    // rational curves are UNIMPLEMENTED in both engines (honest gap — implementing the
+    // rational inflection numerator det(H,H′,H″) in core is tracked future work).
+    if (preserveCurvatureExtrema && curve.kind === 'rational' && !curve.closed) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: p.w, wIm: 0 }))
         // #32 fast path: SINGLE solver + the analytic LOCAL constraint Jacobian (compact

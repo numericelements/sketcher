@@ -346,5 +346,35 @@ checked: triangle `g ≡ 0` → 0; degree-3 C⁰ seam → a marker at the corner
 
 ---
 
-*Add F9, … as we establish them. Never delete a fact that is still true; if a fact turns out
+## F9 — The legacy rational drag never held the DISPLAYED bound; its tracking was fake freedom
+
+**The fact.** The legacy rational optimizer (`optimizeRationalCurveInternal` →
+`RationalBSplineCurveProblem`) enforces its own internal constraint regime, not the bound the
+editor displays (complex numerator with w_im = 0 + robust signs). Measured head-to-head on a
+15-step open-rational drag (2026-07-03, fable branch): legacy tracked the cursor to ~97 %
+(err 5.8/207) while the **displayed** bound climbed 2→3→5→7→…→10; core `slide('rational', …)`
+held the displayed bound at 2 through every step and tracked ~53 % (err ~110/207). Legacy's
+superior "feel" on rational drags is therefore a Law 2/Law 3 violation, not better solving —
+display ≠ enforced (the same F6-style gap that motivated the migration).
+
+**Also established while migrating (the dormant-flag sweep):** legacy implements anchors ONLY
+in `PeriodicBSplineCurveProblem` (closed bspline) and symmetry/inflections ONLY in the
+polynomial bspline problems. For rational and complex-rational curves, `anchorWeight`,
+`symmetryMaps`, and `preserveInflections` were silently ignored — every `!flag` guard in
+`moveControlPoint` that "deferred" those drags to legacy deferred them to a no-op. Rational
+inflection ENFORCEMENT is an honest gap in both engines (the rational inflection numerator
+det(H, H′, H″) in core is the correct future implementation).
+
+**What it forbids.** Rerouting any rational/complex drag back to legacy "because it tracks
+better." It tracks better because it cheats. Better tracking must come from solver quality
+(the standing investigation) and the tight open bound (#28).
+
+**Pinning.** `legacyVsCoreOpenRationalBound.test.ts` (dies with the legacy optimizer — that
+deletion is its success condition); routing pinned in `openRationalFlagsRouting.test.ts`,
+`symmetryRouting.test.ts`, `openComplexFlagsRouting.test.ts`; anchor semantics in
+`curvatureDragAnchor.test.ts`.
+
+---
+
+*Add F10, … as we establish them. Never delete a fact that is still true; if a fact turns out
 wrong, replace it and say why (a wrong fact in here is worse than none).*
