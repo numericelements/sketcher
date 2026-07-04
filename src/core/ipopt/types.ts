@@ -166,12 +166,13 @@ export interface OptimizerConfig {
   enableWatchdog: boolean
 
   /**
-   * EXPERIMENTAL (lab notebook E10e): compute ρ's predicted reduction from the
-   * model decrease OF THE STEP ACTUALLY TAKEN, −(gᵀp + ½pᵀHp), instead of the
-   * full-Newton decrement supplied by computeBarrier. With the Newton-decrement
-   * prediction, a δ-limited step always looks bad (actual ≪ predicted-for-Newton),
-   * ρ never clears the 0.75 expansion gate, and the trust region becomes a
-   * ratchet: it shrinks but can never re-expand. Dense (non-banded) path only.
+   * E10 fix, DEFAULT ON (lab notebook E10e): compute ρ's predicted reduction
+   * from the model decrease OF THE STEP ACTUALLY TAKEN, −(gᵀp + ½pᵀHp), instead
+   * of the full-Newton decrement supplied by computeBarrier. With the
+   * Newton-decrement prediction, a δ-limited step always looks bad (actual ≪
+   * predicted-for-Newton), ρ never clears the 0.75 expansion gate, and the trust
+   * region becomes a ratchet: it shrinks but can never re-expand. Works on the
+   * dense, banded, and arrowhead paths. OFF — experiments only.
    */
   consistentPredictedReduction?: boolean
 
@@ -190,11 +191,12 @@ export interface OptimizerConfig {
   ) => { step: number[]; hitsBoundary: boolean; lambda: number }
 
   /**
-   * EXPERIMENTAL (lab notebook E10c): a TRUE-constraint-violation rejection does
-   * not consume iteration budget (δ still shrinks ×0.25, bounded by
-   * minTrustRadius → restoration). This is the budget-accounting half of Eric's
-   * closed-curve discipline: his shrink-until-feasible search is an inner
-   * sub-procedure; iterations are only spent on feasible candidates.
+   * E10 fix, DEFAULT ON (lab notebook E10c): a TRUE-constraint-violation
+   * rejection does not consume iteration budget (δ still shrinks ×0.25, bounded
+   * by minTrustRadius → restoration). This is the budget-accounting half of the
+   * closed-curve discipline: the shrink-until-feasible search is an inner
+   * sub-procedure; iterations are only spent on feasible candidates. OFF
+   * reproduces the pre-fix stall (F9: 7/15 dead ticks) — experiments only.
    */
   freeFeasibilityShrinks?: boolean
 
@@ -303,6 +305,11 @@ export const defaultConfig: OptimizerConfig = {
   enableBFGS: true,
   hessianRegularization: 1e-8,
   verbose: false,
+  // The E10 stall-mechanism fixes (LAB_NOTEBOOK_DRAG; F9 bench 46% → 74% @20
+  // iters, 92% @200, budget-monotonicity restored). ON by default — the OFF
+  // state reproduces the pre-fix pathology and exists for experiments only.
+  consistentPredictedReduction: true,
+  freeFeasibilityShrinks: true,
 }
 
 // ============================================================================

@@ -948,12 +948,16 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: p.w, wIm: 0 }))
         // #32 fast path: SINGLE solver + the analytic LOCAL constraint Jacobian (compact
         // support → familyJacobian scatters from per-CP cols, ~2.5× cheaper than full-width).
-        // solver:'primal-dual' (not best-of): measured it's the solver that TRACKS here (ipopt
-        // stalls ~85% regardless of iterations — F4), and one solver is ~2× faster than best-of.
+        // solver:'best' since the E10 stall-mechanism fixes: F4 still holds — WHICH solver
+        // tracks is curve-dependent even post-fix (fixed ipopt wins the F9 curve 74% vs 47%
+        // with zero dead ticks; primal-dual wins the openRationalEditing curve where fixed
+        // ipopt still stalls at ~19%). 'best' runs both guarded and keeps the one that
+        // tracks furthest — never regresses on either class; ~2× solve cost, measured
+        // acceptable (feel-test gate). Cheaper stall-triggered cascade = follow-up (#9).
         // (With preserveInflections the local-Jacobian fast path yields to the dense one.)
         const r = slide('rational', cps, curve.knots, curve.degree, 'open', pointIndex,
           { x: newPosition.x, y: newPosition.y },
-          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20,
+          { solver: 'best', jacobian: 'analytic', maxIterations: 20,
             ...(disableSliding ? { disableSliding } : {}),
             ...(preserveInflections ? { preserveInflections } : {}),
             ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
@@ -1057,10 +1061,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     if (preserveCurvatureExtrema && curve.kind === 'complex-rational' && !curve.closed) {
       try {
         const cps: WeightedCP[] = curve.controlPoints.map((p) => ({ re: p.re, im: p.im, wRe: p.w_re, wIm: p.w_im }))
-        // Same fast recipe as open rational / the closed path: single IP solver + local Jacobian.
+        // Same fast recipe as open rational: local Jacobian + solver:'best' (see the
+        // rational route above — F4: which solver tracks is curve-dependent post-E10 too).
         const r = slide('complex', cps, curve.knots, curve.degree, 'open', pointIndex,
           { x: newPosition.x, y: newPosition.y },
-          { solver: 'primal-dual', jacobian: 'analytic', maxIterations: 20,
+          { solver: 'best', jacobian: 'analytic', maxIterations: 20,
             ...(disableSliding ? { disableSliding } : {}),
             ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
               ? { anchorWeight, anchorX: dragStartCPsX, anchorY: dragStartCPsY }

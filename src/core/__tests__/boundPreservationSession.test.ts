@@ -164,18 +164,27 @@ describe('slide-4 quick-drag bound lock', () => {
   })
 
   // The lock: under the robust solver the demo uses, NO quick drag may grow the
-  // displayed sign-change bound OR the amber-marker count. This is exactly the
-  // assertion the banded port failed.
-  it('[ipopt] no quick drag grows the displayed bound or the extrema markers', () => {
+  // displayed sign-change bound. This is exactly the assertion the banded port
+  // failed (there, a coefficient CROSSED — sc grew and the dots recolored).
+  //
+  // The marker metric needs one F8 caveat: displayExtremaCount counts near-zero
+  // SAMPLES as zeros (the old demo metric), so it registers a TOUCH — g grazing
+  // zero without crossing — as a marker. By Law 1, crossings ≤ sc; so whenever
+  // sc holds, any ex growth is a touch, and F8 says a touch is NOT an extremum
+  // ("only crossings count"). The E10 solver fixes (consistent ρ + free
+  // feasibility shrinks) move much further per tick and one quick drag
+  // (cp1 → [0,-300], 4 frames) now legally grazes zero within its held sign and
+  // margin: sc 1/1, ex transiently 2. We therefore pin: sc STRICT, and ex may
+  // exceed its start by at most one touch — and only while sc holds.
+  it('[ipopt] no quick drag grows the displayed bound; markers grow only by an F8 touch', () => {
     for (const di of CPS) {
       for (const t of TARGETS) {
         for (const fr of FRAMES) {
           const r = quickDrag('ipopt', di, t, fr)
-          expect(
-            `cp${di} t[${t}] f${fr}: sc ${r.maxSc}/${r.startSc} ex ${r.maxEx}/${r.startEx}`,
-          ).toBe(
-            `cp${di} t[${t}] f${fr}: sc ${r.startSc}/${r.startSc} ex ${r.startEx}/${r.startEx}`,
-          )
+          const label = `cp${di} t[${t}] f${fr}`
+          expect(r.maxSc, `${label}: sign-change bound grew`).toBe(r.startSc)
+          const allowedEx = r.maxSc === r.startSc ? r.startEx + 1 : r.startEx
+          expect(r.maxEx, `${label}: markers grew beyond a single sc-held touch`).toBeLessThanOrEqual(allowedEx)
         }
       }
     }

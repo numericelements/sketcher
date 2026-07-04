@@ -151,8 +151,21 @@ subproblem (E10d — his CGT solve does not compose with core's loop and is not 
    Eric's optimizer — and restores "more budget = better". Pinned:
    `ipoptStallMechanism.test.ts`. Experimental flags: `consistentPredictedReduction`,
    `freeFeasibilityShrinks` (ipopt config).
-4. **Remaining engineering (not research):** extend consistent-ρ to the banded/prebuilt
-   path (needs pᵀHp from the band), decide defaults, re-run every drag bench + the
-   editor feel test, then fold into the slideCurve/slide recipes. The knife-edge
-   conditioning itself (F1/F11) is still worth treating (compensated evaluation of the
-   near-zero coefficients), but it is no longer the binding constraint on tracking.
+4. **PRODUCTIONIZED (this branch):** consistent-ρ extended to the banded/arrowhead paths
+   (band/seam quadratic forms); both fixes are ipopt DEFAULTS (off = experiments only).
+   Two pins recalibrated with cause: arrowheadDrag seam-parity 3→10px (both paths
+   improved absolutely; livelier dynamics widen the documented near-singular-seam
+   bifurcation; acceptance patterns verified healthy) and the [ipopt] quick-drag lock
+   (sc strict, unchanged; the old zero-counting marker metric now registers one legal
+   F8 TOUCH — g grazing zero within a held sign — allowed only while sc holds).
+5. **F4 SURVIVES the fixes: solver superiority is still curve-dependent.** Fixed ipopt
+   wins the F9 curve (74% vs 47%, zero dead ticks) but still stalls (~19%) on the
+   openRationalEditing curve where primal-dual tracks. Editor recipes therefore use
+   solver:'best' (both guarded, keep the furthest — never regresses by construction):
+   F9 via the editor recipe = 82% tracked, bound held, ~117ms/tick (was 47% @47ms).
+   WHY ipopt still stalls on those curves = open research question (E13 candidate);
+   a cheaper stall-triggered cascade (primal-dual first, ipopt on guard-α collapse)
+   is the engineering follow-up, wanting the #9 diagnostics.
+6. The knife-edge conditioning itself (F1/F11) remains worth treating (compensated
+   evaluation of near-zero coefficients — E12), but it is no longer the binding
+   constraint on tracking.

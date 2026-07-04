@@ -44,8 +44,8 @@ import {
   minNormSolve,
 } from './linearAlgebra'
 import { solveTrustRegionBanded, solveBandedSPD, solveTrustRegionArrowhead, solveArrowheadSPD, doglegFromArrowhead, doglegFromBand, spdFromArrowhead, spdFromBand } from './bandedTrustRegion'
-import { type SymBand, symBandZero } from '../banded'
-import { type Arrowhead, toInterleaved, toBlock } from '../cyclic'
+import { type SymBand, symBandZero, symBandMatVec } from '../banded'
+import { type Arrowhead, toInterleaved, toBlock, arrowheadQuadForm } from '../cyclic'
 import { minNormSolveSparse } from './sparseSym'
 
 import type {
@@ -351,22 +351,36 @@ export class InteriorPointOptimizer {
         }
       }
 
-      // Evaluate step. E10e experimental: predict the barrier-model decrease of
-      // THE step being evaluated, −(gᵀp + ½pᵀHp), so ρ is a true actual/predicted
-      // ratio for that step (the Newton-decrement default systematically
-      // under-rates δ-limited steps → the expansion gate never opens).
+      // Evaluate step. E10 fix (lab notebook): predict the barrier-model decrease
+      // of THE step being evaluated, −(gᵀp + ½pᵀHp), so ρ is a true
+      // actual/predicted ratio for that step. The old Newton-decrement prediction
+      // systematically under-rated δ-limited steps, so ρ never cleared the 0.75
+      // expansion gate and the trust region could shrink but never re-expand —
+      // the "ρ ratchet" half of the F9 stall (46%→18% with MORE budget).
       let predictedForStep = barrier.predictedReduction
-      if (config.consistentPredictedReduction && !barrier.prebuilt && hessian.length > 0) {
+      if (config.consistentPredictedReduction) {
         let gp = 0
         for (let i = 0; i < step.length; i++) gp += gradient[i] * step[i]
-        let pHp = 0
-        for (let i = 0; i < step.length; i++) {
-          const Hi = hessian[i]
-          let s = 0
-          for (let j = 0; j < step.length; j++) s += Hi[j] * step[j]
-          pHp += step[i] * s
+        let pHp: number | null = null
+        if (barrier.prebuilt) {
+          // Banded/arrowhead Hessian: permute p to interleaved order (the band's
+          // ordering) and use the band/seam quadratic form.
+          const n = step.length
+          const pP = new Array<number>(n)
+          for (let v = 0; v < n; v++) pP[toInterleaved(v, this.nCP)] = step[v]
+          pHp = this.hasSeam
+            ? arrowheadQuadForm(barrier.prebuilt, pP, this.nCP)
+            : dot(pP, symBandMatVec(barrier.prebuilt.band, pP))
+        } else if (hessian.length > 0) {
+          pHp = 0
+          for (let i = 0; i < step.length; i++) {
+            const Hi = hessian[i]
+            let s = 0
+            for (let j = 0; j < step.length; j++) s += Hi[j] * step[j]
+            pHp += step[i] * s
+          }
         }
-        predictedForStep = -(gp + 0.5 * pHp)
+        if (pHp !== null) predictedForStep = -(gp + 0.5 * pHp)
       }
       const stepResult = this.evaluateStep(step, predictedForStep)
 
