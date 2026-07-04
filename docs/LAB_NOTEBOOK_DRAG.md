@@ -580,3 +580,38 @@ preservation is combined with the value bound, enforcement is legacy-g while the
 now reads R (rare workbench path; noted, acceptable until the value bound migrates).
 slideOpenPHTracking stays exported (phDrag tests still exercise it) until the legacy
 sweep (#5) deletes the old engine wholesale.
+
+## E18 — legacy-engine deletion, phase A: the algebraic CP-drag engine is gone (2026-07-04)
+
+**What made it possible:** E17 closed the last gap — every curvature-extrema CP drag
+(polynomial/rational/complex × open/closed, junction/cusp knots, symmetry, anchors,
+inflections, open + closed PH) runs on core's trust-region engine with no fallback.
+
+**Deleted (~1,360 lines net):** `optimizeCurve`/`optimizeRationalCurve` + internals +
+`applyOptimizeResult`/`applyOptimizeRationalResult` (index.ts −229);
+`PeriodicBSplineCurveProblem` (−505), `SymmetryReductionWrapper` (−229),
+`FixedVariableWrapper` (−119); the store's two try-core/catch-legacy CP-drag branches —
+replaced by an HONEST warn+drop (a non-normalized closed knot vector is a producer bug;
+Law 2 forbids the silent direct move the old fallthrough allowed); three legacy-pinning
+tests (openSlideMigration, legacyVsCoreOpenRationalBound — "this test dies with the
+legacy optimizer; that deletion is its success condition" — and rationalBoundPreservation).
+
+**Kept, each gated on a NAMED capability (not nostalgia):**
+- `RationalBSplineCurveProblem` + `PeriodicRationalBSplineCurveProblem` + Farin plumbing —
+  rational Farin drags; `ComplexRationalBSplineCurveProblem` + `optimizeComplexRationalCurve`
+  — complex Farin (known-hard open problem, per Eric: do not grind on it as cleanup).
+- `PHCurveProblem` + `optimizePHCurve` — the curvature-VALUE bound |κ|≤b workbench and
+  plain (no-extrema) PH tracking; `snapPHCurveToCurvatureBound`.
+- AB / complex-rational / real-rational PH problems — variant families, no core ports.
+- `InteriorPointOptimizer` — the solver those remaining problems run on.
+- `BSplineCurveProblem` — base class + lab/talks imports.
+
+**The measured bonus:** editingFeel.test.ts (tracking / continuity / reversibility /
+stability / latency, thresholds CALIBRATED ON LEGACY — 1.8× continuity ceiling, 2px
+tracking miss) retargeted to the shipping core recipe passes UNCHANGED. The core engine
+meets the legacy feel bar with no recalibration — the invariants outlived the engine.
+
+**Remaining for full deletion (#5):** migrate the PH value bound (natural TR fit: P± rows
+are inequality constraints like R's), decide plain-PH tracking, and the PH variant
+families; Farin stays until the research problem is solved. InteriorPointOptimizer leaves
+when its last problem does.

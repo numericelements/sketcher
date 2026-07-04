@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { optimizeCurve, applyOptimizeResult } from '../optimizer'
+import { slide } from '../../core'
 
 /**
  * "Feel guard" — the open B-spline curvature drag must FEEL good, not just be
@@ -19,16 +19,17 @@ import { optimizeCurve, applyOptimizeResult } from '../optimizer'
  *   - STABILITY  — never NaN/blows up.
  *
  * Drags run frame-by-frame (RAF-style), the way a finger actually moves, on the
- * shipping path: the sketcher's optimizeCurve (Gauss-Newton, maxIter 20), which
- * always enforces the curvature-extrema bound. We do NOT assert subjective taste
- * (coordinated vs point-chases-cursor) — only the absence of the bad feels.
+ * shipping path: core slide('polynomial', trust-region) — the EXACT recipe the
+ * store routes (the legacy optimizeCurve this test originally guarded was
+ * deleted 2026-07-04; the invariants outlived the engine). We do NOT assert
+ * subjective taste (coordinated vs point-chases-cursor) — only the absence of
+ * the bad feels.
  */
 
 const KNOTS = [0, 0, 0, 0, 0.25, 0.5, 0.75, 1, 1, 1, 1]
 const X0 = [-152, -180, -263, -152, 20, 180, 207]
 const Y0 = [17, -79, -184, -235, -212, -278, -346]
 const DEGREE = 3
-const OPTS = { maxIterations: 20, enableBFGS: false }
 
 type Curve = { id: string; kind: 'bspline'; degree: number; closed: boolean; controlPoints: { x: number; y: number }[]; knots: number[] }
 const freshCurve = (): Curve => ({
@@ -58,10 +59,15 @@ function chainedDrag(start: Curve, di: number, tx: number, ty: number, frames: n
     const cx = sx + (tx - sx) * f
     const cy = sy + (ty - sy) * f
     const t0 = performance.now()
-    const r = optimizeCurve(curve, cx, cy, di, OPTS)
+    // The store's polynomial recipe, verbatim (sceneStore.moveControlPoint).
+    const r = slide('polynomial', curve.controlPoints.map((p) => ({ re: p.x, im: p.y, wRe: 1, wIm: 0 })),
+      curve.knots, curve.degree, 'open', di, { x: cx, y: cy }, {
+        solver: 'trust-region', jacobian: 'ad',
+        maxIterations: Math.max(25, Math.min(50, curve.controlPoints.length)),
+      })
     maxFrameMs = Math.max(maxFrameMs, performance.now() - t0)
     const prev = curve.controlPoints
-    curve = applyOptimizeResult(curve, r) as Curve
+    curve = { ...curve, controlPoints: r.points.map((p) => ({ x: p.re, y: p.im })) }
     for (let k = 0; k < prev.length; k++) {
       const jump = Math.hypot(curve.controlPoints[k].x - prev[k].x, curve.controlPoints[k].y - prev[k].y)
       maxJump = Math.max(maxJump, jump)

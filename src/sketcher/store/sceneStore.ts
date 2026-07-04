@@ -11,15 +11,16 @@ import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexP
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
 import { weightedAveragePhi, threeArcPointsFromNoisyPoints, circleArcFromThreePoints, type CircleArcGeometry } from '../utils/circleArc'
-import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizePHCurve, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve, type OptimizeRationalResult } from '../optimizer'
-// MIGRATION: curvature-extrema drag now runs on the clean core/ engine for the
-// CLEAN-PERIODIC + open cases of every algebraic family — open & closed polynomial
-// (slideCurve), and closed real-rational & complex-rational (banded trust-region slide,
-// banded + low-rank seam = arrowhead, weights held fixed, ρ-aware). Open rational/
-// complex go through the generic slide(). Only the non-clean-periodic conventions
-// (periodic-junction/cusp knots) and symmetry-reduced/anchored drags still fall to
-// the legacy optimizer; PH is largely legacy. See docs/THE_IDEAS.md (idea VII) and
-// docs/CURVATURE_ARCHITECTURE.md for the convergence status.
+import { optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizePHCurve, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
+// Curvature-extrema CP drags run ONLY on core/'s trust-region engine — every
+// algebraic family (polynomial/rational/complex, open + closed, junction/cusp
+// knots, symmetry, anchors, inflections) and both PH topologies (R metric).
+// The legacy optimizeCurve plumbing was DELETED (2026-07-04); there is no
+// fallback (fix-core-not-toggle): a core failure warns and drops the tick.
+// Legacy remains ONLY for: Farin drags (rational + complex — complex Farin is
+// a known-hard open problem), the PH curvature-VALUE bound workbench, plain
+// (no-extrema) PH tracking, and the AB/complex-rational/real-rational PH
+// variants. See docs/CURVATURE_ARCHITECTURE.md.
 import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
@@ -1023,34 +1024,14 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       }
     }
 
-    // Use optimizer if preserveCurvatureExtrema is enabled and curve is compatible
-    // (closed bsplines + rational — not yet migrated to core/).
+    // Every routable bspline/rational case returned above (core is the only
+    // engine; the legacy optimizeCurve catch-all was deleted). Reaching here
+    // under preserve means a NON-NORMALIZED closed representation (shifted
+    // domain, #knots ≠ #CPs, …) — a producer bug (see repairClosedKnots), not
+    // an editing scenario. Law 2 forbids a silent direct move: warn, drop.
     if (preserveCurvatureExtrema && (curve.kind === 'bspline' || curve.kind === 'rational')) {
-      try {
-        const opts = {
-          maxIterations: 20, // cap for interactive dragging (small deltas converge fast)
-          enableBFGS: false, // drag objective Σ½‖cp−t‖² has an exact identity Hessian → Gauss-Newton, ~30% faster, same result
-          ...(symmetryMaps ? { symmetryMaps } : {}),
-          ...(preserveInflections ? { preserveInflections } : {}),
-          ...(disableSliding ? { disableSliding } : {}),
-          ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
-            ? { anchorWeight, anchorCPsX: dragStartCPsX, anchorCPsY: dragStartCPsY }
-            : {}),
-        }
-        const result = optimizeCurve(curve, newPosition.x, newPosition.y, pointIndex, opts)
-        if (result.converged || result.iterations > 0) {
-          const optimizedCurve = curve.kind === 'rational'
-            ? applyOptimizeRationalResult(curve, result as OptimizeRationalResult)
-            : applyOptimizeResult(curve, result)
-          set((state) => ({
-            curves: state.curves.map((c) => (c.id === curveId ? optimizedCurve : c)),
-          }))
-          return
-        }
-      } catch (e) {
-        // Fall through to direct move if optimization fails
-        console.warn('Curvature optimizer failed:', e)
-      }
+      console.warn('curvature drag: closed knot vector is not normalized (producer bug?) — tick dropped', curve.knots)
+      return
     }
 
     // Closed complex-rational CP-drag → core (banded arrowhead, weights held fixed).
@@ -1138,37 +1119,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       }
     }
 
+    // Same story for complex-rational: open + normalized-closed returned above
+    // on core. A non-normalized closed representation is a producer bug.
     if (preserveCurvatureExtrema && curve.kind === 'complex-rational') {
-      try {
-        const result = optimizeComplexRationalCurve(
-          curve, newPosition.x, newPosition.y, pointIndex, 'controlPoint',
-          // Interactive drag: cap iterations and drop BFGS, exactly like the bspline
-          // path. Default was 100 iters + BFGS on, which on the complex path costs
-          // ~1.2 s/tick (degree 3, 12 CPs) and never converges within the cap. BFGS
-          // off uses the identity-Hessian fallback: ~7.7× faster (≈160 ms/tick) AND
-          // converges in ~10 iters per tick, tracking the target as well or better.
-          // (measured in complexRationalDragBench / complexRationalDragQuality)
-          //
-          // fixedWeightClosed: on a CLOSED curve, freeze the complex weights (and
-          // the wrap/monodromy) instead of letting every Farin point be a free
-          // variable. Free Farin points couple globally through the weight chain
-          // → a dense Jacobian; frozen weights give the sparse fixed-weight
-          // formulation (the same one open-curve CP drags already use). Editing
-          // the shape inside a fixed conformal frame, then bounding its curvature
-          // extrema. The flag is a no-op on open curves and on Farin drags.
-          // (ComplexRationalDemo already does this; this brings the sketcher in line.)
-          { maxIterations: 20, enableBFGS: false, fixedWeightClosed: true }
-        )
-        if (result.converged || result.iterations > 0) {
-          const optimizedCurve = applyComplexRationalOptimizeResult(curve, result)
-          set((state) => ({
-            curves: state.curves.map((c) => (c.id === curveId ? optimizedCurve : c)),
-          }))
-          return
-        }
-      } catch {
-        // Fall through to direct move if optimization fails
-      }
+      console.warn('curvature drag: complex-rational closed knot vector is not normalized (producer bug?) — tick dropped', curve.knots)
+      return
     }
 
     // Direct move (original behavior)
