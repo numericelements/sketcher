@@ -383,5 +383,35 @@ deletion is its success condition); routing pinned in `openRationalFlagsRouting.
 
 ---
 
-*Add F10, … as we establish them. Never delete a fact that is still true; if a fact turns out
+## F10 — Knot insertion is Law-2-safe and can buy large tracking freedom — but it is NOT monotone
+
+**The safety fact.** Inserting a knot leaves the curve geometrically identical, and the
+refined polygon of g is a subdivision of the old one — by variation diminishing S⁻ can only
+stay or drop. So refinement mid-edit can never raise the bound: it is always *legal*. It
+adds control points (freedom to reshape) and can only tighten the displayed Bernstein
+bound. This much is theorem.
+
+**The measured surprise (2026-07-03, the F9 stall drag: open rational n=7, d=3, core
+tracks 47% at bound 2).** Insertion's effect on TRACKING is strongly placement-dependent
+and non-monotone in the number of knots:
+
+    +1 knot @0.375 → 83% tracked      +1 @0.125 → 80%      (bound 2 throughout)
+    +1 knot @0.625 → 17% tracked (3× WORSE than no insertion)
+    +1 @0.875 → 49%   +3 uniform → 55%   +4 uniform → 52%   +12 uniform → 36%
+
+Raising maxIterations 20→60 does NOT rescue the uniform case (51%) — it is constraint
+geometry, not solver budget. And the bad spot 0.625 is FAR from g's sign changes (markers
+at 0.285, 0.969), so "don't split at a crossing" is NOT the rule; the mechanism is how the
+split redistributes g's coefficient runs and anchors (open question — standing
+investigation). Weights ride through insertion exactly (homogeneous Boehm, core insert.ts).
+
+**How to apply.** A blind "refine" button (or blanket refinement) is a manipulation
+footgun. The robust design is PROBE-AND-KEEP: at a stall, trial-insert candidate knots,
+re-run one tick, keep the insertion only if tracking measurably improves — legality is
+free (this fact), profit must be measured per-case. Pinned: `knotInsertionFreedom.test.ts`
+(the 0.375 case must stay ≥70% tracked; insertion never raises the bound).
+
+---
+
+*Add F11, … as we establish them. Never delete a fact that is still true; if a fact turns out
 wrong, replace it and say why (a wrong fact in here is worse than none).*
