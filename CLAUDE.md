@@ -22,6 +22,11 @@ of code back to one of these laws, question why it exists.
   changes of g** (the points where dκ/ds reverses) — not merely the zeros of g.
   `g = ‖c′‖²·(c′×c‴) − 3·(c′·c″)·(c′×c″)`, degree `4d−6`.
 
+- **f(t)** — the **inflection numerator**, the second instance of the same idea:
+  polynomial `f = c′×c″` (degree `2d−3`); rational `f = det[H, H′, H″]` over the
+  homogeneous `H = (w·x, w·y, w)` (degree `3d−3`, and `r′×r″ = f/W³`, so for positive
+  weights f's sign changes ARE the inflections). Everything below said of g holds of f.
+
 - **the control polygon of g** — the coefficients of g in its B-spline (Bernstein) basis.
 
 - **Z(g)** — the number of **sign changes of g** itself: crossings, not touches; for
@@ -86,8 +91,13 @@ won't move is a **solver failure**, not the bound doing its job. The bound may s
 only at the TRUE feasible limit, where no coordinated slide can avoid a new extremum — and
 even there the curve sits at the reshaped feasible projection, never frozen. In practice we
 stall far short of that limit, and the cause is always solver quality (next section). How far
-a point *should* travel before the true limit is a question only the reference oracles
-(`../static-portfolio-rust`, the online sketcher) can answer — measure against them.
+a point *should* travel before the true limit is answered by measuring against a reference —
+today the Rust core (`../static-portfolio-rust`), itself in development: a cross-check, not
+an infallible oracle (the old online sketcher is mined out). **This codebase is meant to
+BECOME the reference implementation.** One qualification, learned the hard way (F9): a
+tracking comparison against any reference only counts if the reference holds the same
+displayed bound. One that travels further while its bound grows is not a reference for
+tracking; it is a counterexample.
 
 ### Standing investigation — solver quality (we return to this forever)
 
@@ -107,7 +117,9 @@ moves by *reshaping the curve*:
   *before* the above, or every one of them inherits the ill-conditioning.
 
 The test of success is not "the bound held" (blocking holds it trivially) — it is "the bound
-held **and** the point tracked the cursor." Pin both (see `rustParityDrags.test.ts`).
+held **and** the point tracked the cursor." Pin both (see `rustParityDrags.test.ts`). And the
+converse trap, measured in F9: "the point tracked" alone proves nothing — check the bound
+held before crediting any solver with better feel.
 
 ## Law 3 — Honesty (nothing fake)
 
@@ -121,6 +133,23 @@ held **and** the point tracked the cursor." Pin both (see `rustParityDrags.test.
 
 These must all agree because they are all the same g. A bound below the markers, or colors
 that don't match the coefficients, means a law is broken.
+
+**Law 3 has teeth when comparing solvers.** A solver may only be called "better at
+tracking" if it holds the SAME displayed bound while tracking. We measured the trap
+(FOUNDATIONS F9): the legacy rational drag tracked the cursor to ~97% — by letting the
+displayed bound climb 2→10. It wasn't better; it was enforcing a different quantity than
+the editor showed. Verify the bound first; compare feel second.
+
+## The laws quantify over every scalar invariant
+
+The three laws never actually use "curvature": they hold for **any scalar B-spline
+function built from c** — a numerator, its control polygon, Z ≤ S⁻ (Law 1), the sliding
+mechanism's monotonicity (Law 2), displayed == enforced (Law 3). The app instantiates
+them twice: **g** (curvature extrema — the purpose of this application) and **f**
+(inflections — same machinery, `familyInflectionNumerator`, enforced when inflection
+preservation is on). A future invariant joins by supplying its numerator; it inherits the
+laws, the bound, the mechanism, and the honesty obligations wholesale. Do not build a
+one-off pipeline for a new scalar quantity — instantiate the laws.
 
 The **only** numerical threshold ever permitted is one that separates a true
 machine-precision zero from a nonzero value — *never* one that reshapes a result. A global
@@ -137,8 +166,9 @@ For every curve, in every family, open or closed:
 
     S⁻  ≥  Z(g)        and in the editor:   S⁻  ≥  (number of sign-change markers drawn)
 
-(The markers count crossings of g, so they are Z(g) made visible.) If this ever fails,
-stop and fix the law-breaking code before doing anything else.
+(The markers count crossings of g, so they are Z(g) made visible.) The same holds for
+every other enforced invariant — with inflection preservation on, `S⁻(f) ≥ Z(f)` likewise.
+If this ever fails, stop and fix the law-breaking code before doing anything else.
 
 ## What the laws forbid (so we stop reinventing)
 
@@ -148,6 +178,11 @@ stop and fix the law-breaking code before doing anything else.
 - Displaying one quantity while enforcing another.
 - Freezing control points or constraints to hold the bound.
 - Any "upper bound" that can be smaller than Z(g) (the true number of sign changes of g).
+- Routing an edit to a solver that does not hold the displayed bound because it "feels
+  better." That feel is the violation (F9).
+- Silently ignoring an enforcement flag a curve family doesn't support. Either enforce it
+  or throw/state the gap out loud (the dormant-flag sweep found three no-op guards; the
+  complex-weight inflection slot now throws instead of pretending).
 
 ## Known honest looseness (not bugs — Law 1 permits these)
 
@@ -169,6 +204,9 @@ stop and fix the law-breaking code before doing anything else.
 - **`docs/CURVATURE_ARCHITECTURE.md`** — the **engineering**: how it's built.
 
 A refactor for "cleaner code" may change structure but **never** the numbers a pinning test
-records. If a cleanup turns a test red, the cleanup is wrong. The reference implementations
-(the online sketcher, `../static-portfolio-rust`) are oracles — port faithfully and verify,
-don't re-derive.
+records. If a cleanup turns a test red, the cleanup is wrong. The Rust core
+(`../static-portfolio-rust`) is the parity reference — both codebases are in development,
+so a disagreement means "investigate," not "Rust wins"; where Rust already has an algorithm
+we port faithfully and verify rather than re-derive. The goal is for THIS codebase to be
+the reference implementation. (The old online sketcher is mined out; anything it still does
+that core doesn't is a migration task, not a reason to consult it for math.)
