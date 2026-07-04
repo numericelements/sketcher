@@ -836,3 +836,49 @@ from 6.6–31.7 to 19.9–22.1 (the worst-CP criterion — uniform feel — is w
 sweep contract measures). Interiors untouched. Wired in the store at λ=50; all-CP
 sweep, display-metric, editor pins green; E14-PROD bench 83% unchanged. Article §9.3
 graduates from open problem to result.
+
+## E25 — the false bound, and the floor's demotion to slack (2026-07-04)
+
+**How it was found:** Eric doubted task #28's premise ("the tight count comes from the
+coarse product-algebra polygon") — and he was right by his own mathematics: knot
+insertion is corner cutting, hence variation-diminishing, so REFINEMENT tightens S⁻;
+the coarse polygon is the looser one. The bound-gap census then showed the open bound
+is ALREADY TIGHT on ordinary curves (S⁻ = Z exactly, three of four fixtures — task #28's
+"10 vs 6" premise is gone)… and exposed the real disease on the fourth: clustered
+knots, S⁻(displayed) = 14 while raw crossings = 25.
+
+**The oracle verdict (labE25, BigInt):** exact polygon count 25; ALL 525 double signs
+correct; 0 exact zeros; the 296 sub-floor coefficients carry errors ELEVEN ORDERS below
+their own magnitudes. The floor-based sign smoothing (assignSignsNeighbor) was erasing
+11 REAL sign changes — the displayed AND enforced bound was FALSE (Law 1's one test
+failed, in production, reachable by user knot clustering, and OLD: the pre-E21 floor
+erased more). The error-law nuance vs E21: ε·max is the worst case, but errors are
+LOCAL where magnitudes are local — "structurally tiny" (wide spans, F1's h-scaling) is
+not "unresolvable".
+
+**Eric's design call, after discussion:** loose is true — the floor stops rewriting
+signs. His sharpened requirement, and why it survives: the displayed number must NEVER
+tick +2 during editing — and that guarantee was never the floor's (E12-2 measured the
+ROBUST count flickering 15↔17 under ulp jitter at a parked merge!); it is the
+MECHANISM's (Theorem 2: actives held, anchors forbid the all-flip, free interiors only
+merge, guard backstops slip). Markers may blink near a merge under a fixed S (Z free
+within the bound — the intended semantics); S itself moves only monotonically.
+
+**Landed:** assignSignsNeighbor = raw strict signs (only EXACT zeros take a neighbor
+sign — for the enforcement slot; adds no count). SIGN_NOISE_REL survives solely as
+margin slack (structuralMarginsScaled) + the inert row scale. The robust marker
+classifier is now the identity (kept as an alias). **Suite fallout: ZERO — all 408
+tests pass unchanged**; post-E21 the smoothing carried no load on ordinary curves, its
+only remaining effect was the erasure. The clustered specimen is the live pin (S = 25 =
+exact, ≥ markers). CLAUDE.md corrected in two places: the backward #28 paragraph, and a
+new forbidden-list entry (sign-rewriting floors).
+
+**Task #28/#7 rescoped:** the tight-bound task is CLOSED as refuted (bound already
+tight; the folklore gap was this bug). B-spline product algebra (merged knots /
+Patrizi) remains interesting for REPRESENTATION (fewer coefficients, no boundary
+duplication, exact continuity encoding) — a quality item, not a bound item.
+
+**Article impact:** §6 (the honest zero) gains its strongest specimen — the floor that
+was measured honest in E21 still had one dishonest JOB, and removing the job (not
+retuning the constant) is what the laws demanded. §9.1 (tight open bound) is RESOLVED
+as "already tight; the gap was an artifact".

@@ -183,13 +183,23 @@ If this ever fails, stop and fix the law-breaking code before doing anything els
 - Silently ignoring an enforcement flag a curve family doesn't support. Either enforce it
   or throw/state the gap out loud (the dormant-flag sweep found three no-op guards; the
   complex-weight inflection slot now throws instead of pretending).
+- A magnitude floor that REASSIGNS SIGNS before counting. Even at the measured honest
+  noise level it erased real sign changes on clustered knots and read the bound 14 where
+  the exact count is 25 (E25's oracle specimen) — a false bound, the forbidden direction.
+  The floor's only lawful job is feasibility SLACK (a practically-zero active coefficient
+  starts a hair off its wall); signs are counted raw, and the monotone display is the
+  sliding mechanism's theorem, not a smoothing artifact.
 
 ## Known honest looseness (not bugs — Law 1 permits these)
 
-- **Open B-spline bound is loose.** We currently count g's *per-span Bézier* coefficients,
-  which over-counts (e.g. 10 vs 6 real extrema). It is a valid upper bound. The tight count
-  comes from g's *minimal/coarse* control polygon (B-spline product algebra) — a correct-
-  mathematics task, **never** a threshold. Tracked as task #28.
+- **The bound is the polygon's count, and the polygon may be finer than minimal.** Knot
+  insertion is corner cutting, hence itself variation-diminishing: refinement can only
+  LOWER or hold S⁻ — so the per-span Bézier polygon we count is TIGHTER than any coarser
+  B-spline polygon, never looser (the old claim here was backward; measured 2026-07-04:
+  on ordinary curves S⁻ already equals Z exactly). Residual looseness at knife edges
+  (a machine-zero coefficient counts a spurious pair) is the honest kind — loose is true.
+  The historical "10 vs 6" over-count was NOT representation looseness: it was the
+  floor-based sign smoothing ERASING real changes elsewhere (see the forbidden list).
 
 ---
 

@@ -219,28 +219,34 @@ export function cyclicSignChanges(signs: readonly number[], cyclic: boolean): nu
  * (they blow up near clamped endpoints), so a larger "small relative to the max" floor
  * deletes genuine low-amplitude coefficients and makes S⁻ read BELOW the true number of
  * sign changes — a FALSE bound (CLAUDE.md, Law 3). The constant is MEASURED, not
- * guessed (E21, BigInt oracle over every coefficient of the E13a state): the true
- * per-coefficient error is uniform-absolute ≈ (0.03…9)·ε·max|g| — so 1e-14 sits ~45×
- * above the worst measured error (9ε ≈ 2e-15) while the previous 1e-12 sat ~450×
- * above it and MANUFACTURED a misclassification class (E12-3's specimen #225: a
- * genuine +3.4e3 sign carrier classified as noise against a 2.6e16 max). Erring
- * smaller only ever makes S⁻ looser (still a valid upper bound), never false.
+ * guessed (E21, BigInt oracle): worst per-coefficient error ≈ 9ε·max, so 1e-14 sits
+ * ~45× above it. SINCE E25 this floor never touches a SIGN — it survives only as
+ * feasibility SLACK (structuralMarginsScaled: a practically-zero active coefficient
+ * starts a hair off its wall) and in the inert row scale. E25's oracle specimen showed
+ * why sign-rewriting is forbidden even at the honest level: on clustered knots the
+ * structurally-tiny coefficients carry correct signs eleven orders above their own
+ * errors, and reassigning them read the bound 14 where the exact count is 25.
  */
 export const SIGN_NOISE_REL = 1e-14
 
 /**
- * Signs of Bernstein coefficients with ONLY roundoff-level zeros resolved: a coefficient
- * at the roundoff floor (its sign is meaningless) takes the sign of its NEAREST real
- * neighbour, so a genuine structural zero does not register as a spurious sign change and
- * an exactly-0 clamped-boundary coefficient still joins its run (stays active for the
- * optimizer). It NEVER reassigns a coefficient whose sign is real — that would fake the
- * bound. Pair with cyclicSignChanges to get S⁻. The returned signs use the optimizer's
- * internal convention (+v → −1, −v → +1); only sign CHANGES matter.
+ * RAW strict signs of Bernstein coefficients (E25): every NONZERO coefficient keeps its
+ * own computed sign; only an EXACT floating-point zero (whose sign genuinely does not
+ * exist) takes its nearest neighbour's, so it joins its run for the optimizer without
+ * adding a sign change. NO magnitude floor participates — E25's oracle specimen proved
+ * a floor-based reassignment can ERASE real sign changes and read the bound BELOW the
+ * true count (clustered knots: displayed 14 vs exact 25, with every double sign
+ * correct; a global floor cannot tell "tiny because unresolvable" from "tiny because
+ * the span is wide", F1). Raw signs err only at true machine zeros, and there only by
+ * ADDING a spurious pair — loose is true; false is forbidden. The count's monotone
+ * display under editing is the MECHANISM's guarantee (Theorem 2: actives held, anchors
+ * forbid the all-flip, free interiors only merge), not a smoothing artifact. The noise
+ * floor (SIGN_NOISE_REL) survives only as feasibility SLACK — see
+ * structuralMarginsScaled. Returned signs use the optimizer's internal convention
+ * (+v → −1, −v → +1); only sign CHANGES matter.
  */
 export function assignSignsNeighbor(gc: number[]): number[] {
-  const maxAbs = Math.max(1e-300, ...gc.map(Math.abs))
-  const noise = SIGN_NOISE_REL * maxAbs
-  const det = gc.map((v) => (Math.abs(v) <= noise ? 0 : v > 0 ? -1 : 1))
+  const det = gc.map((v) => (v === 0 ? 0 : v > 0 ? -1 : 1))
   const out = det.slice()
   const n = det.length
   for (let i = 0; i < n; i++) {
