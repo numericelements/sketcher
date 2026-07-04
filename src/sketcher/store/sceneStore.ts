@@ -20,7 +20,7 @@ import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimi
 // (periodic-junction/cusp knots) and symmetry-reduced/anchored drags still fall to
 // the legacy optimizer; PH is largely legacy. See docs/THE_IDEAS.md (idea VII) and
 // docs/CURVATURE_ARCHITECTURE.md for the convergence status.
-import { slideCurve, slide, slideOpenPHTracking, slideClosedPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHTracking, slideClosedPHCurveBound, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -603,19 +603,19 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             // Optimize the generator from the PREVIOUS state toward the re-fit's
             // CLAMPED curve while holding the curve closed (∮w²=0 + seam wrap) and
             // the curvature-extrema count (seam-aware sliding). Re-express periodic.
-            const rm = refit.metadata as Extract<PHMetadataAny, { kind: 'polynomial' }>
-            // Closed PH solve → CORE slideClosedPHTracking with DECOUPLED closure (#23 fix):
-            // track open-style (bound only — which core's IP handles), then restore ∮w²=0 + seam
-            // wrap by the Gram-based projectClosurePH, iterated. Avoids the stiff in-solver closure
-            // equalities that stalled the naive port (diagnosed #23; ≈ legacy tracking + holds the
-            // bound, pinned by closedPHDragDecouple.test.ts). The CURVE-span strict-S⁻ guard +
-            // buildFromGen below are unchanged (the hard Law-2 backstop).
-            const target = computePHCurveFromUV(rm.uControlPoints, rm.vControlPoints, rm.uvKnots, rm.uvDegree, rm.origin.x, rm.origin.y)
-            const r = slideClosedPHTracking(
+            // E14: the CURVE-SPAN bound now lives INSIDE the tracking solve
+            // (slideClosedPHCurveBound: trust-region over the generator with
+            // periodic-rep curve-numerator constraints; closure decoupled as
+            // before). Targets are the EDITED CPs directly — the refit target
+            // measured curve bound 10 vs start 8 from tick 1 (it manufactures
+            // extrema; lab notebook E14). Census->now at nCP=51: ~0% -> 49%
+            // tracked @306ms/tick with the bound strictly held by the guard
+            // below (which stays, unchanged, as the Law-2 backstop).
+            const r = slideClosedPHCurveBound(
               meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
-              meta.uvKnots, meta.uvDegree, target.controlPoints,
-              { wrapSign: meta.wrapSign ?? 1, seamContinuity: seamCont },
-              { maxIterations: 24, decoupleClosure: true },
+              meta.uvKnots, meta.uvDegree, editedCPs,
+              { seamContinuity: seamCont, wrapSign: meta.wrapSign ?? 1 },
+              { maxNumSteps: 30, passes: 2 },
             )
             {
               const om = { uControlPoints: r.u, vControlPoints: r.v, uvKnots: meta.uvKnots, uvDegree: meta.uvDegree, origin: { x: r.x0, y: r.y0 } }
