@@ -38,6 +38,7 @@ import {
   TrustRegionBarrierOptimizer, TRDiagonalMatrix,
   type TrustRegionProblem, type TRMatrix,
 } from './trustRegionOptimizer'
+import { TrustRegionBarrierOptimizerBanded, type BandedTrustRegionProblem } from './trustRegionBanded'
 
 /** Which solver navigates the constrained step. 'best' runs ipopt AND primal-dual,
  *  guards each, and keeps the one that tracks the cursor furthest — F4: no single
@@ -405,12 +406,70 @@ export function slide(
 
   // The ported closed-curve trust-region solver over the SAME problem: f_i ≤ 0
   // orientation via core's constraint signs (E7/E15c-verified adapter semantics,
-  // including the sliding-sign refresh on every ACCEPTED step).
+  // including the sliding-sign refresh on every ACCEPTED step). OPEN drags with a
+  // local Jacobian take the BANDED O(n·b²) form (same mathematics, banded Cholesky
+  // inside the CGT λ-iteration); everything else runs the dense port.
   const runTrustRegion = () => {
     const problem = new CurvatureDragProblem(
       kind, cps, knots, degree, topology, dragIndex, target,
       wRe, wIm, opts.jacobian ?? 'fd', rho, opts,
     )
+    const finishTrustRegion = (converged: boolean) => {
+      const raw = problem.result()
+      const points = enforceBoundNonincreasing(
+        cps as WeightedCP[], raw, boundOf,
+        (a) => cps.map((p, i) => ({ re: p.re + a * (raw[i].re - p.re), im: p.im + a * (raw[i].im - p.im), wRe: p.wRe, wIm: p.wIm })),
+      )
+      return { points, converged }
+    }
+    const localAvailable = topology === 'open' && !opts.preserveInflections
+      && problem.computeConstraintJacobianLocal() !== null
+    if (localAvailable) {
+      const banded: BandedTrustRegionProblem = {
+        get numberOfIndependentVariables() { return problem.numVariables },
+        nCP: cps.length,
+        get f0() { return problem.computeObjective() },
+        get gradient_f0() { return problem.computeObjectiveGradient() },
+        get objectiveHessianDiagonal() { return problem.computeObjectiveHessianDiagonal() },
+        get numberOfConstraints() { return problem.numConstraints },
+        get f() {
+          const sg = problem.getConstraintSigns()
+          return problem.computeConstraints().map((v, i) => sg[i] * v)
+        },
+        localRows() {
+          const sg = problem.getConstraintSigns()
+          const rows = problem.computeConstraintJacobianLocal()!
+          return rows.map((r, i) => ({ vars: r.vars, vals: r.vals.map((v) => sg[i] * v) }))
+        },
+        step(dx: number[]) {
+          const x = problem.getVariables()
+          problem.setVariables(x.map((v, i) => v + dx[i]))
+          problem.updateConstraintState()
+        },
+        fStep(dx: number[]) {
+          const x = problem.getVariables()
+          problem.setVariables(x.map((v, i) => v + dx[i]))
+          const sg = problem.getConstraintSigns()
+          const out = problem.computeConstraints().map((v, i) => sg[i] * v)
+          problem.setVariables(x)
+          return out
+        },
+        f0Step(dx: number[]) {
+          const x = problem.getVariables()
+          problem.setVariables(x.map((v, i) => v + dx[i]))
+          const out = problem.computeObjective()
+          problem.setVariables(x)
+          return out
+        },
+      }
+      const optimizer = new TrustRegionBarrierOptimizerBanded(banded)
+      let converged = false
+      try {
+        optimizer.optimize(10e-8, 10, opts.maxIterations ?? 50)
+        converged = optimizer.success
+      } catch { /* keep committed feasible steps; guard below */ }
+      return finishTrustRegion(converged)
+    }
     const adapter: TrustRegionProblem = {
       get numberOfIndependentVariables() { return problem.numVariables },
       get f0() { return problem.computeObjective() },
@@ -459,12 +518,7 @@ export function slide(
       // A solver failure keeps whatever steps were already committed (each was
       // strictly feasible); the guard below still enforces Law 2 on the result.
     }
-    const raw = problem.result()
-    const points = enforceBoundNonincreasing(
-      cps as WeightedCP[], raw, boundOf,
-      (a) => cps.map((p, i) => ({ re: p.re + a * (raw[i].re - p.re), im: p.im + a * (raw[i].im - p.im), wRe: p.wRe, wIm: p.wIm })),
-    )
-    return { points, converged }
+    return finishTrustRegion(converged)
   }
 
   // One solve with the given method, then the strict-S⁻ guard (the result holds the bound).

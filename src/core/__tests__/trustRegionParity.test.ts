@@ -65,3 +65,29 @@ describe('trust-region port: E15c acceptance column', () => {
     expect(tracked, `tracked ${tracked.toFixed(0)}%`).toBeGreaterThanOrEqual(85)
   }, 120000)
 })
+
+describe('banded trust-region: near-linear scaling (the O(n) milestone)', () => {
+  it('n=48 tracks ≥70% with ms/tick bounded (loose CI ceiling)', () => {
+    const nn = 48
+    const knots = openKnots(nn)
+    let cps = mk(nn)
+    const k = Math.floor(nn / 3)
+    const sx = cps[k].re, sy = cps[k].im
+    const target = { x: sx + 55, y: sy + 200 }
+    const start = familyBound('rational', cps, knots, d, 'open')
+    const t0 = performance.now()
+    for (let s = 1; s <= 15; s++) {
+      const t = s / 15
+      cps = slide('rational', cps, knots, d, 'open', k,
+        { x: sx + (target.x - sx) * t, y: sy + (target.y - sy) * t },
+        { solver: 'trust-region', jacobian: 'analytic', maxIterations: 50 }).points
+      expect(familyBound('rational', cps, knots, d, 'open'), `step ${s}: bound rose`).toBeLessThanOrEqual(start)
+    }
+    const ms = (performance.now() - t0) / 15
+    const err = Math.hypot(cps[k].re - target.x, cps[k].im - target.y)
+    const tracked = 100 - (100 * err) / Math.hypot(55, 200)
+    // measured 2026-07-04: 84% @ ~1.1s/tick (dense primal-dual was ~41% @ 5-7s)
+    expect(tracked, `tracked ${tracked.toFixed(0)}%`).toBeGreaterThanOrEqual(70)
+    expect(ms, `ms/tick ${ms.toFixed(0)}`).toBeLessThan(4000)
+  }, 240000)
+})
