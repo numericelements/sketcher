@@ -295,6 +295,41 @@ editor recipe decision, then THE BANDED O(n) FACTORIZATION inside this design (t
 CGT λ-iteration re-factors H+λI per iterate — banded LDLᵀ makes each factorization
 O(n·b²); target: 30–50 CP curves interactive).
 
+## E14 — closed PH: the curve-span bound enters the tracking solve (2026-07-04)
+
+Method: trust-region engine over generator variables [x0,y0,u,v]; constraints = RAW
+rows (pure signs, cyclic anchors, exact-zero exclusion) of the PERIODIC-REP curve
+numerator — the editor's displayed metric, via a precomputed linear clamped→periodic
+LS operator; closure DECOUPLED (Eric's design: solve → projectClosurePH, 2 rounds);
+faithful editor guard (generator bisection with re-projection). FD Jacobians (bench).
+Census baseline at nCP=51: tracking −30%, raw curve bound 8→12, editor ≈ 0%.
+
+    solve-with-curve-bound, no margins:      +39% raw, bound 8→10 (projection is
+                                             bound-BLIND: it perturbs g at the walls)
+    + projection-sized margins + guard:      20-22%, bound 8/8 STRICT, closure 1e-13
+    refit-free target (generic drag policy): 20% — same
+
+**Findings.**
+1. **The concept works**: curve-span-in-solve turns active drift (−30%) into honest
+   constrained progress with the bound STRICTLY held — where the census editor loop
+   nets ≈0%. The F6 gap is closed at the solve level.
+2. **The refit target manufactures extrema**: fitClosedPHSpline of a one-point edit
+   has curve bound 10 vs start 8 from tick 1 — the legacy target policy asks the
+   solve to chase a constraint-violating shape. The trust-region formulation doesn't
+   need a refit at all (objective = generic drag: dragged CP→cursor, rest anchored).
+   Keep the refit-free policy regardless.
+3. **The residual ceiling is the bound wall at 8 itself** — margins/budget/target
+   changes don't move ~20%. OPEN QUESTION (the tracking unlock): is that wall TRUE
+   (the motion needs a new extrema pair) or LOOSE (the degree-5 LS periodic rep's
+   degree-24 polygon overcounting — #28's looseness at the exact point where it now
+   costs tracking)? No oracle exists (Eric's closed-curve has no PH). Next probe:
+   compare periodic-rep polygon count vs dense sign-crossing count Z(g) on these
+   states; if Z ≪ polygon, the wall is largely representational.
+4. Production path (after the ceiling question): analytic chain
+   ∂g_per/∂gen = P∘(planar periodic cols)∘phControlPointJacobian (852ms/tick FD
+   bench → editor-grade), then wire slideClosedPHTracking's successor.
+Bench kept: labE14ClosedPHCurveBound.test.ts (skipped).
+
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**
