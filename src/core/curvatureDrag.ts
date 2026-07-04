@@ -432,7 +432,10 @@ export function slide(
       )
       return { points, converged }
     }
-    const localAvailable = topology === 'open' && !opts.preserveInflections
+    // Open AND closed both ride the banded engine: closed curves get the seam
+    // permutation + bordered Cholesky (band+border = the arrowhead with a true
+    // triangular L). Dense fallback remains for inflections/polynomial/no-local.
+    const localAvailable = !opts.preserveInflections
       && problem.computeConstraintJacobianLocal() !== null
     if (localAvailable) {
       // Constant-factor discipline: the numerator build is the drag's unit cost, so

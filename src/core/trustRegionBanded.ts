@@ -14,39 +14,54 @@
 // ============================================================================
 
 // ---------------------------------------------------------------------------
-// Band-stored symmetric matrix: low[i][p] = M(i, i−p), p = 0..min(b, i).
+// Band + BORDER symmetric matrix: the leading nb = n − nBorder rows are banded
+// (low[i][p] = M(i, i−p), p ≤ b); the trailing nBorder rows are DENSE up to the
+// diagonal (border[r][j] = M(nb+r, j), j ≤ nb+r). With nBorder = 0 this is a
+// pure band — the open-curve case, bit-identical to before. The border carries
+// a CLOSED curve's seam coupling after the seam variables are permuted last
+// (the arrowhead, in a form that still yields a true triangular Cholesky L).
 // ---------------------------------------------------------------------------
 export class SymBandMatrix {
   readonly n: number
   readonly b: number
+  readonly nBorder: number
+  readonly nb: number // leading banded size = n − nBorder
   low: number[][]
-  constructor(n: number, b: number) {
+  border: number[][]
+  constructor(n: number, b: number, nBorder = 0) {
     this.n = n
     this.b = b
-    this.low = Array.from({ length: n }, (_, i) => new Array<number>(Math.min(b, i) + 1).fill(0))
+    this.nBorder = nBorder
+    this.nb = n - nBorder
+    this.low = Array.from({ length: this.nb }, (_, i) => new Array<number>(Math.min(b, i) + 1).fill(0))
+    this.border = Array.from({ length: nBorder }, (_, r) => new Array<number>(this.nb + r + 1).fill(0))
   }
   get(i: number, j: number): number {
     const I = i >= j ? i : j
     const J = i >= j ? j : i
+    if (I >= this.nb) return this.border[I - this.nb][J]
     const p = I - J
     return p > this.b ? 0 : this.low[I][p] ?? 0
   }
   add(i: number, j: number, v: number): void {
     const I = i >= j ? i : j
     const J = i >= j ? j : i
-    this.low[I][I - J] += v
+    if (I >= this.nb) this.border[I - this.nb][J] += v
+    else this.low[I][I - J] += v
   }
   clone(): SymBandMatrix {
-    const out = new SymBandMatrix(this.n, this.b)
+    const out = new SymBandMatrix(this.n, this.b, this.nBorder)
     out.low = this.low.map((r) => r.slice())
+    out.border = this.border.map((r) => r.slice())
     return out
   }
   addValueOnDiagonalInPlace(v: number): void {
-    for (let i = 0; i < this.n; i++) this.low[i][0] += v
+    for (let i = 0; i < this.nb; i++) this.low[i][0] += v
+    for (let r = 0; r < this.nBorder; r++) this.border[r][this.nb + r] += v
   }
   matVec(v: number[]): number[] {
     const out = new Array<number>(this.n).fill(0)
-    for (let i = 0; i < this.n; i++) {
+    for (let i = 0; i < this.nb; i++) {
       const row = this.low[i]
       out[i] += row[0] * v[i]
       for (let p = 1; p < row.length; p++) {
@@ -55,19 +70,35 @@ export class SymBandMatrix {
         out[j] += row[p] * v[i]
       }
     }
+    for (let r = 0; r < this.nBorder; r++) {
+      const i = this.nb + r
+      const row = this.border[r]
+      out[i] += row[i] * v[i]
+      for (let j = 0; j < i; j++) {
+        out[i] += row[j] * v[j]
+        out[j] += row[j] * v[i]
+      }
+    }
     return out
   }
   quadraticForm(v: number[]): number {
     let s = 0
-    for (let i = 0; i < this.n; i++) {
+    for (let i = 0; i < this.nb; i++) {
       const row = this.low[i]
       s += row[0] * v[i] * v[i]
       for (let p = 1; p < row.length; p++) s += 2 * row[p] * v[i] * v[i - p]
+    }
+    for (let r = 0; r < this.nBorder; r++) {
+      const i = this.nb + r
+      const row = this.border[r]
+      s += row[i] * v[i] * v[i]
+      for (let j = 0; j < i; j++) s += 2 * row[j] * v[j] * v[i]
     }
     return s
   }
   containsNaN(): boolean {
     for (const row of this.low) for (const x of row) if (Number.isNaN(x)) return true
+    for (const row of this.border) for (const x of row) if (Number.isNaN(x)) return true
     return false
   }
 }
@@ -78,8 +109,12 @@ export class SymBandMatrix {
 export class BandedCholesky {
   readonly n: number
   readonly b: number
-  /** L stored banded: lo[i][p] = L(i, i−p); diagonal at p=0. */
+  readonly nBorder: number
+  readonly nb: number
+  /** Leading block of L, banded: lo[i][p] = L(i, i−p); diagonal at p=0. */
   lo: number[][]
+  /** Border rows of L, dense: lb[r][j] = L(nb+r, j), j ≤ nb+r (diag included). */
+  lb: number[][]
   success = false
   firstNonPositiveDefiniteLeadingSubmatrixSize = -1
   private static readonly CLOSE_TO_ZERO = 10e-8
@@ -87,11 +122,14 @@ export class BandedCholesky {
   constructor(M: SymBandMatrix) {
     this.n = M.n
     this.b = M.b
+    this.nBorder = M.nBorder
+    this.nb = M.nb
     this.lo = M.low.map((r) => r.slice())
-    const n = this.n
+    this.lb = M.border.map((r) => r.slice())
+    const nb = this.nb
     const b = this.b
-    for (let j = 0; j < n; j++) {
-      // pivot = M(j,j) − Σ_k L(j,k)²   (k within band of j)
+    // Leading banded block (identical to the pure-band factorization).
+    for (let j = 0; j < nb; j++) {
       let pivot = this.lo[j][0]
       for (let p = 1; p < this.lo[j].length; p++) pivot -= this.lo[j][p] * this.lo[j][p]
       if (pivot < BandedCholesky.CLOSE_TO_ZERO) {
@@ -100,8 +138,7 @@ export class BandedCholesky {
       }
       const Ljj = Math.sqrt(pivot)
       this.lo[j][0] = Ljj
-      for (let i = j + 1; i <= Math.min(j + b, n - 1); i++) {
-        // L(i,j) = (M(i,j) − Σ_k L(i,k)·L(j,k)) / Ljj, k ∈ (band of both)
+      for (let i = j + 1; i <= Math.min(j + b, nb - 1); i++) {
         let v = this.lo[i][i - j]
         const kLo = Math.max(0, i - b, j - b)
         for (let k = kLo; k < j; k++) {
@@ -111,33 +148,75 @@ export class BandedCholesky {
         }
         this.lo[i][i - j] = v / Ljj
       }
+      // border rows against banded column j: L(nb+r, j)
+      for (let r = 0; r < this.nBorder; r++) {
+        let v = this.lb[r][j]
+        const kLo = Math.max(0, j - b)
+        for (let k = kLo; k < j; k++) {
+          const pj = j - k
+          if (pj <= b) v -= this.lb[r][k] * this.lo[j][pj]
+        }
+        this.lb[r][j] = v / Ljj
+      }
+    }
+    // Trailing dense border block.
+    for (let r = 0; r < this.nBorder; r++) {
+      const i = nb + r
+      let pivot = this.lb[r][i]
+      for (let k = 0; k < i; k++) pivot -= this.getL(i, k) * this.getL(i, k)
+      if (pivot < BandedCholesky.CLOSE_TO_ZERO) {
+        this.firstNonPositiveDefiniteLeadingSubmatrixSize = i + 1
+        return
+      }
+      const Lii = Math.sqrt(pivot)
+      this.lb[r][i] = Lii
+      for (let r2 = r + 1; r2 < this.nBorder; r2++) {
+        const i2 = nb + r2
+        let v = this.lb[r2][i]
+        for (let k = 0; k < i; k++) v -= this.getL(i2, k) * this.getL(i, k)
+        this.lb[r2][i] = v / Lii
+      }
     }
     this.success = true
   }
 
   getL(i: number, k: number): number {
     if (k > i) return 0
+    if (i >= this.nb) return this.lb[i - this.nb][k]
     const p = i - k
     return p > this.b ? 0 : this.lo[i][p]
   }
 
-  /** Solve L y = rhs (forward, banded). */
+  /** Solve L y = rhs (forward: banded block, then dense border rows). */
   solveLower(rhs: number[]): number[] {
     const x = rhs.slice()
-    for (let i = 0; i < this.n; i++) {
+    for (let i = 0; i < this.nb; i++) {
       let sum = rhs[i]
       for (let p = 1; p <= Math.min(this.b, i); p++) sum -= this.lo[i][p] * x[i - p]
       x[i] = sum / this.lo[i][0]
     }
+    for (let r = 0; r < this.nBorder; r++) {
+      const i = this.nb + r
+      let sum = rhs[i]
+      for (let k = 0; k < i; k++) sum -= this.lb[r][k] * x[k]
+      x[i] = sum / this.lb[r][i]
+    }
     return x
   }
 
-  /** Solve Lᵀ x = y (backward, banded). */
+  /** Solve Lᵀ x = y (backward: border rows first, then banded block + border columns). */
   solveUpper(y: number[]): number[] {
     const x = y.slice()
-    for (let i = this.n - 1; i >= 0; i--) {
+    for (let r = this.nBorder - 1; r >= 0; r--) {
+      const i = this.nb + r
       let sum = x[i]
-      for (let p = 1; p <= Math.min(this.b, this.n - 1 - i); p++) sum -= this.lo[i + p][p] * x[i + p]
+      for (let r2 = r + 1; r2 < this.nBorder; r2++) sum -= this.lb[r2][i] * x[this.nb + r2]
+      x[i] = sum / this.lb[r][i]
+    }
+    for (let i = this.nb - 1; i >= 0; i--) {
+      let sum = x[i]
+      for (let p = 1; p <= Math.min(this.b, this.nb - 1 - i); p++) sum -= this.lo[i + p][p] * x[i + p]
+      for (let r = 0; r < this.nBorder; r++) sum -= this.lb[r][i] * x[this.nb + r]
       x[i] = sum / this.lo[i][0]
     }
     return x
@@ -380,31 +459,33 @@ export class BandedTrustRegionSubproblem {
 
   private estimateSmallestSingularValue(chol: BandedCholesky): { value: number; vector: number[] } {
     const n = chol.n
+    const nb = chol.nb
     const p = zeroVector(n)
     const y = zeroVector(n)
     for (let k = 0; k < n; k++) {
       const Lkk = chol.getL(k, k)
       const y_plus = (1 - p[k]) / Lkk
       const y_minus = (-1 - p[k]) / Lkk
-      // banded: only i ≤ k+b have L(i,k) ≠ 0; beyond that p is unchanged.
+      // Column k's nonzero rows: the band below k (leading block only) plus
+      // EVERY border row (dense); elsewhere p is unchanged.
+      const bandHi = k < nb ? Math.min(nb - 1, k + chol.b) : k // border cols: no band part below
       let n1p = 0
       let n1m = 0
-      const hi = Math.min(n - 1, k + chol.b)
-      for (let i = k + 1; i <= hi; i++) {
-        n1p += Math.abs(p[i] + chol.getL(i, k) * y_plus)
-        n1m += Math.abs(p[i] + chol.getL(i, k) * y_minus)
-      }
-      for (let i = hi + 1; i < n; i++) {
-        const a = Math.abs(p[i])
-        n1p += a
-        n1m += a
+      for (let i = k + 1; i < n; i++) {
+        const Lik = (i <= bandHi || i >= nb) ? chol.getL(i, k) : 0
+        n1p += Math.abs(p[i] + Lik * y_plus)
+        n1m += Math.abs(p[i] + Lik * y_minus)
       }
       if (Math.abs(y_plus) + n1p >= Math.abs(y_minus) + n1m) {
         y[k] = y_plus
-        for (let i = k + 1; i <= hi; i++) p[i] += chol.getL(i, k) * y_plus
+        for (let i = k + 1; i < n; i++) {
+          if (i <= bandHi || i >= nb) p[i] += chol.getL(i, k) * y_plus
+        }
       } else {
         y[k] = y_minus
-        for (let i = k + 1; i <= hi; i++) p[i] += chol.getL(i, k) * y_minus
+        for (let i = k + 1; i < n; i++) {
+          if (i <= bandHi || i >= nb) p[i] += chol.getL(i, k) * y_minus
+        }
       }
     }
     const v = chol.solveUpper(y)
@@ -421,7 +502,8 @@ export class BandedTrustRegionSubproblem {
   ): { delta: number; vector: number[] } {
     if (k < 0) throw new Error('singularLeadingSubmatrix: negative k')
     let delta = 0
-    for (let j = Math.max(0, k - 1 - chol.b); j < k - 1; j++) delta += chol.getL(k - 1, j) ** 2
+    const rowLo = k - 1 < chol.nb ? Math.max(0, k - 1 - chol.b) : 0 // border row: dense
+    for (let j = rowLo; j < k - 1; j++) delta += chol.getL(k - 1, j) ** 2
     delta -= A.get(k - 1, k - 1)
     const v = zeroVector(A.n)
     v[k - 1] = 1
@@ -432,7 +514,8 @@ export class BandedTrustRegionSubproblem {
       const vtemp = u.slice()
       for (let i = 0; i < k - 1; i++) {
         let sum = u[i]
-        for (let p = 1; p <= Math.min(chol.b, i); p++) sum -= chol.getL(i, i - p) * vtemp[i - p]
+        const lo = i < chol.nb ? Math.max(0, i - chol.b) : 0
+        for (let kk = lo; kk < i; kk++) sum -= chol.getL(i, kk) * vtemp[kk]
         vtemp[i] = sum / chol.getL(i, i)
       }
       for (let i = 0; i < k - 1; i++) v[i] = vtemp[i]
@@ -492,10 +575,63 @@ export class TrustRegionBarrierOptimizerBanded {
     return b
   }
 
+  /** Permutation for CLOSED curves: seam-coupled variables (wrap rows would
+   *  otherwise span the whole index range) go LAST, where the bordered Cholesky
+   *  carries them densely. Open curves: identity, border 0 — unchanged path.
+   *  Computed once per solve (active-set row supports are fixed for the solve). */
+  private buildOrdering(rows: { vars: number[] }[], nCP: number, N: number): { perm: number[]; nBorder: number; b: number } {
+    // interleaved spans per row
+    const spans = rows.map((r) => {
+      let lo = Infinity, hi = -Infinity
+      for (const v of r.vars) {
+        const q = toInterleaved(v, nCP)
+        if (q < lo) lo = q
+        if (q > hi) hi = q
+      }
+      return { lo, hi }
+    })
+    const wrap = spans.some((sp) => sp.hi - sp.lo > N / 2)
+    if (!wrap) {
+      let b = 1
+      for (const sp of spans) if (sp.hi - sp.lo > b) b = sp.hi - sp.lo
+      return { perm: Array.from({ length: N }, (_, i) => i), nBorder: 0, b }
+    }
+    // Grow the seam CP prefix 0..dSeam−1 until every row's NON-seam interleaved
+    // spread fits the non-wrap bandwidth.
+    let bOpen = 1
+    for (let r = 0; r < rows.length; r++) {
+      const sp = spans[r]
+      if (sp.hi - sp.lo <= N / 2 && sp.hi - sp.lo > bOpen) bOpen = sp.hi - sp.lo
+    }
+    let dSeam = 1
+    outer: for (; dSeam < nCP; dSeam++) {
+      for (const r of rows) {
+        let lo = Infinity, hi = -Infinity
+        for (const v of r.vars) {
+          const cp = v % nCP
+          if (cp < dSeam) continue // seam variable — carried by the border
+          const q = toInterleaved(v, nCP)
+          if (q < lo) lo = q
+          if (q > hi) hi = q
+        }
+        if (hi - lo > bOpen) continue outer
+      }
+      break
+    }
+    const isSeam = (I: number) => Math.floor(I / 2) < dSeam // interleaved index → CP = floor(I/2)
+    const perm = new Array<number>(N)
+    let next = 0
+    for (let I = 0; I < N; I++) if (!isSeam(I)) perm[I] = next++
+    for (let I = 0; I < N; I++) if (isSeam(I)) perm[I] = next++
+    return { perm, nBorder: 2 * dSeam, b: bOpen }
+  }
+
   optimize(epsilon: number = 10e-8, maxTrustRadius = 10, maxNumSteps: number = 800): void {
     this.success = false
     const nCP = this.o.nCP
     const N = this.o.numberOfIndependentVariables
+    const ordering = this.buildOrdering(this.o.localRows(), nCP, N)
+    const { perm, nBorder, b } = ordering
     let numSteps = 0
     let t = this.o.numberOfConstraints / this.o.f0
     let trustRadius = 0.1
@@ -506,37 +642,36 @@ export class TrustRegionBarrierOptimizerBanded {
         numSteps += 1
         const f = this.o.f
         const rows = this.o.localRows()
-        const b = TrustRegionBarrierOptimizerBanded.bandwidthOf(rows, nCP)
-        // barrier gradient (interleaved) and band Hessian from local rows
+        // barrier gradient and band+border Hessian from local rows (permuted order)
         const gradI = new Array<number>(N).fill(0)
-        const H = new SymBandMatrix(N, b)
+        const H = new SymBandMatrix(N, b, nBorder)
         for (let r = 0; r < rows.length; r++) {
           const { vars, vals } = rows[r]
           const fi = f[r]
           const invF = 1 / fi
           const invF2 = invF * invF
           for (let a = 0; a < vars.length; a++) {
-            const I = toInterleaved(vars[a], nCP)
+            const I = perm[toInterleaved(vars[a], nCP)]
             gradI[I] += -vals[a] * invF
             for (let c = 0; c <= a; c++) {
-              const J = toInterleaved(vars[c], nCP)
+              const J = perm[toInterleaved(vars[c], nCP)]
               H.add(I, J, vals[a] * vals[c] * invF2)
             }
           }
         }
         const barrierValue = this.barrierValue(f)
-        // + t·(objective gradient, diagonal Hessian), block → interleaved
+        // + t·(objective gradient, diagonal Hessian), block → permuted interleaved
         const g0 = this.o.gradient_f0
         const d0 = this.o.objectiveHessianDiagonal
         for (let v = 0; v < N; v++) {
-          const I = toInterleaved(v, nCP)
+          const I = perm[toInterleaved(v, nCP)]
           gradI[I] += t * g0[v]
           H.add(I, I, t * d0[v])
         }
         const sub = new BandedTrustRegionSubproblem(gradI, H)
         let tr = sub.solve(trustRadius, this.lastLambda)
         this.lastLambda = sub.lambda.current
-        let stepBlock = this.toBlock(tr.step, nCP)
+        let stepBlock = this.toBlock(tr.step, nCP, perm)
         let fStep = this.o.fStep(stepBlock)
         let numSteps2 = 0
         while (Math.max(...fStep) >= 0) {
@@ -544,7 +679,7 @@ export class TrustRegionBarrierOptimizerBanded {
           trustRadius *= 0.25
           tr = sub.solve(trustRadius, this.lastLambda)
           this.lastLambda = sub.lambda.current
-          stepBlock = this.toBlock(tr.step, nCP)
+          stepBlock = this.toBlock(tr.step, nCP, perm)
           fStep = this.o.fStep(stepBlock)
           if (numSteps2 > 100) throw new Error('TrustRegionBarrierOptimizerBanded: feasibility shrink exceeded 100')
         }
@@ -573,9 +708,9 @@ export class TrustRegionBarrierOptimizerBanded {
     this.success = true
   }
 
-  private toBlock(stepI: number[], nCP: number): number[] {
+  private toBlock(stepI: number[], nCP: number, perm: number[]): number[] {
     const out = new Array<number>(stepI.length)
-    for (let v = 0; v < stepI.length; v++) out[v] = stepI[toInterleaved(v, nCP)]
+    for (let v = 0; v < stepI.length; v++) out[v] = stepI[perm[toInterleaved(v, nCP)]]
     return out
   }
 

@@ -14,13 +14,13 @@ import { weightedAveragePhi, threeArcPointsFromNoisyPoints, circleArcFromThreePo
 import { optimizeCurve, applyOptimizeResult, applyOptimizeRationalResult, optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizePHCurve, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve, type OptimizeRationalResult } from '../optimizer'
 // MIGRATION: curvature-extrema drag now runs on the clean core/ engine for the
 // CLEAN-PERIODIC + open cases of every algebraic family — open & closed polynomial
-// (slideCurve), and closed real-rational & complex-rational (slideComplexRational,
+// (slideCurve), and closed real-rational & complex-rational (banded trust-region slide,
 // banded + low-rank seam = arrowhead, weights held fixed, ρ-aware). Open rational/
 // complex go through the generic slide(). Only the non-clean-periodic conventions
 // (periodic-junction/cusp knots) and symmetry-reduced/anchored drags still fall to
 // the legacy optimizer; PH is largely legacy. See docs/THE_IDEAS.md (idea VII) and
 // docs/CURVATURE_ARCHITECTURE.md for the convergence status.
-import { slideCurve, slideComplexRational, slide, slideOpenPHTracking, slideClosedPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHTracking, slideClosedPHTracking, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, curvatureExtremaNumeratorPlanarPeriodic, assignSignsNeighbor, cyclicSignChanges, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -917,16 +917,23 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         const rho = curve.wrapWeight !== undefined
           ? { re: realSpiralRatio(curve.wrapWeight, curve.controlPoints[0].w), im: 0 }
           : undefined
-        const r = slideComplexRational(cpx, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y, {
-          maxIterations: 20, enableBFGS: false, ...(rho ? { rho } : {}),
-        })
+        // Banded trust-region (seam permutation + bordered Cholesky): closed rational
+        // measured 89/91/82% tracked at n=8/16/32 (@107/250/549ms) vs the previous
+        // primal-dual path's 79/55/18% (@177/1009/6850ms). Weights ride fixed; rho
+        // (spiral monodromy) passes through the family numerator as before.
+        const r = slide('rational', cpx.map(p => ({ re: p.re, im: p.im, wRe: p.w_re, wIm: p.w_im })),
+          curve.knots, curve.degree, 'closed', pointIndex, { x: newPosition.x, y: newPosition.y }, {
+            solver: 'trust-region', jacobian: 'analytic',
+            maxIterations: Math.max(25, Math.min(50, curve.controlPoints.length)),
+            ...(rho ? { rho } : {}),
+          })
         const newControlPoints = r.points.map((p, i) => ({ x: p.re, y: p.im, w: curve.controlPoints[i].w }))
         set((state) => ({
           curves: state.curves.map((c) => (c.id === curveId ? { ...curve, controlPoints: newControlPoints } : c)),
         }))
         return
       } catch (e) {
-        console.warn('core slideComplexRational (real rational) failed (no legacy fallback):', e)
+        console.warn('core closed rational trust-region failed (no legacy fallback):', e)
         return
       }
     }
@@ -1028,10 +1035,16 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       try {
         const cw0 = curve.controlPoints[0]
         const rho = curve.wrapWeight ? complexSpiralRatio(curve.wrapWeight, { re: cw0.w_re, im: cw0.w_im }) : undefined
-        const r = slideComplexRational(
-          curve.controlPoints, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y,
-          { maxIterations: 20, enableBFGS: false, ...(rho ? { rho } : {}) },
-        )
+        // Banded trust-region for closed complex-rational (same engine as rational —
+        // measured 88/79/73% at n=8/16/32 @146/140/591ms vs primal-dual 72/54/19%).
+        const rr = slide('complex',
+          curve.controlPoints.map(p => ({ re: p.re, im: p.im, wRe: p.w_re, wIm: p.w_im })),
+          curve.knots, curve.degree, 'closed', pointIndex, { x: newPosition.x, y: newPosition.y }, {
+            solver: 'trust-region', jacobian: 'analytic',
+            maxIterations: Math.max(25, Math.min(50, curve.controlPoints.length)),
+            ...(rho ? { rho } : {}),
+          })
+        const r = { points: curve.controlPoints.map((p, i) => ({ ...p, re: rr.points[i].re, im: rr.points[i].im })) }
         // Recompute Farin handles wrapWeight-aware: pass NO stored positions so
         // computeComplexFarinPoints derives them (wrap edge from wrapWeight).
         const farinPositions = computeComplexFarinPoints({
@@ -1045,7 +1058,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         }))
         return
       } catch (e) {
-        console.warn('core slideComplexRational failed (no legacy fallback):', e)
+        console.warn('core closed complex trust-region failed (no legacy fallback):', e)
         return
       }
     }
