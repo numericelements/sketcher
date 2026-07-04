@@ -136,6 +136,42 @@ fast-t escalation compounding; with consistent ρ, budget scales tracking again.
 rule (identical by reading), scaled-Bernstein numerics (E7 used plain), Eric's exact TR
 subproblem (E10d — his CGT solve does not compose with core's loop and is not needed).
 
+## E13a — the ipopt scale collapse, dissected (2026-07-04)
+
+Rational open column (census: 46/17/6% at n=8/16/32), probes @maxIterations:
+
+    n= 8   @20: 46%   @40: 53%   @200: 95%    @20 noFTB: 46%
+    n=16   @20: 17%   @80: 35%   @200:  5%    @20 noFTB: 17%
+    n=32   @20:  6%   @160: 7%   @200:  8%    @20 noFTB:  6%
+
+    diagnostics @20:  n=8: rawViol 0/15, medδ 0.17 | n=16: 2/15, 0.18 | n=32: 9/15, 0.013
+    guard never fully collapses (α min 0.597, med 0.955) — it TRIMS nearly every tick.
+    ε-knife-edge test EMPTY at n=32: the sign flips happen MID-STEP, not at the start.
+    dynamic range GROWS with n: max|g| 8.5e13 (n=8) → 2.6e16 (n=32).
+
+**H1 (budget): true only at n=8** (95% @200). At n=16 big budget REVERSES (35→5% — the
+pre-E10 inversion signature returns: over-solving the surrogate walks away from true
+feasibility). **H2 (FTB): dead** — identical at every n. **The real mechanism (E13a-2,
+the who-crosses probe): on EVERY violating tick exactly ONE ACTIVE constraint flips,
+and its start magnitude is |g₀|/max ≈ 1e-13…1e-12** (absolute ~1e3 against 2.6e16-scale
+coefficients — the STRUCTURAL-ZERO class of F1, whose computed value is comparable to
+the roundoff of the products that made it). One noise-class coefficient crossing costs
+the robust count +2; the guard trims the step; repeat every tick → 6%.
+
+**Consequences.**
+1. The scale collapse is not a solver defect: the solver is asked to hold a wall whose
+   POSITION is below arithmetic resolution. Margins/scaling can't fix what precision
+   erased — this is Eric's "near zero, numerical error creeps in", now with a specimen.
+2. **Law 3 exposure at scale:** the DISPLAYED robust count itself leans on the sign of
+   a coefficient whose sign may be roundoff — the honesty of the n=32 bound display is
+   an open question, not just solver quality.
+3. **E12 is promoted from "worth checking" to the direct next step, with a precise
+   target:** evaluate the flagged 1e-12-relative coefficients in compensated arithmetic
+   (Eric's Kahan/Dekker toolkit). If they are structural zeros (exactly 0 in exact
+   arithmetic) or their double sign is unstable, the fix is arithmetic + treating
+   known-structural-zeros as exact (never constraints, never sign carriers) — not more
+   solver work. Then re-run this column.
+
 ## Conclusions (running)
 
 1. **The 91-vs-47 gap is a SOLVER property, not formulation, not DOF, not numerics.**
