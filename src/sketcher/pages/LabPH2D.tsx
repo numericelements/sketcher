@@ -12,8 +12,8 @@ import SketcherCanvas from '../components/SketcherCanvas'
 import type { CanvasConfig } from '../types/canvas'
 import type { Curve } from '../types/curve'
 import { createSpiralFromTwoPoints } from '../optimizer/phCurve'
-import { snapPHCurveToCurvatureBound } from '../optimizer'
-import { phCurvatureMargin } from '../optimizer/phCurvatureBound'
+import { phValueBoundMargin, snapPHToValueBound } from '../../core/phValueBound'
+import { computePHCurveFromUV } from '../optimizer/phCurve'
 import { curvatureComb } from '../utils/curvature'
 
 const CURVE_ID = 'ph2d-curve'
@@ -184,15 +184,17 @@ export default function LabPH2D() {
     if (!curve || curve.kind !== 'bspline' || !meta || meta.kind !== 'polynomial') return
     const kmSnap = km * (1 - SNAP_BUFFER)
     // Already strictly inside the (tighter) bound? Nothing to do.
-    if (phCurvatureMargin(meta.uControlPoints, meta.vControlPoints, meta.uvKnots, kmSnap, 2) >= 0) return
-    const res = snapPHCurveToCurvatureBound(meta, curve.controlPoints, kmSnap, 2)
+    if (phValueBoundMargin(meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree, kmSnap, 2) >= 0) return
+    // Core hinge-GN projection onto the certificate (the drag's feasibility restoration).
+    const snapped = snapPHToValueBound(meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree, kmSnap, 2)
+    const res = computePHCurveFromUV(snapped.u, snapped.v, meta.uvKnots, meta.uvDegree, meta.origin.x, meta.origin.y)
     useSceneStore.setState((state) => {
       const phMetadata = new Map(state.phMetadata)
-      phMetadata.set(CURVE_ID, res.curveResult.metadata)
+      phMetadata.set(CURVE_ID, res.metadata)
       return {
         curves: state.curves.map((c) =>
           c.id === CURVE_ID
-            ? ({ ...c, controlPoints: res.curveResult.controlPoints, knots: res.curveResult.knots, degree: res.curveResult.degree } as Curve)
+            ? ({ ...c, controlPoints: res.controlPoints, knots: res.knots, degree: res.degree } as Curve)
             : c,
         ),
         phMetadata,

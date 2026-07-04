@@ -9,8 +9,8 @@
  *  - optimizeRationalFarinCurve / optimizeComplexRationalCurve(farinPoint):
  *    bound-preserving Farin drags (complex Farin is a known-hard open problem
  *    — see the legacy-deletion notes; do not grind on it as cleanup).
- *  - optimizePHCurve: the curvature-VALUE bound |κ| ≤ b (2D PH workbench) and
- *    plain (no-extrema) PH tracking.
+ *  - optimizePHCurve: PLAIN (no-extrema, no-value-bound) PH tracking only —
+ *    the value bound |κ| ≤ b migrated to core (phValueBound.ts, E19).
  *  - optimizeABPHCurve / optimizeComplexRationalPHCurve /
  *    optimizeRealRationalPHCurve: the PH variant families (no core ports).
  */
@@ -24,7 +24,6 @@ import type { OptimizerConfig } from './types'
 import { curveToRationalBS2D, updateCurveFromRationalBS2D } from './bsplineTypes'
 import type { Curve, ComplexPoint, Point2D, ComplexRationalBSplineCurve } from '../types/curve'
 import { PHCurveProblem, type PHCurvatureBoundOptions } from './PHCurveProblem'
-import { phCurvatureMargin } from './phCurvatureBound'
 import { ComplexRationalPHCurveProblem } from './ComplexRationalPHCurveProblem'
 import { computePHCurveFromUV, type PHMetadata, type PHCurveResult, type ComplexRationalPHMetadata, type ComplexRationalPHCurveResult } from './phCurve'
 import { computeComplexRationalPHFromSD } from './complexRationalPHCurve'
@@ -374,61 +373,6 @@ export function optimizePHCurve(
     converged: result.converged,
     objective: result.objective,
   }
-}
-
-/**
- * Project a (possibly over-curved) polynomial PH curve onto |κ| ≤ κ_max. The IP
- * barrier needs a feasible start, so feasibility is driven by an escalating
- * penalty (stops at the first λ that certifies the bound). Used once when the
- * bound is enabled or the radius tightened while the curve is violating; live
- * constrained dragging maintains it thereafter.
- */
-export function snapPHCurveToCurvatureBound(
-  metadata: PHMetadata,
-  curveCPs: Point2D[],
-  kappaMax: number,
-  subdivisions = 2,
-): OptimizePHResult {
-  const numU = metadata.uControlPoints.length
-  const numV = metadata.vControlPoints.length
-  let meta = metadata
-  let lambda = 1
-  let result: ReturnType<InteriorPointOptimizer['optimize']> | null = null
-
-  const margin = () =>
-    phCurvatureMargin(meta.uControlPoints, meta.vControlPoints, meta.uvKnots, kappaMax, subdivisions)
-
-  if (margin() > 1e-9) {
-    return { curveResult: computePHCurveFromUV(meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree, meta.origin.x, meta.origin.y), iterations: 0, converged: true, objective: 0 }
-  }
-
-  for (let i = 0; i < 18; i++) {
-    // No drag (target = current CP 0); the penalty does the work.
-    const problem = new PHCurveProblem(meta, curveCPs, curveCPs[0].x, curveCPs[0].y, 0, {
-      curvatureBound: kappaMax,
-      subdivisions,
-      penaltyWeight: lambda,
-    })
-    const optimizer = new InteriorPointOptimizer(problem, {
-      maxIterations: 40, enableFeasibilityRestoration: false, enableBFGS: false,
-    })
-    result = optimizer.optimize()
-    problem.setVariables(result.variables)
-    const v = result.variables
-    meta = {
-      ...meta,
-      origin: { x: v[0], y: v[1] },
-      uControlPoints: v.slice(2, 2 + numU),
-      vControlPoints: v.slice(2 + numU, 2 + numU + numV),
-    }
-    if (margin() > 1e-7) break
-    lambda *= 2.5
-  }
-
-  const curveResult = computePHCurveFromUV(
-    meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree, meta.origin.x, meta.origin.y,
-  )
-  return { curveResult, iterations: result?.iterations ?? 0, converged: true, objective: result?.objective ?? 0 }
 }
 
 // ============================================================================

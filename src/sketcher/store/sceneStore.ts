@@ -592,6 +592,12 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           let outKnots: number[], outDeg: number
           let outMeta: PHMetadataAny
 
+          if (boundCurvatureValue && Number.isFinite(curvatureBound)) {
+            // The closed-PH drag does NOT enforce the curvature-value bound (no
+            // closed certificate wired yet). Say it out loud (dormant-flag law)
+            // rather than silently ignoring the toggle.
+            console.warn('closed PH: curvature-value bound |κ|≤b is NOT enforced on closed curves (flag ignored)')
+          }
           if (!preserveCurvatureExtrema) {
             // No curvature control: the re-fit IS the result (follows the drag,
             // stays closed + PH). Only computed on this path — the extrema path
@@ -728,15 +734,22 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           // let the anchors fight the drag, 42% vs 96% tracked). Bench vs the old
           // engine at nGen 7/13/25: 87/92/85% → 98/96/95% tracked at ~1/4 the cost.
           // Display (S=, markers, bar) reads the SAME R — Law 3. The curvature-VALUE
-          // bound (|κ|≤b, 2D workbench) stays on legacy below.
-          if (preserveCurvatureExtrema && !valueBound) {
+          // bound |κ|≤b rides the SAME solve as certificate rows (P± Bernstein
+          // coefficients ≥ 0, exact AD Jacobian, core phValueBound.ts) — with
+          // extrema constrained too when both toggles are on. Only PLAIN PH
+          // tracking (neither flag) remains on legacy below.
+          if (preserveCurvatureExtrema || valueBound) {
             const targets = (curve.controlPoints as Point2D[]).map((p, i) =>
               i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
             const M = targets.length
             const targetWeights = targets.map((_, i) => (i === pointIndex ? 10 : i === 0 || i === M - 1 ? 5 : 1))
             const r = slideOpenPHCurveBound(
               meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
-              meta.uvKnots, meta.uvDegree, targets, { maxNumSteps: 30, targetWeights },
+              meta.uvKnots, meta.uvDegree, targets, {
+                maxNumSteps: 30, targetWeights,
+                constrainExtrema: preserveCurvatureExtrema,
+                ...(valueBound ? { valueBound: { kappaMax: curvatureBound, subdivisions: 2 } } : {}),
+              },
             )
             const built = computePHCurveFromUV(r.u, r.v, meta.uvKnots, meta.uvDegree, r.x0, r.y0)
             const newPhMetadata = new Map(phMetadata)
@@ -752,18 +765,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             return
           }
 
-          // Legacy: curvature-VALUE bound (optionally with extrema), or plain PH tracking.
-          const phOptions: Parameters<typeof optimizePHCurve>[5] = {
-            ...(valueBound ? { constrainCurvatureValue: true, curvatureBound } : {}),
-            ...(preserveCurvatureExtrema ? { preserveCurvatureExtrema: true } : {}),
-          }
-          if (valueBound || preserveCurvatureExtrema) {
-            phOptions.maxIterations = 24
-            phOptions.enableBFGS = false
-          }
+          // Legacy: PLAIN PH tracking only (no extrema, no value bound) — the last
+          // open-PH capability on the old engine (task #5).
           const result = optimizePHCurve(
             meta, curve.controlPoints, newPosition.x, newPosition.y, pointIndex,
-            phOptions,
+            {},
           )
           if (result.converged || result.iterations > 0) {
             const newPhMetadata = new Map(phMetadata)

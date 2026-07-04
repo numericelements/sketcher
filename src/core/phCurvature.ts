@@ -120,8 +120,10 @@ export function curvatureExtremaReducedNumeratorPH(
   return P.derivative().multiply(sigma).subtract(P.multiply(sigma.derivative()).scale(2)) // P'σ−2Pσ'
 }
 
-/** Forward-AD dual over the real B-spline algebra: (value, tangent) BernsteinDecompositions. */
-class RDual {
+/** Forward-AD dual over the real B-spline algebra: (value, tangent) BernsteinDecompositions.
+ *  Exported: the PH value-bound certificate (phValueBound.ts) differentiates through the
+ *  same algebra. */
+export class RDual {
   readonly val: BernsteinDecomposition
   readonly tan: BernsteinDecomposition
   constructor(val: BernsteinDecomposition, tan: BernsteinDecomposition) {

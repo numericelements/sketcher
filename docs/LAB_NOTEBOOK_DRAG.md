@@ -615,3 +615,33 @@ meets the legacy feel bar with no recalibration — the invariants outlived the 
 are inequality constraints like R's), decide plain-PH tracking, and the PH variant
 families; Farin stays until the research problem is solved. InteriorPointOptimizer leaves
 when its last problem does.
+
+## E19 — the PH curvature-VALUE bound onto the trust-region engine (2026-07-04)
+
+**The generalization worth naming:** |κ| ≤ κ_max is the laws' machinery pointed at
+NONNEGATIVITY instead of sign changes. κ = 2P/σ² (P = uv′−vu′, σ = u²+v² — R's own
+ingredients), so the bound is two polynomial certificates P± = κ_max·σ² ± 2P ≥ 0,
+certified by Bernstein coefficients ≥ 0 (variation diminishing; subdivision is a linear
+map that tightens honestly — loose is true). Core `phValueBound.ts` keeps the
+"certificate rows" shape generic: a SPATIAL PH curve joins later with its single row
+b²σ⁶ − |r′×r″|² ≥ 0 (the Giannelli AUV lab) — same pattern, its own polynomial.
+
+**Build:** certificate + exact forward-AD Jacobian through the exported RDual algebra
+(machine-precision parity with the legacy hand-derived columns, pinned at subdivisions
+1/2/3); rows ride `slideOpenPHCurveBound` as extra TR inequality rows; new
+`constrainExtrema` toggle (a value-bound-only drag may legitimately change the extrema
+count — the strict R guard is scoped to the extrema mode, and the combined mode re-checks
+the certificate after any guard bisect: a convex combination of feasible generators is
+not certificate-feasible by construction). Feasibility restoration = `snapPHToValueBound`,
+a hinge Gauss-Newton with escalating penalty (the TR barrier cannot start infeasible —
+and cannot run with zero constraints: t = m/f0 = 0 never terminates; the snap is its own
+tiny solver by design).
+
+**Measured:** combined drag (value bound + extrema) tracks 87% with BOTH held every tick;
+value-only mode holds the certificate with R free. Workbench (LabPH2D) snap + margin now
+core; the store routes valueBound → core, and the legacy `optimizePHCurve` call is down
+to PLAIN tracking with empty options. `snapPHCurveToCurvatureBound` deleted from the
+legacy index. Closed PH now WARNS that the value bound is not enforced there
+(dormant-flag law) instead of silently ignoring the toggle.
+
+**E17's known gap closed:** no route enforces legacy-g under an R display anymore.

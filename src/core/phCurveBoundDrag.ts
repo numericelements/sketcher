@@ -34,6 +34,7 @@ import {
   curvatureExtremaMarkersOfNumeratorRobust,
 } from './curvature'
 import { curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
+import { phValueBoundRows } from './phValueBound'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
 import { computeInactiveSetBySignCyclic, computeInactiveSetBySign, type CurvatureConstraintState } from './curvatureProblem'
 import { findPeriodicSpan, periodicBasis, findOpenSpan, openBasis, mod } from './basis'
@@ -498,7 +499,17 @@ export function slideOpenPHCurveBound(
   uvDegree: number,
   /** Curve-CP targets: tick-start clamped CPs with the dragged one at the cursor. */
   targetCPs: readonly { x: number; y: number }[],
-  opts: { maxNumSteps?: number; targetWeights?: readonly number[] } = {},
+  opts: {
+    maxNumSteps?: number
+    targetWeights?: readonly number[]
+    /** Constrain the extrema count (R rows). Default true; the value-bound-only
+     *  workbench drag passes false. */
+    constrainExtrema?: boolean
+    /** Curvature-VALUE bound |κ| ≤ kappaMax: the P± certificate coefficients ride
+     *  as additional inequality rows (they must be strictly positive at the tick
+     *  start — snapPHToValueBound is the feasibility restoration). */
+    valueBound?: { kappaMax: number; subdivisions?: number }
+  } = {},
 ): { u: number[]; v: number[]; x0: number; y0: number; converged: boolean } {
   const N = u0.length
   const nz = 2 + 2 * N
@@ -514,17 +525,30 @@ export function slideOpenPHCurveBound(
   let z = [x0in, y0in, ...u0, ...v0]
 
   // RAW constraint state at tick start (pure signs; open runs, linear anchors).
+  const constrainExtrema = opts.constrainExtrema ?? true
   const rc0 = Rof(u0, v0)
   const signsAll = rc0.map((val) => (val > 0 ? -1 : 1))
   const inactive = computeInactiveSetBySign(assignSignsNeighbor(rc0), rc0.map(Math.abs))
-  const active = rc0.map((_, i) => i).filter((i) => !inactive.has(i) && rc0[i] !== 0)
+  const active = constrainExtrema
+    ? rc0.map((_, i) => i).filter((i) => !inactive.has(i) && rc0[i] !== 0)
+    : []
+  const vb = opts.valueBound
+  const vbSub = vb?.subdivisions ?? 2
 
   let atZ: { f: number[]; f0: number; g0: number[]; J: number[][] | null; JtJ: TRSymmetricMatrix | null } | null = null
   let candidate: { dx: number[]; f: number[]; f0: number } | null = null
 
   const fFrom = (z2: number[]) => {
-    const rc = Rof(z2.slice(2, 2 + N), z2.slice(2 + N))
-    return active.map((i) => signsAll[i] * rc[i])
+    const uu = z2.slice(2, 2 + N)
+    const vv = z2.slice(2 + N)
+    const rc = Rof(uu, vv)
+    const f = active.map((i) => signsAll[i] * rc[i])
+    if (vb) {
+      // certificate rows: cert_i ≥ 0 ⇔ f = −cert_i ≤ 0 (no Jacobian here — values only)
+      const { rows } = phValueBoundRows(uu, vv, uvKnots, uvDegree, vb.kappaMax, vbSub)
+      for (const r of rows) f.push(-r)
+    }
+    return f
   }
   const wCP = opts.targetWeights ?? new Array<number>(M0).fill(1)
   const f0From = (clamped: { x: number; y: number }[]) => {
@@ -556,6 +580,17 @@ export function slideOpenPHCurveBound(
       for (let i = 0; i < N; i++) {
         J[rI][2 + i] = sgn * duFlat[i][flat]
         J[rI][2 + N + i] = sgn * dvFlat[i][flat]
+      }
+    }
+    if (vb) {
+      const vbr = phValueBoundRows(uu, vv, uvKnots, uvDegree, vb.kappaMax, vbSub)
+      for (let r = 0; r < vbr.rows.length; r++) {
+        const row = new Array<number>(nz).fill(0)
+        for (let i = 0; i < N; i++) {
+          row[2 + i] = -vbr.du[i][r]
+          row[2 + N + i] = -vbr.dv[i][r]
+        }
+        J.push(row)
       }
     }
     const Jph = phControlPointJacobian(uu, vv, uvKnots as number[], uvDegree)
@@ -593,12 +628,12 @@ export function slideOpenPHCurveBound(
     get f0() { return ensure().f0 },
     get gradient_f0() { buildJ(); return ensure().g0 },
     get hessian_f0(): TRMatrix { buildJ(); return ensure().JtJ! },
-    get numberOfConstraints() { return active.length },
+    get numberOfConstraints() { return ensure().f.length },
     get f() { return ensure().f },
     get gradient_f(): TRMatrix {
       buildJ()
       const J = ensure().J!
-      return { shape: [active.length, nz], get: (r, c) => J[r][c] }
+      return { shape: [J.length, nz], get: (r, c) => J[r][c] }
     },
     step(dx: number[]) {
       z = z.map((val, i) => val + dx[i])
@@ -619,9 +654,10 @@ export function slideOpenPHCurveBound(
   let v = z.slice(2 + N)
   let x0 = z[0]
   let y0 = z[1]
-  // Strict R guard: bisect the straight generator path back toward the tick
-  // start on numerical slip (open: linear interpolation breaks nothing).
-  if (openPHReducedBound(u, v, uvKnots, uvDegree) > startBound) {
+  // Strict R guard (only when extrema are constrained — a value-bound-only
+  // drag may legitimately change the extrema count): bisect the straight
+  // generator path back toward the tick start on numerical slip.
+  if (constrainExtrema && openPHReducedBound(u, v, uvKnots, uvDegree) > startBound) {
     let lo = 0
     let hi = 1
     for (let it = 0; it < 26; it++) {
@@ -633,7 +669,12 @@ export function slideOpenPHCurveBound(
     }
     const ua = u0.map((g, i) => g + lo * (u[i] - g))
     const va = v0.map((g, i) => g + lo * (v[i] - g))
-    if (openPHReducedBound(ua, va, uvKnots, uvDegree) <= startBound) {
+    // A convex combination of feasible generators is NOT certificate-feasible
+    // by construction — re-check the value bound on the bisected state and
+    // keep the tick start if it slipped (both bounds are non-negotiable).
+    const vbOK = () => !vb ||
+      Math.min(...phValueBoundRows(ua, va, uvKnots, uvDegree, vb.kappaMax, vbSub).rows) >= 0
+    if (openPHReducedBound(ua, va, uvKnots, uvDegree) <= startBound && vbOK()) {
       u = ua
       v = va
       x0 = x0in + lo * (x0 - x0in)
