@@ -25,8 +25,12 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"],
-  // The design-oracle test imports Eric's closed-curve project (different, older
-  // tsconfig dialect) — vitest runs it (esbuild, no typecheck); keep it out of
-  // this strict program so tsc -b stays clean.
-  "exclude": ["src/core/__tests__/ericClosedCurveOracle.test.ts"]
+  // These tests import Eric's closed-curve project (different, older tsconfig
+  // dialect) — vitest runs them (esbuild, no typecheck); keep them out of this
+  // strict program so tsc -b stays clean.
+  "exclude": [
+    "src/core/__tests__/ericClosedCurveOracle.test.ts",
+    "src/core/__tests__/labE1PinnedWeights.test.ts",
+    "src/core/__tests__/labE7EricSolverCoreProblem.test.ts"
+  ]
 }
