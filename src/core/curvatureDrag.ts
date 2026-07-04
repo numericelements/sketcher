@@ -408,12 +408,63 @@ export function slide(
       : new InteriorPointOptimizer(problem, { maxIterations: opts.maxIterations ?? 40, enableBFGS: opts.enableBFGS ?? false, returnBestFeasible: true })
     const r = optimizer.optimize()
     problem.setVariables(r.variables)
-    let points = problem.result()
-    points = enforceBoundNonincreasing(
-      cps as WeightedCP[], points, boundOf,
-      (a) => cps.map((p, i) => ({ re: p.re + a * (points[i].re - p.re), im: p.im + a * (points[i].im - p.im), wRe: p.wRe, wIm: p.wIm })),
+    const raw = problem.result()
+    let guardAlpha = 1
+    let points = enforceBoundNonincreasing(
+      cps as WeightedCP[], raw, boundOf,
+      (a) => cps.map((p, i) => ({ re: p.re + a * (raw[i].re - p.re), im: p.im + a * (raw[i].im - p.im), wRe: p.wRe, wIm: p.wIm })),
+      26,
+      opts.diagnostics ? (a) => { guardAlpha = a } : undefined,
     )
-    return { points, converged: r.converged }
+    if (!opts.diagnostics) return { points, converged: r.converged }
+
+    // Stall forensics (F11). Kept off the hot path — every field below is only
+    // computed under the flag.
+    const rawStepNorm = Math.sqrt(cps.reduce((s, p, i) => s + (raw[i].re - p.re) ** 2 + (raw[i].im - p.im) ** 2, 0))
+    const rawBound = familyBound(kind, raw, knots, degree, topology, rho)
+    const finalBound = familyBound(kind, points, knots, degree, topology, rho)
+    // Translation-descent D: objective slope along the exactly-feasible translation
+    // toward the cursor, at the RETURNED point. Targets are the tick-start positions
+    // except the dragged one (the objective slide() actually minimized).
+    const pull = { x: target.x - points[dragIndex].re, y: target.y - points[dragIndex].im }
+    const pl = Math.hypot(pull.x, pull.y)
+    let translationDescent = 0
+    if (pl > 1e-12) {
+      const u = { x: pull.x / pl, y: pull.y / pl }
+      for (let i = 0; i < cps.length; i++) {
+        const tx = i === dragIndex ? target.x : cps[i].re
+        const ty = i === dragIndex ? target.y : cps[i].im
+        translationDescent += (points[i].re - tx) * u.x + (points[i].im - ty) * u.y
+      }
+    }
+    // Knife edge: when the guard pulled back, which g coefficients flip their robust
+    // sign within an ε step along the solver's direction (the discontinuity F11 named).
+    let knifeEdge: { index: number; coeff: number }[] | undefined
+    if (guardAlpha < 1) {
+      const eps = 1e-6
+      const g0 = familyNumerator(kind, cps, knots, degree, topology, rho).flatCoeffs()
+      const s0 = assignSignsNeighbor(g0)
+      const nudged = cps.map((p, i) => ({
+        re: p.re + eps * (raw[i].re - p.re), im: p.im + eps * (raw[i].im - p.im), wRe: p.wRe, wIm: p.wIm,
+      }))
+      const s1 = assignSignsNeighbor(familyNumerator(kind, nudged, knots, degree, topology, rho).flatCoeffs())
+      knifeEdge = s0.flatMap((sv, i) => (sv !== s1[i] ? [{ index: i, coeff: g0[i] }] : []))
+    }
+    const diag: SlideDiagnostics = {
+      solver: method,
+      iterations: r.iterations,
+      converged: r.converged,
+      ...('terminationReason' in r ? { terminationReason: (r as { terminationReason?: string }).terminationReason } : {}),
+      ...('finalDelta' in r ? { finalDelta: (r as { finalDelta?: number }).finalDelta } : {}),
+      rawStepNorm,
+      startBound: gStart,
+      rawBound,
+      finalBound,
+      guardAlpha,
+      translationDescent,
+      ...(knifeEdge ? { knifeEdge } : {}),
+    }
+    return { points, converged: r.converged, diag }
   }
 
   const solver = opts.solver ?? 'best'
