@@ -391,6 +391,37 @@ export function slideClosedPHCurveBound(
   return { u, v, x0, y0, converged }
 }
 
+/** Build the PERIODIC representation via the cached linear operator — the SAME
+ *  numbers slideClosedPHCurveBound constrains. Editors must build/display/guard
+ *  through THIS (not an independent LS refit): near a merge the robust count is
+ *  knife-edge sensitive, and two 1e-6-apart representations can honestly read
+ *  8 vs 10 — display, enforcement, and guard must be ONE computation (Law 3). */
+export function buildPeriodicPHViaOperator(
+  u: readonly number[],
+  v: readonly number[],
+  uvKnots: readonly number[],
+  uvDegree: number,
+  x0: number,
+  y0: number,
+  seamContinuity: number,
+): { controlPoints: { x: number; y: number }[]; knots: number[]; degree: number } {
+  const clamped = computePHCurveFromUV(u as number[], v as number[], uvKnots as number[], uvDegree, x0, y0)
+  const fitOp = periodicFitOperator(clamped.knots, seamContinuity, clamped.controlPoints.length)
+  const nPer = fitOp.P.length
+  const controlPoints: { x: number; y: number }[] = []
+  for (let r = 0; r < nPer; r++) {
+    const row = fitOp.P[r]
+    let x = 0
+    let y = 0
+    for (let j = 0; j < clamped.controlPoints.length; j++) {
+      x += row[j] * clamped.controlPoints[j].x
+      y += row[j] * clamped.controlPoints[j].y
+    }
+    controlPoints.push({ x, y })
+  }
+  return { controlPoints, knots: fitOp.knots.slice(), degree: fitOp.degree }
+}
+
 /** The editor's displayed CURVE-span bound of a clamped closed-PH state — the
  *  metric this drag holds (periodic rep, robust cyclic count). */
 export function closedPHCurveBoundOf(

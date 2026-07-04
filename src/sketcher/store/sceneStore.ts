@@ -6,7 +6,7 @@ import { createBSpline, elevateDegree, insertKnot, moveKnot, removeKnot, getCont
 import { createLine, createCircularArc, createFullCircle } from '../utils/shapes'
 import { createSpiralFromTwoPoints, computePHCurveFromUV, computePHOffset, fitPHSplineToBSpline, fitClosedPHSpline, closeOpenPHSpline, type PHMetadata, type ComplexRationalPHMetadata } from '../optimizer/phCurve'
 import { createStraightComplexRationalPH } from '../optimizer/complexRationalPHCurve'
-import { periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve, projectClosurePH, GEN_DEGREE } from '../../core'
+import { periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve, buildPeriodicPHViaOperator, projectClosurePH, GEN_DEGREE } from '../../core'
 import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexPointsToAB, type ABPHMetadata } from '../optimizer/abPHCurve'
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
@@ -587,19 +587,23 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           const editedCPs = curve.controlPoints.map((p, i) =>
             i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: (p as Point2D).x, y: (p as Point2D).y },
           )
-          // The re-fit follows the drag and keeps the curve closed + PH. It is the
-          // result when no curvature control is active, and the TARGET shape the
-          // optimizer aims at when extrema preservation is on.
-          const refit = fitClosedPHSpline(editedCPs, curve.degree, curve.knots, {
-            genKnots: meta.uvKnots, seamContinuity: seamCont,
-          })
-          if (!refit) return
+          let outCps: WeightedPoint2D[] | Point2D[]
+          let outKnots: number[], outDeg: number
+          let outMeta: PHMetadataAny
 
-          let outCps: WeightedPoint2D[] | Point2D[] = refit.controlPoints
-          let outKnots = refit.knots, outDeg = refit.degree
-          let outMeta: PHMetadataAny = refit.metadata
-
-          if (preserveCurvatureExtrema) {
+          if (!preserveCurvatureExtrema) {
+            // No curvature control: the re-fit IS the result (follows the drag,
+            // stays closed + PH). Only computed on this path — the extrema path
+            // needs no refit (E14: the refit target manufactures extrema).
+            const refit = fitClosedPHSpline(editedCPs, curve.degree, curve.knots, {
+              genKnots: meta.uvKnots, seamContinuity: seamCont,
+            })
+            if (!refit) return
+            outCps = refit.controlPoints
+            outKnots = refit.knots
+            outDeg = refit.degree
+            outMeta = refit.metadata
+          } else {
             // Optimize the generator from the PREVIOUS state toward the re-fit's
             // CLAMPED curve while holding the curve closed (∮w²=0 + seam wrap) and
             // the curvature-extrema count (seam-aware sliding). Re-express periodic.
@@ -611,9 +615,26 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             // extrema; lab notebook E14). Census->now at nCP=51: ~0% -> 49%
             // tracked @306ms/tick with the bound strictly held by the guard
             // below (which stays, unchanged, as the Law-2 backstop).
+            // Targets must be CLAMPED-curve CPs (the drag problem lives in the clamped
+            // chart); the editor's curve.controlPoints are the PERIODIC representation.
+            // Map the dragged periodic CP to the nearest clamped CP and anchor the rest.
+            const clampedCur = computePHCurveFromUV(
+              meta.uControlPoints, meta.vControlPoints, meta.uvKnots, meta.uvDegree,
+              meta.origin.x, meta.origin.y,
+            )
+            // STRUCTURAL periodic→clamped index map: the clamped chart carries
+            // seamMult = degree − seamContinuity duplicated seam CPs up front, so
+            // periodic CP i corresponds to clamped CP i + seamMult. (A nearest-
+            // point map RE-DERIVED per tick drifts once the curve moves and
+            // silently changes which point is being dragged — measured as the
+            // advance-then-retreat freeze.)
+            const seamMult = (curve.degree ?? 5) - seamCont
+            const ci = Math.min(pointIndex + seamMult, clampedCur.controlPoints.length - 1)
+            const clampedTargets = clampedCur.controlPoints.map((p, i) =>
+              i === ci ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
             const r = slideClosedPHCurveBound(
               meta.uControlPoints, meta.vControlPoints, meta.origin.x, meta.origin.y,
-              meta.uvKnots, meta.uvDegree, editedCPs,
+              meta.uvKnots, meta.uvDegree, clampedTargets,
               { seamContinuity: seamCont, wrapSign: meta.wrapSign ?? 1 },
               { maxNumSteps: 30, passes: 2 },
             )
@@ -624,7 +645,13 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
               const buildFromGen = (u: number[], v: number[]) => {
                 const pr = projectClosurePH(u, v, om.uvKnots, om.uvDegree, seamCont, meta.wrapSign ?? 1)
                 const clamped = computePHCurveFromUV(pr.u, pr.v, om.uvKnots, om.uvDegree, om.origin.x, om.origin.y)
-                const periodic = buildPeriodicPHCurve(clamped.controlPoints, clamped.knots, seamCont)
+                // Build via the SAME cached linear operator the solve constrains —
+                // an independent LS refit can honestly read a different count at a
+                // near-merge knife edge (measured 8 vs 10), and the guard then
+                // claws back every solved tick. One computation for solve, guard,
+                // display (Law 3).
+                const periodic = buildPeriodicPHViaOperator(
+                  pr.u, pr.v, om.uvKnots, om.uvDegree, om.origin.x, om.origin.y, seamCont)
                 return { periodic, clampedMeta: clamped.metadata }
               }
               // Strict-S⁻ guard for CLOSED PH (Law 2 / the HARD guarantee). A PH curve can't
@@ -685,7 +712,10 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             ),
             phMetadata: newPhMetadata,
           }))
-        } catch { /* leave the curve unchanged on failure */ }
+        } catch (e) {
+          // No silent failure (this hid a full freeze once): log and drop the tick.
+          console.warn('core closed-PH drag failed (tick dropped):', e)
+        }
         return
       }
       if (meta.kind === 'polynomial') {
