@@ -70,7 +70,10 @@ function censusDrag(
   return `CENSUS ${family.padEnd(10)} ${topo.padEnd(6)} n=${String(n).padStart(2)} ${solver.padEnd(11)} tracked ${tracked.toFixed(0).padStart(4)}%  bound ${start}->${maxB}  ${ms.toFixed(0).padStart(4)}ms/tick`
 }
 
-describe('stall census', () => {
+// describe.skip: this is a ~700s BENCH, not a suite test. Run explicitly:
+//   npx vitest run src/core/__tests__/stallCensus.test.ts
+// (remove .skip locally). Results + reading: LAB_NOTEBOOK_DRAG.md "The census".
+describe.skip('stall census', () => {
   it('algebraic families × topology × size × solver', () => {
     const rows: string[] = []
     for (const family of ['polynomial', 'rational', 'complex'] as const) {

@@ -169,3 +169,45 @@ subproblem (E10d — his CGT solve does not compose with core's loop and is not 
 6. The knife-edge conditioning itself (F1/F11) remains worth treating (compensated
    evaluation of near-zero coefficients — E12), but it is no longer the binding
    constraint on tracking.
+
+## The census (2026-07-04; stallCensus.test.ts, run explicitly — ~700s)
+
+One standardized hard pull (F9-style, 15 ticks, maxIterations 20), bound asserted and
+HELD in every algebraic cell. tracked% (ipopt / primal-dual):
+
+    family      open  n=8      n=16     n=32          closed n=8   n=16     n=32
+    polynomial       73 / 50   41 / 39    8 / 39           85 / 52  37 / 37  13 / 38
+    rational         46 / 84   17 / 66    6 / 41           87 / 79  18 / 55   6 / 18
+    complex          36 / 84    6 / 43   10 / 29           48 / 72   8 / 54   9 / 19
+    rational n=56 spot (ipopt): open 2%, closed 2% (~1.5–1.9 s/tick)
+
+    ph-open   nGen  8 → 75%   14 → 67%   26 → 25%   (bound held; gen ≡ curve span)
+    ph-closed nCP  51 → −30%  75 → −11%  99 → −0%   RAW curve bound GROWS 8→12/18/26
+                                                    (pre-editor-guard; see reading #3)
+
+**Reading — three named specimens for the research program:**
+1. **E13a: the ipopt SCALE collapse.** Post-E10 ipopt still wins small curves (85–87%
+   at n=8 closed) but collapses at n≥16–32 in every family (6–13%; 2% at n=56) while
+   primal-dual degrades gracefully. What grows with n: the active-constraint count
+   (bound 3→9→15 on this shape), the F1 dynamic range, FTB's αmax minimum taken over
+   more rows — while the 20-iteration interactive budget stays fixed. First probe:
+   budget-normalized cells (does maxIterations ∝ n restore ipopt?), then per-n
+   diagnostics (finalDelta / guard-α) via the now-wired slide diagnostics.
+2. **E13b (F4 refined): solver choice is now PREDICTABLE, not random.** primal-dual
+   wins open rational/complex at every size and everything large; ipopt wins small
+   closed. 'best' pays 2× for what looks like a simple (family, topology, n) decision
+   rule — a cheap static router may replace 'best' once E13a is understood.
+3. **THE PH-CLOSED FINDING (Eric's ~30-CP pain, quantified): NEGATIVE tracking.** The
+   editor-faithful refit→slideClosedPHTracking loop, run WITHOUT the editor's hard
+   curve-span guard, drifts AWAY from the cursor (−30% at nCP=51) and its RAW
+   curve-span bound grows 8→26 — the F6 gen-span≠curve-span gap AT SCALE. In the
+   editor, the strict bisect guard eats those violating steps, which is exactly the
+   "challenging to edit" feel. The fix direction is NOT a tougher guard (F11 lesson:
+   the guard is doing its job on a bad step) — the curve-span constraint must enter
+   the tracking solve itself, or the closure projection must stop manufacturing
+   curve-span sign changes. This is E14.
+4. **The cost wall (engineering, known): n=32 costs seconds/tick on the dense paths**
+   (primal-dual rational closed: 6.9 s/tick). At Eric's working sizes the editor pays
+   latency AND tracking penalties — the linear-drag port (windowed/banded, Rust
+   design; docs/LINEAR_DRAG.md, docs/WINDOWED_SOLVE.md) is now load-bearing for feel,
+   not an optimization luxury.
