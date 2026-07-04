@@ -795,3 +795,18 @@ Pinned live (labE22.test.ts): TR tracking identical across the three regimes on 
 uniform and a clustered cell — if a future margin/barrier change silently reintroduces
 scale sensitivity, this alarm fires. F1 is now fully closed: both halves resolved by
 measurement.
+
+## E23 — probe-and-keep knot insertion: OBSOLETE by measurement (task #8 closed, 2026-07-04)
+
+The premise ("drag stalls → insert a knot to free the curve") was minted in the
+ipopt-stall era. Measured on the trust-region engine (15-tick drags):
+
+    7-CP historical stall shape:  no-insert 95%   +knot@0.375  94%   (no headroom left)
+    32-CP uniform cell:           no-insert 81%   +knot near drag 64%   (insertion HURTS)
+
+Post-TR there is no stall to free, and a new knot REFINES g's polygon — more Bézier
+coefficients → more active rows → a tighter loose cage. The palliative became a tax.
+Task #8 closed without building the UI; F10 (insertion legality) remains a valid fact,
+and user-driven insertion for *shape* freedom is untouched — what died is insertion as
+a STALL remedy. (If #28's tight B-spline polygon lands, revisit: on the minimal polygon
+insertion is count-neutral by construction.)
