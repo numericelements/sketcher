@@ -561,7 +561,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
   },
 
   moveControlPoint: (curveId, pointIndex, newPosition) => {
-    const { preserveCurvatureExtrema, preserveInflections, disableSliding, symmetryMaps, curves, phMetadata, anchorWeight, dragStartCPsX, dragStartCPsY, dragConstraintState, boundCurvatureValue, curvatureBound } = get()
+    const { preserveCurvatureExtrema, preserveInflections, disableSliding, symmetryMaps, curves, phMetadata, anchorWeight, dragStartCPsX, dragStartCPsY, boundCurvatureValue, curvatureBound } = get()
     const curve = curves.find((c) => c.id === curveId)
 
     if (!curve) return
@@ -863,27 +863,38 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         const pts = curve.controlPoints as Point2D[]
         const cpX = pts.map((p) => p.x)
         const cpY = pts.map((p) => p.y)
-        const r = slideCurve(cpX, cpY, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y, {
-          method: 'ipopt',
-          bandedSolve: true,
-          maxIterations: curve.closed ? 24 : 20,
-          // CLOSED → BFGS (the Lagrangian-Hessian approximation). Gauss-Newton STALLS on
-          // clustered-knot closed curves — it cannot slide the other control points to keep
-          // S⁻, so the dragged point blocks (FOUNDATIONS F4). BFGS captures the constraint
-          // curvature and reshapes instead of blocking (Law 2), on the SAME fast arrowhead
-          // solve (~24ms; CP6 0→75, CP9 1→75, bound held). OPEN keeps Gauss-Newton — it
-          // doesn't block there and GN is faster + the feel the open path already had.
-          enableBFGS: !!curve.closed,
-          ...(curve.closed ? { closed: true } : {}),
-          ...(dragConstraintState ? { constraintState: dragConstraintState } : {}),
-          ...(preserveInflections ? { preserveInflections } : {}),
-          ...(disableSliding ? { disableSliding } : {}),
-          ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
-            ? { anchorWeight, anchorX: dragStartCPsX, anchorY: dragStartCPsY }
-            : {}),
-          ...(symmetryMaps ? { symmetryMaps } : {}),
-        })
-        const optimizedCurve: Curve = { ...curve, controlPoints: r.x.map((x, i) => ({ x, y: r.y[i] })) }
+        let outX: number[], outY: number[]
+        if (symmetryMaps) {
+          // Symmetry rides slideCurve's variable-reduction path (the generic drag has
+          // no reduced form yet) — unchanged.
+          const r = slideCurve(cpX, cpY, curve.knots, curve.degree, pointIndex, newPosition.x, newPosition.y, {
+            method: 'ipopt',
+            maxIterations: curve.closed ? 24 : 20,
+            enableBFGS: !!curve.closed,
+            ...(curve.closed ? { closed: true } : {}),
+            ...(preserveInflections ? { preserveInflections } : {}),
+            ...(disableSliding ? { disableSliding } : {}),
+            symmetryMaps,
+          })
+          outX = r.x; outY = r.y
+        } else {
+          // Banded trust-region (the one engine, all four algebraic routes): polynomial
+          // measured open 90/78/79% @8/15/40ms and closed 87/77/94% @15/30/96ms at
+          // n=8/16/32 — vs the previous ipopt route's 73/41/8 and 85/37/13.
+          const r = slide('polynomial', pts.map((p) => ({ re: p.x, im: p.y, wRe: 1, wIm: 0 })),
+            curve.knots, curve.degree, curve.closed ? 'closed' : 'open', pointIndex,
+            { x: newPosition.x, y: newPosition.y }, {
+              solver: 'trust-region', jacobian: 'ad',
+              maxIterations: Math.max(25, Math.min(50, curve.controlPoints.length)),
+              ...(preserveInflections ? { preserveInflections } : {}),
+              ...(disableSliding ? { disableSliding } : {}),
+              ...(anchorWeight > 0 && dragStartCPsX && dragStartCPsY
+                ? { anchorWeight, anchorX: dragStartCPsX, anchorY: dragStartCPsY }
+                : {}),
+            })
+          outX = r.points.map((p) => p.re); outY = r.points.map((p) => p.im)
+        }
+        const optimizedCurve: Curve = { ...curve, controlPoints: outX.map((x, i) => ({ x, y: outY[i] })) }
         set((state) => ({
           curves: state.curves.map((c) => (c.id === curveId ? optimizedCurve : c)),
         }))

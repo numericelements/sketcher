@@ -33,6 +33,10 @@ import {
   curvatureExtremaGradientComplexFixedWeightCols,
   curvatureExtremaGradientComplexPeriodicFixedWeightCols,
 } from './curvature'
+import {
+  curvatureExtremaGradientPlanarLocal,
+  curvatureExtremaGradientPlanarPeriodicLocalCols,
+} from './gradient'
 import type { Complex } from './complex'
 import {
   TrustRegionBarrierOptimizer, TRDiagonalMatrix,
@@ -321,12 +325,65 @@ export class CurvatureDragProblem implements OptimizationProblem {
    * `slideCurve`, not this generic problem) → the solver falls back to dense there.
    */
   computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] | null {
-    if (this.kind === 'polynomial') return null
     // Inflection rows have no local-cols path yet — fall back to the dense
     // Jacobian (PlanarCurvatureProblem does the same for its inflection rows).
     if (this.preserveInflections) return null
     if (this.cachedLocalJac) return this.cachedLocalJac
     const closed = this.topology === 'closed'
+    if (this.kind === 'polynomial') {
+      // Planar local gradients (the same machinery PlanarCurvatureProblem's fast
+      // path uses), scattered to BLOCK order rows — this is what lets polynomial
+      // drags ride the banded trust-region engine.
+      const n = this.re.length
+      const activePos = new Map<number, number>()
+      this.activeIdx.forEach((flat, k) => activePos.set(flat, k))
+      const rows = this.activeIdx.map(() => ({ vars: [] as number[], vals: [] as number[] }))
+      if (closed) {
+        const grad = curvatureExtremaGradientPlanarPeriodicLocalCols(this.re, this.im, this.knots, this.degree)
+        const gDeg1 = grad.gDeg + 1
+        for (let i = 0; i < n; i++) {
+          const col = grad.cols[i]
+          const gxc = col.gx.coeffs, gyc = col.gy.coeffs
+          for (let ls = 0; ls < col.spans.length; ls++) {
+            const sp = col.spans[ls]
+            for (let c = 0; c <= grad.gDeg; c++) {
+              const k = activePos.get(sp * gDeg1 + c)
+              if (k === undefined) continue
+              const inv = 1 / this.gScale[k]
+              const vx = gxc[ls][c] * inv, vy = gyc[ls][c] * inv
+              if (vx !== 0) { rows[k].vars.push(i); rows[k].vals.push(vx) }
+              if (vy !== 0) { rows[k].vars.push(n + i); rows[k].vals.push(vy) }
+            }
+          }
+        }
+      } else {
+        const grad = curvatureExtremaGradientPlanarLocal(this.re, this.im, this.knots, this.degree)
+        const gDeg1 = grad.gDeg + 1
+        for (let i = 0; i < n; i++) {
+          const col = grad.cols[i]
+          if (col.s0 < 0) continue
+          const gxc = col.gx.coeffs, gyc = col.gy.coeffs
+          for (let ls = 0; ls < gxc.length; ls++) {
+            const sp = col.s0 + ls
+            for (let c = 0; c <= grad.gDeg; c++) {
+              const k = activePos.get(sp * gDeg1 + c)
+              if (k === undefined) continue
+              const inv = 1 / this.gScale[k]
+              const vx = gxc[ls][c] * inv, vy = gyc[ls][c] * inv
+              if (vx !== 0) { rows[k].vars.push(i); rows[k].vals.push(vx) }
+              if (vy !== 0) { rows[k].vars.push(n + i); rows[k].vals.push(vy) }
+            }
+          }
+        }
+      }
+      for (const r of rows) {
+        const ord = r.vars.map((_, idx) => idx).sort((a, b) => r.vars[a] - r.vars[b])
+        r.vars = ord.map((idx) => r.vars[idx])
+        r.vals = ord.map((idx) => r.vals[idx])
+      }
+      this.cachedLocalJac = rows
+      return rows
+    }
     const grad = closed
       ? curvatureExtremaGradientComplexPeriodicFixedWeightCols(this.re, this.im, this.wRe, this.wIm, this.knots, this.degree, undefined, this.rho)
       : curvatureExtremaGradientComplexFixedWeightCols(this.re, this.im, this.wRe, this.wIm, this.knots, this.degree)
