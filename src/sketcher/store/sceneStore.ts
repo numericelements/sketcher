@@ -11,7 +11,7 @@ import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexP
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
 import { weightedAveragePhi, threeArcPointsFromNoisyPoints, circleArcFromThreePoints, type CircleArcGeometry } from '../utils/circleArc'
-import { optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
+import { optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
 // Curvature-extrema CP drags run ONLY on core/'s trust-region engine — every
 // algebraic family (polynomial/rational/complex, open + closed, junction/cusp
 // knots, symmetry, anchors, inflections) and both PH topologies (R metric).
@@ -21,7 +21,7 @@ import { optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizeC
 // a known-hard open problem), the PH curvature-VALUE bound workbench, plain
 // (no-extrema) PH tracking, and the AB/complex-rational/real-rational PH
 // variants. See docs/CURVATURE_ARCHITECTURE.md.
-import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -2379,23 +2379,50 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     const minDistance = 5 / view.zoom
 
     if (curve.kind === 'rational') {
-      // Use optimizer if preserveCurvatureExtrema is enabled
+      // Rational Farin drag under preserve → core PURE-WEIGHT walk (E27): the
+      // handle is one real ratio t = w₁/(w₀+w₁) on its edge, so the drag is a
+      // 1-D count-guarded bisection toward the target t — no lateral
+      // directions exist, hence no substitution and no ratchet. Closed: the
+      // wrapWeight scales along (monodromy), same as complex.
       const { preserveCurvatureExtrema } = get()
       if (preserveCurvatureExtrema) {
         try {
-          const result = optimizeRationalFarinCurve(
-            curve, newPosition.x, newPosition.y, farinIndex
-          )
-          if (result.converged || result.iterations > 0) {
-            const optimizedCurve = applyOptimizeRationalFarinResult(curve, result)
-            set((state) => ({
-              curves: state.curves.map((c) => (c.id === curveId ? optimizedCurve : c)),
-            }))
-            return
+          const farinPts = computeRationalFarinPoints(curve)
+          const fp = farinPts[farinIndex]
+          if (!fp) return
+          const eps = minDistance / Math.sqrt((fp.edgeEnd.x - fp.edgeStart.x) ** 2 + (fp.edgeEnd.y - fp.edgeStart.y) ** 2 + 1e-10)
+          const { t: tTarget } = projectPointOntoEdge(newPosition, fp.edgeStart, fp.edgeEnd, eps, 1 - eps)
+          const X = curve.controlPoints.map((p) => p.x)
+          const Y = curve.controlPoints.map((p) => p.y)
+          const W = curve.controlPoints.map((p) => p.w)
+          const r = slideRationalFarin(X, Y, W, curve.knots, curve.degree, farinIndex, tTarget,
+            curve.closed ? { closed: { wrapWeight: curve.wrapWeight ?? W[0] } } : {})
+          const newPoints = curve.controlPoints.map((p, i) => ({ ...p, w: r.weights[i] }))
+          // farinTValues from the new weights (closed keeps them stored)
+          const nCP = newPoints.length
+          const numEdges = curve.closed ? nCP : nCP - 1
+          const newT: number[] = []
+          for (let i = 0; i < numEdges; i++) {
+            const w0 = r.weights[i]
+            const w1 = curve.closed && i === nCP - 1 ? (r.wrapWeight ?? r.weights[0]) : r.weights[(i + 1) % nCP]
+            newT.push(w1 / (w0 + w1))
           }
-        } catch {
-          // Fall through to direct move if optimization fails
+          set((state) => ({
+            curves: state.curves.map((c) =>
+              c.id === curveId
+                ? {
+                    ...curve,
+                    controlPoints: newPoints,
+                    ...(curve.closed ? { farinTValues: newT } : {}),
+                    ...(r.wrapWeight !== undefined ? { wrapWeight: r.wrapWeight } : {}),
+                  }
+                : c,
+            ),
+          }))
+        } catch (e) {
+          console.warn('core rational Farin drag failed (tick dropped):', e)
         }
+        return
       }
 
       // Compute current Farin points to get edge info

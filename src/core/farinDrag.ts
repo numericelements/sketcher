@@ -503,3 +503,85 @@ export function slideComplexFarinAnchored(
     startBound,
   }
 }
+
+/**
+ * RATIONAL Farin-point drag — the 1-D sibling of slideComplexFarin: the handle
+ * lives ON its edge at t = w₁/(w₀+w₁), so the drag is a single real ratio.
+ * Same pure-weight semantics (suffix scaling; closed: wrapWeight scales along —
+ * the monodromy absorbs the change) and the same direct Law-2 enforcement:
+ * bisect toward the target t on the RAW count (open linear / closed cyclic).
+ * In one dimension there are no lateral directions — no substitution, no
+ * ratchet, by construction.
+ */
+export function slideRationalFarin(
+  x: readonly number[],
+  y: readonly number[],
+  w: readonly number[],
+  knots: readonly number[],
+  degree: number,
+  edge: number,
+  tTarget: number,
+  opts: { closed?: { wrapWeight: number } } = {},
+): { weights: number[]; wrapWeight?: number; t: number } {
+  const n = w.length
+  const closed = opts.closed
+  const isWrapEdge = !!closed && edge === n - 1
+  const w0 = w[edge]
+  const w1 = isWrapEdge ? closed!.wrapWeight : w[edge + 1]
+  const r0 = w1 / w0
+  const t0 = r0 / (1 + r0)
+  const tT = Math.min(0.99, Math.max(0.01, tTarget))
+
+  const weightsOf = (s: number): number[] =>
+    w.map((v, j) => (!isWrapEdge && j >= edge + 1 ? v * s : v))
+  const wrapOf = (s: number): number | undefined =>
+    closed ? closed.wrapWeight * s : undefined
+  const zeros = x.map(() => 0)
+  const gOf = (s: number): number[] => {
+    const ws = weightsOf(s)
+    if (closed) {
+      const rho = { re: wrapOf(s)! / ws[0], im: 0 }
+      return curvatureExtremaNumeratorComplexPeriodic(x, y, ws, zeros, knots, degree, rho).flatCoeffs()
+    }
+    return curvatureExtremaNumeratorComplex(x, y, ws, zeros, knots, degree).flatCoeffs()
+  }
+  const rawCount = (gc: number[]) => cyclicSignChanges(assignSignsNeighbor(gc), !!closed)
+  const startBound = rawCount(gOf(1))
+  const sOfT = (t: number): number | null => {
+    if (t <= 1e-6 || t >= 1 - 1e-6) return null
+    const s = t / (1 - t) / r0
+    return s > 1e-4 && s < 1e4 ? s : null
+  }
+  const feasible = (t: number): number | null => {
+    const s = sOfT(t)
+    if (s === null) return null
+    return rawCount(gOf(s)) <= startBound ? s : null
+  }
+
+  let s = 1
+  let t = t0
+  const sFull = feasible(tT)
+  if (sFull !== null) {
+    s = sFull
+    t = tT
+  } else {
+    let lo = 0
+    let hi = 1
+    for (let it = 0; it < 18; it++) {
+      const mid = (lo + hi) / 2
+      const tm = t0 + mid * (tT - t0)
+      if (feasible(tm) !== null) lo = mid
+      else hi = mid
+    }
+    t = t0 + lo * (tT - t0)
+    s = sOfT(t) ?? 1
+    if (rawCount(gOf(s)) > startBound) {
+      s = 1
+      t = t0
+    }
+  }
+  const weights = weightsOf(s)
+  const W = wrapOf(s)
+  return { weights, ...(W !== undefined ? { wrapWeight: W } : {}), t }
+}
+

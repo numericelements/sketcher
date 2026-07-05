@@ -5,24 +5,18 @@
  * `optimizeCurve` plumbing, the periodic polynomial problem, and the
  * symmetry/fixed-variable wrappers were DELETED with their editor routes.
  *
- * Still live here, each gated on a named unmigrated capability:
- *  - optimizeRationalFarinCurve / optimizeComplexRationalCurve(farinPoint):
- *    bound-preserving Farin drags (complex Farin is a known-hard open problem
- *    — see the legacy-deletion notes; do not grind on it as cleanup).
- *  - optimizePHCurve: PLAIN (no-extrema, no-value-bound) PH tracking only —
- *    the value bound |κ| ≤ b migrated to core (phValueBound.ts, E19).
- *  - optimizeABPHCurve / optimizeComplexRationalPHCurve /
- *    optimizeRealRationalPHCurve: the PH variant families (no core ports).
+ * Still live here (2026-07-05): ONLY the PH variant families —
+ * optimizeABPHCurve / optimizeComplexRationalPHCurve /
+ * optimizeRealRationalPHCurve (no core ports; a contained legacy island) —
+ * plus optimizePHCurve, kept for the fit tests (the editor no longer calls
+ * it). The Farin drags migrated to core (E26 complex, E27 rational — the
+ * pure-weight count-guarded walks); the rational/complex problem classes
+ * were deleted with them.
  */
 
 import { InteriorPointOptimizer } from './InteriorPointOptimizer'
-import { RationalBSplineCurveProblem } from './RationalBSplineCurveProblem'
-import { PeriodicRationalBSplineCurveProblem, type PeriodicRationalConstraintState } from './PeriodicRationalBSplineCurveProblem'
-import { ComplexRationalBSplineCurveProblem } from './ComplexRationalBSplineCurveProblem'
-import type { ComplexRationalConstraintState } from './complexAlgebra'
 import type { OptimizerConfig } from './types'
-import { curveToRationalBS2D, updateCurveFromRationalBS2D } from './bsplineTypes'
-import type { Curve, ComplexPoint, Point2D, ComplexRationalBSplineCurve } from '../types/curve'
+import type { ComplexPoint, Point2D } from '../types/curve'
 import { PHCurveProblem, type PHCurvatureBoundOptions } from './PHCurveProblem'
 import { ComplexRationalPHCurveProblem } from './ComplexRationalPHCurveProblem'
 import { computePHCurveFromUV, type PHMetadata, type PHCurveResult, type ComplexRationalPHMetadata, type ComplexRationalPHCurveResult } from './phCurve'
@@ -56,30 +50,6 @@ export interface OptimizeRationalResult extends OptimizeResult {
   controlPointsW: number[]
 }
 
-export interface OptimizeRationalFarinResult extends OptimizeRationalResult {
-  /** Updated Farin t-values (for closed curves) */
-  farinTValues?: number[]
-  /** Updated wrap weight (for closed curves) */
-  wrapWeight?: number
-}
-
-export interface OptimizeComplexRationalResult {
-  /** Optimized control points (with complex weights) */
-  controlPoints: ComplexPoint[]
-  /** Optimized Farin positions */
-  farinPositions: Point2D[]
-  /** Wrap weight for closed curves */
-  wrapWeight: { re: number; im: number }
-  /** Number of optimizer iterations */
-  iterations: number
-  /** Whether optimization converged */
-  converged: boolean
-  /** Final objective value */
-  objective: number
-  /** Final constraint violation */
-  constraintViolation: number
-}
-
 export interface OptimizeOptions {
   /** Maximum iterations (default: 100) */
   maxIterations?: number
@@ -102,14 +72,6 @@ export interface OptimizeOptions {
    *  identity Hessian, so disabling BFGS uses that (no dense quasi-Newton
    *  matrix) and typically converges in far fewer iterations. */
   enableBFGS?: boolean
-  /** Initial constraint state for periodic rational curves */
-  initialPeriodicRationalConstraintState?: PeriodicRationalConstraintState
-  /** Initial constraint state for complex-rational curves */
-  initialComplexRationalConstraintState?: ComplexRationalConstraintState
-  /** Closed complex-rational only: freeze weights at their current values and
-   *  optimize control-point positions only (sparse Jacobian, ~2x faster build,
-   *  half the variables). Farin points are not editable in this mode. */
-  fixedWeightClosed?: boolean
   /** Preserve inflection count (zeros of curvature numerator) */
   preserveInflections?: boolean
   /** AB-PH only: also bound the curvature-extrema count (sign changes of g)
@@ -134,168 +96,6 @@ export interface OptimizeOptions {
 // ============================================================================
 // Main API
 // ============================================================================
-
-/**
- * Optimize a rational B-spline curve when dragging a Farin point.
- * Variables: [x_0..x_{n-1}, y_0..y_{n-1}, t_j] (Euclidean + Farin t-value).
- */
-export function optimizeRationalFarinCurve(
-  curve: Curve,
-  targetX: number,
-  targetY: number,
-  farinIndex: number,
-  options: OptimizeOptions = {}
-): OptimizeRationalFarinResult {
-  if (curve.kind !== 'rational') {
-    throw new Error('optimizeRationalFarinCurve requires a rational curve')
-  }
-
-  const rbs2d = curveToRationalBS2D(curve)
-  const config: Partial<OptimizerConfig> = {
-    maxIterations: options.maxIterations ?? 100,
-    verbose: options.verbose ?? false,
-    enableSOC: options.enableSOC ?? true,
-    enableFeasibilityRestoration: options.enableFeasibilityRestoration ?? true,
-    enableFilter: options.enableFilter ?? true,
-    enableWatchdog: options.enableWatchdog ?? true,
-  }
-
-  let problem: RationalBSplineCurveProblem | PeriodicRationalBSplineCurveProblem
-  if (rbs2d.knots.tag === 'periodic') {
-    problem = new PeriodicRationalBSplineCurveProblem(
-      rbs2d, targetX, targetY, farinIndex,
-      options.initialPeriodicRationalConstraintState, true, 'farinPoint'
-    )
-  } else {
-    problem = new RationalBSplineCurveProblem(
-      rbs2d, targetX, targetY, farinIndex, true, 'farinPoint'
-    )
-  }
-
-  const optimizer = new InteriorPointOptimizer(problem, config)
-  const result = optimizer.optimize()
-
-  // Apply result variables to get final state
-  problem.setVariables(result.variables)
-
-  // Extract Euclidean positions and weights
-  const pos = problem.getEuclideanPositions()
-  const weights = problem.getWeights()
-  const n = pos.x.length
-
-  // Convert to homogeneous for the result interface (to match applyOptimizeRationalResult)
-  const controlPointsX = pos.x.map((x, i) => x * weights[i])
-  const controlPointsY = pos.y.map((y, i) => y * weights[i])
-
-  // Compute farinTValues from weights
-  const numEdges = curve.closed ? n : n - 1
-  const farinTValues: number[] = []
-  for (let i = 0; i < numEdges; i++) {
-    const w0 = weights[i]
-    const w1 = weights[(i + 1) % n]
-    farinTValues.push(w1 / (w0 + w1))
-  }
-
-  // Compute wrapWeight for closed curves
-  let wrapWeight: number | undefined
-  if (curve.closed) {
-    const tLast = farinTValues[n - 1]
-    wrapWeight = weights[n - 1] * tLast / (1 - tLast)
-  }
-
-  return {
-    controlPointsX,
-    controlPointsY,
-    controlPointsW: weights,
-    farinTValues: curve.closed ? farinTValues : undefined,
-    wrapWeight,
-    iterations: result.iterations,
-    converged: result.converged,
-    objective: result.objective,
-    constraintViolation: result.constraintViolation,
-  }
-}
-
-/**
- * Apply rational Farin optimization result to a curve, returning a new curve.
- * Converts from homogeneous (x*w, y*w, w) back to Euclidean (x, y, w).
- * Also updates farinTValues and wrapWeight for closed curves.
- */
-export function applyOptimizeRationalFarinResult(curve: Curve, result: OptimizeRationalFarinResult): Curve {
-  const baseCurve = updateCurveFromRationalBS2D(
-    curve, result.controlPointsX, result.controlPointsY, result.controlPointsW
-  )
-  if (curve.kind !== 'rational') return baseCurve
-  return {
-    ...baseCurve,
-    ...(result.farinTValues ? { farinTValues: result.farinTValues } : {}),
-    ...(result.wrapWeight !== undefined ? { wrapWeight: result.wrapWeight } : {}),
-  } as Curve
-}
-
-/**
- * Optimize a complex-rational B-spline curve.
- * Variables are geometric: control point positions and Farin point positions.
- */
-export function optimizeComplexRationalCurve(
-  curve: ComplexRationalBSplineCurve,
-  targetX: number,
-  targetY: number,
-  dragIndex: number,
-  dragType: 'controlPoint' | 'farinPoint',
-  options: OptimizeOptions = {}
-): OptimizeComplexRationalResult {
-  const config: Partial<OptimizerConfig> = {
-    maxIterations: options.maxIterations ?? 100,
-    verbose: options.verbose ?? false,
-    enableSOC: options.enableSOC ?? true,
-    enableFeasibilityRestoration: options.enableFeasibilityRestoration ?? true,
-    enableFilter: options.enableFilter ?? true,
-    enableWatchdog: options.enableWatchdog ?? true,
-    enableBFGS: options.enableBFGS ?? true,
-  }
-
-  const problem = new ComplexRationalBSplineCurveProblem(
-    curve, targetX, targetY, dragIndex, dragType,
-    options.initialComplexRationalConstraintState,
-    undefined,
-    options.fixedWeightClosed
-  )
-
-  const optimizer = new InteriorPointOptimizer(problem, config)
-  const result = optimizer.optimize()
-
-  // Apply result variables to the problem to get updated state
-  problem.setVariables(result.variables)
-
-  return {
-    controlPoints: problem.getControlPoints(),
-    farinPositions: problem.getFarinPositions(),
-    wrapWeight: problem.getWrapWeight(),
-    iterations: result.iterations,
-    converged: result.converged,
-    objective: result.objective,
-    constraintViolation: result.constraintViolation,
-  }
-}
-
-/**
- * Apply complex-rational optimization result to a curve, returning a new curve.
- */
-export function applyComplexRationalOptimizeResult(
-  curve: Curve,
-  result: OptimizeComplexRationalResult
-): Curve {
-  if (curve.kind !== 'complex-rational') {
-    throw new Error('applyComplexRationalOptimizeResult requires a complex-rational curve')
-  }
-  return {
-    ...curve,
-    controlPoints: result.controlPoints,
-    farinPositions: result.farinPositions,
-    wrapWeight: result.wrapWeight,
-  }
-}
 
 // ============================================================================
 // PH Curve Optimization

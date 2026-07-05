@@ -1084,3 +1084,27 @@ imported by the editor at all. ComplexRationalBSplineCurveProblem remains only a
 test subject (complexRationalBoundPreservation) — #5's Farin blocker is RESOLVED for
 complex; rational Farin (optimizeRationalFarinCurve) is now the only legacy drag the
 editor still calls.
+
+## E27 — rational Farin on the 1-D walk; the fork-2 deletion finally lands (2026-07-05)
+
+**The drag:** the rational Farin handle is one real ratio t = w₁/(w₀+w₁) on its edge,
+so the walk collapses to a 1-D count-guarded bisection toward the target t — no
+lateral directions exist, hence no substitution and no ratchet BY CONSTRUCTION (the
+complex case's diseases are geometrically impossible in one dimension). Closed: the
+wrapWeight scales along (monodromy), wrap edge included. Wired under preserve; pinned
+open + closed + wrap edge (t advances, bound held every tick, raw/cyclic).
+
+**The deletion (the fork-2 blocker, unblocked by E26+E27):** with both Farin drags on
+core, the editor makes NO rational/complex legacy calls. Deleted (−2,393 lines):
+`ComplexRationalBSplineCurveProblem` (~900 — the class the 2026-06-27 audit could not
+remove because its Farin mode was load-bearing), `RationalBSplineCurveProblem`,
+`PeriodicRationalBSplineCurveProblem`, the four optimize/apply functions and their
+option/result plumbing, and two legacy-pinning tests whose numbers live in the
+notebook. Suite green (411).
+
+**The remaining legacy island (Eric's port-vs-contain decision pending):** the PH
+variant families — optimizeABPHCurve / optimizeComplexRationalPHCurve /
+optimizeRealRationalPHCurve + their problem classes — plus optimizePHCurve (fit tests
+only; the editor never calls it) and InteriorPointOptimizer, which leaves when its
+last problem does. Every mainline drag — 4 algebraic families × 2 topologies, open +
+closed PH, both Farin kinds — is core-only.
