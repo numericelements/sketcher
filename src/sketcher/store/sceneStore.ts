@@ -11,7 +11,7 @@ import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexP
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
 import { weightedAveragePhi, threeArcPointsFromNoisyPoints, circleArcFromThreePoints, type CircleArcGeometry } from '../utils/circleArc'
-import { optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
+import { optimizeRationalFarinCurve, applyOptimizeRationalFarinResult, optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
 // Curvature-extrema CP drags run ONLY on core/'s trust-region engine — every
 // algebraic family (polynomial/rational/complex, open + closed, junction/cusp
 // knots, symmetry, anchors, inflections) and both PH topologies (R metric).
@@ -2458,21 +2458,30 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
         }
         return
       }
-      if (preserveCurvatureExtrema) {
+      if (preserveCurvatureExtrema && curve.closed) {
+        // CLOSED complex Farin drag → the same pure-weight walk, monodromy-
+        // aware (E26): the edge ratios multiply around the loop into ρ, so the
+        // dragged ratio's change flows into wrapWeight (suffix + wrapWeight
+        // scale together; every other ratio — hence every other Farin point —
+        // stays exactly fixed). Periodic numerator with the live ρ, cyclic raw
+        // count, same park/return contract as open.
         try {
-          const result = optimizeComplexRationalCurve(
-            curve, newPosition.x, newPosition.y, farinIndex, 'farinPoint'
-          )
-          if (result.converged || result.iterations > 0) {
-            const optimizedCurve = applyComplexRationalOptimizeResult(curve, result)
-            set((state) => ({
-              curves: state.curves.map((c) => (c.id === curveId ? optimizedCurve : c)),
-            }))
-            return
-          }
-        } catch {
-          // Fall through to direct move if optimization fails
+          const cpsIn = curve.controlPoints.map((p) => ({ re: p.re, im: p.im, w_re: p.w_re, w_im: p.w_im }))
+          const wrapWeight = curve.wrapWeight ?? { re: curve.controlPoints[0].w_re, im: curve.controlPoints[0].w_im }
+          const r = slideComplexFarin(cpsIn, curve.knots, curve.degree, farinIndex,
+            { x: newPosition.x, y: newPosition.y }, { closed: { wrapWeight } })
+          const newControlPoints = curve.controlPoints.map((p, i) => ({ ...p, ...r.points[i] }))
+          // farinPositions are the closed chart's source of truth — recompute
+          // from the NEW weights (strip the stale stored list first).
+          const updated = { ...curve, controlPoints: newControlPoints, wrapWeight: r.wrapWeight ?? wrapWeight, farinPositions: undefined }
+          const farinPositions = computeComplexFarinPoints(updated).map((f) => f.position)
+          set((state) => ({
+            curves: state.curves.map((c) => (c.id === curveId ? { ...updated, farinPositions } : c)),
+          }))
+        } catch (e) {
+          console.warn('core closed Farin drag failed (tick dropped):', e)
         }
+        return
       }
 
       // Complex Farin points have free 2D movement

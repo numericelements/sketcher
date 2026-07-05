@@ -26,7 +26,7 @@ import {
   type TrustRegionProblem, type TRMatrix,
 } from './trustRegionOptimizer'
 import { ComplexBD } from './complexBernstein'
-import { curvatureExtremaNumeratorComplex } from './curvature'
+import { curvatureExtremaNumeratorComplex, curvatureExtremaNumeratorComplexPeriodic } from './curvature'
 import type { Complex } from './complex'
 
 const cmulc = (a: Complex, b: Complex): Complex => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
@@ -86,23 +86,49 @@ export function slideComplexFarin(
   degree: number,
   edge: number,
   target: { x: number; y: number },
-  opts: { maxNumSteps?: number } = {},
-): { points: ComplexFarinCP[]; converged: boolean } {
-  void 0
+  opts: {
+    maxNumSteps?: number
+    /** CLOSED curve: the wrap edge (edge = n−1) pairs w_{n−1} with wrapWeight,
+     *  and every ratio change flows into the MONODROMY: on a cycle the edge
+     *  ratios multiply around the loop into ρ, so changing ONE ratio while
+     *  keeping the others fixed means scaling the suffix AND wrapWeight by
+     *  the same s (ρ ← ρ·s). The count is the periodic numerator with the
+     *  live ρ, counted cyclically. */
+    closed?: { wrapWeight: Complex }
+  } = {},
+): { points: ComplexFarinCP[]; converged: boolean; wrapWeight?: Complex } {
+  const n = cps.length
+  const closed = opts.closed
+  const isWrapEdge = !!closed && edge === n - 1
+  const jNext = isWrapEdge ? 0 : edge + 1
   const z0: Complex = { re: cps[edge].re, im: cps[edge].im }
-  const z1: Complex = { re: cps[edge + 1].re, im: cps[edge + 1].im }
+  const z1: Complex = { re: cps[jNext].re, im: cps[jNext].im }
   const w0: Complex = { re: cps[edge].w_re, im: cps[edge].w_im }
-  const w1: Complex = { re: cps[edge + 1].w_re, im: cps[edge + 1].w_im }
+  const w1: Complex = isWrapEdge
+    ? { re: closed!.wrapWeight.re, im: closed!.wrapWeight.im }
+    : { re: cps[edge + 1].w_re, im: cps[edge + 1].w_im }
   const r0 = cdivc(w1, w0)
 
-  // weights as a function of the suffix scale s (s = 1 at the start)
+  // weights as a function of the suffix scale s (s = 1 at the start); for a
+  // CLOSED curve the wrapWeight scales along (monodromy absorbs the change —
+  // all OTHER edge ratios, including the wrap edge's when edge < n−1, stay
+  // exactly fixed). Wrap-edge drag: suffix is empty, only wrapWeight scales.
   const weightsOf = (s: Complex): Complex[] =>
-    cps.map((p, j) => (j >= edge + 1 ? cmulc({ re: p.w_re, im: p.w_im }, s) : { re: p.w_re, im: p.w_im }))
+    cps.map((p, j) => (!isWrapEdge && j >= edge + 1 ? cmulc({ re: p.w_re, im: p.w_im }, s) : { re: p.w_re, im: p.w_im }))
+  const wrapOf = (s: Complex): Complex | null =>
+    closed ? cmulc({ re: closed.wrapWeight.re, im: closed.wrapWeight.im }, s) : null
 
   // VALUE-ONLY evaluation (perf): the plain Chen numerator — the dual pipeline
   // with zero tangents costs ~3× for nothing (measured: blocked ticks 38ms).
   const gOf = (s: Complex): number[] => {
     const w = weightsOf(s)
+    if (closed) {
+      const W = wrapOf(s)!
+      const rho = cdivc(W, { re: w[0].re, im: w[0].im })
+      return curvatureExtremaNumeratorComplexPeriodic(
+        cps.map((p) => p.re), cps.map((p) => p.im),
+        w.map((c) => c.re), w.map((c) => c.im), knots, degree, rho).flatCoeffs()
+    }
     return curvatureExtremaNumeratorComplex(
       cps.map((p) => p.re), cps.map((p) => p.im),
       w.map((c) => c.re), w.map((c) => c.im), knots, degree).flatCoeffs()
@@ -125,7 +151,7 @@ export function slideComplexFarin(
   // one metric). Count-neutral crossings pass; only a genuine count increase
   // stops the point — the true feasible limit along the cursor ray.
   const gc0 = gOf({ re: 1, im: 0 })
-  const rawCount = (gc: number[]) => cyclicSignChanges(assignSignsNeighbor(gc), false)
+  const rawCount = (gc: number[]) => cyclicSignChanges(assignSignsNeighbor(gc), !!closed)
   const startBound = rawCount(gc0)
   const countAt = (ss: Complex) => rawCount(gOf(ss))
 
@@ -234,9 +260,11 @@ export function slideComplexFarin(
   // Law-2 backstop (the accepted states were count-checked; re-verify the final)
   if (countAt(s) > startBound) s = { re: 1, im: 0 }
   const w = weightsOf(s)
+  const W = wrapOf(s)
   return {
     points: cps.map((p, j) => ({ re: p.re, im: p.im, w_re: w[j].re, w_im: w[j].im })),
     converged,
+    ...(W ? { wrapWeight: W } : {}),
   }
 }
 

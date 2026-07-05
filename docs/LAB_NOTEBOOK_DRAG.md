@@ -1060,3 +1060,27 @@ per tick buys nothing).
 Behavior contract unchanged (ratchet pin: park, 0.00px return, 0.00px CP drift;
 tracking 10/24/11 ≈ the manifold ceiling; bound held). n=10 fixture — cost scales with
 the numerator build, so larger curves stay proportional.
+
+## E26-CLOSED — the Farin walk on closed curves: the monodromy absorbs the ratio (2026-07-05)
+
+Eric's trial was on CLOSED complex curves — only the open case had been wired. The
+closed extension needed one structural idea: on a cycle, the edge ratios MULTIPLY
+around the loop into the monodromy ρ, so "change one ratio, keep the others fixed" is
+impossible within the weight chain alone — the change must flow into ρ. Realization:
+scale the suffix weights AND wrapWeight by the same s (ρ ← ρ·s); every other edge
+ratio — including the wrap edge's when the drag is interior — stays exactly fixed. A
+wrap-edge drag scales ONLY wrapWeight. The count is the periodic numerator with the
+LIVE ρ, counted cyclically; the same park/return walk contract as open.
+
+Wired in the store (closed branch of moveFarinPoint); farinPositions recomputed from
+the new weights (the stale stored list is stripped first — it is the closed chart's
+source of truth). Pinned store-level: interior edge AND the wrap edge, along-edge
+pulls track >5px of 20px with the cyclic raw bound held every tick; a perpendicular
+pull parks honestly (measured 1.7px — the feasible limit, not a bug).
+
+**Ledger note:** this removed the store's LAST calls to optimizeComplexRationalCurve /
+applyComplexRationalOptimizeResult — the legacy complex optimizer is no longer
+imported by the editor at all. ComplexRationalBSplineCurveProblem remains only as a
+test subject (complexRationalBoundPreservation) — #5's Farin blocker is RESOLVED for
+complex; rational Farin (optimizeRationalFarinCurve) is now the only legacy drag the
+editor still calls.
