@@ -952,3 +952,33 @@ against 5), not the surrogate. The open-research idea sharpens accordingly: the 
 from a translation-aware active set (or intra-tick re-read rounds — each round's
 monotonicity composes, so Law 2 survives) is the RECRUITMENT rate, worth at most the
 gap between the crawl and the walk on recruitment-limited pulls.
+
+## E26-C — the anchor knob: the Farin semantics fork is a CONTINUOUS dial (2026-07-04)
+
+Built the single anchored solve C proposed after Eric's question (ratio + all CPs on
+the TR engine, Tikhonov anchors, drag weight 10, raw-count guard). The anchor weight
+sweeps a clean Pareto front between the two semantics (8-tick 43px pulls, edges 2/4/6,
+bound held at EVERY cell):
+
+    anchor     f2    f4    f6     CP drift
+    A (pure)   12%   28%   12%    0 px
+    10000      11%   21%   11%    0.2–2.8
+    2500        7%   42%   14%    0.9–6.3
+    500        13%   50%   39%    5.9–11.3
+    100        17%   64%   64%    8.9–15.3
+    20         53%   77%   72%    12–21
+    legacy B   59%   69%   58%    ~20
+
+Readings: (1) anchor≈20 REPRODUCES legacy's reshape semantics on core — tracking at or
+above legacy with comparable drift, bound held by modern machinery; the reshape option
+no longer needs the legacy optimizer. (2) anchor→∞ recovers the pure-weight drag —
+the two semantics really are endpoints of one dial. (3) One solver quirk measured and
+recorded: anchors BELOW ~20 make everything WORSE (weak anchors leave the GN objective
+nearly rank-2 → the solve wanders; the anchor is regularizer as much as semantics).
+(4) f2 is the hard edge (noisy middle range — lab-grade FD Jacobian; production would
+use the exact CBDual columns already prototyped in farinDrag.ts).
+
+**The decision is now one number.** Recommendation if wanted: anchor ≈ 100 (substantial
+tracking recovery at roughly half of legacy's drift), or expose stiff/loose as a UI
+choice. Awaiting Eric's pick; production build = exact Jacobians + store wiring +
+closed/wrapWeight handling (task #29).
