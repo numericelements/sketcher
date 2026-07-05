@@ -869,6 +869,10 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
       setAction('moving-farin')
       setDraggedFarinIndex(farinIndex)
       selectFarinPoint(farinIndex)
+      // Anchor the bound-preserving Farin drag to the DRAG-START control
+      // points (E26-C ratchet fix, part 2): per-tick re-centered anchors cost
+      // nothing cumulatively, and the control point CREEPS to the handle.
+      if (selectedCurveId) useSceneStore.getState().snapshotDragStartCPs(selectedCurveId)
       // Capture on SVG element (parent)
       if (svgRef.current) {
         svgRef.current.setPointerCapture(e.pointerId)

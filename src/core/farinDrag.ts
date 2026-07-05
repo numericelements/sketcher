@@ -243,14 +243,50 @@ export function slideComplexFarinAnchored(
   degree: number,
   edge: number,
   target: { x: number; y: number },
-  opts: { anchorWeight?: number; maxNumSteps?: number; dragWeight?: number } = {},
+  opts: { anchorWeight?: number; maxNumSteps?: number; dragWeight?: number; anchorTo?: { x: number[]; y: number[] } } = {},
 ): { points: ComplexFarinCP[]; bound: number; startBound: number } {
   const n = cps.length
-  const nv = 2 * n + 2 // [re..., im..., sRe, sIm]
+  const nv = 2 * n + 1 // [re..., im..., β] — β advances q along the USER'S RAY only
   const anchorW = opts.anchorWeight ?? 100
   const DRAGW = opts.dragWeight ?? 10
   const w0Re = cps.map((p) => p.w_re)
   const w0Im = cps.map((p) => p.w_im)
+  // E26-C ratchet fix, final form — NO SUBSTITUTION. Measured (notebook
+  // E26-C-RATCHET): under a bound-resisted pull, a free 2-DOF ratio drifts
+  // along the feasible directions the user did NOT ask for, and the feasible
+  // path toward "more weight phase" curls into the neighbouring control point
+  // (d(q,CP) 12.5→1.5px in the s-chart; 19.6→3.1 even in the well-conditioned
+  // λ-chart — the chart softened the ratchet, the OBJECTIVE still paid radial
+  // drift for phase progress). The cure is semantic: the Farin point may move
+  // ONLY along the user's pull ray — ONE variable β with q(β) = q0 + β(qT−q0)
+  // in absolute coordinates, the ratio recovered by the Möbius pullback from
+  // the CURRENT control points. The anchored CPs supply any reshape the ray
+  // needs; off-ray drift is impossible by construction, so the handle either
+  // follows the hand or honestly stops. λ→1 (suffix weights → ∞) and suffix
+  // weights → 0 are rejected as infeasible in evaluation.
+  const r0c: Complex = cdivc({ re: cps[edge + 1].w_re, im: cps[edge + 1].w_im }, { re: cps[edge].w_re, im: cps[edge].w_im })
+  // start Farin position q0 (from the input state) — the ray origin
+  const w0c: Complex = { re: cps[edge].w_re, im: cps[edge].w_im }
+  const w1c: Complex = { re: cps[edge + 1].w_re, im: cps[edge + 1].w_im }
+  const q0abs: Complex = cdivc(
+    caddc(cmulc(w0c, { re: cps[edge].re, im: cps[edge].im }), cmulc(w1c, { re: cps[edge + 1].re, im: cps[edge + 1].im })),
+    caddc(w0c, w1c),
+  )
+  /** suffix scale from (β, current CPs): q(β) on the ray → λ via the CURRENT
+   *  edge endpoints → r → s. Null = degenerate (rejected in evaluation). */
+  const sOfZ = (zz: number[]): Complex | null => {
+    const beta = zz[2 * n]
+    const q: Complex = { re: q0abs.re + beta * (target.x - q0abs.re), im: q0abs.im + beta * (target.y - q0abs.im) }
+    const zA: Complex = { re: zz[edge], im: zz[n + edge] }
+    const zB: Complex = { re: zz[edge + 1], im: zz[n + edge + 1] }
+    const den: Complex = { re: zB.re - q.re, im: zB.im - q.im }
+    if (Math.hypot(den.re, den.im) < 1e-6) return null // q at z₁: degenerate
+    const r = cdivc({ re: q.re - zA.re, im: q.im - zA.im }, den)
+    const sc = cdivc(r, r0c)
+    const m = Math.hypot(sc.re, sc.im)
+    if (m < 1e-4 || m > 1e4) return null
+    return sc
+  }
   const weightsOf = (sRe: number, sIm: number) => {
     const wRe = w0Re.slice()
     const wIm = w0Im.slice()
@@ -263,7 +299,9 @@ export function slideComplexFarinAnchored(
     return { wRe, wIm }
   }
   const gFlat = (z: number[]) => {
-    const { wRe, wIm } = weightsOf(z[2 * n], z[2 * n + 1])
+    const sc = sOfZ(z)
+    if (!sc) return null
+    const { wRe, wIm } = weightsOf(sc.re, sc.im)
     const Zre = z.slice(0, n).map((x, j) => x * wRe[j] - z[n + j] * wIm[j])
     const Zim = z.slice(0, n).map((x, j) => x * wIm[j] + z[n + j] * wRe[j])
     const Z = new ComplexBD(decomposeToBernstein(Zre, knots, degree), decomposeToBernstein(Zim, knots, degree))
@@ -272,18 +310,13 @@ export function slideComplexFarinAnchored(
     return chenGDual(new CBDual(Z, new ComplexBD(zero, zero)), new CBDual(W, new ComplexBD(zero, zero))).g.flatCoeffs()
   }
   const qAt = (z: number[]) => {
-    const { wRe, wIm } = weightsOf(z[2 * n], z[2 * n + 1])
-    const w0: Complex = { re: wRe[edge], im: wIm[edge] }
-    const w1: Complex = { re: wRe[edge + 1], im: wIm[edge + 1] }
-    const num = caddc(
-      cmulc(w0, { re: z[edge], im: z[n + edge] }),
-      cmulc(w1, { re: z[edge + 1], im: z[n + edge + 1] }),
-    )
-    return cdivc(num, caddc(w0, w1))
+    if (!sOfZ(z)) return null
+    const beta = z[2 * n]
+    return { re: q0abs.re + beta * (target.x - q0abs.re), im: q0abs.im + beta * (target.y - q0abs.im) } as Complex
   }
 
-  const z0v = [...cps.map((p) => p.re), ...cps.map((p) => p.im), 1, 0]
-  const gc0 = gFlat(z0v)
+  const z0v = [...cps.map((p) => p.re), ...cps.map((p) => p.im), 0]
+  const gc0 = gFlat(z0v)!
   const rawCount = (gc: number[]) => cyclicSignChanges(assignSignsNeighbor(gc), false)
   const startBound = rawCount(gc0)
   const signsAll = assignSignsNeighbor(gc0)
@@ -291,14 +324,39 @@ export function slideComplexFarinAnchored(
   const active = gc0.map((_, i) => i).filter((i) => !inactive.has(i) && gc0[i] !== 0)
 
   let z = z0v.slice()
+  // Anchors reference the DRAG-START positions when supplied (anchorTo) — a
+  // per-tick re-centered anchor is a ratchet: each tick's creep is cheap and
+  // the accumulation is free, and the control point CHASES the handle
+  // (measured: d(handle, CP) → 1.8px with per-tick anchors at weight 100).
+  const anchX = opts.anchorTo?.x ?? cps.map((p) => p.re)
+  const anchY = opts.anchorTo?.y ?? cps.map((p) => p.im)
+  // DEGENERACY PRICE (the disease's true cure — notebook E26-C-RATCHET): the
+  // bound-feasible set's open end is the DEGENERATE ratio (|s| → ∞ fades the
+  // prefix, the count DROPS, the cage opens), and the optimizer will reach it
+  // through any door left open — the s-chart, the λ-chart, or by carrying the
+  // CONTROL POINT to the handle (measured: 23.7px CP travel to make r explode).
+  // (log|s|)² prices distance-from-start in RATIO MODULUS symmetrically and
+  // scale-free: a user's along-edge pull pays it knowingly (drag benefit),
+  // the constraint-relaxation cheat cannot (no benefit to offset it).
+  const MU = 2000
+  const lnS = (zz: number[]): number | null => {
+    const sc = sOfZ(zz)
+    return sc ? Math.log(Math.hypot(sc.re, sc.im)) : null
+  }
   const f0Of = (zz: number[]) => {
     const q = qAt(zz)
+    const ls = lnS(zz)
+    if (!q || ls === null) return 1e300 // degenerate chart point: never accepted
     let sm = 0.5 * DRAGW * ((q.re - target.x) ** 2 + (q.im - target.y) ** 2)
-    for (let i = 0; i < 2 * n; i++) sm += 0.5 * anchorW * (zz[i] - z0v[i]) ** 2
+    sm += 0.5 * MU * ls * ls
+    for (let i = 0; i < n; i++) {
+      sm += 0.5 * anchorW * ((zz[i] - anchX[i]) ** 2 + (zz[n + i] - anchY[i]) ** 2)
+    }
     return sm
   }
   const fOf = (zz: number[]) => {
     const gc = gFlat(zz)
+    if (!gc) return active.map(() => 1) // infeasible (f ≥ 0): feasibility shrink rejects
     return active.map((i) => signsAll[i] * gc[i])
   }
   let atZ: { f: number[]; f0: number; g0: number[]; J: number[][] | null; JtJ: TRSymmetricMatrix | null } | null = null
@@ -311,7 +369,7 @@ export function slideComplexFarinAnchored(
     const a = ensure()
     if (a.J) return
     const J: number[][] = active.map(() => new Array<number>(nv).fill(0))
-    const q = qAt(z)
+    const q = qAt(z)!
     const rx = q.re - target.x
     const ry = q.im - target.y
     const qCols: { x: number; y: number }[] = []
@@ -321,18 +379,29 @@ export function slideComplexFarinAnchored(
       zp[c] += h
       const zm = z.slice()
       zm[c] -= h
-      const gp = gFlat(zp)
-      const gm = gFlat(zm)
+      const gp = gFlat(zp) ?? gFlat(z)!
+      const gm = gFlat(zm) ?? gFlat(z)!
       for (let k = 0; k < active.length; k++) J[k][c] = (signsAll[active[k]] * (gp[active[k]] - gm[active[k]])) / (2 * h)
-      const qp = qAt(zp)
+      const qp = qAt(zp) ?? q
       qCols.push({ x: (qp.re - q.re) / h, y: (qp.im - q.im) / h })
+    }
+    // penalty residual √MU·ln|s|: FD row (cheap — sOfZ only)
+    const ls0 = lnS(z) ?? 0
+    const lsCols = new Array<number>(nv).fill(0)
+    for (let c = 0; c < nv; c++) {
+      const h = 1e-5 * (Math.abs(z[c]) + 1)
+      const zp = z.slice()
+      zp[c] += h
+      const lp = lnS(zp)
+      lsCols[c] = lp === null ? 0 : (lp - ls0) / h
     }
     const g0 = new Array<number>(nv).fill(0)
     const JtJ = new TRSymmetricMatrix(nv)
     for (let c = 0; c < nv; c++) {
-      g0[c] = DRAGW * (rx * qCols[c].x + ry * qCols[c].y) + (c < 2 * n ? anchorW * (z[c] - z0v[c]) : 0)
+      g0[c] = DRAGW * (rx * qCols[c].x + ry * qCols[c].y) + MU * ls0 * lsCols[c] +
+        (c < n ? anchorW * (z[c] - anchX[c]) : c < 2 * n ? anchorW * (z[c] - anchY[c - n]) : 0)
       for (let l = 0; l <= c; l++) {
-        let v = DRAGW * (qCols[c].x * qCols[l].x + qCols[c].y * qCols[l].y)
+        let v = DRAGW * (qCols[c].x * qCols[l].x + qCols[c].y * qCols[l].y) + MU * lsCols[c] * lsCols[l]
         if (c === l && c < 2 * n) v += anchorW
         JtJ.set(c, l, v)
       }
@@ -370,7 +439,10 @@ export function slideComplexFarinAnchored(
   try {
     new TrustRegionBarrierOptimizer(problem).optimize(10e-8, 10, opts.maxNumSteps ?? 12)
   } catch { /* guard below */ }
-  const countAt = (zz: number[]) => rawCount(gFlat(zz))
+  const countAt = (zz: number[]) => {
+    const gc = gFlat(zz)
+    return gc ? rawCount(gc) : Number.POSITIVE_INFINITY
+  }
   if (countAt(z) > startBound) {
     let lo = 0
     let hi = 1
@@ -382,7 +454,8 @@ export function slideComplexFarinAnchored(
     }
     z = z0v.map((v, i) => v + lo * (z[i] - v))
   }
-  const { wRe, wIm } = weightsOf(z[2 * n], z[2 * n + 1])
+  const sFin = sOfZ(z) ?? { re: 1, im: 0 }
+  const { wRe, wIm } = weightsOf(sFin.re, sFin.im)
   return {
     points: cps.map((_p, j) => ({ re: z[j], im: z[n + j], w_re: wRe[j], w_im: wIm[j] })),
     bound: countAt(z),

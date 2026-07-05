@@ -999,3 +999,48 @@ Feel knob for the test: `anchorWeight` in sceneStore's moveFarinPoint complex br
 100 now; 20 ≈ legacy reshape, 1000+ ≈ pure weight handle. Trial-grade FD Jacobian
 (~fine at n≈10; the exact CBDual columns are the production upgrade if the semantics
 is kept). Suite green (411).
+
+## E26-C-RATCHET — why the Farin point glued to the control point, and the cure (2026-07-04)
+
+**Eric's report from the trial:** same old disease — the Farin point slides to the next
+control point and parks there. Reproduced with a bound-resisted (perpendicular) pull,
+then dissected through THREE formulations. The disease survived all but one, and each
+survival taught the mechanism:
+
+1. **s-chart (suffix scale):** d(q, nextCP) 12.5 → 1.5px, |s| → 28. A RATCHET: the
+   approach is cheap (|s| grows, dq/ds ~ 1/s² — and the bound only ever merges as the
+   prefix fades) and the escape impossible (vanishing derivative). Chart artifact +
+   feasible-geometry artifact.
+2. **λ-chart (the Farin coordinate — isotropic, no pole):** slower (19.6 → 3.1px) but
+   SAME destination; return only partial. The chart was a contributor, not the root.
+3. **Ray-constrained β + anchored CPs (no off-ray drift possible):** the disease found
+   the third door — the CONTROL POINT traveled 23.7px TO the handle (making r explode
+   from the other side). Drag-start anchors didn't stop it; a (log|s|)² degeneracy
+   price didn't stop it. Root cause identified: **the barrier's analytic center sits at
+   the degenerate ratio** — with ~170 rows and a small first-tick objective, t₀ = m/f0
+   starts tiny and a 12-step budget never leaves the barrier-dominated regime; the
+   solve walks toward the analytic center, and the analytic center is the faded-prefix
+   configuration where every row is comfortably satisfied. The optimizer exploits
+   DEGENERATION as constraint relaxation — legal by the letter of Law 1 (the count
+   only drops), ruinous as editing.
+
+**The cure that measures clean: the pure-weight count-guarded WALK** (no barrier — Law 2
+enforced directly on the raw count per candidate):
+
+    hostile perpendicular pull, 15 ticks:  perp progress 5.7px (the honest feasible
+    limit), then PARK — d(q, nextCP) stable ~23px, |s| ≤ 1.17
+    out-and-back:                          0.00px return error, 0.00px CP drift
+
+The editor now routes the open-complex Farin drag to the walk (pinned:
+labE26Ratchet + the store-level pin). The anchored-reshape variant stays in core,
+UNWIRED, with the pathology documented at the call site — its Pareto bench numbers
+(E26-C) were real but measured on toward-feasible pulls; sustained blocked pulls
+degenerate it. Re-wiring it requires solving the analytic-center problem first
+(t₀ init / budget / a degeneracy-aware barrier).
+
+**The general lesson (article §6-adjacent, worth stating):** a barrier method inherits
+the VALUES of its feasible set's interior. When degeneration RELAXES the constraints —
+as fading weights relax the count cage — the analytic center is degenerate, and any
+under-converged barrier solve drifts toward it. Eric's old designs implicitly knew
+this: every good behavior in this system came from NOT letting an optimizer choose
+weight magnitudes freely.
