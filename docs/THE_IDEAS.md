@@ -123,8 +123,9 @@ a feasible *reshaped* curve in the first place).
 ### 6. Where it lives
 `core/curvatureProblem.ts` (`computeInactiveSetBySign[Cyclic]`, `enforceBoundNonincreasing`,
 `PlanarCurvatureProblem`), `core/curvatureDrag.ts` (generic `slide` + `CurvatureDragProblem`),
-`core/complexRational.ts`, `core/phDrag.ts`; `core/bernstein.ts` (signs + count). The legacy
-`sketcher/optimizer/` drag entries are the accidental duplicates to retire onto this one.
+`core/complexRational.ts`, `core/phDrag.ts`, `core/farinDrag.ts`; `core/bernstein.ts` (signs +
+count). The legacy `sketcher/optimizer/` CP-drag and Farin entries have been **deleted** onto
+this one; only the PH-variant island still runs its own drag.
 
 ### 7. The pinning test
 - **Monotone bound.** `S⁻` is non-increasing across every drag step, every family × topology
@@ -140,10 +141,11 @@ a feasible *reshaped* curve in the first place).
 - **Solver quality is the permanent line of work** (CLAUDE.md). Every block/stall traces here,
   not to the bound; the fix is always to make the solver *reshape* (move more points), measured
   against the Rust oracle and the online sketcher — never a new clamp. See idea V.
-- **Retire the pre-baked `constraintState`** (fixed signs at drag start) in favour of per-tick
-  re-derivation everywhere.
-- **Unify the PH pull-back** — PH uses a hand-rolled bisection instead of the shared
-  `enforceBoundNonincreasing`.
+- ✅ **Retire the pre-baked `constraintState` — DONE (Tier 1).** The editor's
+  `dragConstraintState` field is deleted; every path derives the active set per tick.
+- **Unify the PH pull-back (Tier 2)** — PH (`phDrag.ts`) and the Farin walks still use a
+  hand-rolled bisection instead of the shared `enforceBoundNonincreasing`; route them through
+  the one guard.
 
 ---
 
@@ -349,11 +351,14 @@ The cross-validation *is* the definition:
   compact-support assembly is bit-identical to the full-width one.
 
 ### 9. Open threads
-- **Reach the goal state (honest, current).** Today the backends are uneven: polynomial has
-  `ad` only; closed rational/complex have seeded `analytic`; **open rational/complex and PH
-  have only FD** (the missing backend throws). The goal is **analytic + ad + fd for every
-  family × topology** — analytic as the engine, ad as the universal validator, fd as the
-  oracle. AD where analytic isn't derived yet is the honest temporary production stand-in.
+- **Reach the goal state (honest, current).** The backends are still uneven, but PH improved:
+  polynomial has `ad`; closed rational/complex have seeded `analytic`; **PH now runs its
+  constraint Jacobian via forward-AD over the low-degree reduced numerator `R`** (`g = 2·R·σ²`,
+  `phCurvature.ts`) — the ported Rust `ph::curvature_numerator` made this 6–8.6× faster than
+  differentiating the full-degree `g`, and it *replaced* the old FD path for PH. Open
+  rational/complex still fall to FD where the analytic column isn't derived. The goal remains
+  **analytic + ad + fd for every family × topology** — analytic as the engine, ad as the
+  universal validator, fd as the oracle.
 - **Port vs derive (Rust-oracle status).** The analytic columns for **rational & complex, open
   AND closed, ρ-aware**, already exist in Rust (`analytic_rational.rs`, `analytic_complex.rs`)
   — those are a **port**, not a derivation. **PH analytic is absent in Rust too** (it uses `Jet`

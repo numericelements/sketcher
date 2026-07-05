@@ -74,6 +74,19 @@ a documented lever (`rowScale: 'envelope'`), not a production change.
 14-CP closed curve; retreat measured (CP0 dist-to-target: 0.0 at 20 it → 40.0 at 200 it).
 *(TODO: promote these to a committed `lawClosedConditioning` test once the cure lands.)*
 
+**ADDENDUM (E25 — the floor stopped being a sign classifier at all).** E21 above landed
+`SIGN_NOISE_REL = 1e-14` as the honest machine-zero *separator*. E25 went one step further and
+retired the separator role entirely: `S⁻` is now counted **raw** — every nonzero coefficient
+keeps its own sign, and only an **exact** floating-point `0` borrows its neighbour's (so it joins
+a run without adding a count). No magnitude floor touches a sign anywhere. `SIGN_NOISE_REL`
+survives only as feasibility **slack** (a practically-zero *active* coefficient starts a hair off
+its wall) and in the trust-region-inert row scale. This was safe precisely because of the E21
+measurement (true noise ≈1e-14, the count reads it correctly) and it *fixed a residual false
+bound* the separator still allowed: the clustered-knot E25 specimen displayed 14 vs the exact
+**25** (`labE25.test.ts`), every sign correct. Zero suite fallout. The durable F1 fact — g's
+~1e12 knot-driven dynamic range — is unchanged; what changed is that we no longer answer it with
+*any* count-shaping threshold, only with raw counting + honest looseness.
+
 ---
 
 ## F2 — For cubics, g is discontinuous at interior knots
@@ -163,6 +176,16 @@ remaining all-solver stalls (CP3/9 partial) still need the oracle to classify "t
 
 **Pinning evidence.** Matrix above, reproduced via slideCurve `method`/`enableBFGS`. BFGS result
 pinned in the diagnostic matrix (poly-closed, editable).
+
+**ADDENDUM (E19/E20, superseding the solver framing above).** The whole ipopt-vs-BFGS-vs-primal-dual
+table here was measured on the *old* production barrier. The production solver is now the
+**log-barrier trust-region engine** (`trustRegionOptimizer.ts` / `trustRegionBanded.ts`), which
+carries the constraint curvature through the Conn–Gould–Toint near-exact subproblem — the same
+reshaping BFGS was bolted on for, but native and banded. F11/F12 are the definitive stall analysis
+on the trust-region path; read those, not this table, for "why does it block." The *fact* this
+section established is still durable and correct: **closed-drag blocking is solver step-strategy,
+not conditioning** — a Gauss-Newton step stalls where a curvature-aware step reshapes. Only the
+"which solver ships" conclusion is retired.
 
 ---
 
@@ -298,6 +321,23 @@ The gap is **closed-only** for the BOUND: the periodic generator's g ≠ the per
 needs option (c) for the bound AND the direct objective for feel; OPEN needs only the direct
 objective. Both stay on legacy until a core PH drag has the direct cursor-tracking objective.
 
+**ADDENDUM (E16/E17/E19/E23 — both PH drags are now on core; the "stay on legacy" conclusion is
+retired).** Every prescription this section arrived at was built and shipped: the core PH drags
+(`slideOpenPHCurveBound`, `slideClosedPHCurveBound`, `phCurveBoundDrag.ts`) use the **direct
+cursor-tracking objective** on the built curve point (the refit→generator-L2 shortcut that made
+the curve "swim" is gone), constrain the **reduced numerator `R`** (F7 — same sign changes as g,
+1e18× better conditioned), and hold the CURVE-span bound the editor displays (option (c),
+realized via R rather than reconstructing the full-degree curve g in the loop). The **closed** gap
+was closed differently than "option (c) on the periodic curve g": E16 **decoupled closure** —
+solve an open-style R-constrained drag in free seam coordinates, then re-project onto the closure
+manifold (`projectClosurePH`) — which sidesteps the periodic-generator-g ≠ periodic-curve-g
+mismatch entirely. Display reads the solved object (E16-P2: S=, markers, constraint bar all from
+R). The durable F6 fact is intact and still the reason the naïve wiring failed: **gen-span g ≠
+curve-span g for CLOSED PH, so the solve and the guard must enforce the same one** — we achieved
+that by constraining R (curve-span-faithful) throughout, not by holding gen-span and guarding
+curve-span. Pinned by `closedPHAllCPSweep.test.ts`, `openPHCurveBound.test.ts`,
+`closedPHDisplayMetric.test.ts`.
+
 ---
 
 ## F7 — The PH curvature-extrema numerator reduces by σ²: g = 2·R·σ²
@@ -327,6 +367,18 @@ extrema/marker count is numerically unreliable (a Law-3 honesty risk), while R i
 
 Open PH only as stated (gen-span g ≡ curve-span g, F6); the **closed** reduction needs the
 periodic form of P, σ, R (the seam wrap) — not yet built/verified.
+
+**ADDENDUM (E16/E19/E23 — the closed reduction was built, and #23 is resolved).** Both open and
+closed PH curvature drags now constrain the **reduced numerator `R`** on the core trust-region
+engine (`slideOpen/ClosedPHCurveBound`, `curvatureExtremaReducedNumeratorPH` in `phCurvature.ts`
+handles the closed/periodic form). The closed-PH stall (#23, the `[[ipopt-rho-load-bearing]]`
+wall) was **not** ultimately cured from the conditioning side alone: E16 resolved it by
+**decoupling closure** — track an open-style drag in free seam coordinates, then re-project onto
+the closure manifold (`projectClosurePH`) — rather than by handing a tougher solver the fully
+periodic constraint. R conditioning made the drag *possible*; the closure decoupling made it
+*track*. So conjecture (1) above ("R fixes the stall from the conditioning side") was **half
+right**: R was necessary, closure decoupling was the rest. The durable facts (`g = 2·R·σ²`, R's
+1e18× better conditioning, R trustworthy where g's marker count is not) are unchanged.
 
 ---
 
@@ -425,6 +477,17 @@ footgun. The robust design is PROBE-AND-KEEP: at a stall, trial-insert candidate
 re-run one tick, keep the insertion only if tracking measurably improves — legality is
 free (this fact), profit must be measured per-case. Pinned: `knotInsertionFreedom.test.ts`
 (the 0.375 case must stay ≥70% tracked; insertion never raises the bound).
+
+**ADDENDUM (E23 — the tracking-freedom payoff evaporated on the trust-region engine).** The
+"large tracking freedom" measured above was on the *old* barrier. Re-measured on the production
+trust-region engine, knot insertion **no longer buys tracking freedom**: the curvature-aware step
+already reshapes into the DOF a coarser polygon left on the table, so adding control points does
+not free further motion — and, being corner-cutting, refinement only **tightens the cage** (this
+is also why task #28's "insert to loosen the bound" premise was backward). The *safety* half of
+this fact is untouched (insertion is always Law-2-legal, never raises the bound). What is retired
+is the *engineering payoff*: PROBE-AND-KEEP no longer earns its complexity on the current solver,
+so it stays unshipped. (Note: F9's "tight open bound (#28)" was itself refuted by E25 — the "10 vs
+6" over-count was the noise-floor sign smoothing, not honest looseness; see idea VIII / IV.)
 
 ---
 
