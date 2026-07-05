@@ -121,6 +121,20 @@ curve reshapes freely inside the budget. This is the answer to difficulty (2):
 **reshape, don't block** is not an aspiration, it is what the constraint set permits by
 construction.
 
+It is worth stating what the mechanism formally is: a **smooth, provably sufficient,
+strictly conservative surrogate** for the count condition. The count itself is an
+integer staircase — no barrier method can hold "S⁻ ≤ 5" directly — so the mechanism
+replaces it by per-coefficient sign rows. Sufficiency is Theorem 2; the conservatism
+is measurable. We measured two legal motions the rows treat differently: an
+alternation pattern *translating* along the polygon (an extremum sliding along the
+curve — the flips are count-neutral pairs inside a freed run, permitted) versus the
+pattern's leading edge *recruiting* a coefficient from a same-sign block (always held,
+however small the coefficient — one held row per slot of travel, so the solver crawls
+rather than freezes, at roughly one recruitment per tick). At low degrees of freedom
+the surrogate can be dispensed with entirely and Law 2 enforced **directly on the raw
+count** per candidate step — the weight-handle editing of §7½ does exactly this — which
+cleanly separates "the surrogate blocks" from "the law blocks" in measurements.
+
 ## 4. The solver that executes it
 
 The constraints are sign conditions on the active coefficients; the objective is plain
@@ -144,6 +158,17 @@ is. Two consequences matter for the paper:
   conditioning folklore that haunted earlier versions of this system does not apply
   to this solver class — a small negative result that saved the architecture from a
   layer of machinery.
+
+One caveat earned the hard way belongs in any account of barrier methods for this
+problem: **a barrier inherits the values of its feasible set's interior.** If some
+degeneration of the model *relaxes* the constraints — as fading a rational curve's
+weight prefix relaxes every sign row at once (the count only drops) — then the
+feasible set's analytic center sits at the degenerate configuration, and any
+under-converged barrier solve drifts toward it regardless of the objective and of the
+parameterization (we measured the same escape executed through three different charts
+before identifying the cause). The remedy is structural, not a penalty: remove the
+degenerate directions from the variable set, or enforce the law directly where the
+dimension permits (§7½).
 
 Linear algebra is banded: interleaved variable order gives bandwidth 2·degree+1 for
 open curves; a closed curve adds a low-rank seam coupling handled as a dense border
@@ -209,6 +234,22 @@ results, one of them against ourselves:
    error) healed those violations at the root: two long-standing "dead tick"
    specimens simply stopped occurring, and the healings are now regression tests.
 
+3. **Even the honest constant has no business touching a sign.** A clustered-knot
+   specimen delivered the sharpest lesson: 296 coefficients sat below the (measured,
+   honest) floor, yet the exact oracle showed every one carried the *correct* sign —
+   errors eleven orders below their own magnitudes. Structurally tiny (a wide knot
+   span, the h-scaling of the numerator) is not unresolvable, and a global magnitude
+   floor cannot tell the two apart. The floor-based sign smoothing erased eleven real
+   sign changes and displayed a bound of 14 against an exact polygon count of 25 — a
+   *false* bound, the one failure the framework forbids absolutely. The resolution:
+   **signs are counted raw** (a true machine zero can only ever add a spurious pair —
+   loose is true; false is impossible), and the threshold's sole surviving job is
+   feasibility *slack*: a practically-zero active coefficient starts a hair off its
+   wall. The monotone display the editor promises was never the smoothing's doing —
+   it is the mechanism's theorem — and the display-side robustness layer became
+   unnecessary the day counting went raw (markers ≤ S⁻ holds by variation diminishing
+   on the computed polygon, no classifier needed).
+
 The cost was honest too: one tracking canary dropped 70→67% because phantom zeros
 became real constraints. We keep that trade and display it — the alternative was a
 budget enforced against a fiction.
@@ -237,6 +278,40 @@ end-to-end, and we pin it as such: for every family and topology, a sweep drags
 contract (moves with the pull, never flies) — a test discipline that found the one
 real seam bug a single-index test had missed.
 
+## 7½. Editing the weights: Farin handles under the budget
+
+Rational and complex-rational curves carry a second family of handles: the Farin
+points, q = (w₀z₀ + w₁z₁)/(w₀+w₁), one per control-polygon edge — the geometric face
+of the weights. Editing them under the extrema budget was an open problem for years
+(the historical failure mode: the handle migrates onto a control point and dies). The
+resolution has three parts, each a small theorem of the system's economy:
+
+- **The reduction.** The handle's position determines the complex edge ratio in
+  closed form, so a Farin drag is a *two-real-variable* problem: scale the weight
+  suffix; every other edge ratio — hence every other handle — stays exactly fixed. On
+  a closed curve the ratios multiply around the loop into the monodromy ρ, so the
+  change flows into the wrap weight (suffix and wrap scale together) and everything
+  else is again untouched.
+- **Direct law enforcement.** At two degrees of freedom the row surrogate is
+  unnecessary: each candidate step is checked against the raw count itself —
+  count-neutral crossings (extrema sliding) pass freely; only a genuine count
+  increase stops the handle. This is the one place the implementation enforces Law 2
+  with no intermediary, and it doubles as the measurement instrument that separated
+  surrogate conservatism from the law's own walls (§3).
+- **The old disease, dissected.** Every formulation that gave the optimizer freedom
+  in the ratio *modulus* reproduced the handle-onto-control-point migration — through
+  the scale chart (a ratchet: approach cheap, escape impossible), through the
+  well-conditioned Farin chart, and finally through the control points themselves
+  walking to the handle. The cause is §4's caveat verbatim: degeneration relaxes the
+  cage, so the barrier's analytic center is degenerate. The count-guarded walk has no
+  barrier and no such center: measured on a hostile pull, it advances to the feasible
+  limit, parks (distance to the control point stable, ratio modulus bounded), and an
+  out-and-back returns to 0.00px with 0.00px control-point motion.
+
+The result is a weight handle with a clean contract: it follows the hand where the
+budget permits, stops honestly where it does not, never migrates, and retraces — at
+1.6–4.3 ms per tick.
+
 ## 8. What the implementation is evidence *of*
 
 The reference implementation (TypeScript, ~core module) is not an appendix; it is the
@@ -248,27 +323,38 @@ demonstration that the three laws coexist at interactive rates:
 - displayed = enforced everywhere, pinned;
 - every editor claim in this draft is a named test: `trustRegionParity*`,
   `closedPHAllCPSweep`, `openPHCurveBound`, `phValueBound`, `closedPHDisplayMetric`,
-  `labE21`/`labE22` (the oracle and invariance experiments), and the notebook
-  E1–E22 records the failed hypotheses alongside the confirmed ones.
+  `labE21`/`labE22`/`labE25` (the oracle, invariance, and false-bound experiments),
+  `labE26*` (the Farin dissection: ratchet contract, semantics Pareto, blocked-row
+  classification), and the notebook E1–E26 records the failed hypotheses alongside
+  the confirmed ones — including three of this draft's original open problems that
+  became results within a day of being written down.
 
 ## 9. Open problems (the further-research section)
 
-1. **The tight open bound.** We count g's per-span Bézier coefficients — a valid but
-   loose S⁻ (10 vs 6 real on a reference curve). The tight count is S⁻ of g's
-   *minimal* B-spline polygon, reachable by product algebra in the B-spline basis —
-   correct mathematics, never a threshold. (Task #28.)
-2. **Bound-preserving Farin-point editing** for complex-rational curves: the weight
-   chain couples globally; a reduced-variable formulation that holds S⁻ while a Farin
-   point drags is open (our attempts held the bound but blocked outward).
-3. **The seam projection tax.** The closed-PH closure projection is objective-blind;
-   at the seam control point it returns ~2/3 of each solve's progress. A
-   closure-aware objective row should recover it.
-4. **Merges at the knife edge.** At a genuine extrema merge the count is
+Three of this section's original entries became results while the draft was under
+review, and moved into the body: the "loose open bound" dissolved (the bound is
+already tight on ordinary curves; the perceived gap was the false-bound artifact of
+§6.3 — and refinement, being corner cutting, could only ever have *tightened* it),
+the Farin problem became §7½, and the closed-PH seam projection tax was paid off by a
+closure-aware objective row (the seam control point recovered 3.4× tracking and the
+seam region equalized). What genuinely remains:
+
+1. **Merges at the knife edge.** At a genuine extrema merge the count is
    discontinuous in the data; 1-ulp input jitter legitimately flips it. Display and
    enforcement need a *consistent* convention (hysteresis, or exact structural
    knowledge at the merge) — the last honesty question the oracle left open.
-5. **Sub-O(n) local drags** (the hinge frontier): windowed solves with step-stability
+2. **A translation-aware active set.** §3's measurement located the row surrogate's
+   conservatism in leading-edge *recruitment*; a legal active set that frees matched
+   run-boundary pairs moving in lock-step would give the high-dimensional drags the
+   freedom the low-dimensional count-guard enjoys.
+3. **The reshape Farin variant.** The one-parameter family between the pure-weight
+   handle and full reshape (an anchored ratio+control-point solve traced its Pareto
+   front cleanly) awaits a solver that does not inherit the degenerate analytic
+   center (§4's caveat) under sustained blocked pulls.
+4. **Sub-O(n) local drags** (the hinge frontier): windowed solves with step-stability
    acceptance, toward editing 500-point curves with per-tick cost independent of n.
+5. **The spatial PH instantiation.** The value-certificate pattern (§2) with
+   b²σ⁶ − |r′×r″|² ≥ 0 — the same rows, a new polynomial.
 
 ---
 
