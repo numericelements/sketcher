@@ -1451,7 +1451,8 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
                   weights, so Farin points cannot move — showing them invites a drag that
                   fights the optimizer and leaves the interaction stuck. The control-polygon
                   arcs above still render (they only read the Farin positions). */}
-              {isSelected && !preserveCurvatureExtrema && !(activeTool === 'offset' && curve.id === offsetSourceCurveId) && curve.kind === 'complex-rational' && !phMetadata.has(curve.id) && farinPoints.complex.length > 0 && (
+              {/* E26-C: complex Farin points are shown under preserve too — the OPEN drag now rides the core anchored bound-preserving solve. */}
+              {isSelected && !(activeTool === 'offset' && curve.id === offsetSourceCurveId) && curve.kind === 'complex-rational' && !phMetadata.has(curve.id) && farinPoints.complex.length > 0 && (
                 <g>
                   {farinPoints.complex.map((farin) => (
                     <circle

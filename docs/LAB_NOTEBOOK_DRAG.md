@@ -982,3 +982,20 @@ use the exact CBDual columns already prototyped in farinDrag.ts).
 tracking recovery at roughly half of legacy's drift), or expose stiff/loose as a UI
 choice. Awaiting Eric's pick; production build = exact Jacobians + store wiring +
 closed/wrapWeight handling (task #29).
+
+## E26-C-TRIAL — the anchored Farin drag wired for Eric's feel-test (2026-07-04)
+
+Eric asked to try it in the editor. Wired:
+- **Complex Farin points are VISIBLE again under preserve** (they were hidden when the
+  bound was on because no bound-preserving Farin drag existed — it does now).
+- **OPEN complex Farin drag under preserve → core `slideComplexFarinAnchored`**
+  (anchor 100 = the measured balanced point; raw-count guard inside the solve; failure
+  warns + drops the tick). CLOSED stays on the legacy path unchanged (wrapWeight/
+  stored-farinPositions semantics not yet ported).
+- Store pin: complexFarinEditorDrag.test.ts (follows the pull, bound never rises,
+  handle alive).
+
+Feel knob for the test: `anchorWeight` in sceneStore's moveFarinPoint complex branch —
+100 now; 20 ≈ legacy reshape, 1000+ ≈ pure weight handle. Trial-grade FD Jacobian
+(~fine at n≈10; the exact CBDual columns are the production upgrade if the semantics
+is kept). Suite green (411).

@@ -20,6 +20,11 @@
 // same pattern that unlocked the PH family (RDual) and the value bound.
 // ============================================================================
 import { BernsteinDecomposition, decomposeToBernstein, assignSignsNeighbor, cyclicSignChanges } from './bernstein'
+import { computeInactiveSetBySign } from './curvatureProblem'
+import {
+  TrustRegionBarrierOptimizer, TRSymmetricMatrix,
+  type TrustRegionProblem, type TRMatrix,
+} from './trustRegionOptimizer'
 import { ComplexBD } from './complexBernstein'
 import type { Complex } from './complex'
 
@@ -219,5 +224,168 @@ export function slideComplexFarin(
   return {
     points: cps.map((p, j) => ({ re: p.re, im: p.im, w_re: w[j].re, w_im: w[j].im })),
     converged,
+  }
+}
+
+/**
+ * ANCHORED ratio+CP Farin drag (E26-C) — the continuous dial between the two
+ * semantics: the dragged edge's complex ratio is the cheap variable, every
+ * control point is Tikhonov-anchored to its tick-start position, and the
+ * anchor weight sets how much SHAPE a hard pull may spend (anchor→∞ = the
+ * pure-weight drag; anchor≈20 reproduced the legacy reshape on the measured
+ * Pareto front — see labE26Anchored). Bound: raw-count guarded (Law 2 on the
+ * displayed metric). OPEN curves. TRIAL-GRADE Jacobian (central FD): the
+ * exact CBDual columns are the production upgrade if the feel is kept.
+ */
+export function slideComplexFarinAnchored(
+  cps: readonly ComplexFarinCP[],
+  knots: readonly number[],
+  degree: number,
+  edge: number,
+  target: { x: number; y: number },
+  opts: { anchorWeight?: number; maxNumSteps?: number; dragWeight?: number } = {},
+): { points: ComplexFarinCP[]; bound: number; startBound: number } {
+  const n = cps.length
+  const nv = 2 * n + 2 // [re..., im..., sRe, sIm]
+  const anchorW = opts.anchorWeight ?? 100
+  const DRAGW = opts.dragWeight ?? 10
+  const w0Re = cps.map((p) => p.w_re)
+  const w0Im = cps.map((p) => p.w_im)
+  const weightsOf = (sRe: number, sIm: number) => {
+    const wRe = w0Re.slice()
+    const wIm = w0Im.slice()
+    for (let j = edge + 1; j < n; j++) {
+      const a = w0Re[j]
+      const b = w0Im[j]
+      wRe[j] = a * sRe - b * sIm
+      wIm[j] = a * sIm + b * sRe
+    }
+    return { wRe, wIm }
+  }
+  const gFlat = (z: number[]) => {
+    const { wRe, wIm } = weightsOf(z[2 * n], z[2 * n + 1])
+    const Zre = z.slice(0, n).map((x, j) => x * wRe[j] - z[n + j] * wIm[j])
+    const Zim = z.slice(0, n).map((x, j) => x * wIm[j] + z[n + j] * wRe[j])
+    const Z = new ComplexBD(decomposeToBernstein(Zre, knots, degree), decomposeToBernstein(Zim, knots, degree))
+    const W = new ComplexBD(decomposeToBernstein(wRe, knots, degree), decomposeToBernstein(wIm, knots, degree))
+    const zero = Z.re.scale(0)
+    return chenGDual(new CBDual(Z, new ComplexBD(zero, zero)), new CBDual(W, new ComplexBD(zero, zero))).g.flatCoeffs()
+  }
+  const qAt = (z: number[]) => {
+    const { wRe, wIm } = weightsOf(z[2 * n], z[2 * n + 1])
+    const w0: Complex = { re: wRe[edge], im: wIm[edge] }
+    const w1: Complex = { re: wRe[edge + 1], im: wIm[edge + 1] }
+    const num = caddc(
+      cmulc(w0, { re: z[edge], im: z[n + edge] }),
+      cmulc(w1, { re: z[edge + 1], im: z[n + edge + 1] }),
+    )
+    return cdivc(num, caddc(w0, w1))
+  }
+
+  const z0v = [...cps.map((p) => p.re), ...cps.map((p) => p.im), 1, 0]
+  const gc0 = gFlat(z0v)
+  const rawCount = (gc: number[]) => cyclicSignChanges(assignSignsNeighbor(gc), false)
+  const startBound = rawCount(gc0)
+  const signsAll = assignSignsNeighbor(gc0)
+  const inactive = computeInactiveSetBySign(signsAll, gc0.map(Math.abs))
+  const active = gc0.map((_, i) => i).filter((i) => !inactive.has(i) && gc0[i] !== 0)
+
+  let z = z0v.slice()
+  const f0Of = (zz: number[]) => {
+    const q = qAt(zz)
+    let sm = 0.5 * DRAGW * ((q.re - target.x) ** 2 + (q.im - target.y) ** 2)
+    for (let i = 0; i < 2 * n; i++) sm += 0.5 * anchorW * (zz[i] - z0v[i]) ** 2
+    return sm
+  }
+  const fOf = (zz: number[]) => {
+    const gc = gFlat(zz)
+    return active.map((i) => signsAll[i] * gc[i])
+  }
+  let atZ: { f: number[]; f0: number; g0: number[]; J: number[][] | null; JtJ: TRSymmetricMatrix | null } | null = null
+  let cand: { dx: number[]; f: number[]; f0: number } | null = null
+  const ensure = () => {
+    if (!atZ) atZ = { f: fOf(z), f0: f0Of(z), g0: [], J: null, JtJ: null }
+    return atZ
+  }
+  const buildJ = () => {
+    const a = ensure()
+    if (a.J) return
+    const J: number[][] = active.map(() => new Array<number>(nv).fill(0))
+    const q = qAt(z)
+    const rx = q.re - target.x
+    const ry = q.im - target.y
+    const qCols: { x: number; y: number }[] = []
+    for (let c = 0; c < nv; c++) {
+      const h = 1e-5 * (Math.abs(z[c]) + 1)
+      const zp = z.slice()
+      zp[c] += h
+      const zm = z.slice()
+      zm[c] -= h
+      const gp = gFlat(zp)
+      const gm = gFlat(zm)
+      for (let k = 0; k < active.length; k++) J[k][c] = (signsAll[active[k]] * (gp[active[k]] - gm[active[k]])) / (2 * h)
+      const qp = qAt(zp)
+      qCols.push({ x: (qp.re - q.re) / h, y: (qp.im - q.im) / h })
+    }
+    const g0 = new Array<number>(nv).fill(0)
+    const JtJ = new TRSymmetricMatrix(nv)
+    for (let c = 0; c < nv; c++) {
+      g0[c] = DRAGW * (rx * qCols[c].x + ry * qCols[c].y) + (c < 2 * n ? anchorW * (z[c] - z0v[c]) : 0)
+      for (let l = 0; l <= c; l++) {
+        let v = DRAGW * (qCols[c].x * qCols[l].x + qCols[c].y * qCols[l].y)
+        if (c === l && c < 2 * n) v += anchorW
+        JtJ.set(c, l, v)
+      }
+    }
+    a.J = J
+    a.g0 = g0
+    a.JtJ = JtJ
+  }
+  const visit = (dx: number[]) => {
+    if (cand && cand.dx === dx) return cand
+    const zc = z.map((v, i) => v + dx[i])
+    cand = { dx, f: fOf(zc), f0: f0Of(zc) }
+    return cand
+  }
+  const problem: TrustRegionProblem = {
+    get numberOfIndependentVariables() { return nv },
+    get f0() { return ensure().f0 },
+    get gradient_f0() { buildJ(); return ensure().g0 },
+    get hessian_f0(): TRMatrix { buildJ(); return ensure().JtJ! },
+    get numberOfConstraints() { return active.length },
+    get f() { return ensure().f },
+    get gradient_f(): TRMatrix {
+      buildJ()
+      const J = ensure().J!
+      return { shape: [active.length, nv], get: (r, c) => J[r][c] }
+    },
+    step(dx: number[]) {
+      z = z.map((v, i) => v + dx[i])
+      atZ = null
+      cand = null
+    },
+    fStep(dx: number[]) { return visit(dx).f },
+    f0Step(dx: number[]) { return visit(dx).f0 },
+  }
+  try {
+    new TrustRegionBarrierOptimizer(problem).optimize(10e-8, 10, opts.maxNumSteps ?? 12)
+  } catch { /* guard below */ }
+  const countAt = (zz: number[]) => rawCount(gFlat(zz))
+  if (countAt(z) > startBound) {
+    let lo = 0
+    let hi = 1
+    for (let it = 0; it < 22; it++) {
+      const mid = (lo + hi) / 2
+      const zm = z0v.map((v, i) => v + mid * (z[i] - v))
+      if (countAt(zm) <= startBound) lo = mid
+      else hi = mid
+    }
+    z = z0v.map((v, i) => v + lo * (z[i] - v))
+  }
+  const { wRe, wIm } = weightsOf(z[2 * n], z[2 * n + 1])
+  return {
+    points: cps.map((_p, j) => ({ re: z[j], im: z[n + j], w_re: wRe[j], w_im: wIm[j] })),
+    bound: countAt(z),
+    startBound,
   }
 }

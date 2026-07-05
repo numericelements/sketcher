@@ -21,7 +21,7 @@ import { optimizeComplexRationalCurve, applyComplexRationalOptimizeResult, optim
 // a known-hard open problem), the PH curvature-VALUE bound workbench, plain
 // (no-extrema) PH tracking, and the AB/complex-rational/real-rational PH
 // variants. See docs/CURVATURE_ARCHITECTURE.md.
-import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarinAnchored, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -2431,6 +2431,29 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     } else if (curve.kind === 'complex-rational') {
       // Use optimizer if preserveCurvatureExtrema is enabled for complex-rational curves
       const { preserveCurvatureExtrema } = get()
+      if (preserveCurvatureExtrema && !curve.closed) {
+        // OPEN complex Farin drag → core ANCHORED ratio+CP solve (E26-C): the
+        // edge ratio is the cheap variable, control points are Tikhonov-
+        // anchored (anchor 100 = the measured balanced point on the Pareto
+        // front — ≈64% tracking at ~half of legacy's CP drift; raise for a
+        // stiffer "pure weight" feel, lower toward 20 for legacy's reshape).
+        // Bound: raw-count guarded inside the solve (Law 2 on the displayed
+        // metric). Trial wiring for the feel-test; failure warns + drops.
+        try {
+          const cpsIn = curve.controlPoints.map((p) => ({ re: p.re, im: p.im, w_re: p.w_re, w_im: p.w_im }))
+          const r = slideComplexFarinAnchored(cpsIn, curve.knots, curve.degree, farinIndex,
+            { x: newPosition.x, y: newPosition.y }, { anchorWeight: 100, maxNumSteps: 12 })
+          const newControlPoints = curve.controlPoints.map((p, i) => ({ ...p, ...r.points[i] }))
+          const updated = { ...curve, controlPoints: newControlPoints }
+          const farinPositions = computeComplexFarinPoints(updated).map((f) => f.position)
+          set((state) => ({
+            curves: state.curves.map((c) => (c.id === curveId ? { ...updated, farinPositions } : c)),
+          }))
+        } catch (e) {
+          console.warn('core anchored Farin drag failed (tick dropped):', e)
+        }
+        return
+      }
       if (preserveCurvatureExtrema) {
         try {
           const result = optimizeComplexRationalCurve(
