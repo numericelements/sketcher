@@ -46,6 +46,8 @@ const maxRelColErr = (A: number[][], B: number[][]): number => {
 const FILLED: [AlgebraicFamily, Topology, 'analytic' | 'ad'][] = [
   ['polynomial', 'open', 'ad'],
   ['polynomial', 'closed', 'ad'],
+  ['polynomial', 'open', 'analytic'],   // hand-analytic (analyticGradient.ts, ported from Rust)
+  ['polynomial', 'closed', 'analytic'],
   ['rational', 'open', 'analytic'],
   ['rational', 'closed', 'analytic'],
   ['complex', 'open', 'analytic'],
@@ -71,11 +73,12 @@ describe('family Jacobian: exact backends match the FD oracle', () => {
 
   it('unfilled (family, backend) cells throw a clear error; filled ones do not', () => {
     const d = 3, n = 10, knots = openKnots(n, d)
-    // polynomial has 'ad' (and fd), not a distinct 'analytic' backend yet → throws.
-    expect(() => familyJacobian('polynomial', makeCurve('polynomial', n, 0), knots, d, 'open', 'analytic')).toThrow(/not in the set yet/)
+    // polynomial now has BOTH 'ad' AND 'analytic' (analyticGradient.ts) → neither throws.
+    expect(() => familyJacobian('polynomial', makeCurve('polynomial', n, 0), knots, d, 'open', 'analytic')).not.toThrow()
+    expect(() => familyJacobian('polynomial', makeCurve('polynomial', n, 0), knots, d, 'open', 'ad')).not.toThrow()
     // rational/complex have no 'ad' backend yet (they use seeded 'analytic') → throws.
     expect(() => familyJacobian('complex', makeCurve('complex', n, 0), knots, d, 'open', 'ad')).toThrow(/not in the set yet/)
-    // every algebraic cell now has fd AND one exact backend.
+    // every algebraic cell now has fd AND at least one exact backend.
     expect(() => familyJacobian('complex', makeCurve('complex', n, 0), knots, d, 'open', 'analytic')).not.toThrow()
     expect(() => familyJacobian('rational', makeCurve('rational', n, 0), knots, d, 'open', 'analytic')).not.toThrow()
   })

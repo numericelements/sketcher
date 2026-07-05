@@ -29,6 +29,7 @@ import {
   inflectionNumeratorRationalPeriodic,
 } from './curvature'
 import { curvatureExtremaGradientPlanar, curvatureExtremaGradientPlanarPeriodic } from './gradient'
+import { polynomialCurvatureJacobianColumns } from './analyticGradient'
 import type { Complex } from './complex'
 
 export type Topology = 'open' | 'closed'
@@ -204,11 +205,11 @@ export function familyInflectionJacobianFD(
 // (rows k = g's control-polygon coefficients, cols = 2n affine coordinates).
 //
 // FD is universal — the numerical ORACLE every other backend is validated against.
-// The exact backends are what core has today, and they are uneven on purpose
-// (this is the gap the set is closing): polynomial has a forward-AD ('ad') path;
-// closed rational/complex have a seeded-analytic ('analytic') path; open
-// rational/complex and PH have only FD so far. A backend that isn't filled yet
-// THROWS — the slot exists so it's swappable and the gap is explicit.
+// The exact backends are what core has today: polynomial has BOTH a forward-AD ('ad',
+// gradient.ts) and a hand-analytic ('analytic', analyticGradient.ts, ported from Rust
+// ne-core) path; rational/complex have a seeded-analytic ('analytic') path, open AND
+// closed (curvature.ts, the Chen differential). A backend that isn't filled for a given
+// family THROWS — the slot exists so it's swappable and the gap is explicit.
 // ============================================================================
 export type JacobianBackend = 'fd' | 'analytic' | 'ad'
 
@@ -227,7 +228,13 @@ export function familyJacobian(
   const closed = topology === 'closed'
   const re = cps.map((p) => p.re), im = cps.map((p) => p.im)
   if (kind === 'polynomial') {
-    if (backend !== 'ad') throw new Error(`polynomial Jacobian backend '${backend}' not in the set yet (have: fd, ad)`)
+    // 'analytic' — the hand-derived differential (analyticGradient.ts, ported from Rust
+    // ne-core); 'ad' — the forward-AD gradient (gradient.ts). Both exact, both FD-validated.
+    if (backend === 'analytic') {
+      const grad = polynomialCurvatureJacobianColumns(re, im, knots, degree, closed)
+      return assembleFromColumns(grad.g.flatCoeffs().length, grad.dx, grad.dy)
+    }
+    if (backend !== 'ad') throw new Error(`polynomial Jacobian backend '${backend}' not in the set yet (have: fd, ad, analytic)`)
     const grad = closed ? curvatureExtremaGradientPlanarPeriodic(re, im, knots, degree) : curvatureExtremaGradientPlanar(re, im, knots, degree)
     return assembleFromColumns(grad.g.flatCoeffs().length, grad.dx, grad.dy)
   }
