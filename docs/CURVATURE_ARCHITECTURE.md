@@ -18,8 +18,10 @@ Given a curve `c(t)` and a drag of control point `Pₖ` toward a cursor target `
 min  Σ wᵢ ‖Pᵢ* − Tᵢ‖²     s.t.   sⱼ · gⱼ(P*) ≥ 0  for j ∈ 𝒜
 ```
 
-- `g(t)` is the **curvature-extrema numerator** — the numerator of κ′(t); its zeros are
-  the curvature extrema. (`f(t) = c′×c″` is the inflection numerator; same machinery.)
+- `g(t)` is the **curvature-extrema numerator** — the numerator of κ′(t); its **sign
+  changes (crossings)** are the curvature extrema (Law 1: a zero that only touches is a
+  flat spot of dκ/ds, not an extremum). (`f(t) = c′×c″` is the inflection numerator; same
+  machinery.)
 - `S⁻` = the number of sign changes of `g`'s coefficients. By **Schoenberg** (Thm 1) it
   bounds the number of curvature extrema.
 - The **sliding mechanism** (Thm 2): constrain only the _active set_ `𝒜` — the
@@ -28,7 +30,7 @@ min  Σ wᵢ ‖Pᵢ* − Tᵢ‖²     s.t.   sⱼ · gⱼ(P*) ≥ 0  for j ∈
   across every edit (the only way `S⁻` can grow is an "all-flip" of a run, which the
   retained anchor blocks).
 
-This is solved per drag step by an interior-point method.
+This is solved per drag step by a **log-barrier trust-region** method (§3–4).
 
 ---
 
@@ -44,13 +46,25 @@ Consequences, decided deliberately (see the design history in the memory notes):
 - **No freezing.** The active set is re-evaluated every tick so the mechanism adapts.
 - The numerics near `g ≈ 0` are the hard part ("we sit on near-zero constraints all the
   time"). Two rules make them robust:
-  - **`S⁻` is counted on neighbour-assigned signs** (`assignSignsNeighbor`): a coefficient
-    below the noise floor takes its run's sign instead of faking a sign change.
+  - **`S⁻` is counted RAW** (`assignSignsNeighbor`, `bernstein.ts`): every nonzero
+    coefficient keeps its own computed sign; only an **EXACT floating-point zero** — whose
+    sign genuinely does not exist — borrows its nearest neighbour's, so it joins that run
+    for the optimizer **without adding a count**. There is **no magnitude floor** on the
+    sign. `SIGN_NOISE_REL = 1e-14` survives ONLY as feasibility **slack**
+    (`structuralMarginsScaled` in `curvatureProblem.ts` — a practically-zero active
+    coefficient starts a hair off its wall) and in the trust-region-inert row scale; it
+    never rewrites a sign. (Previously a "below the noise floor takes its run's sign" rule
+    reassigned tiny coefficients; it read a **false low bound** — the E25 oracle specimen,
+    clustered knots, displayed 14 vs the exact 25 with every sign correct, `labE25.test.ts`.)
   - **Strict enforcement** corrects solver slip: after the solve, if `S⁻` ticked up
     (numerical slip near zero), bisect the result back toward the tick's start until the
     bound holds again. It is a _correction_, not a freeze — a no-op on clean solves.
-- Markers (the dots) must be counted **consistently with the bound** — a real extremum is
-  one where `g` genuinely swings (a deadband `±ε·max|g|`), not a noise crossing.
+- Markers (the dots) come from **variation-diminishing subdivision** of `g`
+  (`signChangeParams` / `curvatureExtremaMarkersOfNumerator`, `curvature.ts`):
+  **scale-free, crossings-only**, never sampling and with **no deadband**. `markers ≤ S⁻`
+  holds automatically — both are the sign structure of the same raw-counted polygon.
+  (Previously a `±ε·max|g|` marker deadband was prescribed; it is forbidden by Law 3 — a
+  relative floor on a ~1e12 dynamic range deletes real low-amplitude crossings.)
 
 ---
 
@@ -62,7 +76,7 @@ specialized math. The goal is **one shape**: a shared spine that every family pl
 ```
                        ┌─────────────── THE SPINE (shared) ───────────────┐
                        │  contract:  OptimizationProblem  (ipopt/types.ts) │
-   editor ── slide() ──┤  solver:    InteriorPointOptimizer (ipopt/)       │
+   editor ── slide() ──┤  solver:    TrustRegionBarrierOptimizer(Banded)   │
                        │  bound:     S⁻ = cyclicSignChanges(assignSigns…)  │
                        │  enforce:   sliding active set + strict guard      │
                        │  linalg:    banded / arrowhead / windowed          │
@@ -80,10 +94,16 @@ specialized math. The goal is **one shape**: a shared spine that every family pl
 - **Contract** — `OptimizationProblem` (`src/core/ipopt/types.ts`): a curve type provides
   `computeConstraints` (the `gⱼ`), `computeConstraintJacobian` (its specialized gradient),
   the sliding state (`getConstraintSigns` / `getInactiveConstraints`), and the objective.
-- **Solver** — `InteriorPointOptimizer` (`src/core/ipopt/InteriorPointOptimizer.ts`):
-  trust region + filter + feasibility restoration. It does not know the curve type.
+- **Solver** — the **log-barrier trust-region** method
+  (`TrustRegionBarrierOptimizer` / `TrustRegionBarrierOptimizerBanded`,
+  `src/core/trustRegionOptimizer.ts` / `trustRegionBanded.ts`): log-barrier path following
+  with the Conn–Gould–Toint near-exact trust-region subproblem (λ-iteration on `H+λI`),
+  ρ measured for the step actually taken, and a shrink-until-strictly-feasible inner loop
+  so no iterate ever violates a constraint. Banded + bordered (arrowhead) Cholesky,
+  `O(n·b²)`. It does not know the curve type. `InteriorPointOptimizer` (`ipopt/`) and the
+  primal-dual solvers are kept as **measured comparisons** (§4), not the production path.
 - **Linear algebra** — `SymBand` (`banded.ts`), `Arrowhead` (`cyclic.ts`),
-  `bandedTrustRegion.ts` (open=band, closed=band+seam, large-n=windowed [planned]).
+  `trustRegionBanded.ts` (open=band, closed=band+seam, large-n=windowed [planned]).
 - **Bound** — one metric: `cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed)`.
 - **Enforcement** — the sliding active set (`computeInactiveSetBySign` / `…Cyclic`) and the
   strict post-solve `S⁻` guard (in `slideCurve` / `slideComplexRational`).
@@ -92,12 +112,17 @@ specialized math. The goal is **one shape**: a shared spine that every family pl
 
 | family                              | numerator g                                           | problem / drag entry                                                                                       | linear algebra                                         |
 | ----------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| polynomial planar                   | `curvatureExtremaNumeratorPlanar / …Periodic`         | `PlanarCurvatureProblem` / `slideCurve`                                                                    | band (open), arrowhead (closed)                        |
-| (complex-)rational                  | `curvatureExtremaNumeratorComplex / …Periodic` (Chen) | `ComplexRationalProblem` / `slideComplexRational`                                                          | arrowhead, fixed-weight local gradient                 |
-| PH polynomial / complex / real / AB | generator-based                                       | `optimizePHCurve` / `optimizeComplexRationalPHCurve` / `optimizeRealRationalPHCurve` / `optimizeABPHCurve` | (currently the legacy solver — to port onto the spine) |
+| polynomial planar                   | `curvatureExtremaNumeratorPlanar / …Periodic`         | `slideCurve` (open + closed)                                                                               | band (open), arrowhead (closed)                        |
+| (complex-)rational                  | `curvatureExtremaNumeratorComplex / …Periodic` (Chen) | `slideComplexRational` (open + closed, incl. junction/cusp)                                                | arrowhead, fixed-weight local gradient                 |
+| PH polynomial (open/closed)         | reduced numerator `R` (`phCurvature.ts`, g = 2·R·σ²)  | `slideOpenPHCurveBound` / `slideClosedPHCurveBound` (core TR engine); value bound via `phValueBound.ts` (P± certificate rows) | band (open), band+seam (closed), free-seam coords      |
+| Farin handle (rational / complex)   | same `g`, handle position ⇒ edge ratio in closed form | `slideRationalFarin` (1-D count-guarded bisection) / `slideComplexFarin` (2-DOF pure-weight walk, monodromy-aware closed) | value-only Chen numerator, count-guarded               |
+| PH variant (complex / real / AB)    | generator-based                                       | `optimizeComplexRationalPHCurve` / `optimizeRealRationalPHCurve` / `optimizeABPHCurve` (**the remaining legacy island** — port-vs-contain pending) | legacy `InteriorPointOptimizer`                        |
 
 Understand the spine + one organ and you understand them all: organs differ **only** in
-the `g`/gradient they expose through the identical contract.
+the `g`/gradient they expose through the identical contract. Every mainline family (the
+four algebraic families × open/closed, plus open/closed PH and both Farin kinds) now runs
+on the core trust-region engine; only the PH-variant drags above remain on the legacy
+solver.
 
 ---
 
@@ -126,15 +151,17 @@ the reason**.
   the bound on fast drags, and is ~2.5× slower. Kept behind the flag; **default OFF** until
   step control tames it.
 
-**Solver** — multiple regimes behind one `OptimizerConfig`:
+**Solver** — multiple regimes, the production one chosen by measurement:
 
-- **`InteriorPointOptimizer`** (robust IPOPT: trust region + filter + feasibility
-  restoration) — the **bound-keeper**; _default_.
-- **`BarrierOptimizer` / `PrimalDualOptimizer` / `BandedPrimalDualOptimizer`** — leaner and
-  faster on large / benchmark cases, but can let the bound slip on a quick drag; opt-in via
-  `method`, used for the method-comparison demo.
-- **Rule:** the default must be the one that **keeps the bound** ("IPOPT is the invariant
-  keeper"). Faster solvers may assist but never replace it as the default.
+- **`TrustRegionBarrierOptimizer` / `…Banded`** (log-barrier path following, Conn–Gould–Toint
+  near-exact subproblem, ρ measured for the step taken, shrink-until-strictly-feasible) — the
+  **production solver everywhere**. It both keeps the bound and tracks the cursor, and its
+  banded/bordered Cholesky is `O(n·b²)`.
+- **`InteriorPointOptimizer` (IPOPT)** and **`PrimalDualOptimizer` / `BandedPrimalDualOptimizer`**
+  — kept as **measured comparisons** (oracles + method-comparison demo), not the default.
+- **Rule:** the default must be the one that **keeps the bound _and_ tracks** — measured, not
+  assumed (F9's trap: a solver that tracks further while its displayed bound climbs is not
+  "better," it is enforcing a different quantity). Trust-region wins both today.
 
 > Methodology, restated: _keep the options, measure, choose the default, document the
 > choice and the measurement._ When the measurement changes, update this section.
@@ -165,15 +192,20 @@ Any mechanism that keeps `S⁻` non-increasing is named here so it is never sile
 - **Sliding mechanism** (St-Malo Thm 2): constrain only `𝒜` = same-sign positions + one
   anchor (largest |g|) per alternating run; free the run interiors. Implemented in
   `computeInactiveSetBySign` / `…BySignCyclic`. **Re-evaluated every tick — never frozen.**
-- **Noise-robust counting**: `S⁻` is counted on neighbour-assigned signs
-  (`assignSignsNeighbor`) so a structural zero below the noise floor takes its run's sign
-  instead of faking a sign change.
+- **Raw strict counting** (E25): `S⁻` counts the **actual** signs of `g`'s coefficients via
+  `assignSignsNeighbor` — every nonzero coefficient keeps its own sign; only an **exact**
+  floating-point zero borrows its neighbour's (so it joins a run without adding a count).
+  There is **no magnitude floor**: a relative floor on `g`'s ~1e12 dynamic range deletes
+  real low-amplitude features and reads a **false low bound** (the E25 specimen displayed 14
+  vs the exact 25, `labE25.test.ts`). `SIGN_NOISE_REL = 1e-14` survives only as feasibility
+  slack, never as a sign classifier.
 - **Strict post-solve enforcement**: if numerical slip ticked `S⁻` up, bisect the result
-  back toward this tick's start until `S⁻ ≤ start`. A _correction_ for solver slip near
-  `g≈0`, **not** a freeze; a no-op on clean solves.
-- **Markers consistent with the bound**: count a marker only where `g` genuinely swings
-  (deadband `±ε·max|g|`), so noise crossings are not shown as extrema (_planned
-  unification with the bound metric_).
+  back toward this tick's start until `S⁻ ≤ start` (the shared `enforceBoundNonincreasing`
+  guard). A _correction_ for solver slip near `g≈0`, **not** a freeze; a no-op on clean solves.
+- **Markers from variation-diminishing subdivision**: `curvatureExtremaMarkersOfNumerator`
+  (`curvature.ts`) locates crossings by VD subdivision of `g` — scale-free, crossings-only,
+  **no deadband**. `markers ≤ S⁻` holds automatically because both read the sign structure of
+  the same raw-counted polygon. A `±ε·max|g|` marker deadband is **forbidden** by Law 3.
 - **Anti-patterns (do NOT):** freeze the signs/active-set across a drag (blocks editing);
   guard on the dense actual-extrema count instead of `S⁻` (misses `S⁻` slips and
   over-counts noise); make a faster solver the default if it can slip the bound.
@@ -201,73 +233,80 @@ that guards every convergence step. **A curve type with no bound-preservation te
 
 ## 8. Current state — what is canonical vs. duplicated
 
-The TypeScript code is a **partly-finished port** from the Rust `ne-core` library (which
-already has this shape: one `Problem` trait, one `optimize`, one bound). Both stacks are
-currently live — `src/core/` (the future spine) **and** `src/sketcher/optimizer/` (the
-legacy engine). Every concept exists in both, which is the source of the "the bound says
-4 but the readout says 6" class of bugs.
+The TypeScript code was a **partly-finished port** from the Rust `ne-core` library (one
+`Problem`, one `optimize`, one bound). That port is now **essentially complete for every
+mainline drag**: `src/core/` is the spine and the single source of truth for the bound,
+the sign convention, the sliding active set, and the display. The old "the bound says 4 but
+the readout says 6" class of bug is gone because the readout, the markers, and the guard all
+read the **same solved object** (E16-P2/P3, E25 raw counting).
 
-| concept                   | # impls                                          | **canonical** (keep)                                                                                                    | **duplicate** (delete on convergence)                                                                              |
-| ------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| solver                    | 2 (+3 demo)                                      | `core/ipopt/InteriorPointOptimizer`                                                                                     | `sketcher/optimizer/InteriorPointOptimizer` + its `linearAlgebra.ts`                                               |
-| numerator `g`/`f`         | 2 per type                                       | `core/curvature.ts` `curvatureExtremaNumerator*` / `inflectionNumerator*`                                               | `sketcher/optimizer/algebra.ts` `compute*DerivativeNumerator*`, `complexAlgebra.ts` `compute*ComplexDerivativesBD` |
-| bound / count             | 3 conventions                                    | `cyclicSignChanges(assignSignsNeighbor(…))` (S⁻) + core dense `*ExtremaParameters` (marker positions, to be deadbanded) | sketcher `compute*ExtremaParameters` + `compute*ConstraintState`                                                   |
-| sliding active set        | 2                                                | core `computeInactiveSet` / `…BySign` / `…BySignCyclic`                                                                 | per-problem sketcher `computeInactiveSet*` copies                                                                  |
-| drag entry                | core (canonical) + legacy (routed) + PH (organs) | `slideCurve`, `slideComplexRational`; PH organs until ported                                                            | `optimizeCurve`, `optimizeRationalCurve`, `optimizeComplexRationalCurve`                                           |
-| display (markers + "S =") | mixed core/sketcher per type                     | all types → core dense markers (deadbanded) + core `cyclicSignChanges`                                                  | the sketcher marker/constraint-state calls in `SketcherCanvas.tsx` + `BottomPanel.tsx`                             |
+What survives of `src/sketcher/optimizer/` is a **shrinking legacy island**, not a parallel
+stack — it is reachable only through the PH-variant drags below and the fit/lab tests.
 
-**The structural bug, in one sentence:** the _drag guard_ (clean-periodic cases) runs on
-`core`, but the _display_ still calls the `sketcher` numerators/counts for every type
-except open b-spline — so they use different `g` and different sign conventions and
-disagree. Collapsing the bound metric onto one core function is the single
-highest-leverage fix.
+| concept                   | canonical (the spine)                                                                             | legacy remnant                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| solver                    | `core/trustRegionOptimizer.ts` / `trustRegionBanded.ts` (production)                              | `optimizer/InteriorPointOptimizer` — only the PH-variant island still calls it |
+| numerator `g`/`f`         | `core/curvature.ts` `curvatureExtremaNumerator*` / `inflectionNumerator*`; PH `phCurvature.ts` (R) | `optimizer/algebra.ts`, `complexAlgebra.ts` — construction/offset/render + PH-variant only |
+| bound / count             | one metric: `cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed)` (raw, E25)           | — (retired)                                                                  |
+| markers                   | `curvatureExtremaMarkersOfNumerator` (VD subdivision, no deadband)                                 | — (retired)                                                                  |
+| sliding active set        | core `computeInactiveSetBySign` / `…Cyclic`                                                        | — (retired)                                                                  |
+| drag entry                | `slideCurve`, `slideComplexRational`, `slideOpen/ClosedPHCurveBound`, `slideRational/ComplexFarin` | `optimize{ComplexRational,RealRational,AB}PHCurve` (PH-variant island)       |
+| display (markers + "S =") | all types → the solved object's core `g` + `cyclicSignChanges` + VD markers                        | — (retired)                                                                  |
+
+**Deleted on the way here** (see the legacy-deletion memory + git): the whole CP-drag legacy
+engine, both Farin problem classes, the rational/periodic-rational/complex-rational problem
+classes, `SymmetryReductionWrapper`, `FixedVariableWrapper`, `PeriodicBSplineCurveProblem`,
+the noise-floor sign smoothing, the marker-robust duplicate finder — roughly 3,700+ lines.
 
 ### Store routing today (`sceneStore.moveControlPoint`)
 
-First match wins. PH (rows 1–5) → PH organs. `bspline` open or clean-periodic-closed → `slideCurve`.
-`rational`/`complex-rational` clean-periodic-closed → `slideComplexRational`. **Everything
-else** (junction-knot closed, symmetry-reduced, open-rational) → **legacy** `optimize*Curve`.
-Converging means core covers those last cases so the legacy paths can be deleted.
+First match wins. Open/closed PH → `slideOpen/ClosedPHCurveBound` (core). Farin handle →
+`slideRationalFarin` / `slideComplexFarin` (core). `bspline` open or closed → `slideCurve`
+(core). `rational` / `complex-rational` open or closed (incl. junction/cusp) →
+`slideComplexRational` (core). The **PH-variant families** (complex-rational-PH,
+real-rational-PH, AB-PH) are the only drags still on `optimize*PHCurve` (legacy). The
+**editor CP-drag ledger is empty** — every control-point drag runs on core.
 
 ---
 
 ## 9. Convergence plan (ordered, each step matrix-guarded)
 
-Discipline: **no new metric or mechanism** until the duplication is gone. Each step makes
-`core/` the single source of truth for one concept, routes everyone through it, and
-**deletes the duplicate in the same step**. The regression net is the diagnostic matrix
+Discipline: **no new metric or mechanism** until the duplication is gone. Each step made
+`core/` the single source of truth for one concept, routed everyone through it, and
+**deleted the duplicate in the same step**. The regression net is the diagnostic matrix
 (curve type × open/closed × slow/fast → bound non-increasing + non-blocking + display
-consistent).
+consistent). **Steps 0–5 are done; 6–7 remain.**
 
-- **Step 0 — Diagnostic matrix as a committed test.** Lock the contract (§2) as an
-  executable spec across all curve types, so every later step is verified, not hoped.
-- **Step 1 — Unify the bound metric (highest leverage).** One core S⁻
-  (`cyclicSignChanges(assignSignsNeighbor)`) + deadband on the core dense `*ExtremaParameters`
-  (markers). Route **all** types' "S =" readout and markers through core. Delete the
-  sketcher `compute*ConstraintState` + `compute*ExtremaParameters`. _Ends guard-vs-display
-  disagreement for every type at once._
-- **Step 2 — Unify the enforcement.** The sliding active set + the strict `S⁻` guard live
-  in one shared place used by both `slideCurve` and `slideComplexRational` (the guard was
-  added to both — make it literally the same helper). Delete per-problem sketcher inactive
-  sets.
-- **Step 3 — Unify the numerator `g`.** Display and editor compute `g`/`f` only via
-  `core/curvature.ts`. Delete the `sketcher` numerator duplicates.
-- **Step 4 — Unify the drag entry; delete legacy.** Make `slideCurve`/`slideComplexRational`
-  cover the cases still on legacy (junction-knot closed, symmetry, open-rational). Delete
-  `optimizeCurve` / `optimizeRationalCurve` / `optimizeComplexRationalCurve`.
-- **Step 5 — Port PH onto the spine.** Recast the four PH optimizers as
-  `OptimizationProblem`s solved by the core solver; delete the `sketcher` solver +
-  `linearAlgebra.ts`.
+- ✅ **Step 0 — Diagnostic matrix as a committed test.** The all-family sweeps
+  (`*AllCPSweep.test.ts`) lock the contract (§2) across every curve type.
+- ✅ **Step 1 — Unify the bound metric.** One core `S⁻`
+  (`cyclicSignChanges(assignSignsNeighbor)`, raw since E25) + VD-subdivision markers. Every
+  type's "S =" readout and markers read the solved object's core `g`; the sketcher
+  `compute*ConstraintState` / `compute*ExtremaParameters` are retired.
+- ✅ **Step 2 — Unify the enforcement.** The strict `S⁻` guard is the shared
+  `enforceBoundNonincreasing` (`curvatureProblem.ts`). _(Tier 2 folds the last few
+  hand-rolled bisections in `phDrag.ts` / the Farin walks through it too.)_
+- ✅ **Step 3 — Unify the numerator `g`.** Display and editor compute `g`/`f` only via
+  `core/curvature.ts` (+ PH's reduced `R` in `phCurvature.ts`). The sketcher numerators
+  survive only for construction/offset/render and the PH-variant island.
+- ✅ **Step 4 — Unify the drag entry; delete legacy CP drags.** `slideCurve` /
+  `slideComplexRational` cover open + closed (incl. junction/cusp); `optimizeCurve` /
+  `optimizeRationalCurve` / `optimizeComplexRationalCurve` and the two Farin problem classes
+  are deleted (~3,700 lines total).
+- ✅ **Step 5 — Port PH onto the spine.** Open/closed PH curvature drags, the value bound
+  (P± certificate rows, `phValueBound.ts`), and plain PH tracking all run on the core
+  trust-region engine. **Remaining:** the three PH-**variant** families (complex-rational-PH,
+  real-rational-PH, AB-PH) still use `optimize*PHCurve`; porting or containing them is the
+  open port-vs-contain decision (§8, Eric's call).
 - **Step 6 — One closed-curve model.** Resolve the C⁰-junction-vs-clean-periodic fork
   (either smooth-periodic only, like Rust, or teach the core periodic solver junction
   knots) so closed curves take one path.
 - **Step 7 — Speed organs to match Rust.** Windowed local solve (`SymBand::solve_windowed`)
-  for large n; reduce Bernstein allocation. These are organ-internal — the spine is
-  unchanged.
+  for large n; reduce Bernstein allocation. Organ-internal — the spine is unchanged.
 
-After Step 5 there is exactly one solver, one `g` per family, one bound, one active set,
-one drag entry, one display metric — the library feel, with every per-type optimization
-preserved.
+The spine goal is reached for every mainline family: exactly one solver, one `g`, one bound,
+one active set, one display metric. Only the PH-variant island and the two speed/topology
+refinements remain.
 
 ---
 
@@ -276,9 +315,10 @@ preserved.
 1. Implement `OptimizationProblem` (`core/ipopt/types.ts`): expose your `g` (via a numerator
    in `core/curvature.ts`), your specialized constraint Jacobian, and the sliding state from
    the shared `computeInactiveSet*` helpers.
-2. Add a `slideX(...)` entry that builds your problem and calls `InteriorPointOptimizer`.
-   The bound metric, the strict enforcement, the banded/arrowhead solve, and the display all
-   come from the spine for free.
+2. Add a `slideX(...)` entry that builds your problem and calls the trust-region engine
+   (`TrustRegionBarrierOptimizer` / `…Banded`). The bound metric, the strict enforcement
+   (`enforceBoundNonincreasing`), the banded/arrowhead solve, and the display all come from
+   the spine for free.
 3. You do **not** write a new bound count, a new sign convention, a new active-set rule, or
    a new solver. If you find yourself doing so, that is the signal you are duplicating the
    spine — stop and reuse it.

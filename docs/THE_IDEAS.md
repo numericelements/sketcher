@@ -106,10 +106,11 @@ point tracks*.
 **Freezing** — pinning control points, coefficients, or signs to hold the bound. It looks like
 "enforcing Law 2"; it is the opposite — it blocks editing, which Law 2 forbids. Two subtler
 forms of the same imposter: **(a)** baking the active set / signs at drag *start* and reusing
-them every tick instead of re-deriving (a half-freeze — it exists today in the editor's
-pre-baked `constraintState` path and should be retired); **(b)** a slip-correction pull-back
-that travels more than a hair — that is a **solver-quality failure** wearing the mask of
-enforcement (the solve should have produced a feasible *reshaped* curve in the first place).
+them every tick instead of re-deriving (a half-freeze — the editor's pre-baked
+`dragConstraintState` field was **deleted** in the Tier-1 review; the active set is now derived
+per tick everywhere); **(b)** a slip-correction pull-back that travels more than a hair — that
+is a **solver-quality failure** wearing the mask of enforcement (the solve should have produced
+a feasible *reshaped* curve in the first place).
 
 ### 5. The invariant
 - `S⁻(after) ≤ S⁻(before)` at every tick, every family × topology.
@@ -440,10 +441,14 @@ Chen-rational path entirely (connects to idea VI: no square root).
 - **Real-BD core vs fully-generic algebra.** `g`'s product/derivative run on real BD pairs
   (`ComplexBD` on top) while decompose/insert/elevate are generic over `Coeffs`. Is unifying
   these worth it, or is real-BD + `ComplexBD` the right factoring? Measure, don't assume.
-- **The open bound is honestly loose (task #28).** We count `g`'s *per-span Bernstein*
-  coefficients (over-counts, e.g. 10 vs 6 real extrema). The tight count is `g`'s *minimal/
-  coarse* B-spline control polygon — a B-spline product-algebra task, **never** a threshold
-  (Law 3).
+- ⚠️ **The "loose open bound" was mostly a false-bound artefact (task #28, REFUTED E25).** The
+  famous "10 vs 6" specimen was not honest looseness at all — it was the noise-floor sign
+  smoothing *erasing* real sign changes (idea VIII, E25). With raw counting the count is already
+  the true `Z(g)` on the specimens tested, and the premise that knot insertion "frees" DOF was
+  backward (insertion is corner-cutting → it *tightens* the cage, E23). Any residual per-span
+  over-count is a **representation-quality** question (compute `g` on a minimal/coarse B-spline
+  polygon), still **never** a threshold — but it is no longer the extrema-miscount bug it was
+  filed as.
 
 ---
 
@@ -452,75 +457,73 @@ Chen-rational path entirely (connects to idea VI: no square root).
 *The main horse — it executes idea I and supplies idea VIII's margin.*
 
 ### 1. The principle
-**One robust interior-point solver — a trust-region filter barrier method — is the authority
-that holds the curvature bound while the point tracks the cursor, and it is the default
-everywhere.** Faster solvers (banded barrier, primal-dual) and second-order steps (exact
-Hessian) are kept and **measured**, but **none replaces the barrier as the default**.
+**One robust log-barrier trust-region solver is the authority that holds the curvature bound
+while the point tracks the cursor, and it is the production default everywhere.** Faster and
+alternative solvers (ipopt, primal-dual) and second-order steps (exact Hessian) are kept and
+**measured**, but the trust-region barrier is the one that both keeps the bound and tracks —
+which is the only test that counts (F9).
 
 ### 2. What it really is
 Each drag frame is one constrained solve — minimize the cursor-tracking objective subject to
 the sign constraints that hold `S⁻` (idea I) — a few Newton iterations.
 
-The production solver (`core/ipopt/InteriorPointOptimizer`) is a **barrier (interior-point)
-method with a trust region**, carrying the IPOPT toolkit: second-order correction, feasibility
-restoration, a filter line-search, and a watchdog. The barrier keeps every iterate **strictly
-interior** — which is exactly what keeps constrained coefficients off zero (idea VIII) and the
-bound intact (idea I). That is why it is *"the curvature-bound invariant keeper."* It is
-family-agnostic: it takes the abstract objective + constraints + Jacobian; families differ only
-in those callbacks (idea III).
+The production solver (`core/trustRegionOptimizer.ts` / `trustRegionBanded.ts`) is a
+**log-barrier path-following method** built on the **Conn–Gould–Toint near-exact trust-region
+subproblem** (λ-iteration on `H + λI`), with **ρ measured for the step actually taken** and a
+**shrink-until-strictly-feasible** inner loop so no iterate ever crosses a constraint. Keeping
+every iterate strictly interior is exactly what keeps constrained coefficients off zero
+(idea VIII) and the bound intact (idea I). The banded/bordered (arrowhead) Cholesky makes the
+inner solve `O(n·b²)` (idea VII). It is family-agnostic: it takes the abstract objective +
+constraints + Jacobian; families differ only in those callbacks (idea III).
 
 The experiments we keep — **and measure, never assume**:
-- **Banded LDLᵀ / arrowhead inner solve** — a *bit-identical* speedup toward O(n) (idea VII),
-  opt-in.
+- **`InteriorPointOptimizer` (IPOPT)** — the earlier production barrier (SOC, feasibility
+  restoration, filter, watchdog); now a **measured comparison / oracle**, not the default.
 - **Primal-dual** (Mehrotra predictor-corrector, banded KKT) — opt-in; needs idea VIII's
   margin enforced explicitly.
 - **Exact Hessian** (`Jet2` second-order AD) — full-Newton vs the default Gauss-Newton; **behind
   a flag, study only**, because it can *overshoot the bound on fast drags*.
-- **`'best'`** runs ipopt + primal-dual and keeps whichever tracks the cursor furthest — both
-  bound-guarded, never regresses (Law 2).
 
 ### 3. The mechanism (the deep module)
-- `core/ipopt/InteriorPointOptimizer.ts` — the production solver (trust-region filter barrier;
-  SOC, feasibility restoration, filter, watchdog). `optimize()`; default `method:'ipopt'`.
-- `core/ipopt/bandedTrustRegion.ts` — dogleg trust-region step, banded/arrowhead drop-ins.
-- `core/banded.ts` (LDLᵀ open, `O(n·b²)`), `core/cyclic.ts` (arrowhead/Woodbury closed seam) —
-  idea VII.
-- `core/bandedPrimalDual.ts` — Mehrotra primal-dual (opt-in).
-- `core/barrierOptimizer.ts` — plain log-barrier Gauss-Newton banded (opt-in).
-- `core/curvatureHessian.ts` — exact Hessian (`Jet2`), flag `enableExactHessian`, open-planar
-  only, study.
-- Selection: `slideCurve` defaults to `'ipopt'` (`curvatureProblem.ts:802`); the generic family
-  `slide` defaults to `'best'`.
+- `core/trustRegionOptimizer.ts` — the production solver (log-barrier, Conn–Gould–Toint
+  near-exact subproblem, measured ρ, strictly-feasible shrink). `TrustRegionBarrierOptimizer`.
+- `core/trustRegionBanded.ts` — `TrustRegionBarrierOptimizerBanded`: banded + bordered
+  (arrowhead) Cholesky inner solve, `O(n·b²)` (open = band, closed = band + seam).
+- `core/banded.ts` (LDLᵀ open), `core/cyclic.ts` (arrowhead/Woodbury closed seam) — idea VII.
+- `core/ipopt/InteriorPointOptimizer.ts` — the IPOPT comparison; `core/bandedPrimalDual.ts` —
+  Mehrotra primal-dual (opt-in); `core/barrierOptimizer.ts` — plain log-barrier GN banded.
+- `core/curvatureHessian.ts` — exact Hessian (`Jet2`), flag `enableExactHessian`, study only.
+- The strict `S⁻` guard after the solve is the shared `enforceBoundNonincreasing`
+  (`curvatureProblem.ts`).
 
 ### 4. The imposter to forbid
-- **Defaulting to a faster solver** (banded barrier / primal-dual) because it's quicker — it can
-  let the bound grow on a quick drag. This is the **"banded default footgun"** the design review
-  caught (`curvatureProblem.ts:833`). The barrier is the default; speed is opt-in and must prove
-  bound-faithful.
+- **Defaulting to a faster solver** because it's quicker — it can let the bound grow on a quick
+  drag (the historical "banded default footgun"). The production default must prove
+  bound-faithful **and** cursor-tracking.
 - **Turning on the exact Hessian by default** because second-order "should" be better — it can
   overshoot the bound; keep it measured behind the flag.
 - **Assuming** a lever helps. "The bound held" is not success (blocking holds it trivially) —
   "held **and** tracked" is, and only measurement against the oracle decides.
 
 ### 5. The invariant
-- The default solver, every family × topology, is the interior-point barrier; it holds `S⁻`
+- The default solver, every family × topology, is the trust-region log-barrier; it holds `S⁻`
   (Law 2) and keeps coefficients off zero (idea VIII).
-- Any faster or second-order variant must be **proven bound-faithful and cursor-tracking**
+- Any alternative or second-order variant must be **proven bound-faithful and cursor-tracking**
   before it is anything but opt-in; every result is bound-guarded (`enforceBoundNonincreasing`).
 - Decisions are **measured, not assumed** — concrete numbers, against the oracle.
 
 ### 6. Where it lives
-`core/ipopt/` (`InteriorPointOptimizer`, `bandedTrustRegion`, `sparseSym`, `types`),
-`core/banded.ts`, `core/cyclic.ts`, `core/bandedPrimalDual.ts`, `core/barrierOptimizer.ts`,
-`core/curvatureHessian.ts`. The legacy duplicate `sketcher/optimizer/InteriorPointOptimizer.ts`
-is to retire.
+`core/trustRegionOptimizer.ts`, `core/trustRegionBanded.ts` (production), `core/banded.ts`,
+`core/cyclic.ts`; the comparisons `core/ipopt/`, `core/bandedPrimalDual.ts`,
+`core/barrierOptimizer.ts`, `core/curvatureHessian.ts`. The legacy
+`sketcher/optimizer/InteriorPointOptimizer.ts` survives only for the PH-variant island.
 
 ### 7. The pinning test
 - **Holds the bound AND tracks** on the hard drags (`rustParityDrags.test.ts`) — both pinned.
 - **Banded/arrowhead is bit-identical to dense** (`localJacobianParity`, `arrowheadDrag`).
 - **Exact-Hessian path** validated against the `Jet2` AD oracle + FD (`curvatureHessian`).
-- **The default is `ipopt`** — a caller omitting `method` gets the invariant keeper, not the
-  footgun.
+- **The production default is the trust-region barrier** — a caller omitting `method` gets the
+  invariant keeper, not the footgun.
 
 ### 8. Open threads
 - **Solver quality is the permanent line of work** (CLAUDE.md): exact Hessian vs Gauss-Newton,
@@ -736,9 +739,10 @@ kind of object for every family — one mechanism, fine-tuned per case.*
 ### 1. The principle
 **The bound `S⁻` is a discrete count riding on floating-point coefficients, and we keep that
 count faithful to the true mathematics without ever laundering it.** The primary defence is
-simple: **don't let a constrained coefficient get close to zero** — the interior-point barrier
-does this for free. The *only* threshold ever permitted is a **machine-roundoff zero test**;
-never a count-shaping floor.
+simple: **don't let a constrained coefficient get close to zero** — the log-barrier does this
+for free. The count itself is **raw** (E25): every nonzero coefficient keeps its own sign; the
+*only* borrow ever permitted is for an **exact floating-point zero**, whose sign genuinely does
+not exist. There is **no magnitude floor** — no "small relative to the max" rule anywhere.
 
 ### 2. What it really is
 `S⁻` counts *sign changes* in g's control polygon — a **discrete, combinatorial** quantity.
@@ -772,13 +776,16 @@ Two layers — the solver keeps coefficients off zero; the count resolves only g
   inherits the ill-conditioning.
 
 **Count / display side (`core/bernstein.ts`):**
-- `SIGN_NOISE_REL = 1e-12` (`:226`) — the **one** permitted threshold, pinned at the g-chain's
-  accumulated roundoff (a short chain of Bernstein products/derivatives ⇒ ≈ few thousand·ε
-  relative). Not a count floor — a roundoff floor.
-- `assignSignsNeighbor` (`:237`) — a coefficient at the roundoff floor (its sign is
-  meaningless) takes its nearest real neighbour's sign, so a true zero does **not** flicker
-  into a spurious crossing; it **never** reassigns a coefficient whose sign is real.
-- `cyclicSignChanges` (`:199`) — strict sign changes, zeros skipped, seam wrapped for closed.
+- `assignSignsNeighbor` — **raw strict signs** (E25): every nonzero coefficient keeps its own
+  computed sign; only a coefficient that is an **exact** floating-point `0` (its sign truly
+  does not exist) borrows its nearest neighbour's, so it joins that run for the optimizer
+  **without adding a count**. It **never** reassigns a coefficient whose sign is real, however
+  tiny.
+- `SIGN_NOISE_REL = 1e-14` — no longer a sign classifier. It survives only as feasibility
+  **slack** (`structuralMarginsScaled`, `curvatureProblem.ts` — a practically-zero active
+  coefficient starts a hair off its wall) and in the trust-region-inert row scale. It never
+  rewrites a sign.
+- `cyclicSignChanges` — strict sign changes, exact zeros skipped, seam wrapped for closed.
 
 **Last resort (Law 2):** if `S⁻` still ticks up by a hair of slip, pull back along the
 straight path toward the tick's start until `S⁻` no longer exceeds it — a slip correction,
@@ -799,10 +806,11 @@ never a freeze.
   under primal-dual, the same margin is enforced explicitly.
 
 ### 6. Where it lives
-`core/bernstein.ts` (`SIGN_NOISE_REL`, `assignSignsNeighbor`, `cyclicSignChanges`,
-`signChanges`); the barrier margin in `core/ipopt/` + `core/barrierOptimizer.ts` (and the
-primal-dual path `core/bandedPrimalDual.ts`); conditioning per FOUNDATIONS F1; the slip
-correction in the slide.
+`core/bernstein.ts` (`assignSignsNeighbor` raw signs, `cyclicSignChanges`, `signChanges`, the
+now-slack-only `SIGN_NOISE_REL`); the feasibility slack in `curvatureProblem.ts`
+(`structuralMarginsScaled`); the barrier margin in `core/trustRegionOptimizer.ts` (production)
+and the comparisons `core/ipopt/` / `core/bandedPrimalDual.ts`; conditioning per FOUNDATIONS
+F1; the slip correction `enforceBoundNonincreasing`.
 
 ### 7. The pinning test
 - **Noise is invisible.** Perturb coefficients by `< roundoff·scale` near zero ⇒ `S⁻` and the
@@ -814,11 +822,17 @@ correction in the slide.
   non-increasing (Law 2).
 
 ### 8. Open threads
-- **Global-vs-local roundoff floor.** `SIGN_NOISE_REL` is taken relative to the polygon's
-  global `maxAbs`. Given the 1e12 dynamic range, is a global-relative floor honest everywhere,
-  or should the roundoff estimate be *local* (per region / per coefficient's own computation)?
-  The standing fine-tuning question.
+- ✅ **Global-vs-local roundoff floor — ANSWERED (E25).** The question "is a global-relative
+  floor honest everywhere?" resolved to **remove the floor entirely**. A relative floor on the
+  1e12 dynamic range *did* read a false low bound — the E25 specimen (clustered knots) displayed
+  14 vs the exact **25**, every sign correct (`labE25.test.ts`). Raw strict counting (only exact
+  zeros borrow a neighbour) replaced it with **zero suite fallout**. The BigInt oracle (E21)
+  measured the g-chain's true accumulated roundoff at ≈1e-14, which now lives only as
+  feasibility slack, never as a count floor. The floor is gone; the honest looseness principle
+  ("err smaller, never false") is served by counting raw, not by tuning a threshold.
 - **Primal-dual margin.** Formalize the boundary margin so PD matches the barrier's sign
   integrity rather than relying on the barrier regime.
-- **Conditioning as the real fix.** With g properly scaled (F1), the threshold may become
-  nearly unnecessary — the scaled coefficient's sign authoritative on its own. Measure this.
+- **Conditioning (F1) — largely closed (E22).** Row scaling was proven a **no-op** for the
+  log-barrier trust region (invariant under diagonal row scale); the structural envelope
+  remains a ~27× lever only for the ipopt comparison. With the raw count and the trust-region
+  default, the sign is authoritative on its own — no scaling needed for correctness.
