@@ -35,7 +35,7 @@ import {
 import { curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
 import { phValueBoundRows } from './phValueBound'
 import { assignSignsNeighbor, cyclicSignChanges } from './bernstein'
-import { computeInactiveSetBySignCyclic, computeInactiveSetBySign, type CurvatureConstraintState } from './curvatureProblem'
+import { computeInactiveSetBySignCyclic, computeInactiveSetBySign, enforceBoundNonincreasing, type CurvatureConstraintState } from './curvatureProblem'
 import { findPeriodicSpan, periodicBasis, findOpenSpan, openBasis, mod } from './basis'
 import {
   TrustRegionBarrierOptimizer, TRSymmetricMatrix,
@@ -695,27 +695,33 @@ export function slideOpenPHCurveBound(
   // drag may legitimately change the extrema count): bisect the straight
   // generator path back toward the tick start on numerical slip.
   if (constrainExtrema && openPHReducedBound(u, v, uvKnots, uvDegree) > startBound) {
-    let lo = 0
-    let hi = 1
-    for (let it = 0; it < 26; it++) {
-      const a = (lo + hi) / 2
-      const ua = u0.map((g, i) => g + a * (u[i] - g))
-      const va = v0.map((g, i) => g + a * (v[i] - g))
-      if (openPHReducedBound(ua, va, uvKnots, uvDegree) <= startBound) lo = a
-      else hi = a
-    }
-    const ua = u0.map((g, i) => g + lo * (u[i] - g))
-    const va = v0.map((g, i) => g + lo * (v[i] - g))
-    // A convex combination of feasible generators is NOT certificate-feasible
-    // by construction — re-check the value bound on the bisected state and
-    // keep the tick start if it slipped (both bounds are non-negotiable).
-    const vbOK = () => !vb ||
-      Math.min(...phValueBoundRows(ua, va, uvKnots, uvDegree, vb.kappaMax, vbSub).rows) >= 0
-    if (openPHReducedBound(ua, va, uvKnots, uvDegree) <= startBound && vbOK()) {
-      u = ua
-      v = va
-      x0 = x0in + lo * (x0 - x0in)
-      y0 = y0in + lo * (y0 - y0in)
+    // The reduced-bound pull-back is exactly the shared Law-2 guard (straight-path
+    // bisection start→result until S⁻(R) ≤ start), instantiated on the generator
+    // state. One guard, one implementation (curvatureProblem.enforceBoundNonincreasing).
+    type PHState = { u: number[]; v: number[]; x0: number; y0: number }
+    const bis = enforceBoundNonincreasing<PHState>(
+      { u: u0.slice(), v: v0.slice(), x0: x0in, y0: y0in },
+      { u, v, x0, y0 },
+      (s) => openPHReducedBound(s.u, s.v, uvKnots, uvDegree),
+      (a) => ({
+        u: u0.map((g, i) => g + a * (u[i] - g)),
+        v: v0.map((g, i) => g + a * (v[i] - g)),
+        x0: x0in + a * (x0 - x0in),
+        y0: y0in + a * (y0 - y0in),
+      }),
+    )
+    // A convex combination of feasible generators is NOT certificate-feasible by
+    // construction — the shared guard holds only the extrema bound (R), so re-check
+    // the SECOND invariant (the value bound) on the bisected state and keep the tick
+    // start if it slipped (both bounds are non-negotiable). This is why the PH guard
+    // is not a bare enforceBoundNonincreasing call: it enforces two scalar invariants.
+    const vbOK = !vb ||
+      Math.min(...phValueBoundRows(bis.u, bis.v, uvKnots, uvDegree, vb.kappaMax, vbSub).rows) >= 0
+    if (vbOK) {
+      u = bis.u
+      v = bis.v
+      x0 = bis.x0
+      y0 = bis.y0
     } else {
       u = u0.slice()
       v = v0.slice()
