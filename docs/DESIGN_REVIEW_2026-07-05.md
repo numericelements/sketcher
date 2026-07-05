@@ -91,3 +91,55 @@ merged and tiered. Nothing in Tier 1–2 touches a pinned number.
 - The closed-curve "S=" odd-count display bug is FIXED (both readouts wrap
   the seam) — the old memory entry is stale.
 - No dead UI paths; display provably reads what the solver enforces.
+
+## EXECUTION LOG — Tier 1 done, Tier 2 in progress (2026-07-05)
+
+**Tier 1 — DONE** (commits eba4ed5 code, e06f13f + 43ded24 docs). External-test
+gating, dead-code deletions, open-PH warn+drop, post-E25 vocabulary sweep; then
+ARCHITECTURE/THE_IDEAS/FOUNDATIONS/ARTICLE brought to current state.
+
+**Honesty correction found WHILE executing Tier 2** (commit 367e9f5). Verifying the
+code contradicted a claim the Tier-1 docs had introduced: the editor does NOT run
+"trust-region everywhere." Ground truth from `sceneStore.moveControlPoint` +
+`slideCurve`/`slideComplexRational`:
+- **Algebraic families** (polynomial/rational/complex-rational, open+closed) → the
+  **ipopt `InteriorPointOptimizer`** (`slideCurve` `method:'ipopt'`,
+  `slideComplexRational`, and generic `slide()`'s default `'best'` = ipopt+primal-dual).
+- **PH** (open+closed) → the **trust-region** engine (`phCurveBoundDrag.ts`).
+- **Farin** → the pure-weight walk (the TR call in `farinDrag.ts` is the *unwired*
+  anchored variant). Docs corrected; unifying the algebraic families onto TR is now
+  stated as the remaining spine step.
+
+**Tier 2 items, as executed (several review claims corrected on inspection):**
+- **#7 (one guard) — NARROWED + done** (92524e7). "8 hand-rolled bisections" was a
+  surface pattern-match. Reality: the shared `enforceBoundNonincreasing` already IS the
+  single guard for the algebraic families; PH has ONE pull-back that enforces TWO
+  invariants (reduced bound R + value-bound P±) with a distinct fallback; Farin is a
+  count-guarded WALK + reset + a 1-D ratio bisection, not straight-path bisections. The
+  one real win landed: the PH reduced-bound bisection now reuses the shared guard, value
+  check kept explicit.
+- **#8 (dead-cluster deletions) — MOSTLY REFUTED.** `algebra.ts`/`complexAlgebra.ts` are
+  NOT dead — many importers (PH-variant island, labs, SketcherCanvas, utils, tests);
+  deletion is gated on the Tier-3 re-point, not now. `core/function.ts` is a 35-line
+  scalar-BSpline fixture used by a real pinning test (`insert.test.ts`) — keep.
+  `phDrag.ts` is superseded for production (only `closedPHDragDecouple.test.ts` uses it)
+  → **stamped** MEASUREMENT BASELINE, kept as the periodic-space alternative-design ref.
+- **#11 (farinDrag imports core/complex) — done** (367e9f5). The one-off cmul/cadd/cdiv
+  now alias `core/complex` (no call-site churn). (One ad.ts / one dense SPD / one de
+  Casteljau: not yet.)
+- **#13 (perf ceilings → medians) — done as REMOVAL** (4cce1f0). Three tests asserted
+  `expect(ms).toBeLessThan(...)`, contradicting THE_IDEAS idea VII §7 ("no timing
+  assertions"). They produced 9 spurious full-suite "failures" under CPU contention (ms
+  blown ~1000× while every tracking/bound assert held). Converted to logged-only; the
+  correctness asserts stay. Concrete evidence for the item, and the suite is now
+  contention-proof.
+
+**Still open in Tier 2:** #9 (curated `index.ts`; `slide()` default `'best'`→`'trust-region'`
+— NOTE: this is a real EDITOR behavior change for open rational/complex, needs measurement,
+not a cleanup; maxIterations naming), #10 (module splits: `phCurveBoundDrag`, `curvature.ts`),
+#11-rest (one ad.ts, one dense SPD, one de Casteljau), #12 (island route pins + a core-level
+`slideRationalFarin` test).
+
+**Caveat for whoever runs the suite:** a full `vitest run` is ~16 min and, back-to-back,
+thrashes the machine — perf-sensitive tests then flake. Run PH/TR test files in isolation
+to judge correctness; ignore ms/tick figures under load.
