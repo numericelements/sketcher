@@ -36,6 +36,18 @@ function distinctKnots(knots: readonly number[], eps = 1e-10): number[] {
   return out
 }
 
+/**
+ * The Bézier-span breakpoints of a scalar B-spline: the distinct knots, plus the
+ * wrap break (first knot + one period) for a periodic curve. `breaks[s]..breaks[s+1]`
+ * is span `s`; there are `breaks.length - 1` spans. Exposed so the local-gradient
+ * seed builder can index spans WITHOUT decomposing the whole curve (it decomposes
+ * only each control point's support spans — the difference between O(n) and O(n²)).
+ */
+export function bernsteinBreaks(knots: readonly number[], closed: boolean): number[] {
+  const distinct = distinctKnots(knots)
+  return closed ? [...distinct, distinct[0] + 1] : [...distinct]
+}
+
 /** Degree-elevate a single Bernstein polynomial to `targetDegree`. */
 function bernsteinElevate(coeffs: number[], targetDegree: number): number[] {
   let result = coeffs

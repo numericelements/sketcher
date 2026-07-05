@@ -4,6 +4,26 @@
 > docs/. The DESIGN (banded + arrowhead + local assembly) shipped — see
 > core/trustRegionBanded.ts and the notebook E15/E19/E20. Kept as the plan's
 > record; do not read the numbers as current.
+>
+> **REALIZED 2026-07-05 (addendum).** The assembly column of the table below —
+> "local/seeded assembly is `O(n)`" — was ASPIRATIONAL until this date. The
+> polynomial banded drag was still ~`O(n^1.5)` end-to-end because the local
+> Jacobian's seed precompute (`precomputeOpenSeeds`/`precomputePeriodicSeeds`,
+> `core/gradient.ts`) was itself `O(n²)` — a full-width Dirac `decomposeToBernstein`
+> plus an `O(n)` span scan *per control point* — AND wired as a DEFAULT ARGUMENT,
+> so `computeConstraintJacobianLocal` recomputed it on EVERY g-build. (Faithful-port
+> gap: Rust's `precompute_seeds` is also `O(n²)` but passed in ONCE explicitly; the
+> TS convenience default silently recomputed it.) `localDiracSeeds` now decomposes
+> only each Dirac's `d+1` support spans (open: contiguous two-pointer window
+> `spanKnot ∈ [i, i+degree]`; closed: CP-index→spans map, `spanKnot mod n ∈
+> {(i+r) mod n}`), reusing one impulse vector + one indexing → `O(n·d³) = O(n)`,
+> bit-identical to the old dense version (`seedsLocalizationEquiv.test.ts`).
+> Measured, isolated (`gBuildMicrobench.test.ts`): seed precompute 202→1.2 ms @640
+> (162×; growth ×4.1→×2.0 / doubling); fresh-seed local Jacobian 207→8.8 ms @640
+> (23×; now `O(n)` even WITHOUT caching seeds). End-to-end open-polynomial drag
+> @320 CPs: 978→216 ms/tick, and the banded-vs-dense speedup now WIDENS with `n`
+> (0.8×→1.9×→2.4×→4.9×→11.5× @320) — banded `O(n)` vs dense `O(n²)`. So the
+> `O(n)` assembly the table promised is now real and pinned.
 
 # Linear-complexity interactive drag (curvature-extrema control)
 

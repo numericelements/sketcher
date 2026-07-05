@@ -1,4 +1,7 @@
-import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic } from './bernstein'
+import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, bernsteinBreaks } from './bernstein'
+import { makeIndexing, deBoor } from './indexing'
+import { scalarCoeffs } from './coeffs'
+import { findOpenSpan, findPeriodicSpan } from './basis'
 
 // ============================================================================
 // Exact sparse gradient / Jacobian of the curvature numerator g.
@@ -209,44 +212,119 @@ export interface OpenSeeds {
   cols: { s0: number; s1: number; n1: BernsteinDecomposition; n2: BernsteinDecomposition; n3: BernsteinDecomposition }[]
 }
 
-export function precomputeOpenSeeds(knots: readonly number[], degree: number, n: number): OpenSeeds {
-  const probe = decomposeToBernstein(new Array<number>(n).fill(0), knots, degree)
-  const numSpans = probe.numSpans
-  const cols: OpenSeeds['cols'] = []
+/** Bernstein derivative coeffs on one span (interval width `w`): matches
+ *  BernsteinDecomposition.derivative exactly (degree 0 → [0]). */
+function bezierDeriv(c: readonly number[], w: number): number[] {
+  const p = c.length - 1
+  if (p <= 0) return [0]
+  const d = new Array<number>(p)
+  for (let i = 0; i < p; i++) d[i] = (p * (c[i + 1] - c[i])) / w
+  return d
+}
+
+/**
+ * Localized Dirac decomposition — the O(n) heart of the seed precompute. For every
+ * control point i it returns i's support Bézier spans (ascending) and the Bernstein
+ * coeffs of the Dirac basis function Nᵢ on exactly those spans. Nᵢ is nonzero on only
+ * d+1 spans, so decomposing the FULL curve per control point (the old code) was O(n²);
+ * here each column runs de Boor on its ~d+1 support spans only — O(n·d³) total. One
+ * reused impulse vector `e` (no per-column O(n) allocation) drives one indexing, so the
+ * de Boor / knot arithmetic is byte-for-byte the same path as the full decomposition.
+ */
+function localDiracSeeds(
+  knots: readonly number[], degree: number, n: number, closed: boolean,
+): { spans: number[]; niCoeffs: number[][] }[] {
+  const breaks = bernsteinBreaks(knots, closed)
+  const numSpans = breaks.length - 1
+  // knot-span index of each Bézier span (open: strictly increasing; periodic: in a
+  // window of the CP index space mod n).
+  const spanKnot = new Array<number>(numSpans)
+  for (let s = 0; s < numSpans; s++) {
+    spanKnot[s] = closed ? findPeriodicSpan(knots, breaks[s]) : findOpenSpan(degree, knots, breaks[s])
+  }
+  // periodic: CP-index (mod n) → Bézier spans read at that index, for O(d) candidate
+  // lookup per column instead of an O(numSpans) scan.
+  const spansByCp = new Map<number, number[]>()
+  if (closed) {
+    for (let s = 0; s < numSpans; s++) {
+      const v = ((spanKnot[s] % n) + n) % n
+      const list = spansByCp.get(v)
+      if (list) list.push(s)
+      else spansByCp.set(v, [s])
+    }
+  }
+  const e = new Array<number>(n).fill(0) // reused impulse — allocated ONCE, not per column
+  const ix = makeIndexing(scalarCoeffs, e, knots, degree, closed)
+  // Bézier coeffs of the current impulse on one span (de Boor blossom at the corners) —
+  // the exact per-span body of decomposeBsplineGeneric.
+  const decompSpan = (s: number): number[] => {
+    const a = breaks[s], b = breaks[s + 1]
+    const span = spanKnot[s]
+    const seg = new Array<number>(degree + 1)
+    for (let j = 0; j <= degree; j++) {
+      const args = new Array<number>(degree)
+      for (let m = 0; m < degree - j; m++) args[m] = a
+      for (let m = 0; m < j; m++) args[degree - j + m] = b
+      seg[j] = deBoor(ix, scalarCoeffs, span, degree, args)
+    }
+    return seg
+  }
+  const out: { spans: number[]; niCoeffs: number[][] }[] = []
+  let lo = 0, hi = 0 // open: monotone two-pointer over the [i, i+degree] value window
   for (let i = 0; i < n; i++) {
-    const e = new Array<number>(n).fill(0)
-    e[i] = 1
-    const Ni = decomposeToBernstein(e, knots, degree)
-    let s0 = -1
-    let s1 = -1
-    for (let s = 0; s < Ni.numSpans; s++) {
-      if (Ni.coeffs[s].some((c) => Math.abs(c) > 1e-14)) {
-        if (s0 < 0) s0 = s
-        s1 = s
+    let cand: number[]
+    if (closed) {
+      const set = new Set<number>()
+      for (let r = 0; r <= degree; r++) {
+        const list = spansByCp.get((i + r) % n)
+        if (list) for (const s of list) set.add(s)
       }
+      cand = [...set].sort((p, q) => p - q)
+    } else {
+      while (lo < numSpans && spanKnot[lo] < i) lo++
+      while (hi < numSpans && spanKnot[hi] <= i + degree) hi++
+      cand = []
+      for (let s = lo; s < hi; s++) cand.push(s)
     }
-    if (s0 < 0) {
-      const empty = new BernsteinDecomposition([], [])
-      cols.push({ s0: -1, s1: -1, n1: empty, n2: empty, n3: empty })
-      continue
+    e[i] = 1
+    const spans: number[] = []
+    const niCoeffs: number[][] = []
+    for (const s of cand) {
+      const seg = decompSpan(s)
+      // same structural-zero trim as the old full-decompose + scan (1e-14 noise).
+      if (seg.some((c) => Math.abs(c) > 1e-14)) { spans.push(s); niCoeffs.push(seg) }
     }
-    s1 += 1
+    e[i] = 0
+    out.push({ spans, niCoeffs })
+  }
+  return out
+}
+
+export function precomputeOpenSeeds(knots: readonly number[], degree: number, n: number): OpenSeeds {
+  const breaks = bernsteinBreaks(knots, false)
+  const numSpans = breaks.length - 1
+  const empty = new BernsteinDecomposition([], [])
+  const cols: OpenSeeds['cols'] = localDiracSeeds(knots, degree, n, false).map(({ spans, niCoeffs }) => {
+    if (spans.length === 0) return { s0: -1, s1: -1, n1: empty, n2: empty, n3: empty }
+    const s0 = spans[0], s1 = spans[spans.length - 1] + 1 // open support is contiguous
+    // Real-break slice (== the old Ni.derivative().subset(s0,s1)): same coeffs AND breaks.
+    const Ni = new BernsteinDecomposition(niCoeffs, breaks.slice(s0, s1 + 1))
     const d1 = Ni.derivative()
     const d2 = d1.derivative()
-    cols.push({ s0, s1, n1: d1.subset(s0, s1), n2: d2.subset(s0, s1), n3: d2.derivative().subset(s0, s1) })
-  }
+    return { s0, s1, n1: d1, n2: d2, n3: d2.derivative() }
+  })
   return { numSpans, cols }
 }
 
 /**
  * Local (B-spline-locality) version of the OPEN planar curvature-extrema gradient.
- * Rewritten to the same O(n·d²) pattern as the periodic local gradient: the value
- * polynomials and the analytic partials ∂g/∂{X1..Y3} are computed ONCE per build
- * (hoisted out of the per-control-point loop), and each column reuses the cached
- * seed derivatives. The previous version rebuilt the seed (decomposeToBernstein of
- * a Dirac, O(n)) AND re-ran the full forward-AD per control point — making it
- * O(n²); this makes it linear, which is what the banded drag needs. Pass `seeds`
- * (precomputeOpenSeeds) to skip the geometry-independent rebuild every call.
+ * Same O(n·d²) pattern as the periodic local gradient: the value polynomials and the
+ * analytic partials ∂g/∂{X1..Y3} are computed ONCE per build (hoisted out of the
+ * per-control-point loop), and each column assembles on only its d+1 support spans.
+ * The `seeds` default builds them fresh — and `precomputeOpenSeeds` is itself O(n)
+ * (localDiracSeeds decomposes only each Dirac's support spans, not the whole curve),
+ * so a fresh-seed call is O(n) end-to-end. The seeds are geometry-independent, so a
+ * drag may still hoist them once and pass them in to drop the constant further.
  */
 export function curvatureExtremaGradientPlanarLocal(
   x: readonly number[],
@@ -396,26 +474,30 @@ export function precomputePeriodicSeeds(
   degree: number,
   n: number,
 ): PeriodicSeeds {
-  const probe = decomposeToBernsteinPeriodic(new Array<number>(n).fill(0), knots, degree)
-  const numSpans = probe.numSpans
+  const breaks = bernsteinBreaks(knots, true)
+  const numSpans = breaks.length - 1
   const spans: number[][] = []
   const n1: BernsteinDecomposition[] = []
   const n2: BernsteinDecomposition[] = []
   const n3: BernsteinDecomposition[] = []
-  for (let i = 0; i < n; i++) {
-    const e = new Array<number>(n).fill(0)
-    e[i] = 1
-    const Ni = decomposeToBernsteinPeriodic(e, knots, degree)
-    const sp: number[] = []
-    for (let s = 0; s < numSpans; s++) {
-      if (Ni.coeffs[s].some((c) => Math.abs(c) > 1e-14)) sp.push(s)
+  for (const { spans: sp, niCoeffs } of localDiracSeeds(knots, degree, n, true)) {
+    // Gather-style: real-width derivative COEFFS (like Ni.derivative().gather(sp)) with the
+    // synthetic integer breaks gather assigns (breaks are unused by the downstream product).
+    const gatherBreaks = sp.map((_, k) => k)
+    gatherBreaks.push(sp.length)
+    const d1c: number[][] = [], d2c: number[][] = [], d3c: number[][] = []
+    for (let k = 0; k < sp.length; k++) {
+      const w = breaks[sp[k] + 1] - breaks[sp[k]]
+      const a1 = bezierDeriv(niCoeffs[k], w)
+      const a2 = bezierDeriv(a1, w)
+      d1c.push(a1)
+      d2c.push(a2)
+      d3c.push(bezierDeriv(a2, w))
     }
-    const d1 = Ni.derivative()
-    const d2 = d1.derivative()
     spans.push(sp)
-    n1.push(d1.gather(sp))
-    n2.push(d2.gather(sp))
-    n3.push(d2.derivative().gather(sp))
+    n1.push(new BernsteinDecomposition(d1c, gatherBreaks))
+    n2.push(new BernsteinDecomposition(d2c, gatherBreaks))
+    n3.push(new BernsteinDecomposition(d3c, gatherBreaks))
   }
   return { numSpans, spans, n1, n2, n3 }
 }
