@@ -311,31 +311,7 @@ export function curvatureExtremaMarkersOfNumerator(
   return signChangeParams(g, closed)
 }
 
-/**
- * Markers CONSISTENT with the robust sign assignment — the displayed/enforced
- * count's own classification. The raw finder reports every floating-point
- * crossing; at a near-merge the numerator dips across zero INSIDE the noise
- * band (|c| ≤ SIGN_NOISE_REL·max — the one permitted machine-zero threshold),
- * so the screen briefly drew MORE markers than the displayed bound (measured:
- * S=8 with 10 dots on a closed-PH drag). Law 3 requires dots and count to be
- * ONE metric: flip each noise-band coefficient onto its ASSIGNED sign
- * (magnitude kept — position error ≤ the noise band's own width, which is the
- * genuine ambiguity of the data) and find crossings of THAT polygon. This is
- * not a reshaping floor: it is the same classifier the count already uses.
- */
-export function curvatureExtremaMarkersOfNumeratorRobust(
-  g: BernsteinDecomposition, closed: boolean,
-): number[] {
-  const flat = g.flatCoeffs()
-  const signs = assignSignsNeighbor(flat)
-  if (cyclicSignChanges(signs, closed) === 0) return [] // flat / g≡0
-  // assignSignsNeighbor convention: −1 ⇔ treated as positive, +1 ⇔ negative.
-  const denoised = flat.map((v, i) =>
-    v === 0 ? 0 : (v > 0) === (signs[i] === -1) ? v : -v)
-  let k = 0
-  const coeffs = g.coeffs.map((span) => span.map(() => denoised[k++]))
-  return signChangeParams(new BernsteinDecomposition(coeffs, g.breaks.slice()), closed)
-}
+
 
 /**
  * CANONICAL curvature-extrema MARKERS for the algebraic curve kinds — the dense zeros of
@@ -628,29 +604,7 @@ function precomputeComplexOpenSeeds(
   return { N, N1, N2, N3 }
 }
 
-/**
- * Exact analytic Jacobian of the OPEN complex-rational curvature numerator g w.r.t.
- * the control points, WEIGHTS HELD FIXED — the open analogue of
- * curvatureExtremaGradientComplexPeriodicFixedWeight. Value terms computed once; each
- * column is the per-control-point differential reusing them (same complexDifferential).
- * dx[i] = ∂g/∂Re(zᵢ), dy[i] = ∂g/∂Im(zᵢ). Validated against FD in the family Jacobian
- * cross-check.
- */
-export function curvatureExtremaGradientComplexFixedWeight(
-  zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
-  knots: readonly number[], degree: number,
-): { g: BernsteinDecomposition; dx: BernsteinDecomposition[]; dy: BernsteinDecomposition[] } {
-  const n = zre.length
-  const sds = precomputeComplexOpenSeeds(knots, degree, n)
-  const { g, V } = complexFixedWeightValueTermsOpen(zre, zim, wre, wim, knots, degree)
-  const dx: BernsteinDecomposition[] = [], dy: BernsteinDecomposition[] = []
-  for (let i = 0; i < n; i++) {
-    // δZ = wᵢ·Nᵢ for Re(zᵢ); δZ = i·wᵢ·Nᵢ for Im(zᵢ). (Weights fixed ⇒ δW = 0.)
-    dx.push(complexDifferential(sds.N[i], sds.N1[i], sds.N2[i], sds.N3[i], wre[i], wim[i], V))
-    dy.push(complexDifferential(sds.N[i], sds.N1[i], sds.N2[i], sds.N3[i], -wim[i], wre[i], V))
-  }
-  return { g, dx, dy }
-}
+
 
 /** ∂g/∂(one coordinate of one control point): the differential at the seed basis
  *  function N (and its derivatives), reusing the precomputed value terms `V`.

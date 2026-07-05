@@ -1,3 +1,6 @@
+// BENCH, not a test: head-to-head solver comparison with console output and
+// NO assertions. Skipped in the suite (a timeout is its only failure mode);
+// remove .skip to run explicitly. (Design review 2026-07-05, finding T-2.)
 import { it } from 'vitest'
 import {
   CurvatureDragProblem, PrimalDualOptimizer, BarrierOptimizer, familyBound,

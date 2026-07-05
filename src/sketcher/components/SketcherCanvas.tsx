@@ -52,9 +52,9 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
   const [didExceedThreshold, setDidExceedThreshold] = useState(false)
   const [action, setAction] = useState<ActionMode>('none')
 
-  // RAF throttle for optimizer calls during drag
-  const pendingOptimizeRAF = useRef<number | null>(null)
-  const pendingOptimizeArgs = useRef<{ curveId: string; pointIndex: number; pos: Point2D } | null>(null)
+  // RAF throttle for core drag solves during pointer moves
+  const pendingMoveRAF = useRef<number | null>(null)
+  const pendingMoveArgs = useRef<{ curveId: string; pointIndex: number; pos: Point2D } | null>(null)
 
   // Offset drag state
   const [offsetDragStart, setOffsetDragStart] = useState<Point2D | null>(null)
@@ -580,12 +580,12 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
       if (action === 'moving-point' && draggedPointIndex !== null && selectedCurveId) {
         const canvas = screenToCanvas(e.clientX, e.clientY)
 
-        // RAF-throttle the optimizer: only run once per frame, always use latest position
-        pendingOptimizeArgs.current = { curveId: selectedCurveId, pointIndex: draggedPointIndex, pos: canvas }
-        if (pendingOptimizeRAF.current === null) {
-          pendingOptimizeRAF.current = requestAnimationFrame(() => {
-            pendingOptimizeRAF.current = null
-            const args = pendingOptimizeArgs.current
+        // RAF-throttle the core drag solve: only run once per frame, always use latest position
+        pendingMoveArgs.current = { curveId: selectedCurveId, pointIndex: draggedPointIndex, pos: canvas }
+        if (pendingMoveRAF.current === null) {
+          pendingMoveRAF.current = requestAnimationFrame(() => {
+            pendingMoveRAF.current = null
+            const args = pendingMoveArgs.current
             if (args) {
               moveControlPoint(args.curveId, args.pointIndex, args.pos)
             }
@@ -1045,11 +1045,11 @@ export default function SketcherCanvas({ config = {}, svgOverlay }: Props) {
           continueDrawing(canvas, view.zoom)
         } else if (action === 'moving-point' && draggedPointIndex !== null && selectedCurveId) {
           const canvas = screenToCanvas(touch.clientX, touch.clientY)
-          pendingOptimizeArgs.current = { curveId: selectedCurveId, pointIndex: draggedPointIndex, pos: canvas }
-          if (pendingOptimizeRAF.current === null) {
-            pendingOptimizeRAF.current = requestAnimationFrame(() => {
-              pendingOptimizeRAF.current = null
-              const args = pendingOptimizeArgs.current
+          pendingMoveArgs.current = { curveId: selectedCurveId, pointIndex: draggedPointIndex, pos: canvas }
+          if (pendingMoveRAF.current === null) {
+            pendingMoveRAF.current = requestAnimationFrame(() => {
+              pendingMoveRAF.current = null
+              const args = pendingMoveArgs.current
               if (args) {
                 moveControlPoint(args.curveId, args.pointIndex, args.pos)
               }

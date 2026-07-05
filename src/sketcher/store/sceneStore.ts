@@ -17,11 +17,11 @@ import { optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRational
 // knots, symmetry, anchors, inflections) and both PH topologies (R metric).
 // The legacy optimizeCurve plumbing was DELETED (2026-07-04); there is no
 // fallback (fix-core-not-toggle): a core failure warns and drops the tick.
-// Legacy remains ONLY for: Farin drags (rational + complex — complex Farin is
-// a known-hard open problem), the PH curvature-VALUE bound workbench, plain
-// (no-extrema) PH tracking, and the AB/complex-rational/real-rational PH
-// variants. See docs/CURVATURE_ARCHITECTURE.md.
-import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type CurvatureConstraintState, type WeightedCP } from '../../core'
+// Legacy remains ONLY for the PH VARIANT families (AB / complex-rational-PH /
+// real-rational-PH — the contained island in src/sketcher/optimizer). Both
+// Farin drags (E26/E27), the PH value bound (E19), and plain PH tracking (E20)
+// are core. See src/sketcher/optimizer/index.ts for the authoritative ledger.
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -135,10 +135,6 @@ interface SketcherState {
   anchorWeight: number  // 0 = disabled, >0 = anchor undragged CPs to drag-start positions
   dragStartCPsX: number[] | null
   dragStartCPsY: number[] | null
-  // Curvature constraint signs/active-set FROZEN at drag start (open + clean-periodic
-  // closed b-splines). Reused every tick so the bound S⁻ can't ratchet up from
-  // tick-to-tick sign re-assignment — the Rust "freeze signs at pointer-down" model.
-  dragConstraintState: CurvatureConstraintState | null
 
   // Generate session: apply a (planar) Lie-sphere transform to a PH curve to
   // PRODUCE A NEW curve. accumulated = baked transform; sliders = the live one;
@@ -462,7 +458,6 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
   anchorWeight: 0,
   dragStartCPsX: null,
   dragStartCPsY: null,
-  dragConstraintState: null,
   generate: null,
 
   view: {
@@ -741,8 +736,8 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           // Display (S=, markers, bar) reads the SAME R — Law 3. The curvature-VALUE
           // bound |κ|≤b rides the SAME solve as certificate rows (P± Bernstein
           // coefficients ≥ 0, exact AD Jacobian, core phValueBound.ts) — with
-          // extrema constrained too when both toggles are on. Only PLAIN PH
-          // tracking (neither flag) remains on legacy below.
+          // extrema constrained too when both toggles are on. Plain PH tracking
+          // (neither flag) rides core trackOpenPHPlain below.
           if (preserveCurvatureExtrema || valueBound) {
             const targets = (curve.controlPoints as Point2D[]).map((p, i) =>
               i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y })
@@ -795,8 +790,12 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
             }))
             return
           }
-        } catch {
-          // Fall through to direct move if PH optimization fails
+        } catch (e) {
+          // No silent fall-through: continuing as a plain B-spline would move
+          // the CPs while phMetadata still claims the curve is PH (stale
+          // generator — the desync class the closed path already guards).
+          console.warn('core open-PH drag failed (tick dropped):', e)
+          return
         }
       }
     }
@@ -1859,10 +1858,9 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     set({
       dragStartCPsX: cps.map((p) => ('re' in p ? p.re : p.x)),
       dragStartCPsY: cps.map((p) => ('im' in p ? p.im : p.y)),
-      dragConstraintState: null,
     })
   },
-  clearDragStartCPs: () => set({ dragStartCPsX: null, dragStartCPsY: null, dragConstraintState: null }),
+  clearDragStartCPs: () => set({ dragStartCPsX: null, dragStartCPsY: null }),
 
   // View actions
   setZoom: (zoom) =>

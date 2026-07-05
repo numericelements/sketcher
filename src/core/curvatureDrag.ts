@@ -8,11 +8,13 @@
 // guard. Family, Jacobian backend, and solver are all knobs (CLAUDE.md: "reshape,
 // don't block" + the standing solver-quality investigation live here).
 //
-// The constraint regime mirrors the editor's (robust-scaled): neighbour-aware signs
-// keep a structural-zero coefficient active, scaleForRobust conditions the rows, and
-// structuralMarginsScaled holds g=0 a hair off its wall — the SAME helpers
-// PlanarCurvatureProblem uses, so this is bound-faithful and parity-close by
-// construction (the parity gate proves it before any editor migration).
+// The constraint regime (post-E25): RAW strict signs — assignSignsNeighbor gives
+// only an EXACT floating-point zero its neighbour's sign so it can join its run;
+// scaleForRobust conditions the rows (a no-op for the trust-region barrier, E22,
+// kept for the slack-based solvers); structuralMarginsScaled gives a
+// practically-zero active coefficient a hair of feasibility slack (the noise
+// floor's ONLY remaining job). Same helpers everywhere → bound-faithful by
+// construction.
 // ============================================================================
 import type { BernsteinDecomposition } from './bernstein'
 import { assignSignsNeighbor } from './bernstein'

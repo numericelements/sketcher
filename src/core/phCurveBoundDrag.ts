@@ -30,8 +30,7 @@ import {
 } from './phCurveConstruction'
 import { projectClosurePH, generatorBasisGram, phSeamMaps, closureGap, closureJacobian } from './phClosure'
 import {
-  curvatureExtremaNumeratorPlanarPeriodic,
-  curvatureExtremaMarkersOfNumeratorRobust,
+  curvatureExtremaMarkersOfNumerator,
 } from './curvature'
 import { curvatureExtremaReducedNumeratorPH, reducedPHGradient } from './phCurvature'
 import { phValueBoundRows } from './phValueBound'
@@ -770,18 +769,19 @@ export function closedPHConstraintState(
   }
 }
 
-/** Curvature-extrema marker parameters of the SOLVED closed-PH object: the sign-
- *  change crossings of R, counted cyclically (seam wrap), CONSISTENT with the
- *  robust sign assignment the displayed/enforced count uses (the raw finder
- *  drew 10 dots under S=8 at a near-merge noise dip). R lives on the same
- *  parameter domain as the curve, so these t feed the displayed curve directly. */
+/** Curvature-extrema marker parameters of the SOLVED closed-PH object: the
+ *  sign-change crossings of R, counted cyclically (seam wrap). Since E25 the
+ *  count is RAW, so markers ≤ S⁻ holds by variation diminishing with no
+ *  classifier layer (the E16-P3 "10 dots under S=8" episode was a disease of
+ *  the pre-E25 floor-smoothed count). R lives on the same parameter domain as
+ *  the curve, so these t feed the displayed curve directly. */
 export function closedPHExtremaMarkers(
   u: readonly number[],
   v: readonly number[],
   uvKnots: readonly number[],
   uvDegree: number,
 ): number[] {
-  return curvatureExtremaMarkersOfNumeratorRobust(
+  return curvatureExtremaMarkersOfNumerator(
     curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false),
     true,
   )
@@ -897,15 +897,17 @@ export function openPHConstraintState(
   }
 }
 
-/** Curvature-extrema markers of the SOLVED open-PH object: robust crossings of R
- *  (the count's own classifier — see curvatureExtremaMarkersOfNumeratorRobust). */
+/** Curvature-extrema markers of the SOLVED open-PH object: the crossings of R.
+ *  (Since E25 signs are counted RAW, so the plain finder IS the count's own
+ *  classifier — the separate "robust" finder was collapsed; see bernstein.ts
+ *  assignSignsNeighbor for the full story.) */
 export function openPHExtremaMarkers(
   u: readonly number[],
   v: readonly number[],
   uvKnots: readonly number[],
   uvDegree: number,
 ): number[] {
-  return curvatureExtremaMarkersOfNumeratorRobust(
+  return curvatureExtremaMarkersOfNumerator(
     curvatureExtremaReducedNumeratorPH(u, v, uvKnots as number[], uvDegree, false),
     false,
   )
@@ -942,30 +944,4 @@ export function buildPeriodicPHViaOperator(
   return { controlPoints, knots: fitOp.knots.slice(), degree: fitOp.degree }
 }
 
-/** The editor's displayed CURVE-span bound of a clamped closed-PH state — the
- *  metric this drag holds (periodic rep, robust cyclic count). */
-export function closedPHCurveBoundOf(
-  u: readonly number[],
-  v: readonly number[],
-  uvKnots: readonly number[],
-  uvDegree: number,
-  x0: number,
-  y0: number,
-  seamContinuity: number,
-): number {
-  const clamped = computePHCurveFromUV(u as number[], v as number[], uvKnots as number[], uvDegree, x0, y0)
-  const fitOp = periodicFitOperator(clamped.knots, seamContinuity, clamped.controlPoints.length)
-  const xs = new Array<number>(fitOp.P.length).fill(0)
-  const ys = new Array<number>(fitOp.P.length).fill(0)
-  for (let r = 0; r < fitOp.P.length; r++) {
-    const row = fitOp.P[r]
-    for (let j = 0; j < clamped.controlPoints.length; j++) {
-      xs[r] += row[j] * clamped.controlPoints[j].x
-      ys[r] += row[j] * clamped.controlPoints[j].y
-    }
-  }
-  return cyclicSignChanges(
-    assignSignsNeighbor(curvatureExtremaNumeratorPlanarPeriodic(xs, ys, fitOp.knots, fitOp.degree).flatCoeffs()),
-    true,
-  )
-}
+

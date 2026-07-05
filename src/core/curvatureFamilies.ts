@@ -10,9 +10,9 @@
 // re-implements the bound or the sign machinery.
 //
 // This file is the algebraic set (polynomial / rational / complex) unified over
-// ONE control-point representation. PH is the remaining cell — it carries a
-// hodograph generator, not a weighted point, so it joins via its own numerator
-// once ported into core (it currently lives in src/sketcher/optimizer).
+// ONE control-point representation. PH carries a hodograph generator, not a
+// weighted point, so it joins the laws via its own numerator elsewhere in core
+// (phCurvature.ts: g and the reduced R; phCurveBoundDrag.ts: the drags).
 // ============================================================================
 import { BernsteinDecomposition, assignSignsNeighbor, cyclicSignChanges } from './bernstein'
 import {

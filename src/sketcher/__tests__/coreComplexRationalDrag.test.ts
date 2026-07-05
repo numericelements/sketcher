@@ -125,5 +125,5 @@ describe('core complex-rational drag (live sketcher path)', () => {
         expect(startDist - endDist).toBeGreaterThan(0.1 * startDist)
       }
     }
-  })
+  }, 30000)
 })

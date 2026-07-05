@@ -22,7 +22,7 @@ const mk = (): CP[] => Array.from({ length: n }, (_, i) => ({
 // member (#106) flips freely; the blockers are same-sign-block members and
 // one small anchor. Per-tick re-reads advance the front ~one recruitment per
 // tick — the row solver crawls rather than freezes.
-it('WHO BLOCKS: classify the rows that flip along the Farin pull', () => {
+it.skip('WHO BLOCKS: classify the rows that flip along the Farin pull (LAB RECORD — output-only; results in the header + notebook E26-CORRECTION; remove .skip to rerun)', () => {
   const cps = mk()
   const edge = 4
   const gO = (s: { re: number; im: number }) => {
