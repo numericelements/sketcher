@@ -1,4 +1,4 @@
-import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, decomposeBsplineGeneric, assignSignsNeighbor, cyclicSignChanges } from './bernstein'
+import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, decomposeBsplineGeneric, assignSignsNeighbor, cyclicSignChanges, subBezierOn } from './bernstein'
 import { ComplexBD, decomposeComplexCurvePeriodic } from './complexBernstein'
 import { complexScalarCoeffs } from './coeffs'
 import type { Complex } from './complex'
@@ -202,27 +202,9 @@ const ROOT_TOL = 1e-9
 // prune and the crossing is lost. An irrational split never coincides with a rational root.
 const SPLIT = 0.6180339887498949
 
-/** Split a Bézier `c` at parameter u (de Casteljau): [left on [0,u], right on [u,1]]. */
-function splitAt(c: readonly number[], u: number): [number[], number[]] {
-  const n = c.length
-  const work = c.slice()
-  const left = [work[0]]
-  const right = [work[n - 1]]
-  for (let r = 1; r < n; r++) {
-    for (let i = 0; i < n - r; i++) work[i] = (1 - u) * work[i] + u * work[i + 1]
-    left.push(work[0])
-    right.unshift(work[n - 1 - r])
-  }
-  return [left, right]
-}
-
-/** The sub-Bézier of `c` (on [0,1]) restricted to [lo,hi] — extracted from the ORIGINAL
- *  coefficients in a single two-sided de Casteljau, never by compounding earlier splits
- *  (compounding near g's huge clamped-endpoint coefficients manufactures phantom signs). */
-function subBezier(c: readonly number[], lo: number, hi: number): number[] {
-  const onHi = splitAt(c, hi)[0] // Bézier on [0, hi]
-  return hi <= lo ? onHi : splitAt(onHi, lo / hi)[1] // restrict to [lo, hi]
-}
+// de Casteljau split + sub-Bézier extraction live in bernstein.ts (the ONE shared
+// implementation); subBezier here is an alias so the sign-change locator reads cleanly.
+const subBezier = subBezierOn
 
 /** Strict sign changes in a coefficient array (exact zeros skipped). Scale-free — no floor. */
 function polygonSignChanges(c: readonly number[]): number {

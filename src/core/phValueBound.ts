@@ -15,42 +15,16 @@
 // trust-region inequality constraints, exact AD Jacobians over the B-spline
 // algebra. Keep this file generic over "rows of a polynomial certificate".
 // ============================================================================
-import { BernsteinDecomposition, decomposeToBernstein } from './bernstein'
+import { BernsteinDecomposition, decomposeToBernstein, subBezierOn } from './bernstein'
 import { RDual } from './phCurvature'
 
-// --- de Casteljau subdivision of one span's coefficients into k pieces -------
-function bezierSegment(c: readonly number[], a: number, b: number): number[] {
-  const splitRight = (coeffs: readonly number[], t: number): number[] => {
-    const n = coeffs.length
-    const w = [...coeffs]
-    const right = [w[n - 1]]
-    for (let r = 1; r < n; r++) {
-      for (let i = 0; i < n - r; i++) w[i] = (1 - t) * w[i] + t * w[i + 1]
-      right.unshift(w[n - 1 - r])
-    }
-    return right
-  }
-  const splitLeft = (coeffs: readonly number[], t: number): number[] => {
-    const n = coeffs.length
-    const w = [...coeffs]
-    const left = [w[0]]
-    for (let r = 1; r < n; r++) {
-      for (let i = 0; i < n - r; i++) w[i] = (1 - t) * w[i] + t * w[i + 1]
-      left.push(w[0])
-    }
-    return left
-  }
-  let seg = a > 0 ? splitRight(c, a) : [...c]
-  if (b < 1) seg = splitLeft(seg, (b - a) / (1 - a))
-  return seg
-}
-
-/** Flatten a decomposition's coefficients, subdividing each span into k pieces. */
+/** Flatten a decomposition's coefficients, subdividing each span into k pieces via the
+ *  shared de Casteljau sub-Bézier extractor (bernstein.subBezierOn — the ONE split). */
 export function flattenSubdivided(bd: BernsteinDecomposition, k: number): number[] {
   const out: number[] = []
   for (const span of bd.coeffs) {
     if (k <= 1) out.push(...span)
-    else for (let i = 0; i < k; i++) out.push(...bezierSegment(span, i / k, (i + 1) / k))
+    else for (let i = 0; i < k; i++) out.push(...subBezierOn(span, i / k, (i + 1) / k))
   }
   return out
 }

@@ -340,3 +340,34 @@ export function decomposeToBernsteinPeriodic(
 ): BernsteinDecomposition {
   return decomposeScalar(coeffs, knots, degree, true)
 }
+
+// ----------------------------------------------------------------------------
+// de Casteljau on a single Bézier's coefficients (the ONE shared implementation;
+// curvature.ts's sign-change locator and phValueBound.ts's certificate subdivision
+// both route through these instead of hand-rolling their own splits).
+// ----------------------------------------------------------------------------
+
+/** Split a Bézier `c` at parameter u (de Casteljau): [left on [0,u], right on [u,1]]. */
+export function splitBezierAt(c: readonly number[], u: number): [number[], number[]] {
+  const n = c.length
+  const work = c.slice()
+  const left = [work[0]]
+  const right = [work[n - 1]]
+  for (let r = 1; r < n; r++) {
+    for (let i = 0; i < n - r; i++) work[i] = (1 - u) * work[i] + u * work[i + 1]
+    left.push(work[0])
+    right.unshift(work[n - 1 - r])
+  }
+  return [left, right]
+}
+
+/**
+ * The sub-Bézier of `c` (on [0,1]) restricted to [lo,hi] — extracted from the ORIGINAL
+ * coefficients in a single two-sided de Casteljau (split at hi, keep left; then split
+ * that at lo/hi, keep right), never by compounding earlier neighbour splits (compounding
+ * near g's huge clamped-endpoint coefficients manufactures phantom signs — F1).
+ */
+export function subBezierOn(c: readonly number[], lo: number, hi: number): number[] {
+  const onHi = splitBezierAt(c, hi)[0] // Bézier on [0, hi]
+  return hi <= lo ? onHi : splitBezierAt(onHi, lo / hi)[1] // restrict to [lo, hi]
+}
