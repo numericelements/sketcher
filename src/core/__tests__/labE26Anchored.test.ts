@@ -156,7 +156,7 @@ function slideFarinAnchored(cps: CP[], edge: number, target: {x:number;y:number}
   }
   const { wRe, wIm } = weightsOf(z[2*n], z[2*n+1])
   return {
-    cps: cps.map((p, j) => ({ re: z[j], im: z[n + j], w_re: wRe[j], w_im: wIm[j] })),
+    cps: cps.map((_p, j) => ({ re: z[j], im: z[n + j], w_re: wRe[j], w_im: wIm[j] })),
     bound: countAt(z), startBound,
   }
 }
