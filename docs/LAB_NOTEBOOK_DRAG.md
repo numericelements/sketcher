@@ -927,3 +927,28 @@ through the row-wise sliding surrogate — affordable at 2 DOF, and it cleanly s
 probe's count-neutral pair flips are a measured phenomenon the sliding mechanism's
 sufficiency proof does not exploit — a possible route to a LESS conservative legal
 active set at higher DOF (open research).
+
+## E26-CORRECTION — Eric corrects the surrogate story; the blockers are recruitment and small anchors (2026-07-04)
+
+Eric challenged E26's "pattern translations are forbidden by the row surrogate": the
+mechanism frees the WHOLE maximal alternating sequence except the one largest-|g|
+anchor — not merely "interiors" — so a translation whose flips stay inside a freed run
+is perfectly legal under the rows. He is right; the classification probe
+(labE26WhoBlocks) confirms it: the freed run member (#106) flips freely.
+
+**What actually blocks (measured):**
+- RECRUITMENT (#92, #107–111): the pattern's leading edge must flip a coefficient that
+  currently sits inside a same-sign block — always ACTIVE regardless of magnitude.
+  Extrema sliding into fresh territory pay one held row per slot.
+- SMALL ANCHORS (#91, at 6.9e-4·max): "largest of its run" can be globally tiny when
+  the whole run is a low-amplitude alternation; the anchor rule then pins a
+  coefficient the motion needs.
+
+**The refined picture:** per-tick re-reads let the front advance ~one recruitment per
+tick, so the row solver CRAWLS (11–14% over 8 ticks) rather than freezes; the
+count-guarded walk (recruitment is free there) reaches only 12–28% — the two land
+close because on this pull the deep limit is the BUDGET (the target costs bound 7
+against 5), not the surrogate. The open-research idea sharpens accordingly: the win
+from a translation-aware active set (or intra-tick re-read rounds — each round's
+monotonicity composes, so Law 2 survives) is the RECRUITMENT rate, worth at most the
+gap between the crawl and the walk on recruitment-limited pulls.
