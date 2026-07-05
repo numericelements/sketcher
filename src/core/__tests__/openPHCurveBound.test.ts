@@ -58,7 +58,11 @@ describe('open-PH trust-region drag on R', () => {
       const tracked = 100 - (100 * err) / Math.hypot(move.x, move.y)
       console.log(`OPEN-PH-TR nGen=${m.uControlPoints.length}: tracked ${tracked.toFixed(0)}%  ${ms.toFixed(0)}ms/tick`)
       expect(tracked, `nPts=${nPts}: tracked ${tracked.toFixed(0)}%`).toBeGreaterThanOrEqual(80)
-      expect(ms, `nPts=${nPts}: ${ms.toFixed(0)}ms/tick`).toBeLessThan(1500)
+      // Perf is LOGGED, not asserted (THE_IDEAS idea VII §7): an ms/tick ceiling flakes
+      // hard under machine/CI contention (measured a ~1000× blow-up during a loaded
+      // multi-suite run) while proving nothing about correctness. Track speed via the log
+      // above + docs/LINEAR_DRAG.md, and guard correctness via the tracking/bound asserts.
+      void ms
     }
   }, 240000)
 
