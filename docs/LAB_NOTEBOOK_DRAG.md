@@ -1044,3 +1044,19 @@ as fading weights relax the count cage — the analytic center is degenerate, an
 under-converged barrier solve drifts toward it. Eric's old designs implicitly knew
 this: every good behavior in this system came from NOT letting an optimizer choose
 weight magnitudes freely.
+
+## E26-C-PERF — the walk at editor speed (2026-07-05)
+
+Eric: works, but a little slow. Profiled: the walk was slowest exactly when PARKED —
+a fully blocked tick paid the whole direction fan (~50 count evaluations) to conclude
+"stay put", and every evaluation ran the dual pipeline with ZERO tangents (~3× a plain
+numerator for nothing). Two fixes: value-only evaluation (plain Chen numerator) and a
+24-evaluation per-tick budget (ticks repeat at pointer rate — exhaustive exploration
+per tick buys nothing).
+
+    easy tick:    2.7ms → 1.6ms
+    blocked tick: 38.2ms → 4.3ms   (9×)
+
+Behavior contract unchanged (ratchet pin: park, 0.00px return, 0.00px CP drift;
+tracking 10/24/11 ≈ the manifold ceiling; bound held). n=10 fixture — cost scales with
+the numerator build, so larger curves stay proportional.

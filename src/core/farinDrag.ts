@@ -26,6 +26,7 @@ import {
   type TrustRegionProblem, type TRMatrix,
 } from './trustRegionOptimizer'
 import { ComplexBD } from './complexBernstein'
+import { curvatureExtremaNumeratorComplex } from './curvature'
 import type { Complex } from './complex'
 
 const cmulc = (a: Complex, b: Complex): Complex => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
@@ -98,14 +99,13 @@ export function slideComplexFarin(
   const weightsOf = (s: Complex): Complex[] =>
     cps.map((p, j) => (j >= edge + 1 ? cmulc({ re: p.w_re, im: p.w_im }, s) : { re: p.w_re, im: p.w_im }))
 
+  // VALUE-ONLY evaluation (perf): the plain Chen numerator — the dual pipeline
+  // with zero tangents costs ~3× for nothing (measured: blocked ticks 38ms).
   const gOf = (s: Complex): number[] => {
     const w = weightsOf(s)
-    const Zre = cps.map((p, j) => p.re * w[j].re - p.im * w[j].im)
-    const Zim = cps.map((p, j) => p.re * w[j].im + p.im * w[j].re)
-    const Z = new ComplexBD(decomposeToBernstein(Zre, knots, degree), decomposeToBernstein(Zim, knots, degree))
-    const W = new ComplexBD(decomposeToBernstein(w.map((c) => c.re), knots, degree), decomposeToBernstein(w.map((c) => c.im), knots, degree))
-    const zero = Z.re.scale(0)
-    return chenGDual(new CBDual(Z, new ComplexBD(zero, zero)), new CBDual(W, new ComplexBD(zero, zero))).g.flatCoeffs()
+    return curvatureExtremaNumeratorComplex(
+      cps.map((p) => p.re), cps.map((p) => p.im),
+      w.map((c) => c.re), w.map((c) => c.im), knots, degree).flatCoeffs()
   }
   // Farin position and its Jacobian: q(s) = (z₀ + r z₁)/(1 + r), r = s·r⁰;
   // dq/ds = r⁰·(z₁ − z₀)/(1 + r)² (complex-analytic → CR-structured 2×2).
@@ -167,6 +167,10 @@ export function slideComplexFarin(
   let best: { s: Complex; d: number } = { s, d: Math.hypot(qT.re - q.re, qT.im - q.im) }
   let converged = false
   let lateralBudget = 8 // bounded wall-following (prevents creep/cycles)
+  // Per-CALL count-evaluation budget: a fully BLOCKED tick otherwise pays the
+  // whole direction fan (~50 numerator builds) just to conclude "park". Ticks
+  // repeat at pointer rate — 24 evals per tick is plenty of exploration.
+  let evalBudget = 24
   const maxIter = opts.maxNumSteps ?? 60
   for (let it = 0; it < maxIter; it++) {
     const gap: Complex = { re: qT.re - q.re, im: qT.im - q.im }
@@ -180,8 +184,11 @@ export function slideComplexFarin(
         const sa = Math.sin(ang)
         const qc: Complex = { re: q.re + h * (ca * gap.re - sa * gap.im), im: q.im + h * (sa * gap.re + ca * gap.im) }
         if (Math.hypot(qT.re - qc.re, qT.im - qc.im) >= gapLen) continue
+        if (evalBudget <= 0) break
         const sc = sAtQ(qc)
-        if (!sc || countAt(sc) > startBound) continue
+        if (!sc) continue
+        evalBudget--
+        if (countAt(sc) > startBound) continue
         q = qc
         s = sc
         advanced = true
@@ -197,9 +204,12 @@ export function slideComplexFarin(
         const ca = Math.cos(ang)
         const sa = Math.sin(ang)
         for (const h of [0.5, 0.25, 0.125]) {
+          if (evalBudget <= 0) break
           const qc: Complex = { re: q.re + h * (ca * gap.re - sa * gap.im), im: q.im + h * (sa * gap.re + ca * gap.im) }
           const sc = sAtQ(qc)
-          if (!sc || countAt(sc) > startBound) continue
+          if (!sc) continue
+          evalBudget--
+          if (countAt(sc) > startBound) continue
           const d = Math.hypot(qT.re - qc.re, qT.im - qc.im)
           if (!bestLat || d < bestLat.d) bestLat = { q: qc, s: sc, d }
           break
@@ -212,7 +222,10 @@ export function slideComplexFarin(
         advanced = true
       }
     }
-    if (!advanced) break // true feasible limit in every probed direction
+    if (!advanced || evalBudget <= 0) {
+      if (!advanced) break // true feasible limit in every probed direction
+      break // budget spent — ticks repeat at pointer rate; park here
+    }
     const d = Math.hypot(qT.re - q.re, qT.im - q.im)
     if (d < best.d) best = { s, d }
   }
