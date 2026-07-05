@@ -1,3 +1,10 @@
+> **HISTORICAL (stamped 2026-07-05).** Written during the O(n) campaign; the
+> "measured today" tables describe the pre-trust-region editor (dense IPOPT
+> paths since deleted) and the WINDOWED_SOLVE.md companion was never landed in
+> docs/. The DESIGN (banded + arrowhead + local assembly) shipped — see
+> core/trustRegionBanded.ts and the notebook E15/E19/E20. Kept as the plan's
+> record; do not read the numbers as current.
+
 # Linear-complexity interactive drag (curvature-extrema control)
 
 Where the interactive drag stands on per-frame complexity vs the number of control

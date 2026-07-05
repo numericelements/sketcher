@@ -9,7 +9,7 @@ named pinning test in the repository — the article-with-code contract.*
 
 *Companion documents: `CLAUDE.md` (the laws), `docs/THE_IDEAS.md` (the eight
 contributions in full anatomy), `docs/CURVATURE_FOUNDATIONS.md` (established facts),
-`docs/LAB_NOTEBOOK_DRAG.md` (the experiments E1–E22 this draft cites).*
+`docs/LAB_NOTEBOOK_DRAG.md` (the experiments E1–E27 this draft cites).*
 
 ---
 
@@ -53,7 +53,8 @@ Three things make this hard simultaneously:
    point keeps following the cursor — blocking is permitted only at the true feasible
    limit (in practice, essentially never).
 3. **Floating point lies near zero.** The whole method turns on *signs* of computed
-   coefficients; at interactive scale their dynamic range reaches 1e16, and the sign
+   coefficients; at interactive scale their dynamic range reaches ~1e12 (F1) — and
+   the PH curve-span numerator's ~1e21 (F7) — and the sign
    of a small coefficient is exactly where naive numerics fakes the count.
 
 The paper's three sections answer these three difficulties in order: the **bound**
@@ -317,8 +318,8 @@ budget permits, stops honestly where it does not, never migrates, and retraces �
 The reference implementation (TypeScript, ~core module) is not an appendix; it is the
 demonstration that the three laws coexist at interactive rates:
 
-- one solver engine for all eight drag routes (4 algebraic families × 2 topologies,
-  plus open/closed PH on the reduced field);
+- one solver engine for all eight drag routes (3 algebraic families × 2 topologies,
+  plus open/closed PH on the reduced field) — and the two Farin walks beside them;
 - the bound held at every tick *by the constraint set*, with the guard idle;
 - displayed = enforced everywhere, pinned;
 - every editor claim in this draft is a named test: `trustRegionParity*`,

@@ -1,3 +1,9 @@
+> **STATUS UPDATE (stamped 2026-07-05).** §5's "not yet built" items have
+> shipped: the closed reduction and R-as-the-enforced-constraint are in
+> production (core/phCurvature.ts curvatureExtremaReducedNumeratorPH +
+> reducedPHGradient; core/phCurveBoundDrag.ts constrains R for BOTH
+> topologies — notebook E14-P2/E17). The mathematics below is current.
+
 # The PH curvature-extrema numerator reduces by σ²:  g = 2·R·σ²
 
 **Status:** established 2026-06-27, verified to machine precision for OPEN polynomial PH.

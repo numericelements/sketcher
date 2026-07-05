@@ -128,7 +128,7 @@ held before crediting any solver with better feel.
 
 - The displayed **bound** = S⁻ of g's *actual* control polygon.
 - The displayed **control-polygon colors** = the *actual* signs of g's coefficients.
-- The displayed **extrema markers** = the *actual* zeros of g.
+- The displayed **extrema markers** = the *actual* sign changes (crossings) of g.
 - The bound the optimizer **enforces** = the same S⁻ that is displayed.
 
 These must all agree because they are all the same g. A bound below the markers, or colors
