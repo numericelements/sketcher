@@ -882,3 +882,48 @@ duplication, exact continuity encoding) — a quality item, not a bound item.
 was measured honest in E21 still had one dishonest JOB, and removing the job (not
 retuning the constant) is what the laws demanded. §9.1 (tight open bound) is RESOLVED
 as "already tight; the gap was an artifact".
+
+## E26 — the complex Farin drag, dissected: a semantics fork, not a solver problem (2026-07-04)
+
+**Eric's two questions.** (1) Does the old disease — Farin points converging onto control
+points during CP drags — still exist? (2) Can the bound-preserving Farin DRAG be done?
+
+**(1) CURED, structurally.** Under core CP drags (open AND closed complex) the complex
+Farin ratio λ = (q−z₀)/(z₁−z₀) is invariant to 1e-14 over a 114px drag — the fixed-weight
+design gives complex curves exactly the medicine Eric's ratio-fix gave rational ones.
+The convergence disease REQUIRED free weights; core froze them. Pinned (labE26 probe).
+
+**(2) The reduction, and what it revealed.** Farin point q = (w₀z₀+w₁z₁)/(w₀+w₁)
+determines the COMPLEX edge ratio r = (q−z₀)/(z₁−q) in closed form, so dragging Farin i
+is a 2-real-DOF problem: suffix scale s (weights j ≥ i+1 scale by s), keeping every
+other edge ratio — hence every other Farin point — EXACTLY fixed. Built as
+core/farinDrag.ts with three successively-smarter navigators:
+    TR barrier on sliding rows:        11–14%   (blocked at the FIRST row flip)
+    straight-q pullback + bisection:    0–28%   (lands ON the frontier; next tick wall-locked)
+    count-guarded wall-following walk: 12–28%   (Law 2 enforced DIRECTLY on the raw count;
+                                                 count-neutral crossings pass free)
+The cage probe explains the ceiling: along the pull, active rows flip in COUNT-NEUTRAL
+PAIRS (extrema sliding along the curve — legal, and the row-wise sliding surrogate
+forbids it, which is why the barrier attempt sticks at the first flip), and the TARGET
+configuration itself costs bound 7 > 5 — full tracking is infeasible BY LAW.
+
+**The decisive measurement.** Legacy's farinPoint mode tracks 59/69/58% (raw bound
+held) — but its variable set is THE WHOLE CURVE: control points drift ~20px and the
+other Farin points ~15–18px under a "weight handle" drag. Reshape-don't-block applied
+in weight space. The pure-weight manifold does not CONTAIN those states — the 4× gap
+is semantics, not solver quality.
+
+**The fork (Eric's call, pending):**
+  A. PURE-WEIGHT: predictable, conservative (nothing else moves), honest early stop at
+     the manifold's feasible limit. 13–30ms/tick. Prototype ready to wire.
+  B. RESHAPE on core: CurvatureDragProblem + 2 weight variables on the TR engine —
+     legacy-level tracking expected with modern machinery, CP motion inherent.
+  C. HYBRID: A first; blend in B only when A's frontier is reached.
+
+**Methodology note for the article (§3/§6):** the count-guarded walk is the first place
+we ENFORCE Law 2 directly on the raw count (the displayed metric itself) instead of
+through the row-wise sliding surrogate — affordable at 2 DOF, and it cleanly separates
+"the surrogate blocks" (row flips) from "the law blocks" (count increase). The cage
+probe's count-neutral pair flips are a measured phenomenon the sliding mechanism's
+sufficiency proof does not exploit — a possible route to a LESS conservative legal
+active set at higher DOF (open research).
