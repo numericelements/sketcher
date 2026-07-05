@@ -462,44 +462,58 @@ Chen-rational path entirely (connects to idea VI: no square root).
 *The main horse — it executes idea I and supplies idea VIII's margin.*
 
 ### 1. The principle
-**One robust log-barrier trust-region solver is the authority that holds the curvature bound
-while the point tracks the cursor, and it is the production default everywhere.** Faster and
-alternative solvers (ipopt, primal-dual) and second-order steps (exact Hessian) are kept and
-**measured**, but the trust-region barrier is the one that both keeps the bound and tracks —
-which is the only test that counts (F9).
+**An interior-point barrier is the authority that holds the curvature bound while the point
+tracks the cursor — and it is the production default.** Today that barrier exists in **two
+production instances**: the ipopt `InteriorPointOptimizer` for the algebraic families, and the
+log-barrier trust-region engine for PH. Both keep the bound and track; the trust-region engine
+is the newer one and the intended single home for all of them, but **the algebraic families are
+not yet moved onto it**. Faster/alternative solvers (primal-dual) and second-order steps (exact
+Hessian) are kept and **measured**, never made a default that can slip the bound (F9).
 
 ### 2. What it really is
 Each drag frame is one constrained solve — minimize the cursor-tracking objective subject to
-the sign constraints that hold `S⁻` (idea I) — a few Newton iterations.
+the sign constraints that hold `S⁻` (idea I) — a few Newton iterations. Keeping every iterate
+strictly interior is exactly what keeps constrained coefficients off zero (idea VIII) and the
+bound intact (idea I). Both production barriers are family-agnostic: they take the abstract
+objective + constraints + Jacobian; families differ only in those callbacks (idea III).
 
-The production solver (`core/trustRegionOptimizer.ts` / `trustRegionBanded.ts`) is a
-**log-barrier path-following method** built on the **Conn–Gould–Toint near-exact trust-region
-subproblem** (λ-iteration on `H + λI`), with **ρ measured for the step actually taken** and a
-**shrink-until-strictly-feasible** inner loop so no iterate ever crosses a constraint. Keeping
-every iterate strictly interior is exactly what keeps constrained coefficients off zero
-(idea VIII) and the bound intact (idea I). The banded/bordered (arrowhead) Cholesky makes the
-inner solve `O(n·b²)` (idea VII). It is family-agnostic: it takes the abstract objective +
-constraints + Jacobian; families differ only in those callbacks (idea III).
+The two production barriers:
+- **`InteriorPointOptimizer` (IPOPT)** (`core/ipopt/`) — trust-region filter barrier with SOC,
+  feasibility restoration, a filter line-search, and a watchdog. Production for the **algebraic**
+  families: `slideCurve` (`method:'ipopt'`), `slideComplexRational`, and the generic `slide()`'s
+  default `'best'` (runs ipopt + primal-dual, keeps the furthest bound-holding result). Banded /
+  arrowhead inner solve is opt-in (`bandedSolve`).
+- **Trust-region log-barrier** (`core/trustRegionOptimizer.ts` / `trustRegionBanded.ts`) —
+  log-barrier path following on the **Conn–Gould–Toint near-exact trust-region subproblem**
+  (λ-iteration on `H + λI`), **ρ measured for the step actually taken**, and a
+  **shrink-until-strictly-feasible** inner loop so no iterate ever crosses a constraint;
+  banded/bordered (arrowhead) Cholesky, `O(n·b²)` (idea VII). Production for **PH**
+  (`phCurveBoundDrag.ts`) and the generic `slide()`'s `'trust-region'` option.
+
+**Farin** handle drags use neither barrier — a pure-weight count-guarded walk (`farinDrag.ts`,
+idea I / E26); the trust-region call there is the *unwired* anchored reshape variant.
 
 The experiments we keep — **and measure, never assume**:
-- **`InteriorPointOptimizer` (IPOPT)** — the earlier production barrier (SOC, feasibility
-  restoration, filter, watchdog); now a **measured comparison / oracle**, not the default.
-- **Primal-dual** (Mehrotra predictor-corrector, banded KKT) — opt-in; needs idea VIII's
-  margin enforced explicitly.
+- **Primal-dual** (Mehrotra predictor-corrector, banded KKT) — opt-in / one arm of `'best'`;
+  needs idea VIII's margin enforced explicitly.
 - **Exact Hessian** (`Jet2` second-order AD) — full-Newton vs the default Gauss-Newton; **behind
   a flag, study only**, because it can *overshoot the bound on fast drags*.
 
 ### 3. The mechanism (the deep module)
-- `core/trustRegionOptimizer.ts` — the production solver (log-barrier, Conn–Gould–Toint
-  near-exact subproblem, measured ρ, strictly-feasible shrink). `TrustRegionBarrierOptimizer`.
+- `core/ipopt/InteriorPointOptimizer.ts` — production barrier for the **algebraic** families
+  (trust-region filter, SOC, feasibility restoration, watchdog); banded inner solve opt-in.
+- `core/trustRegionOptimizer.ts` — production barrier for **PH** and the newest engine
+  (log-barrier, Conn–Gould–Toint near-exact subproblem, measured ρ, strictly-feasible shrink).
+  `TrustRegionBarrierOptimizer`.
 - `core/trustRegionBanded.ts` — `TrustRegionBarrierOptimizerBanded`: banded + bordered
   (arrowhead) Cholesky inner solve, `O(n·b²)` (open = band, closed = band + seam).
 - `core/banded.ts` (LDLᵀ open), `core/cyclic.ts` (arrowhead/Woodbury closed seam) — idea VII.
-- `core/ipopt/InteriorPointOptimizer.ts` — the IPOPT comparison; `core/bandedPrimalDual.ts` —
-  Mehrotra primal-dual (opt-in); `core/barrierOptimizer.ts` — plain log-barrier GN banded.
+- `core/bandedPrimalDual.ts` — Mehrotra primal-dual (opt-in / one arm of `'best'`);
+  `core/barrierOptimizer.ts` — plain log-barrier GN banded.
 - `core/curvatureHessian.ts` — exact Hessian (`Jet2`), flag `enableExactHessian`, study only.
+- `core/farinDrag.ts` — the pure-weight count-guarded Farin walk (no barrier).
 - The strict `S⁻` guard after the solve is the shared `enforceBoundNonincreasing`
-  (`curvatureProblem.ts`).
+  (`curvatureProblem.ts`) — except PH and the Farin walks, which still hand-roll it (Tier 2).
 
 ### 4. The imposter to forbid
 - **Defaulting to a faster solver** because it's quicker — it can let the bound grow on a quick
@@ -511,24 +525,30 @@ The experiments we keep — **and measure, never assume**:
   "held **and** tracked" is, and only measurement against the oracle decides.
 
 ### 5. The invariant
-- The default solver, every family × topology, is the trust-region log-barrier; it holds `S⁻`
-  (Law 2) and keeps coefficients off zero (idea VIII).
+- Every family's production default is an **interior-point barrier** (ipopt for algebraic, the
+  trust-region log-barrier for PH); it holds `S⁻` (Law 2) and keeps coefficients off zero
+  (idea VIII).
 - Any alternative or second-order variant must be **proven bound-faithful and cursor-tracking**
-  before it is anything but opt-in; every result is bound-guarded (`enforceBoundNonincreasing`).
+  before it is anything but opt-in; every result is bound-guarded (`enforceBoundNonincreasing`
+  or the family's equivalent guard).
 - Decisions are **measured, not assumed** — concrete numbers, against the oracle.
+- **Open thread:** collapse both barriers onto the trust-region engine — one solver for all
+  families — measuring at each step that the algebraic families still hold the bound and track.
 
 ### 6. Where it lives
-`core/trustRegionOptimizer.ts`, `core/trustRegionBanded.ts` (production), `core/banded.ts`,
-`core/cyclic.ts`; the comparisons `core/ipopt/`, `core/bandedPrimalDual.ts`,
-`core/barrierOptimizer.ts`, `core/curvatureHessian.ts`. The legacy
+`core/ipopt/` (algebraic production), `core/trustRegionOptimizer.ts` /
+`core/trustRegionBanded.ts` (PH production + newest engine), `core/banded.ts`, `core/cyclic.ts`;
+the comparisons `core/bandedPrimalDual.ts`, `core/barrierOptimizer.ts`,
+`core/curvatureHessian.ts`; the Farin walk `core/farinDrag.ts`. The legacy
 `sketcher/optimizer/InteriorPointOptimizer.ts` survives only for the PH-variant island.
 
 ### 7. The pinning test
 - **Holds the bound AND tracks** on the hard drags (`rustParityDrags.test.ts`) — both pinned.
 - **Banded/arrowhead is bit-identical to dense** (`localJacobianParity`, `arrowheadDrag`).
 - **Exact-Hessian path** validated against the `Jet2` AD oracle + FD (`curvatureHessian`).
-- **The production default is the trust-region barrier** — a caller omitting `method` gets the
-  invariant keeper, not the footgun.
+- **Each family's default keeps the bound** — a caller omitting `method` gets the invariant
+  keeper (ipopt for algebraic via `slideCurve`/`slideComplexRational`, trust-region for PH), not
+  the banded footgun.
 
 ### 8. Open threads
 - **Solver quality is the permanent line of work** (CLAUDE.md): exact Hessian vs Gauss-Newton,

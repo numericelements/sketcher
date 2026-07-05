@@ -1,4 +1,12 @@
 // ============================================================================
+// MEASUREMENT BASELINE — SUPERSEDED FOR PRODUCTION (E16). This is the earlier
+// periodic-preimage PH drag (Rust's `slide_ph_closed` design). Production PH drags
+// now live in `phCurveBoundDrag.ts` (free seam coordinates + closure decoupling on
+// the reduced numerator R — see FOUNDATIONS F6/F7 addenda). Nothing in the editor
+// (sceneStore) or the production drag imports this file; its only consumer is
+// `closedPHDragDecouple.test.ts`, which pins WHY decoupling was chosen over solving
+// the fully-periodic constraint. Kept as the alternative-design reference, not dead.
+// ============================================================================
 // Closed polynomial-PH drag, in core — on a PERIODIC preimage (Rust's design).
 //
 // A closed PH curve is a PERIODIC preimage w = u + i·v (periodic knots): the periodic

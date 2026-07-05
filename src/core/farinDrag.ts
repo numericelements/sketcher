@@ -27,14 +27,7 @@ import {
 } from './trustRegionOptimizer'
 import { ComplexBD } from './complexBernstein'
 import { curvatureExtremaNumeratorComplex, curvatureExtremaNumeratorComplexPeriodic } from './curvature'
-import type { Complex } from './complex'
-
-const cmulc = (a: Complex, b: Complex): Complex => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
-const caddc = (a: Complex, b: Complex): Complex => ({ re: a.re + b.re, im: a.im + b.im })
-const cdivc = (a: Complex, b: Complex): Complex => {
-  const d = b.re * b.re + b.im * b.im
-  return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }
-}
+import { type Complex, cmul as cmulc, cadd as caddc, cdiv as cdivc } from './complex'
 
 /** Dual (value, tangent) over ComplexBD — forward AD through the complex B-spline algebra. */
 class CBDual {

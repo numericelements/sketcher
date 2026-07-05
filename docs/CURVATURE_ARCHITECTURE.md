@@ -76,7 +76,8 @@ specialized math. The goal is **one shape**: a shared spine that every family pl
 ```
                        ┌─────────────── THE SPINE (shared) ───────────────┐
                        │  contract:  OptimizationProblem  (ipopt/types.ts) │
-   editor ── slide() ──┤  solver:    TrustRegionBarrierOptimizer(Banded)   │
+   editor ── slide* ───┤  solver:    barrier — ipopt (algebraic) OR        │
+                       │             trust-region (PH); both interior-point │
                        │  bound:     S⁻ = cyclicSignChanges(assignSigns…)  │
                        │  enforce:   sliding active set + strict guard      │
                        │  linalg:    banded / arrowhead / windowed          │
@@ -94,14 +95,24 @@ specialized math. The goal is **one shape**: a shared spine that every family pl
 - **Contract** — `OptimizationProblem` (`src/core/ipopt/types.ts`): a curve type provides
   `computeConstraints` (the `gⱼ`), `computeConstraintJacobian` (its specialized gradient),
   the sliding state (`getConstraintSigns` / `getInactiveConstraints`), and the objective.
-- **Solver** — the **log-barrier trust-region** method
-  (`TrustRegionBarrierOptimizer` / `TrustRegionBarrierOptimizerBanded`,
-  `src/core/trustRegionOptimizer.ts` / `trustRegionBanded.ts`): log-barrier path following
-  with the Conn–Gould–Toint near-exact trust-region subproblem (λ-iteration on `H+λI`),
-  ρ measured for the step actually taken, and a shrink-until-strictly-feasible inner loop
-  so no iterate ever violates a constraint. Banded + bordered (arrowhead) Cholesky,
-  `O(n·b²)`. It does not know the curve type. `InteriorPointOptimizer` (`ipopt/`) and the
-  primal-dual solvers are kept as **measured comparisons** (§4), not the production path.
+- **Solver** — an interior-point barrier, in **two production instances** (both curve-type
+  agnostic, both hold the bound):
+  - **`InteriorPointOptimizer`** (`src/core/ipopt/`) — trust-region filter barrier (SOC,
+    feasibility restoration, filter, watchdog). The production solver for the **algebraic
+    families** (polynomial/rational/complex-rational, open + closed), reached via `slideCurve`
+    (`method:'ipopt'`), `slideComplexRational`, and the generic `slide()`'s default `'best'`
+    (ipopt + primal-dual, keep the furthest bound-holding result). Banded/arrowhead inner
+    solve opt-in via `bandedSolve`.
+  - **`TrustRegionBarrierOptimizer` / …Banded** (`src/core/trustRegionOptimizer.ts` /
+    `trustRegionBanded.ts`) — log-barrier path following with the Conn–Gould–Toint near-exact
+    trust-region subproblem (λ-iteration on `H+λI`), ρ measured for the step taken, and a
+    shrink-until-strictly-feasible inner loop; banded + bordered (arrowhead) Cholesky
+    `O(n·b²)`. The production solver for the **PH** drags (`phCurveBoundDrag.ts`) and the
+    generic `slide()`'s `'trust-region'` option. It is the newest engine and the intended
+    target for unifying the algebraic families onto one solver — **not yet done** (§8).
+  - **Farin** handle drags use neither barrier — a pure-weight count-guarded walk
+    (`farinDrag.ts`); the trust-region call there is the *unwired* anchored reshape variant.
+  - The **primal-dual** solvers are kept as measured comparisons (§4).
 - **Linear algebra** — `SymBand` (`banded.ts`), `Arrowhead` (`cyclic.ts`),
   `trustRegionBanded.ts` (open=band, closed=band+seam, large-n=windowed [planned]).
 - **Bound** — one metric: `cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed)`.
@@ -119,10 +130,12 @@ specialized math. The goal is **one shape**: a shared spine that every family pl
 | PH variant (complex / real / AB)    | generator-based                                       | `optimizeComplexRationalPHCurve` / `optimizeRealRationalPHCurve` / `optimizeABPHCurve` (**the remaining legacy island** — port-vs-contain pending) | legacy `InteriorPointOptimizer`                        |
 
 Understand the spine + one organ and you understand them all: organs differ **only** in
-the `g`/gradient they expose through the identical contract. Every mainline family (the
-four algebraic families × open/closed, plus open/closed PH and both Farin kinds) now runs
-on the core trust-region engine; only the PH-variant drags above remain on the legacy
-solver.
+the `g`/gradient they expose through the identical contract. Every mainline drag runs on
+**core** (no legacy fallback), but on one of three solvers: the **algebraic** families on
+the ipopt `InteriorPointOptimizer`, **PH** on the trust-region engine, and **Farin** on the
+pure-weight walk. Unifying the algebraic families onto the trust-region engine (one barrier
+for all) is intended but not yet done. Only the PH-**variant** families (last row) still run
+on the legacy solver.
 
 ---
 
@@ -151,17 +164,21 @@ the reason**.
   the bound on fast drags, and is ~2.5× slower. Kept behind the flag; **default OFF** until
   step control tames it.
 
-**Solver** — multiple regimes, the production one chosen by measurement:
+**Solver** — multiple interior-point regimes; the production choice is per-family, chosen by
+measurement:
 
-- **`TrustRegionBarrierOptimizer` / `…Banded`** (log-barrier path following, Conn–Gould–Toint
-  near-exact subproblem, ρ measured for the step taken, shrink-until-strictly-feasible) — the
-  **production solver everywhere**. It both keeps the bound and tracks the cursor, and its
-  banded/bordered Cholesky is `O(n·b²)`.
-- **`InteriorPointOptimizer` (IPOPT)** and **`PrimalDualOptimizer` / `BandedPrimalDualOptimizer`**
-  — kept as **measured comparisons** (oracles + method-comparison demo), not the default.
-- **Rule:** the default must be the one that **keeps the bound _and_ tracks** — measured, not
-  assumed (F9's trap: a solver that tracks further while its displayed bound climbs is not
-  "better," it is enforcing a different quantity). Trust-region wins both today.
+- **`InteriorPointOptimizer` (IPOPT)** (trust-region filter barrier: SOC, feasibility
+  restoration, filter, watchdog) — the production solver for the **algebraic families**
+  (`slideCurve` `method:'ipopt'`, `slideComplexRational`, and generic `slide()`'s `'best'`).
+- **`TrustRegionBarrierOptimizer` / `…Banded`** (log-barrier, Conn–Gould–Toint near-exact
+  subproblem, ρ measured, shrink-until-strictly-feasible, banded/bordered `O(n·b²)`) — the
+  production solver for **PH** and the newest engine; the target for unifying the rest onto one
+  barrier (not yet done).
+- **`PrimalDualOptimizer` / `BandedPrimalDualOptimizer`** — measured comparisons (and one arm of
+  `'best'`); leaner but can slip the bound alone, so opt-in.
+- **Rule:** whichever solver is a family's default must **keep the bound _and_ track** —
+  measured, not assumed (F9's trap: a solver that tracks further while its displayed bound
+  climbs is not "better," it is enforcing a different quantity).
 
 > Methodology, restated: _keep the options, measure, choose the default, document the
 > choice and the measurement._ When the measurement changes, update this section.
@@ -245,7 +262,7 @@ stack — it is reachable only through the PH-variant drags below and the fit/la
 
 | concept                   | canonical (the spine)                                                                             | legacy remnant                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| solver                    | `core/trustRegionOptimizer.ts` / `trustRegionBanded.ts` (production)                              | `optimizer/InteriorPointOptimizer` — only the PH-variant island still calls it |
+| solver                    | `core/ipopt/InteriorPointOptimizer` (algebraic) + `core/trustRegionOptimizer.ts` (PH) — both production | `sketcher/optimizer/InteriorPointOptimizer` — only the PH-variant island still calls it |
 | numerator `g`/`f`         | `core/curvature.ts` `curvatureExtremaNumerator*` / `inflectionNumerator*`; PH `phCurvature.ts` (R) | `optimizer/algebra.ts`, `complexAlgebra.ts` — construction/offset/render + PH-variant only |
 | bound / count             | one metric: `cyclicSignChanges(assignSignsNeighbor(g.flatCoeffs()), closed)` (raw, E25)           | — (retired)                                                                  |
 | markers                   | `curvatureExtremaMarkersOfNumerator` (VD subdivision, no deadband)                                 | — (retired)                                                                  |
@@ -304,9 +321,12 @@ consistent). **Steps 0–5 are done; 6–7 remain.**
 - **Step 7 — Speed organs to match Rust.** Windowed local solve (`SymBand::solve_windowed`)
   for large n; reduce Bernstein allocation. Organ-internal — the spine is unchanged.
 
-The spine goal is reached for every mainline family: exactly one solver, one `g`, one bound,
-one active set, one display metric. Only the PH-variant island and the two speed/topology
-refinements remain.
+The spine goal is reached for every mainline family in every respect **except the solver**:
+one `g` per family, one bound, one active set, one display metric, no legacy fallback. The
+solver is not yet unified — algebraic families run on ipopt, PH on the trust-region engine,
+Farin on a pure-weight walk. Collapsing the algebraic families onto the trust-region engine
+(one barrier for all) is the remaining spine step, alongside the PH-variant island and the two
+speed/topology refinements (Steps 6–7).
 
 ---
 

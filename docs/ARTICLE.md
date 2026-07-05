@@ -140,11 +140,15 @@ cleanly separates "the surrogate blocks" from "the law blocks" in measurements.
 
 The constraints are sign conditions on the active coefficients; the objective is plain
 weighted tracking of the control points toward the cursor (dragged point weighted
-above its anchors). The production solver is a **log-barrier trust-region method**
-with a near-exact subproblem (Conn–Gould–Toint §7.3.4) and one distinctive
-discipline: a candidate step is accepted only if *strictly feasible*, and the trust
-radius shrinks — re-solving, which redirects rather than truncates the step — until it
-is. Two consequences matter for the paper:
+above its anchors). Each drag runs on an **interior-point barrier**, in one of two
+production instances: a trust-region *filter* barrier (IPOPT-style) for the algebraic
+families, and — described here because it is the newest engine and the intended single
+home for all of them — a **log-barrier trust-region method** for the PH drags, with a
+near-exact subproblem (Conn–Gould–Toint §7.3.4) and one distinctive discipline: a
+candidate step is accepted only if *strictly feasible*, and the trust radius shrinks —
+re-solving, which redirects rather than truncates the step — until it is. Both keep the
+bound and track; consolidating the algebraic families onto the trust-region engine is
+work still in progress. Two consequences matter for the paper:
 
 - **The bound is enforced inside the solve**, not patched afterwards. A separate
   strict guard (bisect the step back toward the tick start) exists as a Law-2 backstop
@@ -318,8 +322,10 @@ budget permits, stops honestly where it does not, never migrates, and retraces �
 The reference implementation (TypeScript, ~core module) is not an appendix; it is the
 demonstration that the three laws coexist at interactive rates:
 
-- one solver engine for all eight drag routes (3 algebraic families × 2 topologies,
-  plus open/closed PH on the reduced field) — and the two Farin walks beside them;
+- one *contract* for all eight drag routes (3 algebraic families × 2 topologies, plus
+  open/closed PH on the reduced field) — each solved by an interior-point barrier (the
+  IPOPT-style barrier for the algebraic routes, the trust-region engine for PH), with
+  the two Farin walks beside them; collapsing both barriers into one is in progress;
 - the bound held at every tick *by the constraint set*, with the guard idle;
 - displayed = enforced everywhere, pinned;
 - every editor claim in this draft is a named test: `trustRegionParity*`,

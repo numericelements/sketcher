@@ -177,15 +177,16 @@ remaining all-solver stalls (CP3/9 partial) still need the oracle to classify "t
 **Pinning evidence.** Matrix above, reproduced via slideCurve `method`/`enableBFGS`. BFGS result
 pinned in the diagnostic matrix (poly-closed, editable).
 
-**ADDENDUM (E19/E20, superseding the solver framing above).** The whole ipopt-vs-BFGS-vs-primal-dual
-table here was measured on the *old* production barrier. The production solver is now the
-**log-barrier trust-region engine** (`trustRegionOptimizer.ts` / `trustRegionBanded.ts`), which
-carries the constraint curvature through the Conn–Gould–Toint near-exact subproblem — the same
-reshaping BFGS was bolted on for, but native and banded. F11/F12 are the definitive stall analysis
-on the trust-region path; read those, not this table, for "why does it block." The *fact* this
-section established is still durable and correct: **closed-drag blocking is solver step-strategy,
-not conditioning** — a Gauss-Newton step stalls where a curvature-aware step reshapes. Only the
-"which solver ships" conclusion is retired.
+**ADDENDUM (context — what actually ships for closed drags).** The shipped closed-polynomial
+editor drag is still **ipopt on the fast arrowhead path with BFGS** (`slideCurve`, `method:'ipopt'`,
+`enableBFGS: curve.closed`), exactly as this section concluded — it was *not* replaced. Do not
+misread the newer trust-region work as covering this: the trust-region log-barrier engine
+(`trustRegionOptimizer.ts`) is the production solver for **PH** drags only (E19/E20); the algebraic
+families (including closed polynomial) remain on ipopt. So this table is still the live description
+of the closed-polynomial solver landscape. The durable fact is unchanged and central:
+**closed-drag blocking is solver step-strategy, not conditioning** — a Gauss-Newton step stalls
+where a curvature-aware step (BFGS here, Conn–Gould–Toint for PH) reshapes. F11/F12 carry the stall
+analysis forward on their own fixtures.
 
 ---
 
