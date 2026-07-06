@@ -4,7 +4,7 @@ import type { FairnessEnergyType } from '../lab/optimizer/jerkEnergy'
 import { computeRegionPreview, defaultEnergyForDegree, type SmoothMode } from '../utils/regionSmooth'
 import { createBSpline, elevateDegree, insertKnot, moveKnot, removeKnot, getControlPointsAsPoints, toRationalBSpline, toComplexRationalBSpline, toBSpline, periodicKnotsWithJunction, uniformPeriodicKnots, generateCurveId, findKnotSpan, isClampedEndKnot } from '../utils/bspline'
 import { createLine, createCircularArc, createFullCircle } from '../utils/shapes'
-import { createSpiralFromTwoPoints, computePHCurveFromUV, computePHOffset, fitPHSplineToBSpline, fitClosedPHSpline, closeOpenPHSpline, type PHMetadata, type ComplexRationalPHMetadata } from '../optimizer/phCurve'
+import { createSpiralFromTwoPoints, computePHCurveFromUV, computePHOffset, fitPHSplineToBSpline, fitClosedPHSpline, closeOpenPHSpline, type PHMetadata } from '../optimizer/phCurve'
 import { createStraightComplexRationalPH } from '../optimizer/complexRationalPHCurve'
 import { periodicGenKnots, clampedFromPeriodicGenKnots, buildPeriodicPHCurve, buildPeriodicPHViaOperator, closedPHReducedBound, projectClosurePH, GEN_DEGREE } from '../../core'
 import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexPointsToAB, type ABPHMetadata } from '../optimizer/abPHCurve'
@@ -21,7 +21,8 @@ import { optimizeComplexRationalPHCurve } from '../optimizer'
 // real-rational-PH — the contained island in src/sketcher/optimizer). Both
 // Farin drags (E26/E27), the PH value bound (E19), and plain PH tracking (E20)
 // are core. See src/sketcher/optimizer/index.ts for the authoritative ledger.
-import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, slideRealRationalPH, realRationalPHCurveCPs, genFromRealRationalMeta, slideABComplexRationalPH, abComplexRationalPHCurveCPs, genFromABMeta, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, slideRealRationalPH, realRationalPHCurveCPs, genFromRealRationalMeta, slideABComplexRationalPH, abComplexRationalPHCurveCPs, genFromABMeta, slideRationalPHLinearD, rationalPHLinearDFromParams, type WeightedCP } from '../../core'
+import type { RationalPHLinearDMetadata } from '../types/curve'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -95,7 +96,7 @@ interface SketcherState {
   isCircleClosed: boolean // True when full circle is detected
 
   // PH curve metadata (curveId → PH data)
-  phMetadata: Map<string, PHMetadata | ComplexRationalPHMetadata | ABPHMetadata | RealRationalPHMetadata>
+  phMetadata: Map<string, PHMetadataAny>
 
   // PH curve offset
   offsetSourceCurveId: string | null
@@ -803,6 +804,36 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
     // (A, B, S) PH curve optimization
     if (phMetadata.has(curveId) && curve.kind === 'complex-rational') {
       const meta = phMetadata.get(curveId)!
+      // Exactly-PH rational curve, LINEAR denominator → CORE slideRationalPHLinearD. Reconstructed
+      // exactly from a few params every tick, so it stays PH to machine precision and the bound Ñ
+      // is honest (markers, S⁻(Ñ) and the canvas agree). No PH equality constraints — pure Ñ
+      // sliding. A failure drops the tick (a direct move would desync the params from the CPs).
+      if (meta.kind === 'rational-ph-linear-d') {
+        try {
+          const cps0 = curve.controlPoints as ComplexPoint[]
+          const M = cps0.length
+          const targets = cps0.map((p, i) => (i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.re, y: p.im }))
+          const targetWeights = targets.map((_, i) => (i === pointIndex ? 10 : i === 0 || i === M - 1 ? 5 : 1))
+          const params = slideRationalPHLinearD(meta.params, targets, { targetWeights, maxIterations: 50, preserveCurvatureExtrema })
+          const c = rationalPHLinearDFromParams(params)
+          const outMeta: RationalPHLinearDMetadata = { kind: 'rational-ph-linear-d', degree: c.degree, knots: c.knots, params }
+          const newPhMetadata = new Map(phMetadata)
+          newPhMetadata.set(curveId, outMeta)
+          set((state) => ({
+            curves: state.curves.map((cc) =>
+              cc.id === curveId
+                ? { ...cc, controlPoints: c.controlPoints, knots: c.knots, degree: c.degree } as Curve
+                : cc,
+            ),
+            phMetadata: newPhMetadata,
+          }))
+          return
+        } catch (e) {
+          console.warn('core rational-PH linear-D drag failed (tick dropped):', e)
+          return
+        }
+      }
+
       // ab-complex-rational PH → CORE slideABComplexRationalPH. The curvature-extrema
       // bound is enforced on the GENERATING-FUNCTION reduced numerator Ñ (degree 16, exact
       // analytic Jacobian), not the general degree-44 Chen g — sign-identical, tighter S⁻,
@@ -2651,7 +2682,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
   commitTransform: () => {
     const state = get()
     // If Laguerre transform was applied, the curve is no longer PH
-    let newPhMetadata: Map<string, PHMetadata | ComplexRationalPHMetadata | ABPHMetadata | RealRationalPHMetadata> | undefined
+    let newPhMetadata: Map<string, PHMetadataAny> | undefined
     if (state.transformWidgetType === 'laguerre' && state.transformOriginalCurve) {
       newPhMetadata = new Map(state.phMetadata)
       newPhMetadata.delete(state.transformOriginalCurve.id)
@@ -2675,7 +2706,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
 
     // Restore original curve and PH metadata
     const originalCurve = state.transformOriginalCurve
-    let restoredPhMetadata: Map<string, PHMetadata | ComplexRationalPHMetadata | ABPHMetadata | RealRationalPHMetadata> | undefined
+    let restoredPhMetadata: Map<string, PHMetadataAny> | undefined
     if (state.transformOriginalPhMeta) {
       restoredPhMetadata = new Map(state.phMetadata)
       restoredPhMetadata.set(originalCurve.id, state.transformOriginalPhMeta)
@@ -2888,7 +2919,7 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
 
     if (updatedCurve) {
       // Update PH metadata if it was set during transform
-      let newPhMetadata: Map<string, PHMetadata | ComplexRationalPHMetadata | ABPHMetadata | RealRationalPHMetadata> | undefined
+      let newPhMetadata: Map<string, PHMetadataAny> | undefined
       if (updatedPhMeta) {
         newPhMetadata = new Map(state.phMetadata)
         newPhMetadata.set(originalCurve.id, updatedPhMeta)

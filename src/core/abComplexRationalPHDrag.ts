@@ -23,7 +23,8 @@ import type { ComplexPoint } from './types'
 import { computeInactiveSetBySign, structuralMargins } from './curvatureProblem'
 import { curvatureExtremaReducedNumeratorRationalPH, reducedNumeratorJacobianRationalPH } from './rationalPHCurvature'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
-import type { OptimizationProblem, Matrix } from './ipopt/types'
+import type { OptimizationProblem } from './ipopt/types'
+import type { Matrix } from './ipopt/linearAlgebra'
 
 export interface ABComplexRationalPHGen {
   degree: number

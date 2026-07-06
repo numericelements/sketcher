@@ -1,6 +1,17 @@
 import type { PHMetadata, ComplexRationalPHMetadata } from '../optimizer/phCurve'
 import type { ABPHMetadata } from '../optimizer/abPHCurve'
 import type { RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
+import type { RationalPHLinearDParams } from '../../core'
+
+/** Exactly-PH rational curve with a LINEAR denominator (core rationalPHLinearD.ts). Unlike the
+ *  (A,B,S) families, the curve is reconstructed exactly from these few params on every drag, so
+ *  it is PH to machine precision and the generating-function bound Ñ is honest. */
+export interface RationalPHLinearDMetadata {
+  kind: 'rational-ph-linear-d'
+  degree: number
+  knots: number[]
+  params: RationalPHLinearDParams
+}
 
 // Point types
 export interface Point2D {
@@ -97,6 +108,7 @@ export type PHMetadataAny =
   | ComplexRationalPHMetadata
   | ABPHMetadata
   | RealRationalPHMetadata
+  | RationalPHLinearDMetadata
 
 // History entry for undo/redo
 export interface HistoryEntry {

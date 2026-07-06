@@ -14,7 +14,8 @@
 import { decomposeToBernstein } from './bernstein'
 import { ComplexBD } from './complexBernstein'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
-import type { OptimizationProblem, Matrix } from './ipopt/types'
+import type { OptimizationProblem } from './ipopt/types'
+import type { Matrix } from './ipopt/linearAlgebra'
 
 /** The real-rational PH generator (the state the drag optimizes). A, B share `knots` at
  *  `degree`; S is degree `degree−1` on `sKnots`. B is real (one array). */

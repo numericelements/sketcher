@@ -15,7 +15,8 @@ import { ComplexBD } from '../complexBernstein'
 import { decomposeToBernstein } from '../bernstein'
 import { curvatureExtremaNumeratorComplex } from '../curvature'
 import {
-  curvatureExtremaReducedNumeratorRationalPH, rationalPHBound, rationalPHMarkers,
+  curvatureExtremaReducedNumeratorRationalPH, reducedNumeratorJacobianRationalPH,
+  rationalPHBound, rationalPHMarkers,
 } from '../rationalPHCurvature'
 
 interface Meta {
@@ -109,6 +110,30 @@ describe.each([['polynomial B≡1', POLY], ['genuinely rational B', RAT]] as con
       const sb = rationalPHBound(m.sReCPs, m.sImCPs, m.sKnots, sDeg, m.bReCPs, m.bImCPs, m.knots, m.degree)
       const markers = rationalPHMarkers(m.sReCPs, m.sImCPs, m.sKnots, sDeg, m.bReCPs, m.bImCPs, m.knots, m.degree)
       expect(sb).toBeGreaterThanOrEqual(markers.length)
+    })
+
+    it('analytic ∂Ñ/∂(S,B) matches finite differences', () => {
+      const sDeg = sDegOf(m)
+      const J = reducedNumeratorJacobianRationalPH(m.sReCPs, m.sImCPs, m.sKnots, sDeg, m.bReCPs, m.bImCPs, m.knots, m.degree)
+      const base = reduced(m).flatCoeffs()
+      const eps = 1e-4
+      const scale = Math.max(...base.map(Math.abs), 1)
+      // FD column for perturbing field[j] by eps
+      const fd = (_get: () => number[], set: (v: number) => void, _j: number, cur: number) => {
+        set(cur + eps); const plus = reduced(m).flatCoeffs(); set(cur)
+        return plus.map((v, k) => (v - base[k]) / eps)
+      }
+      const cmp = (analytic: number[][], arr: number[]) => {
+        for (let j = 0; j < arr.length; j++) {
+          const cur = arr[j]
+          const col = fd(() => arr, (v) => { arr[j] = v }, j, cur)
+          for (let k = 0; k < col.length; k++) {
+            expect(Math.abs(analytic[j][k] - col[k])).toBeLessThan(1e-3 * scale + 1e-6 * Math.abs(col[k]) * scale)
+          }
+        }
+      }
+      cmp(J.dSre, m.sReCPs); cmp(J.dSim, m.sImCPs)
+      cmp(J.dBre, m.bReCPs); cmp(J.dBim, m.bImCPs)
     })
   },
 )

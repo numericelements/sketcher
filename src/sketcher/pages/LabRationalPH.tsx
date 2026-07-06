@@ -16,10 +16,11 @@ import '../i18n' // SketcherCanvas uses react-i18next
 import { useSceneStore } from '../store/sceneStore'
 import SketcherCanvas from '../components/SketcherCanvas'
 import type { CanvasConfig } from '../types/canvas'
-import type { Curve } from '../types/curve'
-import { createABPHFromTwoPoints, computeABPHCurve, type ABPHMetadata } from '../optimizer/abPHCurve'
+import type { Curve, RationalPHLinearDMetadata } from '../types/curve'
 import {
-  rationalPHBound, rationalPHMarkers, complexCurvatureConstraintState,
+  rationalPHLinearDFromParams, type RationalPHLinearDParams,
+  rationalPHBound, rationalPHMarkers,
+  curvatureExtremaNumeratorComplex, curvatureExtremaMarkers,
   assignSignsNeighbor, cyclicSignChanges,
 } from '../../core'
 
@@ -43,30 +44,27 @@ const config: CanvasConfig = {
   disableClosing: true,
 }
 
-// A rational PH curve with COMPLEX weights B: start from createABPHFromTwoPoints (which gives
-// B ≡ 1) and apply a det-1 Möbius A→A, B→γ·A+1 (γ complex) — this keeps it PH with the SAME S
-// (the Wronskian scales by αδ−βγ = 1) but makes B genuinely complex. |γ·A| < 1 so B ≠ 0.
-function rationalPHMeta(): ABPHMetadata {
-  const m = createABPHFromTwoPoints(-180, 60, 180, 60).metadata
-  const gRe = 0.0016, gIm = 0.0009
-  return {
-    ...m,
-    bReCPs: m.aReCPs.map((ar, i) => 1 + gRe * ar - gIm * m.aImCPs[i]),
-    bImCPs: m.aReCPs.map((ar, i) => gRe * m.aImCPs[i] + gIm * ar),
-  }
+// The exactly-PH linear-D family: free params (s0, s2, d1, origin); D = 1·(1−t) + d1·t genuinely
+// varies (root 1/(1−d1) safely off [0,1]), and s1 = −2·s2·(root) is derived so S′(root)=0 ⇒ the
+// Wronskian F′D−FD'=S² holds EXACTLY. Chosen for a contained, centered curve with one curvature
+// extremum. Unlike the earlier AB seed, this is a TRUE PH curve to machine precision, so Ñ is honest.
+const START_PARAMS: RationalPHLinearDParams = {
+  s0: { re: 14, im: 3 }, s2: { re: -6, im: 11 }, d1: { re: 1.8, im: 0.6 }, origin: { x: -40, y: -110 },
 }
 
-/** (Re)create the rational PH curve in the scene store. */
+/** (Re)create the exactly-PH rational curve in the scene store. */
 function installCurve() {
-  const meta = rationalPHMeta()
-  const built = computeABPHCurve(meta)
+  const c = rationalPHLinearDFromParams(START_PARAMS)
   const curve: Curve = {
     id: CURVE_ID,
     kind: 'complex-rational',
-    degree: meta.degree,
-    knots: meta.knots,
-    controlPoints: built.controlPoints,
+    degree: c.degree,
+    knots: c.knots,
+    controlPoints: c.controlPoints,
     closed: false,
+  }
+  const meta: RationalPHLinearDMetadata = {
+    kind: 'rational-ph-linear-d', degree: c.degree, knots: c.knots, params: START_PARAMS,
   }
   useSceneStore.setState((state) => {
     const phMetadata = new Map(state.phMetadata)
@@ -82,32 +80,29 @@ function installCurve() {
   })
 }
 
-// The two upper bounds on the curvature-extrema count, from the live (A,B,S) metadata:
-//   Ñ  — the generating-function reduced numerator (degree 16), and
-//   Chen g — the general complex-rational numerator (degree 44).
-// Both satisfy Law 1 (S⁻ ≥ #markers); Ñ is the tighter one.
-interface Stats { markers: number; sReduced: number; sGeneral: number; degReduced: number }
-function computeStats(meta: ABPHMetadata): Stats {
-  const sDeg = meta.sKnots.length - meta.sReCPs.length - 1
-  const sReduced = rationalPHBound(meta.sReCPs, meta.sImCPs, meta.sKnots, sDeg, meta.bReCPs, meta.bImCPs, meta.knots, meta.degree)
-  const markers = rationalPHMarkers(meta.sReCPs, meta.sImCPs, meta.sKnots, sDeg, meta.bReCPs, meta.bImCPs, meta.knots, meta.degree).length
-  // general bound: g of the drawable complex-rational curve (positions P = A/B, weights B).
-  const n = meta.aReCPs.length
-  const Pre: number[] = [], Pim: number[] = []
-  for (let i = 0; i < n; i++) {
-    const b2 = meta.bReCPs[i] ** 2 + meta.bImCPs[i] ** 2
-    Pre.push((meta.aReCPs[i] * meta.bReCPs[i] + meta.aImCPs[i] * meta.bImCPs[i]) / b2)
-    Pim.push((meta.aImCPs[i] * meta.bReCPs[i] - meta.aReCPs[i] * meta.bImCPs[i]) / b2)
-  }
-  const gen = complexCurvatureConstraintState(Pre, Pim, meta.bReCPs, meta.bImCPs, meta.knots, meta.degree, false)
-  const sGeneral = cyclicSignChanges(assignSignsNeighbor(gen.gCPs), false)
-  return { markers, sReduced, sGeneral, degReduced: 4 * sDeg + 2 * meta.degree - 2 }
+// The panel readouts, all from the live params. Because the curve is EXACTLY PH here, the
+// reduced Ñ and the general Chen g are the same dκ/dt up to a positive factor, so their sign
+// changes — and the canvas markers — AGREE. We show both bounds to make the reduction visible
+// (Ñ is the tighter, lower-degree one) and the drawn-curve markers to prove the agreement.
+interface Stats { markers: number; genMarkers: number; sReduced: number; sGeneral: number; degReduced: number; degGeneral: number }
+function computeStats(meta: RationalPHLinearDMetadata): Stats {
+  const c = rationalPHLinearDFromParams(meta.params)
+  const sDeg = c.sReCPs.length - 1
+  const sReduced = rationalPHBound(c.sReCPs, c.sImCPs, c.sKnots, sDeg, c.dReCPs, c.dImCPs, c.dKnots, 1)
+  const markers = rationalPHMarkers(c.sReCPs, c.sImCPs, c.sKnots, sDeg, c.dReCPs, c.dImCPs, c.dKnots, 1).length
+  // general bound + markers: g of the drawable complex-rational curve (positions P, weights D).
+  const Pre = c.controlPoints.map((p) => p.re), Pim = c.controlPoints.map((p) => p.im)
+  const wre = c.controlPoints.map((p) => p.w_re), wim = c.controlPoints.map((p) => p.w_im)
+  const gGen = curvatureExtremaNumeratorComplex(Pre, Pim, wre, wim, c.knots, c.degree)
+  const sGeneral = cyclicSignChanges(assignSignsNeighbor(gGen.flatCoeffs()), false)
+  const genMarkers = curvatureExtremaMarkers('complex-rational', Pre, Pim, wre, wim, c.knots, c.degree, false).length
+  return { markers, genMarkers, sReduced, sGeneral, degReduced: 4 * sDeg + 2 * 1 - 2, degGeneral: 4 * c.degree - 6 }
 }
 
 export default function LabRationalPH() {
   const preserve = useSceneStore((s) => s.preserveCurvatureExtrema)
   const setPreserve = useSceneStore((s) => s.setPreserveCurvatureExtrema)
-  const [stats, setStats] = useState<Stats>({ markers: 0, sReduced: 0, sGeneral: 0, degReduced: 16 })
+  const [stats, setStats] = useState<Stats>({ markers: 0, genMarkers: 0, sReduced: 0, sGeneral: 0, degReduced: 8, degGeneral: 10 })
 
   // Create the curve on mount (bound on by default); recompute the panel readouts from the
   // live metadata on every store change; clean up on unmount.
@@ -116,7 +111,7 @@ export default function LabRationalPH() {
     setPreserve(true)
     const update = () => {
       const meta = useSceneStore.getState().phMetadata.get(CURVE_ID)
-      if (meta && meta.kind === 'ab-complex-rational') setStats(computeStats(meta))
+      if (meta && meta.kind === 'rational-ph-linear-d') setStats(computeStats(meta))
     }
     update()
     const unsub = useSceneStore.subscribe(update)
@@ -167,8 +162,11 @@ export default function LabRationalPH() {
             {stat('General bound  S⁻(g)', String(stats.sGeneral), 'text-gray-500')}
           </div>
           <div className="text-[10px] text-gray-400 -mt-1">
-            Ñ has degree {stats.degReduced} vs the general g’s 44 — fewer coefficients, a tighter honest bound.
-            Both obey S⁻ ≥ markers (Law 1).
+            Ñ has degree {stats.degReduced} vs the general g’s {stats.degGeneral} — fewer coefficients, a
+            tighter honest bound. Both obey S⁻ ≥ markers (Law 1).
+            {stats.markers === stats.genMarkers
+              ? ' The markers equal the drawn curve’s own extrema — the curve is exactly PH, so Ñ is honest.'
+              : ' ⚠︎ marker mismatch — the curve has left the PH manifold.'}
           </div>
 
           <div className="flex">
@@ -181,11 +179,13 @@ export default function LabRationalPH() {
 
           <div className="pt-2 border-t border-gray-200 dark:border-gray-800 text-[10px] leading-relaxed">
             <div className="font-semibold text-gray-700 dark:text-gray-200 mb-0.5">The generating function</div>
-            <p className="font-mono">z = A/B,  A′B − AB′ = S²  ⟹  z′ = S²/B² = σ²,  σ = S/B.</p>
-            <p className="font-mono mt-0.5">Ñ = Im(S̄²·B̄·K′),  K′ = S·W₁′ − 2·S′·W₁,  W₁ = S′B − SB′.</p>
+            <p className="font-mono">z = F/D,  F′D − FD′ = S²  ⟹  z′ = S²/D² = σ²,  σ = S/D.</p>
+            <p className="font-mono mt-0.5">Ñ = Im(S̄²·D̄·K′),  K′ = S·W₁′ − 2·S′·W₁,  W₁ = S′D − SD′.</p>
             <p className="mt-1 text-gray-500">
-              Drag the control points — the curve re-solves to stay a true PH curve. Turn on{' '}
-              <span className="font-semibold">Bounding curvature extrema</span> and the number of extrema can only hold or drop.
+              D is <span className="font-semibold">linear</span>, so F is reconstructed <span className="font-semibold">exactly</span>{' '}
+              from (S, D) — the curve is a true PH curve to machine precision, and Ñ’s sign changes ARE the
+              curvature extrema. Drag any control point; the curve re-solves on the PH manifold. Turn on{' '}
+              <span className="font-semibold">Bounding curvature extrema</span> and the count can only hold or drop.
             </p>
           </div>
         </div>

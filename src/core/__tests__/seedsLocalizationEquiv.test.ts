@@ -58,7 +58,7 @@ const openKnots = (n: number, d: number) => {
   return k
 }
 // clamped open knots with a REPEATED interior knot (multiplicity 2) — shrinks one CP's support.
-const openKnotsRepeated = (d: number) => {
+const openKnotsRepeated = (_d: number) => {
   // n = 8, degree d: clamp + interior [0.3, 0.3, 0.6]
   const k = [0, 0, 0, 0, 0.3, 0.3, 0.6, 1, 1, 1, 1]
   return k // n = k.length - d - 1 = 11 - 3 - 1 = 7

@@ -73,6 +73,83 @@ export function curvatureExtremaReducedNumeratorRationalPH(
   return Sbar.mul(Sbar).mul(Bbar).mul(Kp).im     // Ñ = Im(S̄²·B̄·K′)
 }
 
+const conjBD = (z: ComplexBD): ComplexBD => new ComplexBD(z.re, z.im.scale(-1))
+
+/**
+ * Analytic Jacobian of the reduced numerator Ñ w.r.t. the generator/denominator
+ * control points: for every variable (sRe[j], sIm[j], bRe[j], bIm[j]) the vector of
+ * ∂(Ñ Bernstein coefficient)/∂variable, i.e. one δÑ column per variable. This is the
+ * speed win over the legacy AB drag: a degree-(4degS+2degB−2) column instead of the
+ * general Chen g's degree-44 one, and it is EXACT (product rule, not finite difference).
+ *
+ * δÑ = Im( 2·S̄·conj(δS)·(B̄K′) + (S̄²B̄)·δK′ + (S̄²K′)·conj(δB) ),
+ *   δK′  = δS·W₁′ + S·δW₁′ − 2·δS′·W₁ − 2·S′·δW₁,
+ *   δW₁  = δS′·B + S′·δB − δS·B′ − S·δB′,   δW₁′ = δS″·B + S″·δB − δS·B″ − S·δB″,
+ * with δS = Nⱼ (or i·Nⱼ) for an sRe (sIm) bump and δB likewise for B. Same
+ * shared-breakpoint requirement as the numerator (throws otherwise).
+ */
+export interface ReducedNumeratorJacobianRationalPH {
+  dSre: number[][]; dSim: number[][]; dBre: number[][]; dBim: number[][]
+}
+export function reducedNumeratorJacobianRationalPH(
+  sRe: readonly number[], sIm: readonly number[], sKnots: readonly number[], sDegree: number,
+  bRe: readonly number[], bIm: readonly number[], bKnots: readonly number[], bDegree: number,
+): ReducedNumeratorJacobianRationalPH {
+  const bs = distinct(bKnots), ss = distinct(sKnots)
+  if (bs.length !== ss.length || bs.some((v, i) => Math.abs(v - ss[i]) > 1e-10)) {
+    throw new Error(
+      `rational-PH Jacobian: S and B must share breakpoints (S ${JSON.stringify(ss)} vs B ${JSON.stringify(bs)}); ` +
+      'common-breakpoint refinement is not yet implemented.',
+    )
+  }
+  const S = new ComplexBD(dec(sRe, sKnots, sDegree), dec(sIm, sKnots, sDegree))
+  const B = new ComplexBD(dec(bRe, bKnots, bDegree), dec(bIm, bKnots, bDegree))
+  const Sd = S.derivative(), Sdd = Sd.derivative()
+  const Bd = B.derivative(), Bdd = Bd.derivative()
+  const Sbar = conjBD(S), Bbar = conjBD(B)
+  const W1 = Sd.mul(B).sub(S.mul(Bd))
+  const W1p = Sdd.mul(B).sub(S.mul(Bdd))
+  const Kp = S.mul(W1p).sub(Sd.mul(W1).scale(2))
+  const S2bar = Sbar.mul(Sbar)
+  const BbarKp = Bbar.mul(Kp)       // B̄K′
+  const S2barBbar = S2bar.mul(Bbar) // S̄²B̄
+  const S2barKp = S2bar.mul(Kp)     // S̄²K′
+
+  // δÑ from a generator/denominator perturbation (δB=0 for an S bump, δS=0 for a B bump).
+  const dN = (dS: ComplexBD, dB: ComplexBD): number[] => {
+    const dSd = dS.derivative(), dSdd = dSd.derivative()
+    const dBd = dB.derivative(), dBdd = dBd.derivative()
+    const dW1 = dSd.mul(B).add(Sd.mul(dB)).sub(dS.mul(Bd)).sub(S.mul(dBd))
+    const dW1p = dSdd.mul(B).add(Sdd.mul(dB)).sub(dS.mul(Bdd)).sub(S.mul(dBdd))
+    const dKp = dS.mul(W1p).add(S.mul(dW1p)).sub(dSd.mul(W1).scale(2)).sub(Sd.mul(dW1).scale(2))
+    const t1 = Sbar.mul(conjBD(dS)).scale(2).mul(BbarKp) // 2·S̄·conj(δS)·B̄K′
+    const t2 = S2barBbar.mul(dKp)                         // S̄²B̄·δK′
+    const t3 = S2barKp.mul(conjBD(dB))                    // S̄²K′·conj(δB)
+    return t1.add(t2).add(t3).im.flatCoeffs()
+  }
+
+  const nS = sRe.length, nB = bRe.length
+  const zeroS = dec(new Array<number>(nS).fill(0), sKnots, sDegree)
+  const zeroB = dec(new Array<number>(nB).fill(0), bKnots, bDegree)
+  const zeroSc = new ComplexBD(zeroS, zeroS), zeroBc = new ComplexBD(zeroB, zeroB)
+  const basisS = (j: number) => { const e = new Array<number>(nS).fill(0); e[j] = 1; return dec(e, sKnots, sDegree) }
+  const basisB = (j: number) => { const e = new Array<number>(nB).fill(0); e[j] = 1; return dec(e, bKnots, bDegree) }
+
+  const dSre: number[][] = [], dSim: number[][] = []
+  for (let j = 0; j < nS; j++) {
+    const Nj = basisS(j)
+    dSre.push(dN(new ComplexBD(Nj, zeroS), zeroBc)) // δS = Nⱼ
+    dSim.push(dN(new ComplexBD(zeroS, Nj), zeroBc)) // δS = i·Nⱼ
+  }
+  const dBre: number[][] = [], dBim: number[][] = []
+  for (let j = 0; j < nB; j++) {
+    const Nj = basisB(j)
+    dBre.push(dN(zeroSc, new ComplexBD(Nj, zeroB))) // δB = Nⱼ
+    dBim.push(dN(zeroSc, new ComplexBD(zeroB, Nj))) // δB = i·Nⱼ
+  }
+  return { dSre, dSim, dBre, dBim }
+}
+
 /** S⁻ bound (Law 1): sign changes of Ñ's control polygon. Open curve. */
 export function rationalPHBound(
   sRe: readonly number[], sIm: readonly number[], sKnots: readonly number[], sDegree: number,
