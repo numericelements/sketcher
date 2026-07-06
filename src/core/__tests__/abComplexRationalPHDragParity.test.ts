@@ -100,4 +100,27 @@ describe('core AB-complex-rational PH drag: parity with the legacy optimizer', (
     expect(tracked).toBeGreaterThan(10) // still reshapes toward the cursor, not frozen
     console.log(`  AB bound drag — S⁻(Ñ) ${before}→${after}, tracked ${tracked.toFixed(1)}%, PH res ${ph.toExponential(1)}`)
   })
+
+  it('realB keeps B real (real-rational family) and still holds the bound + tracks', () => {
+    // A real-rational seed: B ≡ 1 (createABPHFromTwoPoints yields a real, in fact constant, B).
+    const realSeed = genFromABMeta(createABPHFromTwoPoints(120, 280, 480, 300).metadata)
+    expect(Math.max(...realSeed.bIm.map(Math.abs))).toBe(0) // seed B is real
+    const cps0 = abComplexRationalPHCurveCPs(realSeed)
+    const n = cps0.length
+    const k = Math.min(2, n - 1)
+    const target = { x: cps0[k].re + 50, y: cps0[k].im + 130 }
+    const targets = cps0.map((p, i) => (i === k ? target : { x: p.re, y: p.im }))
+    const weights = cps0.map((_, i) => (i === k ? 10 : i === 0 || i === n - 1 ? 5 : 1))
+
+    const before = sMinus(realSeed)
+    const gen = slideABComplexRationalPH(realSeed, targets, { targetWeights: weights, maxIterations: 50, preserveCurvatureExtrema: true, realB: true })
+    const after = sMinus(gen)
+    const cps = abComplexRationalPHCurveCPs(gen)
+    const tracked = 100 - (100 * Math.hypot(cps[k].re - target.x, cps[k].im - target.y)) / Math.hypot(target.x - cps0[k].re, target.y - cps0[k].im)
+
+    expect(Math.max(...gen.bIm.map(Math.abs))).toBe(0) // B stayed exactly real
+    expect(after).toBeLessThanOrEqual(before) // bound held
+    expect(tracked).toBeGreaterThan(10)       // still reshapes
+    console.log(`  realB drag — B stayed real, S⁻(Ñ) ${before}→${after}, tracked ${tracked.toFixed(1)}%`)
+  })
 })

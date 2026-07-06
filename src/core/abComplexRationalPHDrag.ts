@@ -75,6 +75,10 @@ export interface ABComplexRationalPHDragOptions {
   targetWeights?: number[]
   /** Hold the curvature-extrema S⁻ bound via the Ñ sliding mechanism (default false). */
   preserveCurvatureExtrema?: boolean
+  /** Keep B REAL (freeze its imaginary part) — the real-rational PH family, z = A/B with
+   *  B real. B's imaginary CPs stay at their seed values (0 for a real seed) and drop out
+   *  of the variable set. Same Ñ bound (σ = S/B with B real). Default false (full complex B). */
+  realB?: boolean
 }
 
 /**
@@ -104,11 +108,13 @@ class ABComplexRationalPHDragProblem implements OptimizationProblem {
 
   // Sliding-mechanism state (snapshotted at drag start; held fixed for the solve).
   private readonly constrainCurvature: boolean
+  private readonly freeImagB: boolean
   private readonly activeIdx: number[] = []
   private readonly activeSigns: number[] = []
   private readonly margins: number[] = []
 
-  constructor(gen: ABComplexRationalPHGen, targets: { x: number; y: number }[], weights: number[], constrainCurvature: boolean) {
+  constructor(gen: ABComplexRationalPHGen, targets: { x: number; y: number }[], weights: number[], constrainCurvature: boolean, realB: boolean) {
+    this.freeImagB = !realB
     this.degree = gen.degree
     this.knots = [...gen.knots]
     this.sKnots = [...gen.sKnots]
@@ -151,12 +157,15 @@ class ABComplexRationalPHDragProblem implements OptimizationProblem {
     }
   }
 
-  get numVariables(): number { return 2 * this.nAB + 2 * (this.nAB - 1) + 2 * this.nS }
+  get numVariables(): number { return 2 * this.nAB + (this.nAB - 1) + (this.freeImagB ? this.nAB - 1 : 0) + 2 * this.nS }
   get numConstraints(): number { return this.nEq + (this.constrainCurvature ? this.activeIdx.length : 0) }
   get numEqualityConstraints(): number { return this.nEq }
 
   getVariables(): number[] {
-    return [...this.aRe, ...this.aIm, ...this.bRe.slice(1), ...this.bIm.slice(1), ...this.sRe, ...this.sIm]
+    const v = [...this.aRe, ...this.aIm, ...this.bRe.slice(1)]
+    if (this.freeImagB) v.push(...this.bIm.slice(1))
+    v.push(...this.sRe, ...this.sIm)
+    return v
   }
 
   setVariables(x: number[]): void {
@@ -165,7 +174,7 @@ class ABComplexRationalPHDragProblem implements OptimizationProblem {
     this.aRe = x.slice(o, o + nAB); o += nAB
     this.aIm = x.slice(o, o + nAB); o += nAB
     this.bRe = [this.b0Re, ...x.slice(o, o + nAB - 1)]; o += nAB - 1
-    this.bIm = [this.b0Im, ...x.slice(o, o + nAB - 1)]; o += nAB - 1
+    if (this.freeImagB) { this.bIm = [this.b0Im, ...x.slice(o, o + nAB - 1)]; o += nAB - 1 } // else B stays real (bIm fixed)
     this.sRe = x.slice(o, o + nS); o += nS
     this.sIm = x.slice(o, o + nS)
   }
@@ -226,11 +235,17 @@ class ABComplexRationalPHDragProblem implements OptimizationProblem {
     if (this.constrainCurvature) {
       const g = this.gen()
       const Jn = reducedNumeratorJacobianRationalPH(g.sRe, g.sIm, g.sKnots, this.sDeg, g.bRe, g.bIm, g.knots, g.degree)
-      const { nAB, nS } = this
-      const oBre = 2 * nAB, oBim = oBre + (nAB - 1), oSre = oBim + (nAB - 1), oSim = oSre + nS
+      const { nAB, nS, freeImagB } = this
+      const oBre = 2 * nAB
+      const oBim = oBre + (nAB - 1)                       // valid only when freeImagB
+      const oSre = oBre + (nAB - 1) + (freeImagB ? nAB - 1 : 0)
+      const oSim = oSre + nS
       for (let k = 0; k < this.activeIdx.length; k++) {
         const idx = this.activeIdx[k], row = J[this.nEq + k]
-        for (let j = 1; j < nAB; j++) { row[oBre + (j - 1)] = Jn.dBre[j][idx]; row[oBim + (j - 1)] = Jn.dBim[j][idx] }
+        for (let j = 1; j < nAB; j++) {
+          row[oBre + (j - 1)] = Jn.dBre[j][idx]
+          if (freeImagB) row[oBim + (j - 1)] = Jn.dBim[j][idx]
+        }
         for (let j = 0; j < nS; j++) { row[oSre + j] = Jn.dSre[j][idx]; row[oSim + j] = Jn.dSim[j][idx] }
       }
     }
@@ -256,7 +271,7 @@ export function slideABComplexRationalPH(
   opts: ABComplexRationalPHDragOptions = {},
 ): ABComplexRationalPHGen {
   const weights = opts.targetWeights ?? targets.map(() => 1)
-  const problem = new ABComplexRationalPHDragProblem(gen, targets, weights, opts.preserveCurvatureExtrema ?? false)
+  const problem = new ABComplexRationalPHDragProblem(gen, targets, weights, opts.preserveCurvatureExtrema ?? false, opts.realB ?? false)
   const ip = new InteriorPointOptimizer(problem, { maxIterations: opts.maxIterations ?? 50, enableBFGS: true })
   const r = ip.optimize()
   problem.setVariables(r.variables)
