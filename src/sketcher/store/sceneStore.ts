@@ -813,7 +813,11 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           const cps0 = curve.controlPoints as ComplexPoint[]
           const M = cps0.length
           const targets = cps0.map((p, i) => (i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.re, y: p.im }))
-          const targetWeights = targets.map((_, i) => (i === pointIndex ? 10 : i === 0 || i === M - 1 ? 5 : 1))
+          // Strong pull on the dragged point (50 vs endpoints 5, others 1): incremental dragging
+          // already tracks ~100%, and the extra weight tightens FAST flicks (a big single step)
+          // while actually LOWERING worst-case latency — the solve converges toward the cursor
+          // faster. returnBestFeasible (in slideRationalPHLinearD) keeps it stable regardless.
+          const targetWeights = targets.map((_, i) => (i === pointIndex ? 50 : i === 0 || i === M - 1 ? 5 : 1))
           const params = slideRationalPHLinearD(meta.params, targets, { targetWeights, maxIterations: 50, preserveCurvatureExtrema })
           const c = rationalPHLinearDFromParams(params)
           const outMeta: RationalPHLinearDMetadata = { kind: 'rational-ph-linear-d', degree: c.degree, knots: c.knots, params }

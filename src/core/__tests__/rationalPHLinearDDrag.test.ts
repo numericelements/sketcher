@@ -47,6 +47,27 @@ describe('exactly-PH linear-D drag', () => {
     expect(after).toBeLessThan(before * 0.7) // meaningfully closer
   })
 
+  it('tracks ~fully over an INCREMENTAL bound-on drag (the real interactive case)', () => {
+    // A single giant jump under the bound only tracks partially, but real dragging is many small
+    // steps that accumulate — each tick starts near-feasible and the sequence converges. Pin that.
+    const c0 = rationalPHLinearDFromParams(START)
+    const sp = c0.controlPoints.map((p) => ({ x: p.re, y: p.im }))
+    const mid = 2
+    const goal = { x: sp[mid].x + 90, y: sp[mid].y - 70 }
+    let params = START
+    for (let step = 1; step <= 25; step++) {
+      const frac = step / 25
+      const cps = rationalPHLinearDFromParams(params).controlPoints.map((p) => ({ x: p.re, y: p.im }))
+      const targets = cps.map((p, i) => (i === mid ? { x: sp[mid].x + (goal.x - sp[mid].x) * frac, y: sp[mid].y + (goal.y - sp[mid].y) * frac } : p))
+      const w = targets.map((_, i) => (i === mid ? 50 : i === 0 || i === cps.length - 1 ? 5 : 1))
+      params = slideRationalPHLinearD(params, targets, { targetWeights: w, maxIterations: 50, preserveCurvatureExtrema: true })
+    }
+    const end = rationalPHLinearDFromParams(params)
+    const err = Math.hypot(end.controlPoints[mid].re - goal.x, end.controlPoints[mid].im - goal.y)
+    const total = Math.hypot(goal.x - sp[mid].x, goal.y - sp[mid].y)
+    expect(1 - err / total).toBeGreaterThan(0.95) // reached the cursor
+  })
+
   it('stays STABLE over a long bound-on drag — no control point flung to infinity', () => {
     // Regression for the divergence blow-up: without PH equality constraints the solve can
     // diverge and return a garbage iterate (control points at ~1e5) while curve+bound stay valid.
