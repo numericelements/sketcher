@@ -26,6 +26,10 @@ const LabPH2D = lazy(() => import('./sketcher/pages/LabPH2D'))
 // THB-splines learning workbench (1D): hierarchical refinement, truncation, and
 // the partition-of-unity toggle.
 const LabTHB = lazy(() => import('./sketcher/pages/LabTHB'))
+// Rational PH Curvature Lab: rational & complex-rational PH curves with the
+// curvature-extrema bound enforced on the reduced generating-function numerator Ñ.
+// Self-contained (own editor + core drag), so the sketcher product is untouched.
+const LabRationalPH = lazy(() => import('./sketcher/pages/LabRationalPH'))
 // Minimal phone editor: draw a degree-3 B-spline, move control points, toggle
 // the curvature-extrema bound. Reuses the sketcher engine, so lazy-load it.
 const MobileSketch = lazy(() => import('./sketcher/pages/MobileSketch'))
@@ -53,6 +57,7 @@ export default function App() {
           <Route path="/lab/ph3d" element={<LabPH3D />} />
           <Route path="/lab/ph2d" element={<LabPH2D />} />
           <Route path="/lab/thb" element={<LabTHB />} />
+          <Route path="/lab/rational-ph" element={<LabRationalPH />} />
           <Route path="*" element={<ComingSoon />} />
         </Routes>
       </Suspense>

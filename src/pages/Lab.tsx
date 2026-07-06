@@ -26,6 +26,12 @@ const labs = [
       'Edit a spatial PH quintic; bound its curvature value — its arc length is a polynomial.',
   },
   {
+    to: '/lab/rational-ph',
+    title: 'Rational PH Curvature Lab',
+    blurb:
+      'Edit rational and complex-rational PH curves; bound the number of curvature extrema. Each family’s hodograph is a perfect square z′ = S²/B², so the bound reduces to the sign changes of one low-degree generating-function numerator.',
+  },
+  {
     to: '/lab/thb',
     title: 'THB‑splines Workbench (1D)',
     blurb:
