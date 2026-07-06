@@ -10,7 +10,7 @@
 // general complex-rational Chen g at 44). The curvature-extrema BOUND is S⁻(Ñ), the sign
 // changes of Ñ's control polygon — drawn below with its true signs. Turn the bound on and
 // dragging holds it (the sliding mechanism); the curve reshapes rather than blocking.
-import { useMemo, useRef, useState, useCallback } from 'react'
+import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   slideABComplexRationalPH, abComplexRationalPHCurveCPs,
@@ -111,8 +111,20 @@ export default function LabRationalPH() {
   const [boundOn, setBoundOn] = useState(true)
   const [drag, setDrag] = useState<number | null>(null)
   const [vb, setVb] = useState<Box>(() => fitBox(realSeed()))
+  const [size, setSize] = useState({ W: 1, H: 1 })
   const svgRef = useRef<SVGSVGElement>(null)
   const panRef = useRef<{ px: number; py: number; vb0: Box } | null>(null)
+
+  // Measure the rendered pixel size so markers/points keep a constant on-screen size (like
+  // SketcherCanvas's r={6/zoom}); unitsPerPx = screen-units per device pixel under "meet".
+  useEffect(() => {
+    const el = svgRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => { const r = el.getBoundingClientRect(); setSize({ W: Math.max(r.width, 1), H: Math.max(r.height, 1) }) })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const upp = Math.max(vb.w / size.W, vb.h / size.H)
 
   const cps = abComplexRationalPHCurveCPs(gen)
   const samples = useMemo(() => sampleCurve(gen), [gen])
@@ -167,8 +179,6 @@ export default function LabRationalPH() {
   const RP = (p: Pt) => `${sx(p).toFixed(2)},${sy(p).toFixed(2)}`
   const curvePath = 'M ' + samples.map(RP).join(' L ')
   const polyPath = 'M ' + cps.map((c) => RP({ x: c.re, y: c.im })).join(' L ')
-  const uu = Math.min(vb.w, vb.h)          // for zoom-invariant marker sizes
-  const cpR = 0.016 * uu, mkR = 0.014 * uu
 
   // Ñ control-polygon mini-plot geometry.
   const NW = 620, NH = 96, npad = 20
@@ -186,7 +196,7 @@ export default function LabRationalPH() {
         </span>
       </header>
 
-      <div className="flex-1 relative min-h-0">
+      <div className="flex-1 relative min-h-0 bg-white dark:bg-gray-900">
         <svg
           ref={svgRef}
           viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
@@ -198,19 +208,34 @@ export default function LabRationalPH() {
           onPointerLeave={endPointer}
           onWheel={onWheel}
         >
-          <path d={polyPath} fill="none" stroke="#94a3b8" strokeWidth={1} strokeDasharray="5 4" vectorEffect="non-scaling-stroke" />
-          <path d={curvePath} fill="none" stroke="#2563eb" strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
+          {/* control polygon — solid, blue (SketcherCanvas selected style) */}
+          <path d={polyPath} fill="none" stroke="#3b82f6" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          {/* the curve z = A/B */}
+          <path d={curvePath} fill="none" stroke="#2563eb" strokeWidth={3} vectorEffect="non-scaling-stroke" />
+          {/* curvature-extrema markers — amber double ring */}
           {markers.map((m, i) => (
-            <circle key={`mk${i}`} cx={sx(m)} cy={sy(m)} r={mkR} fill="#f59e0b" stroke="#fff" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+            <g key={`mk${i}`}>
+              <circle cx={sx(m)} cy={sy(m)} r={8 * upp} fill="none" stroke="#f59e0b" strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
+              <circle cx={sx(m)} cy={sy(m)} r={5 * upp} fill="rgba(245, 158, 11, 0.4)" />
+            </g>
           ))}
-          {cps.map((c, i) => (
-            <circle
-              key={`cp${i}`} cx={sx({ x: c.re, y: c.im })} cy={sy({ x: c.re, y: c.im })} r={drag === i ? cpR * 1.3 : cpR}
-              fill={drag === i ? '#2563eb' : '#fff'} stroke="#2563eb" strokeWidth={2} vectorEffect="non-scaling-stroke"
-              className="cursor-grab"
-              onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture(e.pointerId); setDrag(i) }}
-            />
-          ))}
+          {/* control points — blue fill, white stroke; active point gets green rings */}
+          {cps.map((c, i) => {
+            const X = sx({ x: c.re, y: c.im }), Y = sy({ x: c.re, y: c.im })
+            return (
+              <g key={`cp${i}`}>
+                {drag === i && <>
+                  <circle cx={X} cy={Y} r={12 * upp} fill="none" stroke="#22c55e" strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
+                  <circle cx={X} cy={Y} r={18 * upp} fill="none" stroke="#22c55e" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+                </>}
+                <circle
+                  cx={X} cy={Y} r={6 * upp} fill="#3b82f6" stroke="white" strokeWidth={2} vectorEffect="non-scaling-stroke"
+                  className="cursor-grab"
+                  onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture(e.pointerId); setDrag(i) }}
+                />
+              </g>
+            )
+          })}
         </svg>
 
         {/* floating controls (LabPH2D style) */}
