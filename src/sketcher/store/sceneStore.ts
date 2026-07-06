@@ -11,7 +11,7 @@ import { computeABPHCurve, computeABPHOffset, applyMobiusToABPH, convertComplexP
 import { createRealRationalPHFromTwoPoints, computeRealRationalPHCurve, computeRealRationalPHOffset, type RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
 import { insertKnot1D, elevateDegree1D, removeKnot1D, moveKnot1D } from '../optimizer/phBSplineOps'
 import { weightedAveragePhi, threeArcPointsFromNoisyPoints, circleArcFromThreePoints, type CircleArcGeometry } from '../utils/circleArc'
-import { optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRationalPHCurve } from '../optimizer'
+import { optimizeComplexRationalPHCurve, optimizeABPHCurve } from '../optimizer'
 // Curvature-extrema CP drags run ONLY on core/'s trust-region engine — every
 // algebraic family (polynomial/rational/complex, open + closed, junction/cusp
 // knots, symmetry, anchors, inflections) and both PH topologies (R metric).
@@ -21,7 +21,7 @@ import { optimizeComplexRationalPHCurve, optimizeABPHCurve, optimizeRealRational
 // real-rational-PH — the contained island in src/sketcher/optimizer). Both
 // Farin drags (E26/E27), the PH value bound (E19), and plain PH tracking (E20)
 // are core. See src/sketcher/optimizer/index.ts for the authoritative ledger.
-import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, slideRealRationalPH, realRationalPHCurveCPs, genFromRealRationalMeta, type WeightedCP } from '../../core'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
 import { computeRationalFarinPoints, updateWeightsFromRationalFarin, updateWeightsFromComplexFarin, projectPointOntoEdge, moveComplexControlPointKeepingFarinFixed, initializeFarinPositionsFromComplexWeights } from '../utils/farinPoints'
@@ -854,29 +854,39 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
       }
     }
 
-    // Real rational PH curve optimization
+    // Real-rational PH curve → CORE slideRealRationalPH (PH-preserving cursor tracking; the
+    // (A,B,S) generator with B real). Display (markers, S=) already reads the drawable
+    // rational curve in core. No silent fall-through: a failure drops the tick (a direct move
+    // would desync phMetadata's generator from the moved CPs — the class the closed path guards).
     if (phMetadata.has(curveId) && curve.kind === 'rational') {
       const meta = phMetadata.get(curveId)!
       if (meta.kind === 'real-rational') {
         try {
-          const result = optimizeRealRationalPHCurve(
-            meta, curve.controlPoints, newPosition.x, newPosition.y, pointIndex
-          )
-          if (result.converged || result.iterations > 0) {
-            const newPhMetadata = new Map(phMetadata)
-            newPhMetadata.set(curveId, result.curveResult.metadata)
-            set((state) => ({
-              curves: state.curves.map((c) =>
-                c.id === curveId
-                  ? { ...c, controlPoints: result.curveResult.controlPoints, knots: result.curveResult.knots, degree: result.curveResult.degree } as Curve
-                  : c
-              ),
-              phMetadata: newPhMetadata,
-            }))
-            return
+          const cps0 = curve.controlPoints as WeightedPoint2D[]
+          const M = cps0.length
+          const targets = cps0.map((p, i) => (i === pointIndex ? { x: newPosition.x, y: newPosition.y } : { x: p.x, y: p.y }))
+          const targetWeights = targets.map((_, i) => (i === pointIndex ? 10 : i === 0 || i === M - 1 ? 5 : 1))
+          const g = slideRealRationalPH(genFromRealRationalMeta(meta), targets, { targetWeights, maxIterations: 50 })
+          const outCps = realRationalPHCurveCPs(g)
+          const outMeta: RealRationalPHMetadata = {
+            kind: 'real-rational', degree: g.degree,
+            aReCPs: g.aRe, aImCPs: g.aIm, bCPs: g.b, sReCPs: g.sRe, sImCPs: g.sIm,
+            knots: g.knots, sKnots: g.sKnots,
           }
-        } catch {
-          // Fall through to direct move if real rational PH optimization fails
+          const newPhMetadata = new Map(phMetadata)
+          newPhMetadata.set(curveId, outMeta)
+          set((state) => ({
+            curves: state.curves.map((c) =>
+              c.id === curveId
+                ? { ...c, controlPoints: outCps, knots: g.knots, degree: g.degree } as Curve
+                : c,
+            ),
+            phMetadata: newPhMetadata,
+          }))
+          return
+        } catch (e) {
+          console.warn('core real-rational PH drag failed (tick dropped):', e)
+          return
         }
       }
     }
