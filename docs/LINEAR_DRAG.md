@@ -24,6 +24,25 @@
 > @320 CPs: 978→216 ms/tick, and the banded-vs-dense speedup now WIDENS with `n`
 > (0.8×→1.9×→2.4×→4.9×→11.5× @320) — banded `O(n)` vs dense `O(n²)`. So the
 > `O(n)` assembly the table promised is now real and pinned.
+>
+> **REALIZED 2026-07-05 (rational / complex-rational, same-day follow-up).** The
+> SAME trap lived in the complex-rational assembly: `precomputeComplexOpenSeeds` /
+> `precomputeComplexPeriodicSeeds` decomposed a full-width Dirac per control point
+> (`O(n²)`), recomputed on every g-build (the drag passed no cached seeds). The
+> local-column builders already gathered each column to its support spans, so ONLY
+> the seed precompute was quadratic. `localDiracDecompose` (bernstein.ts) was made
+> field-generic — scalar (polynomial) AND complex-with-spiral (`complexScalarCoeffs`
+> + ρ) share one localized O(n) decompose; `complexSupportSeeds` (curvature.ts) now
+> builds support-only ρ-aware seeds and the two `…FixedWeightCols` builders consume
+> them directly (the shared full-width `precomputeComplexPeriodicSeeds` stays for the
+> dense-Jacobian / oracle path). Bit-identical to the old seeds subset/gathered on
+> support, ρ=1 AND ρ≠1 (`complexSeedsLocalizationEquiv.test.ts`). Measured assembly
+> (fresh seeds) @320 CPs: open 324→111 ms, closed 512→114 ms, growth per doubling
+> ~×2.6–3.3 → **×2.0 (`O(n)`)**. Rational = complex with `w_im=0`, so both are covered.
+> **Remaining non-linear family: PH** — its analytic gradient (`reducedPHGradient` /
+> `phCurvatureGradient`) is dense per column (full-width `Ni` products, no support
+> gather), so it needs the column differential localized too, not just the seed —
+> a larger, separate piece (measured clean `O(n²)`, ×4.0/doubling, ~1.3 s @320).
 
 # Linear-complexity interactive drag (curvature-extrema control)
 

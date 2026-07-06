@@ -649,7 +649,7 @@ export class ComplexRationalProblem implements OptimizationProblem {
   computeConstraintJacobianLocal(): { vars: number[]; vals: number[] }[] {
     if (this.cachedLocalJac) return this.cachedLocalJac
     const grad = curvatureExtremaGradientComplexPeriodicFixedWeightCols(
-      this.cpX, this.cpY, this.wre, this.wim, this.knots, this.degree, this.seeds, this.rho,
+      this.cpX, this.cpY, this.wre, this.wim, this.knots, this.degree, this.rho,
     )
     const gDeg1 = grad.gDeg + 1
     const n = this.cpX.length

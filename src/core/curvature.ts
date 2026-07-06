@@ -1,6 +1,6 @@
-import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, decomposeBsplineGeneric, assignSignsNeighbor, cyclicSignChanges, subBezierOn } from './bernstein'
+import { BernsteinDecomposition, decomposeToBernstein, decomposeToBernsteinPeriodic, decomposeBsplineGeneric, bernsteinBreaks, localDiracDecompose, assignSignsNeighbor, cyclicSignChanges, subBezierOn } from './bernstein'
 import { ComplexBD, decomposeComplexCurvePeriodic } from './complexBernstein'
-import { complexScalarCoeffs } from './coeffs'
+import { complexScalarCoeffs, scalarCoeffs } from './coeffs'
 import type { Complex } from './complex'
 
 /**
@@ -571,19 +571,67 @@ function complexFixedWeightValueTermsOpen(
 
 /** OPEN geometry-independent seeds: the real Dirac B-splines Nᵢ and derivatives,
  *  decomposed on the open knot vector (full width; imaginary part ≡ 0). */
-function precomputeComplexOpenSeeds(
-  knots: readonly number[], degree: number, n: number,
-): { N: ComplexBD[]; N1: ComplexBD[]; N2: ComplexBD[]; N3: ComplexBD[] } {
-  const N: ComplexBD[] = [], N1: ComplexBD[] = [], N2: ComplexBD[] = [], N3: ComplexBD[] = []
-  for (let i = 0; i < n; i++) {
-    const e = new Array<number>(n).fill(0)
-    e[i] = 1
-    const Nre = decomposeToBernstein(e, knots, degree)
-    const Ni = new ComplexBD(Nre, Nre.scale(0)) // real seed
-    const d1 = Ni.derivative(), d2 = d1.derivative()
-    N.push(Ni); N1.push(d1); N2.push(d2); N3.push(d2.derivative())
+/** Support-only complex Dirac seeds (N, N1, N2, N3) for ONE control point. `reRows`/
+ *  `imRows` are the seed's per-support-span Bernstein coeffs; `spans`/`breaks` give each
+ *  span's ACTUAL knot-interval width. Derivatives are taken per span with that direct width
+ *  (breaks[s+1]−breaks[s]) — byte-for-byte the old full-width .derivative()-then-gather
+ *  path. Breaks are synthetic (unused: the downstream product reads coeffs only). */
+function buildComplexColSeed(
+  reRows: number[][], imRows: number[][], spans: number[], breaks: readonly number[],
+): { N: ComplexBD; N1: ComplexBD; N2: ComplexBD; N3: ComplexBD } {
+  const der = (rows: number[][]): number[][] => rows.map((c, k) => {
+    const p = c.length - 1
+    if (p <= 0) return [0]
+    const w = breaks[spans[k] + 1] - breaks[spans[k]]
+    const d = new Array<number>(p)
+    for (let j = 0; j < p; j++) d[j] = (p * (c[j + 1] - c[j])) / w
+    return d
+  })
+  const re1 = der(reRows), re2 = der(re1), im1 = der(imRows), im2 = der(im1)
+  const sb = spans.map((_, k) => k)
+  sb.push(spans.length)
+  const bd = (rows: number[][]) => new BernsteinDecomposition(rows, sb)
+  return {
+    N: new ComplexBD(bd(reRows), bd(imRows)),
+    N1: new ComplexBD(bd(re1), bd(im1)),
+    N2: new ComplexBD(bd(re2), bd(im2)),
+    N3: new ComplexBD(bd(der(re2)), bd(der(im2))),
   }
-  return { N, N1, N2, N3 }
+}
+
+interface ComplexColSeed { spans: number[]; N: ComplexBD; N1: ComplexBD; N2: ComplexBD; N3: ComplexBD }
+
+/**
+ * O(n) support-only complex Dirac seeds per control point (the local form of the old
+ * precomputeComplexOpen/PeriodicSeeds, which decomposed a full-width Dirac per control
+ * point → O(n²)). OPEN: a REAL seed (im ≡ 0, no spiral), contiguous support. CLOSED: a
+ * COMPLEX seed carrying the periodic spiral ρ (im nonzero on the wrap span), support may
+ * wrap the seam. Built via the field-generic localDiracDecompose — de Boor on each Dirac's
+ * d+1 support spans only. Bit-identical (coeffs) to the old full-width seeds subset/gathered
+ * on the same support.
+ */
+export function complexSupportSeeds(
+  knots: readonly number[], degree: number, n: number, closed: boolean, rho?: Complex,
+): ComplexColSeed[] {
+  const breaks = bernsteinBreaks(knots, closed)
+  const empty = new ComplexBD(new BernsteinDecomposition([], []), new BernsteinDecomposition([], []))
+  const cols: ComplexColSeed[] = []
+  const emit = (spans: number[], reRows: number[][], imRows: number[][]) => {
+    if (spans.length === 0) { cols.push({ spans, N: empty, N1: empty, N2: empty, N3: empty }); return }
+    cols.push({ spans, ...buildComplexColSeed(reRows, imRows, spans, breaks) })
+  }
+  if (closed) {
+    const nz = (h: Complex) => Math.abs(h.re) > 1e-14 || Math.abs(h.im) > 1e-14
+    for (const { spans, niCoeffs } of localDiracDecompose(complexScalarCoeffs, { re: 1, im: 0 }, { re: 0, im: 0 }, nz, knots, degree, n, true, rho)) {
+      emit(spans, niCoeffs.map((r) => r.map((h) => h.re)), niCoeffs.map((r) => r.map((h) => h.im)))
+    }
+  } else {
+    const nz = (h: number) => Math.abs(h) > 1e-14
+    for (const { spans, niCoeffs } of localDiracDecompose(scalarCoeffs, 1, 0, nz, knots, degree, n, false)) {
+      emit(spans, niCoeffs, niCoeffs.map((r) => r.map(() => 0)))
+    }
+  }
+  return cols
 }
 
 
@@ -623,30 +671,22 @@ export function curvatureExtremaGradientComplexFixedWeightCols(
   knots: readonly number[], degree: number,
 ): { g: BernsteinDecomposition; gDeg: number; numSpans: number; cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] } {
   const n = zre.length
-  const sds = precomputeComplexOpenSeeds(knots, degree, n)
+  const seeds = complexSupportSeeds(knots, degree, n, false) // O(n) support-only real Dirac seeds
   const { g, V } = complexFixedWeightValueTermsOpen(zre, zim, wre, wim, knots, degree)
   const cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] = []
   for (let i = 0; i < n; i++) {
-    // Contiguous support span run [s0, s1) of control point i (where its real Dirac seed Nᵢ
-    // is nonzero) — the only spans where ∂g/∂cpᵢ is nonzero.
-    const Nre = sds.N[i].re
-    let s0 = -1, s1 = -1
-    for (let s = 0; s < Nre.numSpans; s++) {
-      if (Nre.coeffs[s].some((c) => Math.abs(c) > 1e-14)) { if (s0 < 0) s0 = s; s1 = s }
-    }
-    if (s0 < 0) { cols.push({ spans: [], gx: g.subset(0, 0), gy: g.subset(0, 0) }); continue }
-    s1 += 1
-    const spans: number[] = []
-    for (let s = s0; s < s1; s++) spans.push(s)
-    const N = sds.N[i].subset(s0, s1), N1 = sds.N1[i].subset(s0, s1), N2 = sds.N2[i].subset(s0, s1), N3 = sds.N3[i].subset(s0, s1)
+    const sd = seeds[i]
+    if (sd.spans.length === 0) { cols.push({ spans: [], gx: g.subset(0, 0), gy: g.subset(0, 0) }); continue }
+    // Open support is contiguous → subset the value terms on [s0, s1) (aligns with the seed spans).
+    const s0 = sd.spans[0], s1 = sd.spans[sd.spans.length - 1] + 1
     const Vg: ComplexFixedWeightTerms = {
       W: V.W.subset(s0, s1), Wu: V.Wu.subset(s0, s1), Wuu: V.Wuu.subset(s0, s1), Wuuu: V.Wuuu.subset(s0, s1),
       D1: V.D1.subset(s0, s1), D2: V.D2.subset(s0, s1), D3: V.D3.subset(s0, s1), D21: V.D21.subset(s0, s1), D1c: V.D1c.subset(s0, s1),
       T_Wbar: V.T_Wbar.subset(s0, s1), D1c2_Wbar: V.D1c2_Wbar.subset(s0, s1), WuD2_WuuD1: V.WuD2_WuuD1.subset(s0, s1),
     }
-    const gx = complexDifferential(N, N1, N2, N3, wre[i], wim[i], Vg)
-    const gy = complexDifferential(N, N1, N2, N3, -wim[i], wre[i], Vg)
-    cols.push({ spans, gx, gy })
+    const gx = complexDifferential(sd.N, sd.N1, sd.N2, sd.N3, wre[i], wim[i], Vg)
+    const gy = complexDifferential(sd.N, sd.N1, sd.N2, sd.N3, -wim[i], wre[i], Vg)
+    cols.push({ spans: sd.spans, gx, gy })
   }
   return { g, gDeg: g.degree, numSpans: g.numSpans, cols }
 }
@@ -659,27 +699,26 @@ export function curvatureExtremaGradientComplexFixedWeightCols(
 export function curvatureExtremaGradientComplexPeriodicFixedWeightCols(
   zre: readonly number[], zim: readonly number[], wre: readonly number[], wim: readonly number[],
   knots: readonly number[], degree: number,
-  seeds?: ComplexPeriodicSeeds,
   rho: Complex = { re: 1, im: 0 },
 ): { g: BernsteinDecomposition; gDeg: number; numSpans: number; cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] } {
-  const sds = seeds ?? precomputeComplexPeriodicSeeds(knots, degree, zre.length, rho)
-  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree, rho)
   const n = zre.length
+  const seeds = complexSupportSeeds(knots, degree, n, true, rho) // O(n) support-only ρ-aware seeds
+  const { g, V } = complexFixedWeightValueTerms(zre, zim, wre, wim, knots, degree, rho)
   const cols: { spans: number[]; gx: BernsteinDecomposition; gy: BernsteinDecomposition }[] = []
   for (let i = 0; i < n; i++) {
-    const sp = sds.spans[i]
-    // Gather seeds + value terms on this control point's support spans.
-    const N = sds.N[i].gather(sp), N1 = sds.N1[i].gather(sp), N2 = sds.N2[i].gather(sp), N3 = sds.N3[i].gather(sp)
+    const sd = seeds[i], sp = sd.spans
+    if (sp.length === 0) { cols.push({ spans: [], gx: g.subset(0, 0), gy: g.subset(0, 0) }); continue }
+    // Gather value terms on this control point's (wrapping) support spans.
     const Vg: ComplexFixedWeightTerms = {
       W: V.W.gather(sp), Wu: V.Wu.gather(sp), Wuu: V.Wuu.gather(sp), Wuuu: V.Wuuu.gather(sp),
       D1: V.D1.gather(sp), D2: V.D2.gather(sp), D3: V.D3.gather(sp), D21: V.D21.gather(sp), D1c: V.D1c.gather(sp),
       T_Wbar: V.T_Wbar.gather(sp), D1c2_Wbar: V.D1c2_Wbar.gather(sp), WuD2_WuuD1: V.WuD2_WuuD1.gather(sp),
     }
-    const gx = complexDifferential(N, N1, N2, N3, wre[i], wim[i], Vg)
-    const gy = complexDifferential(N, N1, N2, N3, -wim[i], wre[i], Vg)
+    const gx = complexDifferential(sd.N, sd.N1, sd.N2, sd.N3, wre[i], wim[i], Vg)
+    const gy = complexDifferential(sd.N, sd.N1, sd.N2, sd.N3, -wim[i], wre[i], Vg)
     cols.push({ spans: sp, gx, gy })
   }
-  return { g, gDeg: g.degree, numSpans: sds.numSpans, cols }
+  return { g, gDeg: g.degree, numSpans: g.numSpans, cols }
 }
 
 /**

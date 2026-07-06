@@ -1,5 +1,6 @@
 import { scalarCoeffs, type Coeffs } from './coeffs'
 import { makeIndexing, deBoor } from './indexing'
+import { findOpenSpan, findPeriodicSpan } from './basis'
 
 // ============================================================================
 // B-spline FUNCTION algebra in Bernstein form.
@@ -329,6 +330,94 @@ export function decomposeBsplineGeneric<CP, H, S, Out>(
     spanCoeffs.push(seg)
   }
   return { coeffs: spanCoeffs, breaks }
+}
+
+/**
+ * LOCALIZED Dirac decomposition (any coefficient field) — the O(n) heart of every
+ * seed precompute. For each control point i it returns i's support Bézier spans
+ * (ascending) and the per-span Bernstein coeffs of the Dirac basis Nᵢ on ONLY those
+ * spans. Nᵢ is nonzero on just d+1 spans, so decomposing the full curve per control
+ * point (the naive seed builders) is O(n²); this runs de Boor on the support spans
+ * alone — O(n·d³) total — via a single reused impulse vector `e` (no per-column O(n)
+ * allocation) and one indexing, so the de Boor / knot arithmetic is byte-for-byte the
+ * same path as `decomposeBsplineGeneric`. Field-generic: scalar (polynomial seeds) and
+ * complex-with-spiral (complex-rational seeds) share it. `oneCP`/`zeroCP` are the
+ * impulse and background control-point values; `hNonzero` is the structural-zero test.
+ */
+export function localDiracDecompose<CP, H, S, Out>(
+  coeffs: Coeffs<CP, H, S, Out>,
+  oneCP: CP,
+  zeroCP: CP,
+  hNonzero: (h: H) => boolean,
+  knots: readonly number[],
+  degree: number,
+  n: number,
+  closed: boolean,
+  spiralRatio?: S,
+): { spans: number[]; niCoeffs: H[][] }[] {
+  const breaks = bernsteinBreaks(knots, closed)
+  const numSpans = breaks.length - 1
+  // knot-span index of each Bézier span (open: strictly increasing; periodic: in the
+  // CP index space mod n).
+  const spanKnot = new Array<number>(numSpans)
+  for (let s = 0; s < numSpans; s++) {
+    spanKnot[s] = closed ? findPeriodicSpan(knots, breaks[s]) : findOpenSpan(degree, knots, breaks[s])
+  }
+  // periodic: CP-index (mod n) → Bézier spans read at that index, for O(d) candidate
+  // lookup per column instead of an O(numSpans) scan.
+  const spansByCp = new Map<number, number[]>()
+  if (closed) {
+    for (let s = 0; s < numSpans; s++) {
+      const v = ((spanKnot[s] % n) + n) % n
+      const list = spansByCp.get(v)
+      if (list) list.push(s)
+      else spansByCp.set(v, [s])
+    }
+  }
+  const e = new Array<CP>(n).fill(zeroCP) // reused impulse — allocated ONCE, not per column
+  const ix = makeIndexing(coeffs, e, knots, degree, closed, spiralRatio)
+  // Bézier coeffs of the current impulse on one span (de Boor blossom at the corners) —
+  // the exact per-span body of decomposeBsplineGeneric.
+  const decompSpan = (s: number): H[] => {
+    const a = breaks[s], b = breaks[s + 1]
+    const span = spanKnot[s]
+    const seg = new Array<H>(degree + 1)
+    for (let j = 0; j <= degree; j++) {
+      const args = new Array<number>(degree)
+      for (let m = 0; m < degree - j; m++) args[m] = a
+      for (let m = 0; m < j; m++) args[degree - j + m] = b
+      seg[j] = deBoor(ix, coeffs, span, degree, args)
+    }
+    return seg
+  }
+  const out: { spans: number[]; niCoeffs: H[][] }[] = []
+  let lo = 0, hi = 0 // open: monotone two-pointer over the [i, i+degree] value window
+  for (let i = 0; i < n; i++) {
+    let cand: number[]
+    if (closed) {
+      const set = new Set<number>()
+      for (let r = 0; r <= degree; r++) {
+        const list = spansByCp.get((i + r) % n)
+        if (list) for (const s of list) set.add(s)
+      }
+      cand = [...set].sort((p, q) => p - q)
+    } else {
+      while (lo < numSpans && spanKnot[lo] < i) lo++
+      while (hi < numSpans && spanKnot[hi] <= i + degree) hi++
+      cand = []
+      for (let s = lo; s < hi; s++) cand.push(s)
+    }
+    e[i] = oneCP
+    const spans: number[] = []
+    const niCoeffs: H[][] = []
+    for (const s of cand) {
+      const seg = decompSpan(s)
+      if (seg.some(hNonzero)) { spans.push(s); niCoeffs.push(seg) } // structural-zero trim (1e-14)
+    }
+    e[i] = zeroCP
+    out.push({ spans, niCoeffs })
+  }
+  return out
 }
 
 /** Bernstein decomposition of an open (clamped) scalar B-spline function. */

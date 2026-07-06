@@ -418,7 +418,7 @@ export class CurvatureDragProblem implements OptimizationProblem {
       return rows
     }
     const grad = closed
-      ? curvatureExtremaGradientComplexPeriodicFixedWeightCols(this.re, this.im, this.wRe, this.wIm, this.knots, this.degree, undefined, this.rho)
+      ? curvatureExtremaGradientComplexPeriodicFixedWeightCols(this.re, this.im, this.wRe, this.wIm, this.knots, this.degree, this.rho)
       : curvatureExtremaGradientComplexFixedWeightCols(this.re, this.im, this.wRe, this.wIm, this.knots, this.degree)
     const gDeg1 = grad.gDeg + 1
     const n = this.re.length

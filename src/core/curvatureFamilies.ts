@@ -244,7 +244,7 @@ export function familyJacobian(
   // Bit-identical to the old full-width path (localJacobianParity + the FD oracle pin it).
   const wRe = cps.map((p) => p.wRe), wIm = cps.map((p) => p.wIm)
   const cg = closed
-    ? curvatureExtremaGradientComplexPeriodicFixedWeightCols(re, im, wRe, wIm, knots, degree, undefined, rho)
+    ? curvatureExtremaGradientComplexPeriodicFixedWeightCols(re, im, wRe, wIm, knots, degree, rho)
     : curvatureExtremaGradientComplexFixedWeightCols(re, im, wRe, wIm, knots, degree)
   return assembleFromCols(cg)
 }
