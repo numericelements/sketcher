@@ -287,8 +287,21 @@ export default function PinnedEndsFigure() {
                 <>
                   <PinnedPoint vp={vp} p={cps[0]} label="P₀" />
                   <PinnedPoint vp={vp} p={cps[3]} label="P₃" />
-                  {/* the derived interior point — click it to take hold of it instead */}
-                  <g onPointerDown={(e) => { e.stopPropagation(); swapActive() }} style={{ cursor: 'pointer' }}>
+                  {/*
+                    The derived interior point. Pressing it takes hold of it — and
+                    STARTS THE DRAG in the same gesture, so you never have to press,
+                    release, then press again: capture the pointer, swap, and mark
+                    the newly-active index as the one being dragged.
+                  */}
+                  <g
+                    onPointerDown={(e) => {
+                      e.stopPropagation()
+                      ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+                      swapActive()
+                      setDragIdx(derived) // `derived` is the point just pressed, i.e. the new active one
+                    }}
+                    style={{ cursor: 'grab' }}
+                  >
                     <circle
                       cx={vp.toScreen({ x: cps[derived].re, y: cps[derived].im }).x}
                       cy={vp.toScreen({ x: cps[derived].re, y: cps[derived].im }).y}
