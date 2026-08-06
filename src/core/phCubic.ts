@@ -256,6 +256,36 @@ export function phCubicFromP1(p0: Complex, p3: Complex, p1: Complex): PHCubicSol
 }
 
 /**
+ * Pin P₀ and P₃, place P₂ anywhere — the MIRROR of `phCubicFromP1`. Exactly one of
+ * the two interior control points can be prescribed (6 DOF − 4 pinned = 2 = one
+ * point), and this is the other choice.
+ *
+ * With u = P₂ − P₀ = q(1+r) and D = P₃ − P₀ = q(1+r+r²), eliminating q gives
+ * u(1+r+r²) = D(1+r), i.e.
+ *
+ *     u·r² + (u−D)·r + (u−D) = 0
+ *
+ * again one complex quadratic, so again TWO solutions; then q = u/(1+r).
+ *
+ * Under the reversal t → 1−t the control points reverse and r ↦ 1/r, so this is
+ * `phCubicFromP1` seen from the other end — pinned in the test suite.
+ */
+export function phCubicFromP2(p0: Complex, p3: Complex, p2: Complex): PHCubicSolution[] {
+  const u = csub(p2, p0)
+  if (cnorm(u) === 0) return [] // P₂ on top of P₀ forces r = −1, a degenerate curve
+  const D = csub(p3, p0)
+  const uMinusD = csub(u, D)
+  const out: PHCubicSolution[] = []
+  for (const r of csolveQuadratic(u, uMinusD, uMinusD)) {
+    const onePlusR = cadd(ONE, r)
+    if (cnorm(onePlusR) < 1e-300) continue
+    const q = cdiv(u, onePlusR)
+    out.push(solutionFrom(r, cscale(q, 3), p0))
+  }
+  return out
+}
+
+/**
  * The branch point of `phCubicFromP1`: where 4D/q = 3, i.e. the two solutions
  * merge at the double root r = −1/2. A SINGLE point of the plane,
  *

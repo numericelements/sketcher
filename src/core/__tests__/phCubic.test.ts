@@ -38,6 +38,7 @@ import {
   shapeRatio,
   cuspOfRatio,
   phCubicFromP1,
+  phCubicFromP2,
   discriminantPoint,
   cuspForcedSegment,
   liftBranchAlongPath,
@@ -260,6 +261,60 @@ describe('phCubic — problem 1: pin both ends, prescribe P₁', () => {
     }
     const lifted = liftBranchAlongPath(p0, p3, loop, 0)
     expect(dist(lifted[N]!.r, lifted[0]!.r)).toBeLessThan(1e-6)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('phCubic — the mirror problem: prescribe P₂ instead of P₁', () => {
+  const p0 = C(0, 0)
+  const p3 = C(3, 0)
+
+  it('two branches, all hitting P₀, P₂, P₃ exactly', () => {
+    const p2 = C(2.1, 1.3)
+    const sols = phCubicFromP2(p0, p3, p2)
+    expect(sols).toHaveLength(2)
+    for (const s of sols) {
+      expect(dist(s.controlPoints[0], p0)).toBeLessThan(1e-12)
+      expect(dist(s.controlPoints[2], p2)).toBeLessThan(1e-10)
+      expect(dist(s.controlPoints[3], p3)).toBeLessThan(1e-10)
+    }
+    expect(dist(sols[0].r, sols[1].r)).toBeGreaterThan(1e-6)
+  })
+
+  it('THE SWAP IS CONTINUOUS: the same curve solves both problems, with the same r', () => {
+    // This is what makes clicking P₂ to make it the handle feel seamless — the
+    // curve on screen does not change, only which point you are holding.
+    const p1 = C(0.7, 1.6)
+    for (const s of phCubicFromP1(p0, p3, p1)) {
+      const viaP2 = phCubicFromP2(p0, p3, s.controlPoints[2])
+      const match = viaP2.find((t) => dist(t.r, s.r) < 1e-8)
+      expect(match, `r = ${s.r.re},${s.r.im}`).toBeDefined()
+      // Same curve, control point for control point.
+      for (let i = 0; i < 4; i++) {
+        expect(dist(match!.controlPoints[i], s.controlPoints[i])).toBeLessThan(1e-8)
+      }
+    }
+  })
+
+  it('is the reversal of the P₁ problem: r ↦ 1/r seen from the other end', () => {
+    // Reversing t → 1−t reverses the control points and sends r to 1/r, so
+    // prescribing P₂ with ends (P₀,P₃) is prescribing P₁ with ends (P₃,P₀).
+    const p2 = C(1.9, -1.1)
+    const direct = phCubicFromP2(p0, p3, p2)
+    const reversed = phCubicFromP1(p3, p0, p2)
+    expect(direct).toHaveLength(reversed.length)
+    for (const s of direct) {
+      const inv = cdiv(C(1, 0), s.r)
+      const match = reversed.find((t) => dist(t.r, inv) < 1e-7)
+      expect(match, `no reciprocal for r = ${s.r.re},${s.r.im}`).toBeDefined()
+    }
+  })
+
+  it('P₂ can be placed anywhere except on top of P₀', () => {
+    for (const p2 of [C(-2, 3), C(7, -4), C(0.02, 0.01), C(2, 0)]) {
+      expect(phCubicFromP2(p0, p3, p2).length).toBeGreaterThan(0)
+    }
+    expect(phCubicFromP2(p0, p3, p0)).toHaveLength(0)
   })
 })
 

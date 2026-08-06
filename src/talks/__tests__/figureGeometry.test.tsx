@@ -132,10 +132,12 @@ describe('talk figures render with sane geometry', () => {
     expect(g.viewBoxes).toHaveLength(1)
     // The branch you are on, plus the one you are not.
     expect(g.visiblePathCount).toBe(2)
-    // P₀, P₃ (pinned), P₂ (derived), P₁ (draggable).
+    // P₀, P₃ (pinned), plus the two interior points — one held, one derived.
     expect(g.visibleRadii).toHaveLength(4)
-    // Only P₁ is grabbable in strict mode.
-    expect(g.hitRadii).toHaveLength(1)
+    // Two hit targets among the interior points: the one you drag, and the derived
+    // one, which is clickable so you can take hold of IT instead (the swap). The
+    // pinned ends are not interactive.
+    expect(g.hitRadii).toHaveLength(2)
   })
 
   it('painted marks use the shared pixel sizes (the units really are pixels)', () => {

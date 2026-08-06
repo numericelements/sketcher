@@ -18,13 +18,22 @@
 // The handoff between modes is continuous — switching adopts the current curve — so
 // the comparison is about behaviour, not about jumping to a different curve.
 //
+// WHICH interior point is the handle is itself a choice, and it is exposed: click P₁
+// or P₂ to make it the one you hold, and the other becomes derived. Exactly one of
+// them can be prescribed (6 DOF − 4 pinned = 2 = one point's worth), so this is a
+// SWAP, not a toggle. The handoff is seamless because the curve on screen solves
+// BOTH problems with the same shape parameter r — only your grip changes. (The two
+// are mirror images under t → 1−t, which sends r ↦ 1/r, so neither is preferred.)
+//
+// Branch switching is by CLICKING the other curve, as on slide 3 — no button.
+//
 // Deliberately NOT drawn here: the cusp-forced segment and the branch point. Both
 // are real (and verified in phCubic.test.ts) but they are a second and third lesson
 // crowding the first. Monodromy earns its own slide later.
 // ============================================================================
 import { useState } from 'react'
 import { type Complex, cnorm, csub } from '../../core/complex'
-import { phCubicFromP1, curveAt, type PHCubicSolution } from '../../core/phCubic'
+import { phCubicFromP1, phCubicFromP2, curveAt, type PHCubicSolution } from '../../core/phCubic'
 import {
   type PHCubicState,
   dragPHCubicFree,
@@ -75,7 +84,9 @@ export default function PinnedEndsFigure() {
 
   // --- strict state: pinned ends + the dragged P₁, with a tracked branch --------
   const [ends, setEnds] = useState({ p0: P0, p3: P3 })
-  const [p1, setP1] = useState(START_P1)
+  /** Which interior control point you hold: 1 or 2. The other is derived. */
+  const [active, setActive] = useState<1 | 2>(1)
+  const [handle, setHandle] = useState(START_P1)
   const [branchR, setBranchR] = useState<Complex | null>(null)
 
   // --- free state: the 6 real unknowns ----------------------------------------
@@ -84,7 +95,10 @@ export default function PinnedEndsFigure() {
 
   const [dragIdx, setDragIdx] = useState<number | null>(null)
 
-  const strictSolutions = phCubicFromP1(ends.p0, ends.p3, p1)
+  const solveStrict = (h: Complex, which: 1 | 2): PHCubicSolution[] =>
+    which === 1 ? phCubicFromP1(ends.p0, ends.p3, h) : phCubicFromP2(ends.p0, ends.p3, h)
+  const strictSolutions = solveStrict(handle, active)
+  const derived = active === 1 ? 2 : 1
   const strictIdx = nearestBranch(strictSolutions, branchR)
   const strictSel = strictSolutions[strictIdx]
 
@@ -103,19 +117,19 @@ export default function PinnedEndsFigure() {
     if (freeState) {
       const c = controlPoints(freeState.generator, freeState.p0)
       setEnds({ p0: c[0], p3: c[3] })
-      setP1(c[1])
-      // Adopt the branch closest to the curve we were just looking at.
-      const sols = phCubicFromP1(c[0], c[3], c[1])
-      const k = nearestBranch(sols, freeState.generator.w1 && strictSel ? strictSel.r : null)
-      setBranchR(sols[k]?.r ?? null)
+      setHandle(c[active])
+      // Adopt the branch closest to the curve we were just looking at: r is a
+      // property of the CURVE, so it carries across the mode change unchanged.
+      const sols = active === 1 ? phCubicFromP1(c[0], c[3], c[1]) : phCubicFromP2(c[0], c[3], c[2])
+      setBranchR(sols[nearestBranch(sols, strictSel?.r ?? null)]?.r ?? null)
     }
     setMode('strict')
   }
 
   // --- dragging ----------------------------------------------------------------
   const onDown = (i: number) => (e: React.PointerEvent) => {
-    // Strict mode: only P₁ is grabbable. Free mode: any of the four.
-    if (mode === 'strict' && i !== 1) return
+    // Strict mode: only the active interior point is grabbable. Free: any of four.
+    if (mode === 'strict' && i !== active) return
     e.stopPropagation()
     ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
     setDragIdx(i)
@@ -125,9 +139,9 @@ export default function PinnedEndsFigure() {
     const w = vp.toWorld(e)
     const target: Complex = { re: w.x, im: w.y }
     if (mode === 'strict') {
-      const sols = phCubicFromP1(ends.p0, ends.p3, target)
+      const sols = solveStrict(target, active)
       if (sols.length > 0) setBranchR(sols[nearestBranch(sols, branchR)].r)
-      setP1(target)
+      setHandle(target)
     } else if (freeState) {
       const step = dragPHCubicFree(freeState, dragIdx, target)
       setFreeState(step.state)
@@ -135,9 +149,22 @@ export default function PinnedEndsFigure() {
     }
   }
 
+  /**
+   * Click the derived interior point to take hold of it instead. The curve does not
+   * change: it solves both problems with the same r, so only the grip moves.
+   */
+  const swapActive = () => {
+    if (!strictSel) return
+    const next: 1 | 2 = derived
+    setHandle(strictSel.controlPoints[next])
+    setActive(next)
+    // branchR is unchanged on purpose — r identifies the curve, not the problem.
+  }
+
   const reset = () => {
     setEnds({ p0: P0, p3: P3 })
-    setP1(START_P1)
+    setActive(1)
+    setHandle(START_P1)
     setBranchR(null)
     setFreeState(null)
     setFreeInfo({ tracking: 0, disturbance: 0 })
@@ -193,14 +220,6 @@ export default function PinnedEndsFigure() {
               free
             </button>
           </span>
-          {mode === 'strict' && strictSolutions.length > 1 && (
-            <button
-              onClick={() => setBranchR(strictSolutions[(strictIdx + 1) % strictSolutions.length].r)}
-              className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
-            >
-              other branch
-            </button>
-          )}
           <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
             reset
           </button>
@@ -209,9 +228,13 @@ export default function PinnedEndsFigure() {
       caption={
         mode === 'strict' ? (
           <>
-            <b>Strict.</b> Pin both ends and drag P₁ — P₂ moves on its own. Six degrees of freedom minus
-            four conditions leaves exactly one point of freedom, so P₂ is <i>determined</i>, and there
-            are two ways to determine it. Nothing here for an optimizer to choose.
+            <b>Strict.</b> Pin both ends and drag the solid point — the hollow one moves on its own. Six
+            degrees of freedom minus four conditions leaves exactly one point of freedom, so one interior
+            point is <i>determined</i>, and there are two ways to determine it. Nothing here for an
+            optimizer to choose.{' '}
+            <span className="text-slate-400">
+              Click the hollow point to hold it instead; click the grey curve for the other branch.
+            </span>
           </>
         ) : (
           <>
@@ -226,11 +249,24 @@ export default function PinnedEndsFigure() {
         <g onPointerMove={onMove(vp)} onPointerUp={() => setDragIdx(null)}>
           <rect x={-1e4} y={-1e4} width={2e4} height={2e4} fill="transparent" />
 
-          {/* strict: the branch you are not on, grey and thin */}
+          {/* strict: the branch you are not on — grey, thin, and CLICKABLE */}
           {mode === 'strict' &&
             strictSolutions.map((s, i) =>
               i === strictIdx ? null : (
-                <path key={`u${i}`} d={pathOf(vp, (t) => curveAt(s.generator, s.p0, t))} {...curveStroke(vp, false)} />
+                <g key={`u${i}`}>
+                  <path d={pathOf(vp, (t) => curveAt(s.generator, s.p0, t))} {...curveStroke(vp, false)} />
+                  <path
+                    d={pathOf(vp, (t) => curveAt(s.generator, s.p0, t))}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth={vp.px(FIG.size.curveHit)}
+                    style={{ cursor: 'pointer' }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation()
+                      setBranchR(s.r)
+                    }}
+                  />
+                </g>
               ),
             )}
 
@@ -251,8 +287,23 @@ export default function PinnedEndsFigure() {
                 <>
                   <PinnedPoint vp={vp} p={cps[0]} label="P₀" />
                   <PinnedPoint vp={vp} p={cps[3]} label="P₃" />
-                  <DerivedPoint vp={vp} p={cps[2]} label="P₂" />
-                  <DataPoint vp={vp} p={cps[1]} label="P₁" dragging={dragIdx === 1} onPointerDown={onDown(1)} />
+                  {/* the derived interior point — click it to take hold of it instead */}
+                  <g onPointerDown={(e) => { e.stopPropagation(); swapActive() }} style={{ cursor: 'pointer' }}>
+                    <circle
+                      cx={vp.toScreen({ x: cps[derived].re, y: cps[derived].im }).x}
+                      cy={vp.toScreen({ x: cps[derived].re, y: cps[derived].im }).y}
+                      r={vp.px(FIG.size.hit)}
+                      fill="transparent"
+                    />
+                    <DerivedPoint vp={vp} p={cps[derived]} label={`P${'₀₁₂₃'[derived]}`} />
+                  </g>
+                  <DataPoint
+                    vp={vp}
+                    p={cps[active]}
+                    label={`P${'₀₁₂₃'[active]}`}
+                    dragging={dragIdx === active}
+                    onPointerDown={onDown(active)}
+                  />
                 </>
               ) : (
                 cps.map((p, i) => (
@@ -274,7 +325,7 @@ export default function PinnedEndsFigure() {
               x={vp.base.width / 2} y={vp.base.height / 2}
               textAnchor="middle" fontSize={vp.px(FIG.size.label)} fill={FIG.color.label}
             >
-              P₁ is on top of P₀ — move it
+              the handle is on top of P₀ — move it
             </text>
           )}
         </g>
