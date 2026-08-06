@@ -37,6 +37,17 @@
   text-transform: none;
 }
 
+/* Subtitle under a long title — lighter than the title, heavier than the author. */
+.reveal-container .reveal .slides section.title-slide .subtitle {
+  font-size: 1.15em;
+  font-weight: 400;
+  color: #475569;
+  line-height: 1.4;
+  margin-top: -0.2em;
+  margin-bottom: 1.2em;
+  max-width: 30em;
+}
+
 .reveal-container .reveal .slides section.title-slide .author {
   font-size: 1.1em;
   color: #475569;
@@ -153,6 +164,10 @@
 /* Dark mode */
 [data-theme="dark"] .reveal-container .reveal .slides section.title-slide h1 {
   color: #f1f5f9;
+}
+
+[data-theme="dark"] .reveal-container .reveal .slides section.title-slide .subtitle {
+  color: #94a3b8;
 }
 
 [data-theme="dark"] .reveal-container .reveal .slides section.title-slide .author {

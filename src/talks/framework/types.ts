@@ -12,7 +12,12 @@ export interface SlideDefinition {
 }
 
 export interface TalkDefinition {
+  /** URL segment: /talks/<slug>. */
   slug: string
   title: string
+  /** Venue, or a one-line descriptor for decks without one. Shown on the index. */
+  subtitle?: string
+  /** Static PDF export, if one exists — phones are redirected to it. */
+  pdfUrl?: string
   slides: SlideDefinition[]
 }

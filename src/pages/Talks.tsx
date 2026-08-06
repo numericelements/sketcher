@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
+import { talks } from '../talks/registry'
 
-/** Presentations index. New talks get added here. */
+/** Presentations index — rendered from src/talks/registry.ts (add a deck there). */
 export default function Talks() {
   return (
     <div className="min-h-screen bg-steelblue-900 bg-gradient-to-br from-steelblue-900 to-steelblue-200 px-6 py-16">
@@ -12,17 +13,18 @@ export default function Talks() {
           Presentations
         </h1>
 
-        <Link
-          to="/talks/cs2026"
-          className="block rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors p-6"
-        >
-          <div className="text-white text-xl font-light">
-            Interactive Control of Curvature Extrema and Inflections on B-Spline Curves
-          </div>
-          <div className="text-white/50 mt-2 text-sm">
-            Curves &amp; Surfaces 2026 — St-Malo, France
-          </div>
-        </Link>
+        <div className="flex flex-col gap-4">
+          {talks.map((talk) => (
+            <Link
+              key={talk.slug}
+              to={`/talks/${talk.slug}`}
+              className="block rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors p-6"
+            >
+              <div className="text-white text-xl font-light">{talk.title}</div>
+              {talk.subtitle && <div className="text-white/50 mt-2 text-sm">{talk.subtitle}</div>}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   )
