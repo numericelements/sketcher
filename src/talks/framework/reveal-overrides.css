@@ -156,7 +156,26 @@
   color: #64748b;
 }
 
-/* Progress bar */
+/* Progress bar.
+
+   Reveal's progress bar is a full-width CLICK-TO-SEEK strip pinned to the bottom,
+   and its ::after extends the hit area 10px UPWARD — so a 13px band across the
+   bottom of the deck swallows clicks aimed at a figure's controls and jumps to a
+   slide chosen by the click's x position. Pressing "strict" (the left half of a
+   toggle pair) low on the page navigated BACK one slide.
+
+   It cannot be out-stacked from inside a slide: `.slides` carries reveal's scaling
+   transform, so it forms its own stacking context and the bar's z-index:10 wins
+   over anything within it. Raising `.slides` instead would put every slide above
+   the bar and disable seeking everywhere, which is the same outcome by a blunter
+   route.
+
+   So: make the bar display-only. It still shows progress, which is all it is here,
+   and the arrows, the keyboard and the slide number all still navigate. */
+.reveal-container .reveal .progress {
+  pointer-events: none;
+}
+
 .reveal-container .reveal .progress span {
   background: #3b82f6;
 }
