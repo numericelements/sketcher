@@ -12,6 +12,7 @@
 // ============================================================================
 import type { ReactNode } from 'react'
 import { useViewport, type BaseSize, type Viewport, type WorldBox } from './useViewport'
+import { FIG } from './figureStyle'
 
 /** Nominal viewBox size in pixels — radii, strokes and fonts are in these units. */
 const DEFAULT_BASE: BaseSize = { width: 900, height: 380 }
@@ -68,7 +69,8 @@ export default function FigureFrame({
       <svg
         ref={vp.svgRef}
         viewBox={vp.viewBox}
-        className={`w-full rounded bg-white touch-none ${vp.panning ? 'cursor-grabbing' : 'cursor-grab'}`}
+        style={{ background: FIG.color.background, border: `1px solid ${FIG.color.border}` }}
+        className={`w-full rounded touch-none ${vp.panning ? 'cursor-grabbing' : 'cursor-grab'}`}
         onPointerDown={vp.onPanStart}
         onPointerMove={vp.onPanMove}
         onPointerUp={vp.onPanEnd}

@@ -1,65 +1,50 @@
 // ============================================================================
-// SLIDE 4 — grab one control point and two move.
+// SLIDE 4 — grab one control point and two move, and what an optimizer adds.
 //
-// Pin P₀ and P₃. Six DOF minus four conditions leaves exactly TWO — one point's
-// worth of freedom, forced by the dimension count rather than chosen. So P₁ is
-// draggable and P₂ is DETERMINED: closure q(1+r+r²) = D gives
+// On the PH variety, "move one control point and freeze the others" is not a motion
+// at all: it leaves the variety. Codimension, not solver weakness. The toggle makes
+// the two honest responses to that fact comparable side by side — and they are
+// exactly two rows of the deck's trichotomy:
 //
-//     r² + r + (1 − D/q) = 0
+//   STRICT  pin P₀ and P₃, drag P₁            6 DOF vs 6 conditions — SQUARE
+//           P₂ is DETERMINED, in closed form: r² + r + (1 − D/q) = 0, two branches.
+//           Nothing is chosen; there is nothing for an optimizer to do.
 //
-// two branches. Three things are drawn that are usually only asserted:
+//   FREE    nothing pinned, drag ANY point    6 DOF vs 2 conditions — 4 SPARE
+//           So something must choose. The choice is minimum-norm: move the dragged
+//           point to the cursor and everything else as little as possible. One
+//           continuous solution rather than discrete branches.
 //
-//   * the CUSP-FORCED segment (P₃ → P₀+(4/3)D): the only placements of P₁ where
-//     every branch is cusped. Existence is unrestricted; regularity is not.
-//   * the BRANCH POINT P₀+(4/3)D, where the two solutions merge at r = −1/2.
-//   * MONODROMY: "run loop" walks P₁ once around the branch point and returns it
-//     to exactly where it started — and P₂ does not come home. The branch
-//     structure is a two-sheeted cover of the P₁-plane branched at one point.
+// The handoff between modes is continuous — switching adopts the current curve — so
+// the comparison is about behaviour, not about jumping to a different curve.
 //
-// Note there is nothing here for an optimizer to choose: the system is SQUARE, so
-// the only freedom is which branch. Minimum-norm transport has room to act only
-// once there is spare freedom — which in the plane with both ends pinned there
-// is not. That is the honest answer to "what does the optimizer add", and it is
-// why this comparison belongs in 2D.
+// Deliberately NOT drawn here: the cusp-forced segment and the branch point. Both
+// are real (and verified in phCubic.test.ts) but they are a second and third lesson
+// crowding the first. Monodromy earns its own slide later.
 // ============================================================================
-import { useEffect, useRef, useState } from 'react'
-import { type Complex, cadd, csub, cnorm } from '../../core/complex'
+import { useState } from 'react'
+import { type Complex, cnorm, csub } from '../../core/complex'
+import { phCubicFromP1, curveAt, type PHCubicSolution } from '../../core/phCubic'
 import {
-  phCubicFromP1,
-  discriminantPoint,
-  cuspForcedSegment,
-  curveAt,
-  type PHCubicSolution,
-} from '../../core/phCubic'
+  type PHCubicState,
+  dragPHCubicFree,
+  freeStateFrom,
+  phResidual,
+} from '../../core/phCubicDrag'
+import { controlPoints } from '../../core/phCubic'
 import FigureFrame from '../framework/FigureFrame'
+import { FIG, curveStroke, ControlPolygon, DataPoint, DerivedPoint, PinnedPoint } from '../framework/figureStyle'
 import type { Viewport } from '../framework/useViewport'
 
 const P0: Complex = { re: -2.2, im: -0.9 }
 const P3: Complex = { re: 1.4, im: -0.9 }
 const START_P1: Complex = { re: -1.5, im: 1.1 }
 
-// Sized (by hand-computing the default configuration) to contain BOTH branches
-// plus the monodromy loop's excursion. The second branch is systematically the
-// larger one: the roots satisfy r₁ + r₂ = −1, so when one is small the other sits
-// near −1 and its legs q, qr, qr² grow. Framing is worth a browser check.
+// Wide enough for both strict branches; the second is systematically the larger
+// one, since the roots satisfy r₁ + r₂ = −1, so when one is small the other sits
+// near −1 and its legs q, qr, qr² grow.
 const WORLD = { x0: -5.0, x1: 3.6, y0: -2.2, y1: 2.4 }
-/** Nominal pixels — wide and short, like the existing cs2026 figures. */
 const BASE = { width: 900, height: 400 }
-
-const COLORS = {
-  pinned: '#475569',
-  active: '#dc2626',
-  derived: '#0d9488',
-  selected: '#2563eb',
-  other: '#94a3b8',
-  polygon: '#cbd5e1',
-  cusp: '#f59e0b',
-  branch: '#a855f7',
-  trail: '#dc2626',
-}
-
-const LOOP_STEPS = 240
-const LOOP_RADIUS = 0.55
 
 const pathOf = (vp: Viewport, at: (t: number) => Complex, n = 160): string => {
   let d = ''
@@ -71,248 +56,229 @@ const pathOf = (vp: Viewport, at: (t: number) => Complex, n = 160): string => {
   return d
 }
 
+/** Pick the branch whose r is nearest a reference — continuous tracking. */
+function nearestBranch(sols: PHCubicSolution[], toR: Complex | null): number {
+  if (!toR || sols.length === 0) return 0
+  let best = 0
+  let bestD = Infinity
+  sols.forEach((s, i) => {
+    const d = cnorm(csub(s.r, toR))
+    if (d < bestD) { bestD = d; best = i }
+  })
+  return best
+}
+
+type Mode = 'strict' | 'free'
+
 export default function PinnedEndsFigure() {
-  const [p1, setP1] = useState<Complex>(START_P1)
-  const [branch, setBranch] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  /** P₂ at the moment the loop started, so the audience can see it not return. */
-  const [loopMark, setLoopMark] = useState<Complex | null>(null)
-  const [loopStep, setLoopStep] = useState<number | null>(null)
-  const raf = useRef<number | null>(null)
+  const [mode, setMode] = useState<Mode>('strict')
 
-  const branchPoint = discriminantPoint(P0, P3)
-  const cuspSeg = cuspForcedSegment(P0, P3)
-  const solutions = phCubicFromP1(P0, P3, p1)
-  const selected: PHCubicSolution | undefined = solutions[Math.min(branch, Math.max(0, solutions.length - 1))]
+  // --- strict state: pinned ends + the dragged P₁, with a tracked branch --------
+  const [ends, setEnds] = useState({ p0: P0, p3: P3 })
+  const [p1, setP1] = useState(START_P1)
+  const [branchR, setBranchR] = useState<Complex | null>(null)
 
-  // --- the monodromy walk -------------------------------------------------
-  // Step P₁ around a circle enclosing the branch point, keeping the branch whose
-  // r is nearest the previous one — exactly what a drag does. After one turn the
-  // nearest root is the SIBLING, so P₂ lands somewhere else.
-  useEffect(() => {
-    if (loopStep === null) return
-    if (loopStep > LOOP_STEPS) {
-      setLoopStep(null)
-      return
-    }
-    const angle = (2 * Math.PI * loopStep) / LOOP_STEPS
-    const next = cadd(branchPoint, { re: LOOP_RADIUS * Math.cos(angle), im: LOOP_RADIUS * Math.sin(angle) })
-    const prevR = selected?.r
-    const sols = phCubicFromP1(P0, P3, next)
-    if (sols.length > 0 && prevR) {
-      let bestIdx = 0
-      let bestD = Infinity
-      sols.forEach((s, i) => {
-        const d = cnorm(csub(s.r, prevR))
-        if (d < bestD) {
-          bestD = d
-          bestIdx = i
-        }
-      })
-      setBranch(bestIdx)
-    }
-    setP1(next)
-    raf.current = requestAnimationFrame(() => setLoopStep((s) => (s === null ? null : s + 1)))
-    return () => {
-      if (raf.current !== null) cancelAnimationFrame(raf.current)
-    }
-    // selected is intentionally read fresh each step (it depends on p1/branch).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loopStep])
+  // --- free state: the 6 real unknowns ----------------------------------------
+  const [freeState, setFreeState] = useState<PHCubicState | null>(null)
+  const [freeInfo, setFreeInfo] = useState({ tracking: 0, disturbance: 0 })
 
-  const runLoop = () => {
-    // Start from a point on the circle so the loop closes exactly.
-    const start = cadd(branchPoint, { re: LOOP_RADIUS, im: 0 })
-    setP1(start)
-    const sols = phCubicFromP1(P0, P3, start)
-    setBranch(0)
-    setLoopMark(sols[0]?.controlPoints[2] ?? null)
-    setLoopStep(1)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+
+  const strictSolutions = phCubicFromP1(ends.p0, ends.p3, p1)
+  const strictIdx = nearestBranch(strictSolutions, branchR)
+  const strictSel = strictSolutions[strictIdx]
+
+  const cps =
+    mode === 'free' && freeState
+      ? controlPoints(freeState.generator, freeState.p0)
+      : (strictSel?.controlPoints ?? [])
+
+  // --- mode handoff, continuous in both directions -----------------------------
+  const toFree = () => {
+    if (strictSel) setFreeState(freeStateFrom(strictSel.generator, strictSel.p0))
+    setFreeInfo({ tracking: 0, disturbance: 0 })
+    setMode('free')
+  }
+  const toStrict = () => {
+    if (freeState) {
+      const c = controlPoints(freeState.generator, freeState.p0)
+      setEnds({ p0: c[0], p3: c[3] })
+      setP1(c[1])
+      // Adopt the branch closest to the curve we were just looking at.
+      const sols = phCubicFromP1(c[0], c[3], c[1])
+      const k = nearestBranch(sols, freeState.generator.w1 && strictSel ? strictSel.r : null)
+      setBranchR(sols[k]?.r ?? null)
+    }
+    setMode('strict')
   }
 
-  const running = loopStep !== null
-  const cusped = selected?.cusped ?? false
+  // --- dragging ----------------------------------------------------------------
+  const onDown = (i: number) => (e: React.PointerEvent) => {
+    // Strict mode: only P₁ is grabbable. Free mode: any of the four.
+    if (mode === 'strict' && i !== 1) return
+    e.stopPropagation()
+    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+    setDragIdx(i)
+  }
+  const onMove = (vp: Viewport) => (e: React.PointerEvent) => {
+    if (dragIdx === null) return
+    const w = vp.toWorld(e)
+    const target: Complex = { re: w.x, im: w.y }
+    if (mode === 'strict') {
+      const sols = phCubicFromP1(ends.p0, ends.p3, target)
+      if (sols.length > 0) setBranchR(sols[nearestBranch(sols, branchR)].r)
+      setP1(target)
+    } else if (freeState) {
+      const step = dragPHCubicFree(freeState, dragIdx, target)
+      setFreeState(step.state)
+      setFreeInfo({ tracking: step.trackingError, disturbance: step.disturbance })
+    }
+  }
+
+  const reset = () => {
+    setEnds({ p0: P0, p3: P3 })
+    setP1(START_P1)
+    setBranchR(null)
+    setFreeState(null)
+    setFreeInfo({ tracking: 0, disturbance: 0 })
+    setMode('strict')
+  }
+
+  const readouts =
+    mode === 'strict'
+      ? [
+          { label: 'solutions', value: String(strictSolutions.length) },
+          {
+            label: 'r',
+            value: strictSel
+              ? `${strictSel.r.re.toFixed(3)}${strictSel.r.im < 0 ? '−' : '+'}${Math.abs(strictSel.r.im).toFixed(3)}i`
+              : '—',
+          },
+          { label: 'arc len', value: strictSel ? strictSel.arcLength.toFixed(3) : '—' },
+        ]
+      : [
+          { label: 'spare DOF', value: '4' },
+          { label: 'cursor error', value: freeInfo.tracking.toFixed(4) },
+          { label: 'others moved', value: freeInfo.disturbance.toFixed(4) },
+          {
+            label: 'PH residual',
+            value: cps.length === 4 ? phResidual(cps).toExponential(1) : '—',
+            tone: 'ok' as const,
+          },
+        ]
 
   return (
     <FigureFrame
       world={WORLD}
       base={BASE}
-      notation={['r² + r + (1 − D/q) = 0', 'q = P₁−P₀,  D = P₃−P₀', 'cusp ⟺ r ∈ ℝ, r ≤ 0']}
-      readouts={[
-        { label: 'solutions', value: String(solutions.length) },
-        {
-          label: 'r',
-          value: selected
-            ? `${selected.r.re.toFixed(3)}${selected.r.im < 0 ? '−' : '+'}${Math.abs(selected.r.im).toFixed(3)}i`
-            : '—',
-          tone: cusped ? 'warn' : 'ok',
-        },
-        {
-          label: 'σ ≥',
-          value: selected ? selected.speedLowerBound.toFixed(3) : '—',
-          tone: cusped ? 'warn' : 'ok',
-        },
-        { label: 'arc len', value: selected ? selected.arcLength.toFixed(3) : '—' },
-      ]}
+      notation={
+        mode === 'strict'
+          ? ['6 DOF − 4 pinned = 2', 'r² + r + (1 − D/q) = 0', 'square ⇒ 2 branches']
+          : ['6 DOF − 2 dragged = 4 spare', 'min Σ |Pⱼ − Pⱼᵒˡᵈ|²', 'underdetermined ⇒ a choice']
+      }
+      readouts={readouts}
       controls={
         <span className="flex items-center gap-2">
-          <button
-            onClick={() => setBranch((b) => (b + 1) % Math.max(1, solutions.length))}
-            disabled={running || solutions.length < 2}
-            className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100 disabled:opacity-40"
-          >
-            branch {solutions.length ? branch + 1 : 0}/{solutions.length}
-          </button>
-          <button
-            onClick={runLoop}
-            disabled={running}
-            className="px-2 py-[0.15em] rounded border border-purple-300 text-purple-700 hover:bg-purple-50 disabled:opacity-40"
-          >
-            {running ? 'looping…' : 'run loop'}
-          </button>
-          {loopMark && !running && (
+          <span className="inline-flex rounded overflow-hidden border border-slate-300">
             <button
-              onClick={() => {
-                setLoopMark(null)
-                setP1(START_P1)
-                setBranch(0)
-              }}
+              onClick={toStrict}
+              className={`px-2 py-[0.15em] ${mode === 'strict' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              strict
+            </button>
+            <button
+              onClick={toFree}
+              className={`px-2 py-[0.15em] ${mode === 'free' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              free
+            </button>
+          </span>
+          {mode === 'strict' && strictSolutions.length > 1 && (
+            <button
+              onClick={() => setBranchR(strictSolutions[(strictIdx + 1) % strictSolutions.length].r)}
               className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
             >
-              reset
+              other branch
             </button>
           )}
+          <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
+            reset
+          </button>
         </span>
       }
       caption={
-        <>
-          <b>Pin both ends and drag P₁: P₂ moves on its own.</b> Six DOF minus four conditions leaves
-          exactly one point of freedom, so P₂ is determined — and there are two ways to determine it.
-          Orange = the only placements where <i>every</i> branch is cusped. Purple = where the two
-          branches merge; walk P₁ once around it and P₂ does not come home.
-        </>
+        mode === 'strict' ? (
+          <>
+            <b>Strict.</b> Pin both ends and drag P₁ — P₂ moves on its own. Six degrees of freedom minus
+            four conditions leaves exactly one point of freedom, so P₂ is <i>determined</i>, and there
+            are two ways to determine it. Nothing here for an optimizer to choose.
+          </>
+        ) : (
+          <>
+            <b>Free.</b> Nothing pinned, so grab <i>any</i> control point. Now four degrees of freedom are
+            spare and something must spend them: the others move as little as possible. One continuous
+            solution instead of two branches — and the curve stays exactly PH, by construction.
+          </>
+        )
       }
     >
-      {(vp) => {
-        const S = (p: Complex) => vp.toScreen({ x: p.re, y: p.im })
-        const onMove = (e: React.PointerEvent) => {
-          if (!dragging || running) return
-          const w = vp.toWorld(e)
-          setP1({ re: w.x, im: w.y })
-        }
-        return (
-          <g onPointerMove={onMove} onPointerUp={() => setDragging(false)}>
-            <rect x={-1e4} y={-1e4} width={2e4} height={2e4} fill="transparent" />
+      {(vp) => (
+        <g onPointerMove={onMove(vp)} onPointerUp={() => setDragIdx(null)}>
+          <rect x={-1e4} y={-1e4} width={2e4} height={2e4} fill="transparent" />
 
-            {/* the chord, and the segment where both branches are cusped */}
-            <line
-              x1={S(P0).x} y1={S(P0).y}
-              x2={S(cuspSeg.to).x} y2={S(cuspSeg.to).y}
-              stroke={COLORS.polygon} strokeWidth={vp.px(1)}
-              strokeDasharray={`${vp.px(3)} ${vp.px(3)}`}
-            />
-            <line
-              x1={S(cuspSeg.from).x} y1={S(cuspSeg.from).y}
-              x2={S(cuspSeg.to).x} y2={S(cuspSeg.to).y}
-              stroke={COLORS.cusp} strokeWidth={vp.px(5)} strokeLinecap="round" opacity={0.75}
-            />
-            {/* the branch point */}
-            <circle
-              cx={S(branchPoint).x} cy={S(branchPoint).y} r={vp.px(7)}
-              fill="none" stroke={COLORS.branch} strokeWidth={vp.px(2)}
-            />
-            {running && (
-              <circle
-                cx={S(branchPoint).x} cy={S(branchPoint).y} r={vp.px(1) * 0 + LOOP_RADIUS}
-                fill="none" stroke={COLORS.branch} strokeWidth={vp.px(1)}
-                strokeDasharray={`${vp.px(4)} ${vp.px(4)}`} opacity={0.6}
-              />
-            )}
-
-            {/* the non-selected branch, faint */}
-            {solutions.map((s, i) =>
-              i === branch ? null : (
-                <path
-                  key={`o${i}`}
-                  d={pathOf(vp, (t) => curveAt(s.generator, s.p0, t))}
-                  fill="none" stroke={COLORS.other} strokeWidth={vp.px(1.6)}
-                  strokeDasharray={`${vp.px(6)} ${vp.px(5)}`} opacity={0.8}
-                />
+          {/* strict: the branch you are not on, grey and thin */}
+          {mode === 'strict' &&
+            strictSolutions.map((s, i) =>
+              i === strictIdx ? null : (
+                <path key={`u${i}`} d={pathOf(vp, (t) => curveAt(s.generator, s.p0, t))} {...curveStroke(vp, false)} />
               ),
             )}
 
-            {selected && (
-              <>
-                <polyline
-                  points={selected.controlPoints.map((p) => `${S(p).x},${S(p).y}`).join(' ')}
-                  fill="none" stroke={COLORS.polygon} strokeWidth={vp.px(1.3)}
-                  strokeDasharray={`${vp.px(4)} ${vp.px(4)}`}
-                />
-                <path
-                  d={pathOf(vp, (t) => curveAt(selected.generator, selected.p0, t))}
-                  fill="none" stroke={cusped ? COLORS.cusp : COLORS.selected} strokeWidth={vp.px(3)}
-                />
-                {/* P₂ — the point that moves without being touched */}
-                <circle
-                  cx={S(selected.controlPoints[2]).x} cy={S(selected.controlPoints[2]).y}
-                  r={vp.px(7)} fill="white" stroke={COLORS.derived} strokeWidth={vp.px(2.4)}
-                />
-                <text
-                  x={S(selected.controlPoints[2]).x + vp.px(11)}
-                  y={S(selected.controlPoints[2]).y - vp.px(9)}
-                  fontSize={vp.px(15)} fill={COLORS.derived}
-                >
-                  P₂
-                </text>
-              </>
-            )}
+          {cps.length === 4 && (
+            <>
+              <ControlPolygon vp={vp} cps={cps} />
+              <path
+                d={pathOf(
+                  vp,
+                  mode === 'free' && freeState
+                    ? (t) => curveAt(freeState.generator, freeState.p0, t)
+                    : (t) => curveAt(strictSel!.generator, strictSel!.p0, t),
+                )}
+                {...curveStroke(vp, true)}
+              />
 
-            {/* where P₂ was when the loop started */}
-            {loopMark && (
-              <>
-                <circle
-                  cx={S(loopMark).x} cy={S(loopMark).y} r={vp.px(7)}
-                  fill="none" stroke={COLORS.trail} strokeWidth={vp.px(2)}
-                  strokeDasharray={`${vp.px(3)} ${vp.px(3)}`}
-                />
-                <text
-                  x={S(loopMark).x + vp.px(11)} y={S(loopMark).y + vp.px(18)}
-                  fontSize={vp.px(13)} fill={COLORS.trail}
-                >
-                  P₂ before the loop
-                </text>
-              </>
-            )}
+              {mode === 'strict' ? (
+                <>
+                  <PinnedPoint vp={vp} p={cps[0]} label="P₀" />
+                  <PinnedPoint vp={vp} p={cps[3]} label="P₃" />
+                  <DerivedPoint vp={vp} p={cps[2]} label="P₂" />
+                  <DataPoint vp={vp} p={cps[1]} label="P₁" dragging={dragIdx === 1} onPointerDown={onDown(1)} />
+                </>
+              ) : (
+                cps.map((p, i) => (
+                  <DataPoint
+                    key={i}
+                    vp={vp}
+                    p={p}
+                    label={`P${'₀₁₂₃'[i]}`}
+                    dragging={dragIdx === i}
+                    onPointerDown={onDown(i)}
+                  />
+                ))
+              )}
+            </>
+          )}
 
-            {/* the pinned ends */}
-            {[P0, P3].map((p, i) => (
-              <g key={i}>
-                <circle cx={S(p).x} cy={S(p).y} r={vp.px(6)} fill={COLORS.pinned} />
-                <text x={S(p).x + vp.px(11)} y={S(p).y + vp.px(20)} fontSize={vp.px(15)} fill={COLORS.pinned}>
-                  {i === 0 ? 'P₀' : 'P₃'}
-                </text>
-              </g>
-            ))}
-
-            {/* P₁ — the one you drag */}
-            <g
-              onPointerDown={(e) => {
-                if (running) return
-                e.stopPropagation()
-                ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
-                setDragging(true)
-              }}
-              style={{ cursor: running ? 'default' : 'grab' }}
+          {strictSolutions.length === 0 && mode === 'strict' && (
+            <text
+              x={vp.base.width / 2} y={vp.base.height / 2}
+              textAnchor="middle" fontSize={vp.px(FIG.size.label)} fill={FIG.color.label}
             >
-              <circle cx={S(p1).x} cy={S(p1).y} r={vp.px(16)} fill="transparent" />
-              <circle cx={S(p1).x} cy={S(p1).y} r={vp.px(7.5)} fill={COLORS.active} />
-              <text x={S(p1).x + vp.px(11)} y={S(p1).y - vp.px(9)} fontSize={vp.px(15)} fill={COLORS.active}>
-                P₁
-              </text>
-            </g>
-          </g>
-        )
-      }}
+              P₁ is on top of P₀ — move it
+            </text>
+          )}
+        </g>
+      )}
     </FigureFrame>
   )
 }

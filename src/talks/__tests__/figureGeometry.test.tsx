@@ -23,22 +23,58 @@ import PinnedEndsFigure from '../ph-interpolation/PinnedEndsFigure'
 
 interface Geometry {
   viewBoxes: { x: number; y: number; w: number; h: number }[]
-  radii: number[]
-  strokeWidths: number[]
-  pathCount: number
+  /** Radii of circles that are actually painted. */
+  visibleRadii: number[]
+  /** Radii of the invisible generous hit areas around draggable points. */
+  hitRadii: number[]
+  /** Stroke widths of painted strokes only — NOT the fat invisible click targets. */
+  visibleStrokeWidths: number[]
+  /** Paths that are actually painted (a curve the viewer sees). */
+  visiblePathCount: number
   pathCoords: number[]
 }
 
+/**
+ * Attribute-aware, because figures deliberately contain INVISIBLE marks: a
+ * generous `fill="transparent"` circle so a small handle is easy to grab, and a fat
+ * `stroke="transparent"` path so a thin curve is easy to click. Those must not be
+ * held to the same size limits as painted marks — the first version of this test
+ * lumped them together and flagged the click target as an over-thick stroke.
+ */
 function geometryOf(html: string): Geometry {
   const viewBoxes = [...html.matchAll(/viewBox="([^"]+)"/g)].map((m) => {
     const [x, y, w, h] = m[1].split(/\s+/).map(Number)
     return { x, y, w, h }
   })
-  const radii = [...html.matchAll(/<circle[^>]*\sr="([\d.eE+-]+)"/g)].map((m) => Number(m[1]))
-  const strokeWidths = [...html.matchAll(/stroke-width="([\d.eE+-]+)"/g)].map((m) => Number(m[1]))
-  const paths = [...html.matchAll(/<path[^>]*\sd="([^"]+)"/g)].map((m) => m[1])
-  const pathCoords = paths.flatMap((d) => d.match(/-?[\d.]+/g)?.map(Number) ?? [])
-  return { viewBoxes, radii, strokeWidths, pathCount: paths.length, pathCoords }
+  const tags = (name: string): string[] =>
+    [...html.matchAll(new RegExp(`<${name}\\b[^>]*>`, 'g'))].map((m) => m[0])
+  const attr = (tag: string, a: string): string | undefined =>
+    tag.match(new RegExp(`\\s${a}="([^"]*)"`))?.[1]
+  const num = (tag: string, a: string): number | undefined => {
+    const v = attr(tag, a)
+    return v === undefined ? undefined : Number(v)
+  }
+
+  const circles = tags('circle')
+  const visibleRadii: number[] = []
+  const hitRadii: number[] = []
+  for (const c of circles) {
+    const r = num(c, 'r')
+    if (r === undefined) continue
+    ;(attr(c, 'fill') === 'transparent' ? hitRadii : visibleRadii).push(r)
+  }
+
+  const visibleStrokeWidths: number[] = []
+  for (const t of [...circles, ...tags('path'), ...tags('polyline'), ...tags('line')]) {
+    const stroke = attr(t, 'stroke')
+    if (stroke === 'transparent' || stroke === 'none' || stroke === undefined) continue
+    const w = num(t, 'stroke-width')
+    if (w !== undefined) visibleStrokeWidths.push(w)
+  }
+
+  const paths = tags('path').filter((t) => attr(t, 'stroke') !== 'transparent')
+  const pathCoords = paths.flatMap((t) => attr(t, 'd')?.match(/-?[\d.]+/g)?.map(Number) ?? [])
+  return { viewBoxes, visibleRadii, hitRadii, visibleStrokeWidths, visiblePathCount: paths.length, pathCoords }
 }
 
 /**
@@ -54,13 +90,17 @@ function expectSaneGeometry(g: Geometry, label: string) {
   }
   const dim = Math.min(...g.viewBoxes.flatMap((vb) => [vb.w, vb.h]))
 
-  expect(g.radii.length, `${label}: draws some handles`).toBeGreaterThan(0)
-  for (const r of g.radii) {
+  expect(g.visibleRadii.length, `${label}: draws some handles`).toBeGreaterThan(0)
+  for (const r of g.visibleRadii) {
     expect(r, `${label}: handle radius is positive`).toBeGreaterThan(0)
     // A handle must be a handle, not a backdrop.
     expect(r, `${label}: handle radius ${r} is small vs viewBox ${dim}`).toBeLessThan(0.15 * dim)
   }
-  for (const s of g.strokeWidths) {
+  // Invisible hit areas may be generous, but not absurd.
+  for (const r of g.hitRadii) {
+    expect(r, `${label}: hit radius ${r} vs viewBox ${dim}`).toBeLessThan(0.2 * dim)
+  }
+  for (const s of g.visibleStrokeWidths) {
     expect(s, `${label}: stroke width ${s} is small vs viewBox ${dim}`).toBeLessThan(0.05 * dim)
   }
 
@@ -72,43 +112,65 @@ function expectSaneGeometry(g: Geometry, label: string) {
 }
 
 describe('talk figures render with sane geometry', () => {
-  it('slide 3 — three points: two panels, 1 + 2 curves', () => {
+  it('slide 3 — two panels, 1 + 2 curves, and the derived points shown', () => {
     const g = geometryOf(renderToStaticMarkup(<ThreePointsFigure />))
     expectSaneGeometry(g, 'ThreePointsFigure')
     // Two panels, each with its own viewBox, both the same declared base size.
     expect(g.viewBoxes).toHaveLength(2)
     expect(g.viewBoxes[0]).toEqual(g.viewBoxes[1])
     // One quadratic on the left, TWO PH branches on the right — the slide's point.
-    expect(g.pathCount).toBe(3)
-    // Three shared data points, each with a hit circle plus a visible dot, twice.
-    expect(g.radii).toHaveLength(12)
+    expect(g.visiblePathCount).toBe(3)
+    // Left: 1 derived middle point + 3 data points. Right: 2 derived + 3 data.
+    expect(g.visibleRadii).toHaveLength(9)
+    // Six draggable handles (three shared points, drawn in both panels).
+    expect(g.hitRadii).toHaveLength(6)
   })
 
-  it('slide 4 — pinned ends: one panel, the branch point and both ends drawn', () => {
+  it('slide 4 (strict) — two branches, pinned ends, one derived point, one handle', () => {
     const g = geometryOf(renderToStaticMarkup(<PinnedEndsFigure />))
     expectSaneGeometry(g, 'PinnedEndsFigure')
     expect(g.viewBoxes).toHaveLength(1)
-    // Selected branch + the other branch.
-    expect(g.pathCount).toBe(2)
-    // branch point, P₂, P₀, P₃, P₁ hit area, P₁.
-    expect(g.radii).toHaveLength(6)
+    // The branch you are on, plus the one you are not.
+    expect(g.visiblePathCount).toBe(2)
+    // P₀, P₃ (pinned), P₂ (derived), P₁ (draggable).
+    expect(g.visibleRadii).toHaveLength(4)
+    // Only P₁ is grabbable in strict mode.
+    expect(g.hitRadii).toHaveLength(1)
   })
 
-  it('handles are ~7px and strokes ~1–3px at zoom 1 (the units are pixels)', () => {
+  it('painted marks use the shared pixel sizes (the units really are pixels)', () => {
     for (const [label, html] of [
       ['ThreePointsFigure', renderToStaticMarkup(<ThreePointsFigure />)],
       ['PinnedEndsFigure', renderToStaticMarkup(<PinnedEndsFigure />)],
     ] as const) {
       const g = geometryOf(html)
-      const visible = g.radii.filter((r) => r < 12) // exclude the invisible hit areas
-      for (const r of visible) {
+      for (const r of g.visibleRadii) {
         expect(r, `${label}: visible handle radius`).toBeGreaterThanOrEqual(4)
         expect(r, `${label}: visible handle radius`).toBeLessThanOrEqual(10)
       }
-      for (const s of g.strokeWidths) {
-        expect(s, `${label}: stroke width`).toBeGreaterThan(0.5)
-        expect(s, `${label}: stroke width`).toBeLessThan(8)
+      for (const s of g.visibleStrokeWidths) {
+        expect(s, `${label}: painted stroke width`).toBeGreaterThan(0.5)
+        expect(s, `${label}: painted stroke width`).toBeLessThan(8)
       }
+    }
+  })
+
+  it('the curve is near-black and the draggable points are blue, not the reverse', () => {
+    // cs2026's convention, and easy to invert by accident: #1f2937 is the CURVE and
+    // #3b82f6 is a control point you can drag.
+    for (const [label, html] of [
+      ['ThreePointsFigure', renderToStaticMarkup(<ThreePointsFigure />)],
+      ['PinnedEndsFigure', renderToStaticMarkup(<PinnedEndsFigure />)],
+    ] as const) {
+      const curvePaths = [...html.matchAll(/<path\b[^>]*>/g)].map((m) => m[0])
+      const selected = curvePaths.filter((t) => t.includes('stroke="#1f2937"'))
+      expect(selected.length, `${label}: a near-black curve`).toBeGreaterThan(0)
+      // No path is painted in the control-point blue.
+      expect(curvePaths.some((t) => t.includes('stroke="#3b82f6"')), `${label}: no blue curve`).toBe(false)
+      // Draggable points are blue.
+      expect(html.includes('fill="#3b82f6"'), `${label}: blue draggable point`).toBe(true)
+      // Amber stays reserved for curvature extrema — unused in this deck so far.
+      expect(html.includes('#f59e0b'), `${label}: amber not reused`).toBe(false)
     }
   })
 })
