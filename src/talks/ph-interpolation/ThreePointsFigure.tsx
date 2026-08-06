@@ -28,6 +28,8 @@ const START: Complex[] = [
 ]
 
 const WORLD = { x0: -3.4, x1: 3.4, y0: -2.4, y1: 2.6 }
+/** Nominal pixels: each panel is half the slide, so a squarish box. */
+const BASE = { width: 430, height: 330 }
 
 const COLORS = {
   point: '#dc2626',
@@ -134,6 +136,7 @@ export default function ThreePointsFigure() {
       {/* ---- left: quadratic Bézier, one solution ---- */}
       <FigureFrame
         world={WORLD}
+        base={BASE}
         notation={['deg 2 Bézier', '6 DOF, 6 conditions', 'LINEAR ⇒ 1']}
         readouts={[{ label: 'solutions', value: '1', tone: 'plain' }]}
         caption={<><b>Quadratic Bézier.</b> Unique, always.</>}
@@ -159,6 +162,7 @@ export default function ThreePointsFigure() {
       {/* ---- right: planar PH cubic, two solutions ---- */}
       <FigureFrame
         world={WORLD}
+        base={BASE}
         notation={['planar PH cubic', '6 DOF, 6 conditions', 'QUADRATIC ⇒ 2']}
         readouts={[
           { label: 'solutions', value: String(phSolutions.length), tone: 'plain' },

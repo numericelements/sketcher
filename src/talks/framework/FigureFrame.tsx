@@ -11,13 +11,20 @@
 // world coordinates and size its handles in pixels.
 // ============================================================================
 import type { ReactNode } from 'react'
-import { useViewport, type Viewport, type WorldBox } from './useViewport'
+import { useViewport, type BaseSize, type Viewport, type WorldBox } from './useViewport'
+
+/** Nominal viewBox size in pixels — radii, strokes and fonts are in these units. */
+const DEFAULT_BASE: BaseSize = { width: 900, height: 380 }
 
 export interface FigureFrameProps {
   /** Initial world box; wheel/drag zoom and pan from there. */
   world: WorldBox
-  /** viewBox height / width. Defaults to the world box's own aspect. */
-  aspect?: number
+  /**
+   * Nominal pixel size of the drawing area. Sets the figure's aspect ratio AND
+   * the units for stroke widths / radii / font sizes (see useViewport). Keep it in
+   * the few-hundreds, like the existing cs2026 figures.
+   */
+  base?: BaseSize
   /** Bare formulas, shown in a monospace strip. No explanations. */
   notation?: readonly string[]
   /** Live numbers: [label, value]. Keep it to a handful. */
@@ -38,7 +45,7 @@ const TONE: Record<string, string> = {
 
 export default function FigureFrame({
   world,
-  aspect,
+  base = DEFAULT_BASE,
   notation,
   readouts,
   caption,
@@ -46,7 +53,7 @@ export default function FigureFrame({
   className = '',
   children,
 }: FigureFrameProps) {
-  const vp = useViewport(world, aspect)
+  const vp = useViewport(world, base)
 
   return (
     <div className={`flex flex-col items-stretch gap-1 ${className}`}>

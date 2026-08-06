@@ -43,6 +43,8 @@ const START_P1: Complex = { re: -1.5, im: 1.1 }
 // larger one: the roots satisfy r₁ + r₂ = −1, so when one is small the other sits
 // near −1 and its legs q, qr, qr² grow. Framing is worth a browser check.
 const WORLD = { x0: -5.0, x1: 3.6, y0: -2.2, y1: 2.4 }
+/** Nominal pixels — wide and short, like the existing cs2026 figures. */
+const BASE = { width: 900, height: 400 }
 
 const COLORS = {
   pinned: '#475569',
@@ -134,6 +136,7 @@ export default function PinnedEndsFigure() {
   return (
     <FigureFrame
       world={WORLD}
+      base={BASE}
       notation={['r² + r + (1 − D/q) = 0', 'q = P₁−P₀,  D = P₃−P₀', 'cusp ⟺ r ∈ ℝ, r ≤ 0']}
       readouts={[
         { label: 'solutions', value: String(solutions.length) },
