@@ -12,19 +12,20 @@
 // BRANCH IDENTITY. The two PH solutions are two roots of one equation, so their
 // order is not canonical — and `csolveQuadratic` returns them in whichever order is
 // numerically stable, which FLIPS as the data moves. That made the colours jump
-// mid-drag. Fixed by CONTINUOUS TRACKING: each frame, the new roots are matched to
-// the previous pair by nearest r (two pairings, take the cheaper), so both curves
-// and all their control points move continuously. The initial pick is the shorter
-// curve, by arc length — deterministic, and the visually sensible one.
+// mid-drag. Fixed by CONTINUOUS TRACKING: each frame the new solutions are matched
+// to the previous ones by control-polygon distance (framework/branchTracking), so
+// both curves and all their control points move continuously. The initial pick is
+// the shorter curve by arc length — deterministic, and the visually sensible one.
 //
 // Both sides are closed form (Lagrange on the left, one complex quadratic in
 // r = w₁/w₀ on the right). No optimizer.
 // ============================================================================
 import { useState } from 'react'
-import { type Complex, cadd, csub, cscale, cnorm } from '../../core/complex'
+import { type Complex, cadd, csub, cscale } from '../../core/complex'
 import { phCubicThroughThreePoints, curveAt, type PHCubicSolution } from '../../core/phCubic'
 import FigureFrame from '../framework/FigureFrame'
 import { FIG, curveStroke, DerivedPoint, DataPoint, ControlPolygon } from '../framework/figureStyle'
+import { trackOrder, controlPolygonDistance } from '../framework/branchTracking'
 import type { Viewport } from '../framework/useViewport'
 
 const T1 = 0.5 // the interior point's parameter
@@ -66,16 +67,12 @@ const canonical = (sols: PHCubicSolution[]): PHCubicSolution[] =>
   [...sols].sort((a, b) => a.arcLength - b.arcLength)
 
 /**
- * Match this frame's roots to the previous frame's so labels (and colours) never
- * jump. With two roots there are only two pairings; take the cheaper.
+ * Relabel this frame's solutions to match the previous frame's, so colours never
+ * jump. Shared with the quintic figure, which has four branches to match rather
+ * than two — see framework/branchTracking.
  */
-function tracked(sols: PHCubicSolution[], prev: readonly PHCubicSolution[]): PHCubicSolution[] {
-  if (sols.length !== 2 || prev.length !== 2) return canonical(sols)
-  const d = (a: PHCubicSolution, b: PHCubicSolution): number => cnorm(csub(a.r, b.r))
-  const keep = d(sols[0], prev[0]) + d(sols[1], prev[1])
-  const swap = d(sols[0], prev[1]) + d(sols[1], prev[0])
-  return swap < keep ? [sols[1], sols[0]] : sols
-}
+const tracked = (sols: PHCubicSolution[], prev: readonly PHCubicSolution[]): PHCubicSolution[] =>
+  sols.length === prev.length ? trackOrder(sols, prev, controlPolygonDistance) : canonical(sols)
 
 const solveAt = (pts: readonly Complex[]): PHCubicSolution[] =>
   phCubicThroughThreePoints(pts[0], pts[1], pts[2], T1)

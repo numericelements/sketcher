@@ -34,6 +34,7 @@
 import type { SlideDefinition } from '../framework/types'
 import ThreePointsFigure from './ThreePointsFigure'
 import PinnedEndsFigure from './PinnedEndsFigure'
+import QuinticHermiteFigure from './QuinticHermiteFigure'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
@@ -107,19 +108,52 @@ export const slides: SlideDefinition[] = [
       'On the PH variety, "move one control point and freeze the others" is not a motion at all — it ' +
       'leaves the variety. Codimension, not solver weakness, and worth hitting deliberately here ' +
       'rather than letting someone discover it later as a bug. ' +
-      'Pin P₀,P₃: 6 DOF − 4 conditions = 2, exactly one point of freedom (forced, not chosen). So P₁ ' +
-      'is free and P₂ follows, via r² + r + (1 − D/q) = 0 — two branches. ' +
-      'Orange segment (P₃ → P₀+(4/3)D): the only placements of P₁ where EVERY branch is cusped, so ' +
-      'existence is unrestricted while regularity is not. Off the chord line no branch is cusped at ' +
-      'all, since a cusp needs r real. Purple circle: the branch point P₀+(4/3)D, where the roots ' +
-      'merge at r = −1/2 doubly. ' +
-      '"run loop" is the monodromy demonstration — P₁ goes once around the branch point and returns ' +
-      'to exactly where it started, following the nearest root at each step (which is what a drag ' +
-      'does), and P₂ lands on the OTHER solution. The branch structure is a two-sheeted cover of the ' +
-      'P₁-plane branched at a single point: the simplest nontrivial monodromy there is, on a PH curve. ' +
-      'Verified in phCubic.test.ts, including that a loop NOT enclosing the point returns unchanged. ' +
-      'Note for the free/strict toggle discussion: there is nothing here for an optimizer to choose. ' +
-      'The system is SQUARE, so the only freedom is which branch; minimum-norm transport has room to ' +
-      'act only where there is spare freedom, and in the plane with both ends pinned there is none.',
+      'STRICT: pin P₀,P₃ — 6 DOF − 4 conditions = 2, exactly one point of freedom (forced, not ' +
+      'chosen). One interior point is the handle and the other follows, via r² + r + (1 − D/q) = 0, ' +
+      'two branches. Click the grey curve for the other branch; click the hollow point to take hold ' +
+      'of IT instead, which is seamless because r identifies the CURVE, not which point you ' +
+      'prescribed (pinned as "THE SWAP IS CONTINUOUS" in phCubic.test.ts). ' +
+      'FREE: release the pins and any of the four is grabbable — 6 DOF against 2 conditions, so 4 ' +
+      'are spare and minimum-norm spends them (dragged point to the cursor, everything else as ' +
+      'little as possible). The PH residual readout sits at ~1e-16 throughout: the curve cannot ' +
+      'leave the manifold, because free mode parameterises by the generator. ' +
+      'The toggle is two rows of the trichotomy in one button, and it corrects an earlier claim of ' +
+      'mine — there is nothing for an optimizer to choose only while the ends are PINNED. ' +
+      'Not drawn: the cusp-forced segment (P₃ → P₀+(4/3)D, where every branch cusps) and the branch ' +
+      'point P₀+(4/3)D where the roots merge at r = −1/2. Both verified, both a second and third ' +
+      'lesson crowding the first; monodromy earns its own slide.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5 — the classical count: C¹ Hermite has four PH quintic interpolants
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>C¹ Hermite data: four interpolants, always</h2>
+        <QuinticHermiteFigure />
+      </>
+    ),
+    notes:
+      'The classical result made draggable: "in general four distinct planar PH quintic interpolants ' +
+      'to given C¹ Hermite data always exist" (Farouki–Neff; 2019 survey §21). ' +
+      'Note ALWAYS — unlike the cubic there is no existence condition, because the unknowns are ' +
+      'COMPLEX: w₀ = ±√d₀ and w₂ = ±√d₁ always exist, and closure is a complex quadratic in w₁ with ' +
+      'two roots. Two relative signs (the overall sign is a gauge) × two roots = four. Contrast the ' +
+      'cubic, where the free unknown is a real POSITIVE magnitude, which is exactly why it can fail. ' +
+      'Dragging control points IS prescribing Hermite data for a quintic: P₁ = P₀ + d₀/5 and ' +
+      'P₄ = P₅ − d₁/5, so {P₀,P₁,P₄,P₅} is position + tangent at both ends. 8 real conditions on 8 ' +
+      'real DOF — square, and the lesson is that a square NONLINEAR system has a solution COUNT. ' +
+      'P₂ and P₃ are the two the data does not fix, drawn hollow. ' +
+      'R = ∫|κ|ds is the survey\'s recommended selector for the "good" interpolant (eq. 25); the ' +
+      'readout says whether the one you are on is the fairest. ' +
+      'This slide exists to set up the next one: in SPACE the same problem has a TWO-PARAMETER ' +
+      'FAMILY (14 DOF − 12 conditions), so finite choice becomes a continuum. That jump is the ' +
+      'deck\'s central move. ' +
+      'Four branches need continuous tracking or the colours jump as the data moves — matched by ' +
+      'control-polygon distance, exactly (4! = 24 permutations enumerated), see ' +
+      'framework/branchTracking. The world box is computed once from the starting data so all four ' +
+      'fit; some branches are far larger than others, so guessing it by hand gets it wrong.',
   },
 ]

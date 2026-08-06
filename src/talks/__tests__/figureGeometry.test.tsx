@@ -20,6 +20,7 @@ import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import ThreePointsFigure from '../ph-interpolation/ThreePointsFigure'
 import PinnedEndsFigure from '../ph-interpolation/PinnedEndsFigure'
+import QuinticHermiteFigure from '../ph-interpolation/QuinticHermiteFigure'
 
 interface Geometry {
   viewBoxes: { x: number; y: number; w: number; h: number }[]
@@ -140,10 +141,23 @@ describe('talk figures render with sane geometry', () => {
     expect(g.hitRadii).toHaveLength(2)
   })
 
+  it('slide 5 — quintic Hermite: FOUR curves, four handles, two derived points', () => {
+    const g = geometryOf(renderToStaticMarkup(<QuinticHermiteFigure />))
+    expectSaneGeometry(g, 'QuinticHermiteFigure')
+    expect(g.viewBoxes).toHaveLength(1)
+    // The classical count, drawn: one selected + three alternatives.
+    expect(g.visiblePathCount).toBe(4)
+    // P₀,P₁,P₄,P₅ prescribed + P₂,P₃ derived.
+    expect(g.visibleRadii).toHaveLength(6)
+    // Only the four prescribed points are grabbable.
+    expect(g.hitRadii).toHaveLength(4)
+  })
+
   it('painted marks use the shared pixel sizes (the units really are pixels)', () => {
     for (const [label, html] of [
       ['ThreePointsFigure', renderToStaticMarkup(<ThreePointsFigure />)],
       ['PinnedEndsFigure', renderToStaticMarkup(<PinnedEndsFigure />)],
+      ['QuinticHermiteFigure', renderToStaticMarkup(<QuinticHermiteFigure />)],
     ] as const) {
       const g = geometryOf(html)
       for (const r of g.visibleRadii) {
@@ -163,6 +177,7 @@ describe('talk figures render with sane geometry', () => {
     for (const [label, html] of [
       ['ThreePointsFigure', renderToStaticMarkup(<ThreePointsFigure />)],
       ['PinnedEndsFigure', renderToStaticMarkup(<PinnedEndsFigure />)],
+      ['QuinticHermiteFigure', renderToStaticMarkup(<QuinticHermiteFigure />)],
     ] as const) {
       const curvePaths = [...html.matchAll(/<path\b[^>]*>/g)].map((m) => m[0])
       const selected = curvePaths.filter((t) => t.includes('stroke="#1f2937"'))
