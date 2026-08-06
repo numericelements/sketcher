@@ -30,6 +30,7 @@ const LabTHB = lazy(() => import('./sketcher/pages/LabTHB'))
 // curvature-extrema bound enforced on the reduced generating-function numerator Ñ.
 // Self-contained (own editor + core drag), so the sketcher product is untouched.
 const LabRationalPH = lazy(() => import('./sketcher/pages/LabRationalPH'))
+const LabPHHermite = lazy(() => import('./sketcher/pages/LabPHHermite'))
 // Minimal phone editor: draw a degree-3 B-spline, move control points, toggle
 // the curvature-extrema bound. Reuses the sketcher engine, so lazy-load it.
 const MobileSketch = lazy(() => import('./sketcher/pages/MobileSketch'))
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/lab/ph2d" element={<LabPH2D />} />
           <Route path="/lab/thb" element={<LabTHB />} />
           <Route path="/lab/rational-ph" element={<LabRationalPH />} />
+          <Route path="/lab/ph-interpolation" element={<LabPHHermite />} />
           <Route path="*" element={<ComingSoon />} />
         </Routes>
       </Suspense>
