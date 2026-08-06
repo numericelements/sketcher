@@ -1,55 +1,61 @@
-// Drag for the exactly-PH rational family with a LINEAR denominator (rationalPHLinearD.ts).
+// Drag for the exactly-PH rational family (rationalPHLinearD.ts), any generator degree and
+// linear/quadratic denominator.
 //
-// Unlike the AB drag, this family is PH BY CONSTRUCTION — the curve is reconstructed exactly
-// from the free params (s0, s2, d1, origin) with s1 = −2·s2·r forced. So there are NO PH
-// equality constraints to fight: the drag is a PURE inequality problem (the Ñ sliding
-// mechanism), exactly like the frozen-D (S,D) problem — but with D genuinely varying (linear),
-// so the curve is truly rational and Ñ is honest (sign-identical to the drawn curve's g).
+// The family is PH BY CONSTRUCTION — the curve is reconstructed exactly from the free params
+// (the non-derived S coefficients, D's roots, and the origin), with the remaining S coefficients
+// fixed so the residues of S²/D² vanish. So there are NO PH equality constraints to fight: the
+// drag is a PURE inequality problem (the Ñ sliding mechanism), and Ñ is honest (sign-identical to
+// the drawn curve's g) because the curve is genuinely PH.
 //
-// Variables are the 8 real family params, not spline coefficients:
-//     [ s0Re, s0Im, s2Re, s2Im, d1Re, d1Im, originX, originY ]
-// Objective = weighted Σ½‖CPᵢ(θ) − targetᵢ‖² over the reconstructed control points.
-// Constraints = the active Ñ coefficients holding their drag-start sign (Law 2). The param
-// space is tiny, so all derivatives are finite-differenced (robust; analytic is a later swap).
+// Variables are the real family params, flattened:
+//     [ sFree(re,im)…, roots(re,im)…, originX, originY ]
+// Objective = weighted Σ½‖CPᵢ(θ) − targetᵢ‖² over the reconstructed control points; constraints =
+// the active Ñ coefficients holding their drag-start sign (Law 2). The param space is tiny, so all
+// derivatives are finite-differenced (robust; analytic is a later swap).
 import { assignSignsNeighbor } from './bernstein'
 import { computeInactiveSetBySign, structuralMargins } from './curvatureProblem'
 import { curvatureExtremaReducedNumeratorRationalPH } from './rationalPHCurvature'
-import { rationalPHLinearDFromParams, type RationalPHLinearDCurve, type RationalPHLinearDParams } from './rationalPHLinearD'
+import { rationalPHExactFromParams, type RationalPHLinearDCurve, type RationalPHExactParams } from './rationalPHLinearD'
 import { InteriorPointOptimizer } from './ipopt/InteriorPointOptimizer'
 import type { OptimizationProblem } from './ipopt/types'
 import type { Matrix } from './ipopt/linearAlgebra'
 
-export interface RationalPHLinearDDragOptions {
+export interface RationalPHExactDragOptions {
   maxIterations?: number
   targetWeights?: number[]
   /** Hold the curvature-extrema S⁻ bound via the Ñ sliding mechanism (default false). */
   preserveCurvatureExtrema?: boolean
+  /**
+   * Keep the denominator D REAL (freeze every root's imaginary part) — the real-rational family,
+   * i.e. ordinary real NURBS weights. Real roots ⇒ real D. The roots' imaginary parts drop out of
+   * the variable set. Same exact-PH construction and Ñ bound. Default false (complex D). Mirrors
+   * the AB drag's `realB`.
+   */
+  realD?: boolean
 }
 
-const NV = 8 // s0(2) + s2(2) + d1(2) + origin(2)
-
-function paramsToVars(p: RationalPHLinearDParams): number[] {
-  return [p.s0.re, p.s0.im, p.s2.re, p.s2.im, p.d1.re, p.d1.im, p.origin.x, p.origin.y]
-}
-function varsToParams(x: number[]): RationalPHLinearDParams {
-  return {
-    s0: { re: x[0], im: x[1] },
-    s2: { re: x[2], im: x[3] },
-    d1: { re: x[4], im: x[5] },
-    origin: { x: x[6], y: x[7] },
-  }
+function paramsToVars(p: RationalPHExactParams): number[] {
+  const v: number[] = []
+  for (const s of p.sFree) v.push(s.re, s.im)
+  for (const r of p.roots) v.push(r.re, r.im)
+  v.push(p.origin.x, p.origin.y)
+  return v
 }
 
 /** Reduced curvature-extrema numerator Ñ's flat coefficients for a reconstructed curve. */
 function reducedNumeratorCoeffs(c: RationalPHLinearDCurve): number[] {
-  const sDeg = c.sReCPs.length - 1
+  const sDeg = c.sReCPs.length - 1, dDeg = c.dReCPs.length - 1
   return curvatureExtremaReducedNumeratorRationalPH(
-    c.sReCPs, c.sImCPs, c.sKnots, sDeg, c.dReCPs, c.dImCPs, c.dKnots, 1,
+    c.sReCPs, c.sImCPs, c.sKnots, sDeg, c.dReCPs, c.dImCPs, c.dKnots, dDeg,
   ).flatCoeffs()
 }
 
-class RationalPHLinearDDragProblem implements OptimizationProblem {
+class RationalPHExactDragProblem implements OptimizationProblem {
   private vars: number[]
+  private readonly degS: number
+  private readonly degD: 0 | 1 | 2
+  private readonly nSFree: number
+  private readonly nRoots: number
   private readonly targets: { x: number; y: number }[]
   private readonly weights: number[]
 
@@ -57,17 +63,28 @@ class RationalPHLinearDDragProblem implements OptimizationProblem {
   private readonly activeIdx: number[] = []
   private readonly activeSigns: number[] = []
   private readonly margins: number[] = []
+  // Indices of `vars` the optimizer may move; realD drops every root's imaginary part, pinning D real.
+  private readonly freeIdx: number[]
 
   constructor(
-    start: RationalPHLinearDParams,
+    start: RationalPHExactParams,
     targets: { x: number; y: number }[],
     weights: number[],
     constrainCurvature: boolean,
+    realD: boolean,
   ) {
     this.vars = paramsToVars(start)
+    this.degS = start.degS
+    this.degD = start.degD
+    this.nSFree = start.sFree.length
+    this.nRoots = start.roots.length
     this.targets = targets
     this.weights = weights
     this.constrainCurvature = constrainCurvature
+
+    const rootImag = new Set<number>()
+    if (realD) for (let k = 0; k < this.nRoots; k++) rootImag.add(2 * this.nSFree + 2 * k + 1)
+    this.freeIdx = this.vars.map((_, i) => i).filter((i) => !rootImag.has(i))
 
     if (constrainCurvature) {
       // Snapshot Ñ's sign pattern + active (non-sliding) set from the INITIAL params (re-deriving
@@ -81,16 +98,26 @@ class RationalPHLinearDDragProblem implements OptimizationProblem {
     }
   }
 
-  private curve(): RationalPHLinearDCurve {
-    return rationalPHLinearDFromParams(varsToParams(this.vars))
+  private toParams(): RationalPHExactParams {
+    const x = this.vars
+    const sFree: { re: number; im: number }[] = []
+    for (let k = 0; k < this.nSFree; k++) sFree.push({ re: x[2 * k], im: x[2 * k + 1] })
+    const base = 2 * this.nSFree
+    const roots: { re: number; im: number }[] = []
+    for (let k = 0; k < this.nRoots; k++) roots.push({ re: x[base + 2 * k], im: x[base + 2 * k + 1] })
+    return { degS: this.degS, degD: this.degD, sFree, roots, origin: { x: x[x.length - 2], y: x[x.length - 1] } }
   }
 
-  get numVariables(): number { return NV }
+  private curve(): RationalPHLinearDCurve {
+    return rationalPHExactFromParams(this.toParams())
+  }
+
+  get numVariables(): number { return this.freeIdx.length }
   get numConstraints(): number { return this.constrainCurvature ? this.activeIdx.length : 0 }
   get numEqualityConstraints(): number { return 0 } // PH is by construction — no equalities
 
-  getVariables(): number[] { return [...this.vars] }
-  setVariables(x: number[]): void { this.vars = [...x] }
+  getVariables(): number[] { return this.freeIdx.map((i) => this.vars[i]) }
+  setVariables(x: number[]): void { this.freeIdx.forEach((i, k) => { this.vars[i] = x[k] }) }
 
   computeObjective(): number {
     const cps = this.curve().controlPoints
@@ -105,13 +132,14 @@ class RationalPHLinearDDragProblem implements OptimizationProblem {
 
   computeObjectiveGradient(): number[] {
     const eps = 1e-6
-    const grad = new Array<number>(NV).fill(0)
+    const nv = this.numVariables
+    const grad = new Array<number>(nv).fill(0)
     const f0 = this.computeObjective()
-    for (let j = 0; j < NV; j++) {
-      const saved = this.vars[j]
-      this.vars[j] = saved + eps
+    for (let j = 0; j < nv; j++) {
+      const i = this.freeIdx[j], saved = this.vars[i]
+      this.vars[i] = saved + eps
       grad[j] = (this.computeObjective() - f0) / eps
-      this.vars[j] = saved
+      this.vars[i] = saved
     }
     return grad
   }
@@ -123,16 +151,17 @@ class RationalPHLinearDDragProblem implements OptimizationProblem {
   }
 
   computeConstraintJacobian(): Matrix {
-    const J: Matrix = Array.from({ length: this.numConstraints }, () => new Array<number>(NV).fill(0))
+    const nv = this.numVariables
+    const J: Matrix = Array.from({ length: this.numConstraints }, () => new Array<number>(nv).fill(0))
     if (!this.constrainCurvature) return J
     const eps = 1e-6
     const c0 = this.computeConstraints()
-    for (let j = 0; j < NV; j++) {
-      const saved = this.vars[j]
-      this.vars[j] = saved + eps
+    for (let j = 0; j < nv; j++) {
+      const i = this.freeIdx[j], saved = this.vars[i]
+      this.vars[i] = saved + eps
       const cPlus = this.computeConstraints()
-      this.vars[j] = saved
-      for (let i = 0; i < this.numConstraints; i++) J[i][j] = (cPlus[i] - c0[i]) / eps
+      this.vars[i] = saved
+      for (let r = 0; r < this.numConstraints; r++) J[r][j] = (cPlus[r] - c0[r]) / eps
     }
     return J
   }
@@ -141,27 +170,27 @@ class RationalPHLinearDDragProblem implements OptimizationProblem {
   getInactiveConstraints(): Set<number> { return new Set<number>() }
   updateConstraintState(): void { /* signs/active-set fixed at drag start */ }
 
-  result(): RationalPHLinearDParams { return varsToParams(this.vars) }
+  result(): RationalPHExactParams { return this.toParams() }
 }
 
 /**
- * Slide an exactly-PH linear-D rational curve's params so the reconstructed control points track
- * `targets` (weighted by `opts.targetWeights`); with `opts.preserveCurvatureExtrema`, hold the
- * curvature-extrema S⁻ bound via the Ñ sliding mechanism. Returns the moved params; rebuild the
- * drawable curve with `rationalPHLinearDFromParams(result)`.
+ * Slide an exactly-PH rational curve's params so the reconstructed control points track `targets`
+ * (weighted by `opts.targetWeights`); with `opts.preserveCurvatureExtrema`, hold the
+ * curvature-extrema S⁻ bound via the Ñ sliding mechanism. Works for any generator degree and
+ * linear/quadratic D. Returns the moved params; rebuild with `rationalPHExactFromParams(result)`.
  */
-export function slideRationalPHLinearD(
-  start: RationalPHLinearDParams,
+export function slideRationalPHExact(
+  start: RationalPHExactParams,
   targets: { x: number; y: number }[],
-  opts: RationalPHLinearDDragOptions = {},
-): RationalPHLinearDParams {
+  opts: RationalPHExactDragOptions = {},
+): RationalPHExactParams {
   const weights = opts.targetWeights ?? targets.map(() => 1)
-  const problem = new RationalPHLinearDDragProblem(start, targets, weights, opts.preserveCurvatureExtrema ?? false)
+  const problem = new RationalPHExactDragProblem(start, targets, weights, opts.preserveCurvatureExtrema ?? false, opts.realD ?? false)
   // returnBestFeasible: without PH equality constraints the solve has extra freedom and can
-  // DIVERGE on this rational objective, returning a garbage final iterate (control points
-  // flung to ~1e5 while the curve/bound stay valid). Best-feasible hands back the lowest-
-  // objective feasible iterate it passed through instead — the diverged point has a huge
-  // objective (CPs far from targets), so it's never chosen. This is what keeps the drag stable.
+  // DIVERGE on this rational objective, returning a garbage final iterate (control points flung
+  // to ~1e5 while the curve/bound stay valid). Best-feasible hands back the lowest-objective
+  // feasible iterate it passed through — the diverged point has a huge objective, so it's never
+  // chosen. This is what keeps the drag stable.
   const ip = new InteriorPointOptimizer(problem, { maxIterations: opts.maxIterations ?? 50, enableBFGS: true, returnBestFeasible: true })
   const r = ip.optimize()
   problem.setVariables(r.variables)

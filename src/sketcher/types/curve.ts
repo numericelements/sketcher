@@ -1,16 +1,19 @@
 import type { PHMetadata, ComplexRationalPHMetadata } from '../optimizer/phCurve'
 import type { ABPHMetadata } from '../optimizer/abPHCurve'
 import type { RealRationalPHMetadata } from '../optimizer/realRationalPHCurve'
-import type { RationalPHLinearDParams } from '../../core'
+import type { RationalPHExactParams } from '../../core'
 
-/** Exactly-PH rational curve with a LINEAR denominator (core rationalPHLinearD.ts). Unlike the
- *  (A,B,S) families, the curve is reconstructed exactly from these few params on every drag, so
- *  it is PH to machine precision and the generating-function bound Ñ is honest. */
+/** Exactly-PH rational curve (core rationalPHLinearD.ts), any generator degree and linear/quadratic
+ *  denominator. Unlike the (A,B,S) families, the curve is reconstructed exactly from these few
+ *  params on every drag, so it is PH to machine precision and the generating-function bound Ñ is
+ *  honest. (`kind` keeps the historical 'rational-ph-linear-d' tag.) */
 export interface RationalPHLinearDMetadata {
   kind: 'rational-ph-linear-d'
   degree: number
   knots: number[]
-  params: RationalPHLinearDParams
+  params: RationalPHExactParams
+  /** Keep the denominator D real during editing (real-rational family). Default false (complex). */
+  realD?: boolean
 }
 
 // Point types

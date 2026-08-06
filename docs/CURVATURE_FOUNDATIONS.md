@@ -599,5 +599,79 @@ e.g. renormalizing w so ∏w or w₀ stays 1, avoids unbounded homogeneous infla
 
 ---
 
-*Add F13, … as we establish them. Never delete a fact that is still true; if a fact turns
+## F13 — Solving the rational-PH Wronskian: integrate the squared hodograph, then elevate D
+
+**The setup.** The exactly-PH rational family (`core/rationalPHLinearD.ts`) is `z = F/D` with the
+PH condition `F′D − FD′ = S²`. With `deg S = n`, `deg D = m`, the identity forces
+`deg F = 2n − m + 1`, and since `deg F > deg D` for `m ≤ n` (all our families: `m ∈ {0,1,2}`,
+`n ≥ 2`), the **curve degree is `p = deg F = 2n − m + 1`**. `(n,m) = (2,1) → p=4` (5 CPs);
+`(3,2) → p=5` (a rational quintic, 6 CPs).
+
+**The polynomial PH curve is the `m = 0` corner.** Setting `D` constant (`m = 0`) gives
+`deg F = 2n + 1`, **zero residue conditions** (no roots → step A is empty → all of `S` free), and a
+constant `D` that degree-elevates to an **all-equal weight vector** — i.e. the curve is *polynomial*,
+not rational. `(n,m) = (2,0) → p = 5` is exactly the familiar **degree-5 polynomial PH quintic**
+(measured: 6 CPs, all weights `1.000000`, `w_im = 0`, `wronskianResidual = 2e-15`). So **degree 5
+occurs twice** in the family — as the *polynomial* quintic `(2,0)` and as a *genuinely rational*
+quintic `(3,2)` (weights vary) — different curves at the same degree. The polynomial corner is why
+`m = 0` can inflect at `degS = 2` where `m = 1` cannot: with no residue condition, `s₁` stays free
+(F13-A below spends it as soon as `m ≥ 1`).
+
+**Solving the Wronskian is an integration, not a linear solve.** Divide the PH condition by `D²`:
+
+    F′D − FD′ = S²   ⟺   (F/D)′ = (S/D)²   ⟺   F/D = ∫ (S/D)² dt.
+
+So "solve for F" = "integrate the squared hodograph," and it splits in three:
+
+**(A) Solvability — residues vanish (`deriveFullSPower`).** `∫ S²/D²` is rational (no `log`) iff
+its partial fractions carry no `1/(t−r)` term, i.e. the residue at each simple root `r_k` of `D`
+is zero. Working it out (`φ_k = D/(t−r_k)`):
+
+    S′(r_k) = S(r_k) · Σ_{l≠k} 1/(r_k − r_l)          — one condition per root ⇒ m conditions.
+
+These are **linear in S's coefficients**, so we *derive* `m` of them: `m=0` → no roots → nothing
+derived, all of `S` free (the polynomial corner); `m=1` → the sum is empty → `S′(r) = 0` (derive
+`s₁`); `m=2` → a 2×2 complex solve. This is why raising `deg D` "spends" generator coefficients —
+and why degS=2/real-D can't inflect (the one pinned coefficient collapses `Im(S̄S′)` to linear, zero
+only at the pole outside `[0,1]`) while the `m=0` polynomial curve can.
+
+**(B) Integration — the coefficient recurrence (`reconstructExactRationalPH`).** Match the
+coefficient of `tᵏ` in `F′D − FD′ = S²` (writing `F=Σfᵢtⁱ`, `D=Σdⱼtʲ`, `S²=Σhₖtᵏ`; note
+`i−j = (k+1)−2j` when `i+j=k+1`):
+
+    f_{k+1} = [ hₖ − Σ_{j≥1} ((k+1) − 2j) · dⱼ · f_{k+1−j} ] / [ (k+1) · d₀ ]
+
+with the seed `f₀ = origin · D(0)` — the **constant of integration = the curve's translation**,
+the one point you place.
+
+**Why the bookkeeping closes exactly.** `L : F ↦ F′D − FD′` is linear with a **1-dim kernel**
+(`LF = 0 ⟺ F = c·D`, a translation — that's `f₀`) and an **m-dim cokernel** (the `m` residues of
+step A). So of the family's degrees of freedom, one is the origin and `m` of `S`'s coefficients
+are consumed; the rest — the *free* `S` coefficients and `D`'s roots — parameterize the family the
+drag varies. No overdetermination, no slack.
+
+**(C) Degree-match — elevate D to the curve degree (`elevateBern`, `rationalPHLinearD.ts:211`).**
+`F` and `D` leave the recurrence at their natural degrees (`p` and `m`). A standard rational
+Bézier needs both on the **same degree-`p` Bernstein basis** so weight `wᵢ` and homogeneous point
+`Fᵢ` align. `F` is already degree `p`; **degree-elevate `D` from `m` up to `p`** (exact — same
+polynomial, redundant higher-degree Bézier form, `b′ᵢ = (i/(N+1))bᵢ₋₁ + (1−i/(N+1))bᵢ` iterated).
+Then, index by index, `wᵢ = D_i^elev` (complex weight) and control point `Pᵢ = Fᵢ / D_i^elev`.
+Always `D` we elevate, never `F`: `deg F − deg D = 2(n−m)+1 > 0` for `m ≤ n`.
+
+**Evidence / pinning.** `core/__tests__/rationalPHLinearD.test.ts` pins the reconstruction to
+machine zero across degree combos, including the **`m=0` polynomial corner** (`degS=2, D=const` →
+degree 5, all weights equal & real; `degS=3` → degree 7); `rationalPHLinearDDrag.test.ts` pins
+`wronskianResidual < 1e-9` through full drags (incl. a quadratic-D quintic). The residual is
+computed independently of the solve, on the Bernstein coeffs of `F′D − FD′ − S²`
+(`rationalPHLinearD.ts:202`).
+
+**Why it matters.** Because A→B→C run every step, the reconstructed curve is PH to machine
+precision — there is **no soft `F′D − FD′ − S²` residual to drift**. That is what lets the drag be
+a *pure inequality* problem (the Ñ sliding mechanism, no PH equality constraints) and keeps the
+displayed curvature-extrema bound honest (Law 3): the numerator Ñ is sign-identical to the drawn
+curve's `g` only because the curve is genuinely PH, which A→B→C guarantee.
+
+---
+
+*Add F14, … as we establish them. Never delete a fact that is still true; if a fact turns
 out wrong, replace it and say why (a wrong fact in here is worse than none).*

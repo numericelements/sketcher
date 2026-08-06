@@ -21,7 +21,7 @@ import { optimizeComplexRationalPHCurve } from '../optimizer'
 // real-rational-PH — the contained island in src/sketcher/optimizer). Both
 // Farin drags (E26/E27), the PH value bound (E19), and plain PH tracking (E20)
 // are core. See src/sketcher/optimizer/index.ts for the authoritative ledger.
-import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, slideRealRationalPH, realRationalPHCurveCPs, genFromRealRationalMeta, slideABComplexRationalPH, abComplexRationalPHCurveCPs, genFromABMeta, slideRationalPHLinearD, rationalPHLinearDFromParams, type WeightedCP } from '../../core'
+import { slideCurve, slide, slideOpenPHCurveBound, slideClosedPHCurveBound, trackOpenPHPlain, slideComplexFarin, slideRationalFarin, computeComplexFarinPoints, realSpiralRatio, complexSpiralRatio, slideRealRationalPH, realRationalPHCurveCPs, genFromRealRationalMeta, slideABComplexRationalPH, abComplexRationalPHCurveCPs, genFromABMeta, slideRationalPHExact, rationalPHExactFromParams, type WeightedCP } from '../../core'
 import type { RationalPHLinearDMetadata } from '../types/curve'
 import { abPHToLieCurveSpline, identity5, isIdentityMat5, compose5, scaling5, translation5, type Mat5 } from '../lab/lieSphere/lieCurve2D'
 import { liePoint5, SHAPE_GENERATORS } from '../lab/lieSphere/lieAlgebra2D'
@@ -818,9 +818,9 @@ export const useSceneStore = create<SketcherState>((set, get) => ({
           // while actually LOWERING worst-case latency — the solve converges toward the cursor
           // faster. returnBestFeasible (in slideRationalPHLinearD) keeps it stable regardless.
           const targetWeights = targets.map((_, i) => (i === pointIndex ? 50 : i === 0 || i === M - 1 ? 5 : 1))
-          const params = slideRationalPHLinearD(meta.params, targets, { targetWeights, maxIterations: 50, preserveCurvatureExtrema })
-          const c = rationalPHLinearDFromParams(params)
-          const outMeta: RationalPHLinearDMetadata = { kind: 'rational-ph-linear-d', degree: c.degree, knots: c.knots, params }
+          const params = slideRationalPHExact(meta.params, targets, { targetWeights, maxIterations: 50, preserveCurvatureExtrema, realD: meta.realD })
+          const c = rationalPHExactFromParams(params)
+          const outMeta: RationalPHLinearDMetadata = { kind: 'rational-ph-linear-d', degree: c.degree, knots: c.knots, params, realD: meta.realD }
           const newPhMetadata = new Map(phMetadata)
           newPhMetadata.set(curveId, outMeta)
           set((state) => ({

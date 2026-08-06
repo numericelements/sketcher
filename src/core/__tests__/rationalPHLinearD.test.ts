@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   reconstructRationalPHLinearD,
   rationalPHLinearDFromParams,
+  rationalPHExactFromParams,
   type RationalPHLinearDParams,
 } from '../rationalPHLinearD'
 import { rationalPHBound, rationalPHMarkers, curvatureExtremaReducedNumeratorRationalPH } from '../rationalPHCurvature'
@@ -89,5 +90,35 @@ describe('exactly-PH rational curve, linear denominator', () => {
       expect(nMarkers.length).toBe(genMarkers.length) // same crossings — the honesty payoff
       expect(bound).toBeGreaterThanOrEqual(nMarkers.length)
     }
+  })
+})
+
+// F13's polynomial corner: degD=0 (constant D, no residue conditions, all S free) is the ordinary
+// polynomial PH curve. degS=2 → the classic degree-5 quintic; the weights are all equal (a constant
+// D degree-elevated), i.e. the curve is polynomial, not rational.
+describe('degD=0 (constant D) = polynomial PH corner', () => {
+  const C = (re: number, im = 0) => ({ re, im })
+  it('degS=2, D=const → degree-5 curve, all weights equal & real, exactly PH', () => {
+    const c = rationalPHExactFromParams({
+      degS: 2, degD: 0, sFree: [C(0.9, 0.3), C(-0.4, 1.1), C(0.6, -0.5)], roots: [], origin: { x: -1, y: 2 },
+    })
+    expect(c.degree).toBe(5)
+    expect(c.controlPoints.length).toBe(6)
+    const w0 = c.controlPoints[0].w_re
+    for (const p of c.controlPoints) {
+      expect(Math.abs(p.w_re - w0)).toBeLessThan(1e-12) // all weights equal ⇒ polynomial
+      expect(Math.abs(p.w_im)).toBeLessThan(1e-12)      // and real
+    }
+    expect(c.wronskianResidual).toBeLessThan(1e-10)
+  })
+
+  it('degS=3, D=const → degree-7 polynomial PH, exactly PH', () => {
+    const c = rationalPHExactFromParams({
+      degS: 3, degD: 0, sFree: [C(1, 0), C(0.2, 0.4), C(-0.3, 0.5), C(0.15, -0.2)], roots: [], origin: { x: 0, y: 0 },
+    })
+    expect(c.degree).toBe(7)
+    expect(c.wronskianResidual).toBeLessThan(1e-10)
+    const w0 = c.controlPoints[0].w_re
+    for (const p of c.controlPoints) expect(Math.abs(p.w_re - w0) + Math.abs(p.w_im)).toBeLessThan(1e-12)
   })
 })

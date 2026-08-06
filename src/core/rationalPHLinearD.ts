@@ -101,17 +101,77 @@ const complexArrayToCBD = (arr: readonly Complex[]): ComplexBD =>
     new BernsteinDecomposition([arr.map((z) => z.im)], [0, 1]),
   )
 
+const cpow = (z: Complex, n: number): Complex => { let r: Complex = { re: 1, im: 0 }; for (let i = 0; i < n; i++) r = cmul(r, z); return r }
+/** Solve [[a,b],[c,d]]·(x,y) = (e,f) over ℂ. */
+function solve2C(a: Complex, b: Complex, c: Complex, d: Complex, e: Complex, f: Complex): [Complex, Complex] {
+  const det = csub(cmul(a, d), cmul(b, c))
+  return [cdiv(csub(cmul(e, d), cmul(b, f)), det), cdiv(csub(cmul(a, f), cmul(e, c)), det)]
+}
+/** Clamped single-span knot vector of a given degree: [0×(deg+1), 1×(deg+1)]. */
+const clampedKnots = (deg: number): number[] => [...Array(deg + 1).fill(0), ...Array(deg + 1).fill(1)]
+
+/** Denominator power coefficients from its roots, gauge D(0)=1: D(t) = Π_k (1 − t/r_k). */
+function dPowerFromRoots(roots: readonly Complex[]): Complex[] {
+  let D: Complex[] = [{ re: 1, im: 0 }]
+  for (const r of roots) D = polyMulC(D, [{ re: 1, im: 0 }, cscale(cdiv({ re: 1, im: 0 }, r), -1)])
+  return D
+}
+
+/**
+ * Fill in the DERIVED S coefficients so that ∫S²/D² is rational (exact PH) — the residue of
+ * S²/D² vanishes at every root of D, i.e. S'(rₖ) = S(rₖ)·Σ_{l≠k} 1/(rₖ−r_l). Linear in S's
+ * coefficients: degD=0 (D constant) has NO roots ⇒ no conditions, all of S free (the polynomial
+ * PH corner); degD=1 derives s1 (one condition, S'(r)=0); degD=2 derives (s0,s1) from a 2×2
+ * solve. `sFree` are the remaining coefficients in increasing power index.
+ */
+function deriveFullSPower(degS: number, degD: number, sFree: readonly Complex[], roots: readonly Complex[]): Complex[] {
+  const s: Complex[] = new Array(degS + 1).fill(null).map(() => ({ re: 0, im: 0 }))
+  if (degD === 0) {
+    // D constant ⇒ ∫S²/D² is always rational ⇒ no residue conditions: S is fully free.
+    // The curve is the polynomial PH curve of degree 2·degS+1 (all weights equal). free=[s0,…,s_degS].
+    for (let i = 0; i <= degS; i++) s[i] = sFree[i]
+  } else if (degD === 1) {
+    // free = [s0, s2, s3, …, s_degS]; derived s1 = −Σ_{i≥2} i·s_i·r^{i−1}  (⇒ S'(r)=0)
+    s[0] = sFree[0]
+    for (let i = 2; i <= degS; i++) s[i] = sFree[i - 1]
+    const r = roots[0]
+    let s1: Complex = { re: 0, im: 0 }
+    for (let i = 2; i <= degS; i++) s1 = csub(s1, cscale(cmul(s[i], cpow(r, i - 1)), i))
+    s[1] = s1
+  } else {
+    // degD=2: free = [s2, …, s_degS]; derive (s0,s1) from S'(rₖ) − S(rₖ)/(rₖ−r_other) = 0.
+    for (let i = 2; i <= degS; i++) s[i] = sFree[i - 2]
+    const [r1, r2] = roots
+    const build = (rk: Complex, ro: Complex) => {
+      const g = cdiv({ re: 1, im: 0 }, csub(rk, ro)) // Σ_{l≠k} 1/(rk−r_l) = 1/(rk−ro)
+      const cS0 = cscale(g, -1)
+      const cS1 = csub({ re: 1, im: 0 }, cmul(g, rk))
+      let rhs: Complex = { re: 0, im: 0 }
+      for (let i = 2; i <= degS; i++) {
+        const sp = cscale(cpow(rk, i - 1), i) // i·rk^{i−1}  (from S')
+        const sv = cmul(g, cpow(rk, i)) //       g·rk^i      (from −g·S)
+        rhs = csub(rhs, cmul(s[i], csub(sp, sv)))
+      }
+      return { cS0, cS1, rhs }
+    }
+    const A = build(r1, r2), B = build(r2, r1)
+    const [s0, s1] = solve2C(A.cS0, A.cS1, B.cS0, B.cS1, A.rhs, B.rhs)
+    s[0] = s0; s[1] = s1
+  }
+  return s
+}
+
 /** The reconstructed exactly-PH linear-D rational curve plus the (S, D) generating data. */
 export interface RationalPHLinearDCurve {
   /** ComplexPoint control points (position = F_i/D_i, complex weight = D_i), degree 4, single span. */
   controlPoints: ComplexPoint[]
   knots: number[]
   degree: number
-  /** Generating function S = u + i·v (degree 2), Bernstein on [0,1]. */
+  /** Generating function S = u + i·v, Bernstein on [0,1]. */
   sReCPs: number[]
   sImCPs: number[]
   sKnots: number[]
-  /** Denominator D (linear), Bernstein on [0,1]. */
+  /** Denominator D, Bernstein on [0,1]. */
   dReCPs: number[]
   dImCPs: number[]
   dKnots: number[]
@@ -119,102 +179,99 @@ export interface RationalPHLinearDCurve {
   wronskianResidual: number
 }
 
-const S_KNOTS = [0, 0, 0, 1, 1, 1] // degree-2 clamped single span
-const D_KNOTS = [0, 0, 1, 1] //       degree-1 clamped single span
-const CURVE_KNOTS = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1] // degree-4 clamped single span
-
 /**
- * Exact reconstruction for a GIVEN degree-2 S and linear D. Returns the curve and the honest
- * Wronskian residual (≈0 iff S'(r)=0 at D's root, i.e. the curve is genuinely PH). Use
- * `rationalPHLinearDFromParams` for a construction that is compatible by design.
+ * Exact reconstruction for GIVEN S and D given in the POWER basis (any generator degree, any
+ * denominator degree). Runs the general recurrence f_{k+1} = [h_k − Σ_{j≥1}(k+1−2j)·d_j·f_{k+1−j}]
+ * / [(k+1)·d_0] and returns the curve plus the honest Wronskian residual (≈0 iff (S,D) is
+ * compatible — see `deriveFullSPower`). `rationalPHExactFromParams` builds compatible (S,D).
  */
-export function reconstructRationalPHLinearD(
-  sReCPs: readonly number[],
-  sImCPs: readonly number[],
-  dReCPs: readonly number[],
-  dImCPs: readonly number[],
-  origin: { x: number; y: number },
+export function reconstructExactRationalPH(
+  sPow: readonly Complex[], dPow: readonly Complex[], origin: { x: number; y: number },
 ): RationalPHLinearDCurve {
-  const sDeg = sReCPs.length - 1 // expected 2
-  const Sb: Complex[] = sReCPs.map((re, i) => ({ re, im: sImCPs[i] }))
-  const Db: Complex[] = dReCPs.map((re, i) => ({ re, im: dImCPs[i] }))
-  const Sp = bernToPower(Sb) //  power coeffs of S (degree sDeg)
-  const Dp = bernToPower(Db) //  power coeffs of D (degree 1): [p, q]
-  const p = Dp[0]
-  const q = Dp[1]
-  const H = polyMulC(Sp, Sp) // degree 2·sDeg
-  const nF = 2 * sDeg //        F degree = 2·sDeg − dDeg + 1 = 2·sDeg (dDeg = 1)
-
-  // f_0 = origin × D(0) = origin × p  (so z(0) = F(0)/D(0) = origin)
+  const degS = sPow.length - 1, degD = dPow.length - 1
+  const H = polyMulC(sPow, sPow) //  H = S² (degree 2·degS)
+  const nF = 2 * degS - degD + 1 //  F degree
+  const d0 = dPow[0]
   const F: Complex[] = new Array(nF + 1)
-  F[0] = cmul({ re: origin.x, im: origin.y }, p)
+  F[0] = cmul({ re: origin.x, im: origin.y }, d0) // f_0 = origin·D(0) ⇒ z(0)=F(0)/D(0)=origin
   for (let k = 0; k <= nF - 1; k++) {
-    const hk = H[k] ?? { re: 0, im: 0 }
-    const rhs = csub(hk, cscale(cmul(q, F[k]), k - 1))
-    F[k + 1] = cdiv(rhs, cscale(p, k + 1))
+    let acc: Complex = H[k] ?? { re: 0, im: 0 }
+    for (let j = 1; j <= degD; j++) {
+      const idx = k + 1 - j
+      if (idx >= 0 && idx <= nF) acc = csub(acc, cscale(cmul(dPow[j], F[idx]), k + 1 - 2 * j))
+    }
+    F[k + 1] = cdiv(acc, cscale(d0, k + 1))
   }
 
-  // Honest Wronskian residual on Bernstein coeffs (uses core algebra, independent of the solve).
-  const Fbd = complexArrayToCBD(powerToBern(F, nF))
-  const Dbd = complexArrayToCBD(Db)
-  const Sbd = complexArrayToCBD(Sb)
+  const Sbern = powerToBern(sPow, degS), Dbern = powerToBern(dPow, degD), Fbern = powerToBern(F, nF)
+  // Honest Wronskian residual on Bernstein coeffs (core algebra, independent of the solve).
+  const Fbd = complexArrayToCBD(Fbern), Dbd = complexArrayToCBD(Dbern), Sbd = complexArrayToCBD(Sbern)
   const W = Fbd.derivative().mul(Dbd).sub(Fbd.mul(Dbd.derivative())).sub(Sbd.mul(Sbd))
   let wronskianResidual = 0
   for (let i = 0; i < W.re.coeffs[0].length; i++)
     wronskianResidual = Math.max(wronskianResidual, Math.hypot(W.re.coeffs[0][i], W.im.coeffs[0][i]))
 
-  // Form the degree-4 complex-rational control points: P_i = F_i / D_i, weight = D_i (exact —
-  // both are true degree-4 Bernstein reps on the same span, so no Greville sampling).
-  const Fbern = powerToBern(F, nF)
-  const Dbern = elevateBern(Db, nF)
+  // Complex-rational control points: P_i = F_i/D_i, weight = D_i (exact — both are degree-nF
+  // Bernstein reps on the same span after elevating D, so no Greville sampling).
+  const Delev = elevateBern(Dbern, nF)
   const controlPoints: ComplexPoint[] = Fbern.map((fi, i) => {
-    const di = Dbern[i]
+    const di = Delev[i]
     const pi = cdiv(fi, di)
     return { re: pi.re, im: pi.im, w_re: di.re, w_im: di.im }
   })
 
   return {
-    controlPoints,
-    knots: [...CURVE_KNOTS],
-    degree: nF,
-    sReCPs: [...sReCPs],
-    sImCPs: [...sImCPs],
-    sKnots: [...S_KNOTS],
-    dReCPs: [...dReCPs],
-    dImCPs: [...dImCPs],
-    dKnots: [...D_KNOTS],
+    controlPoints, knots: clampedKnots(nF), degree: nF,
+    sReCPs: Sbern.map((z) => z.re), sImCPs: Sbern.map((z) => z.im), sKnots: clampedKnots(degS),
+    dReCPs: Dbern.map((z) => z.re), dImCPs: Dbern.map((z) => z.im), dKnots: clampedKnots(degD),
     wronskianResidual,
   }
 }
 
-/** Free parameters of the exactly-PH linear-D family (degree-2 S, gauge d0 = 1). */
+/** Exact reconstruction for S, D given in the BERNSTEIN basis (used by the reconstruction pin). */
+export function reconstructRationalPHLinearD(
+  sReCPs: readonly number[], sImCPs: readonly number[],
+  dReCPs: readonly number[], dImCPs: readonly number[],
+  origin: { x: number; y: number },
+): RationalPHLinearDCurve {
+  const Sb: Complex[] = sReCPs.map((re, i) => ({ re, im: sImCPs[i] }))
+  const Db: Complex[] = dReCPs.map((re, i) => ({ re, im: dImCPs[i] }))
+  return reconstructExactRationalPH(bernToPower(Sb), bernToPower(Db), origin)
+}
+
+/**
+ * Free parameters of the exactly-PH rational family, any generator degree and constant/linear/
+ * quadratic D. `sFree` are the S power coefficients NOT fixed by the compatibility
+ * (degD=0 → all [s0,…,s_degS] — the polynomial PH corner; degD=1 → [s0,s2,…,s_degS];
+ * degD=2 → [s2,…,s_degS]); `roots` are D's degD roots (off [0,1], empty for degD=0), with
+ * D(0)=1 as the scale gauge.
+ */
+export interface RationalPHExactParams {
+  degS: number
+  degD: 0 | 1 | 2
+  sFree: Complex[]
+  roots: Complex[]
+  origin: { x: number; y: number }
+}
+
+/** Build a compatible (exact-PH) rational curve of arbitrary generator/denominator degree. */
+export function rationalPHExactFromParams(p: RationalPHExactParams): RationalPHLinearDCurve {
+  const dPow = dPowerFromRoots(p.roots)
+  const sPow = deriveFullSPower(p.degS, p.degD, p.sFree, p.roots)
+  return reconstructExactRationalPH(sPow, dPow, p.origin)
+}
+
+/** Free parameters of the degree-2 S / linear-D special case (s1 = −2·s2·r derived). */
 export interface RationalPHLinearDParams {
-  /** S(0) power coefficient s0 (= S at t=0). */
   s0: Complex
-  /** S's leading power coefficient s2 (curvature of the preimage). */
   s2: Complex
-  /** Denominator endpoint d1 = D(1); d0 = D(0) is pinned to 1 (scale gauge). */
+  /** Denominator endpoint d1 = D(1); d0 = D(0) pinned to 1. Root r = 1/(1 − d1). */
   d1: Complex
   origin: { x: number; y: number }
 }
 
-/**
- * Build a compatible exactly-PH linear-D curve from free params. Enforces S'(r) = 0 (⇒ exact PH)
- * by deriving s1 = −2·s2·r, where r = 1/(1 − d1) is D's root with d0 pinned to 1.
- */
+/** Backward-compatible degree-2 / linear-D constructor (delegates to the general path). */
 export function rationalPHLinearDFromParams(prm: RationalPHLinearDParams): RationalPHLinearDCurve {
-  const d0: Complex = { re: 1, im: 0 }
-  const { s0, s2, d1, origin } = prm
-  // D = d0·(1−t) + d1·t ⇒ D(t)=0 at t = d0/(d0−d1) = 1/(1−d1).
-  const r = cdiv(d0, csub(d0, d1))
-  const s1 = cscale(cmul(s2, r), -2) // S'(r) = s1 + 2 s2 r = 0
-  // S power basis [s0, s1, s2] → Bernstein (degree 2) for the reconstruction interface.
-  const sBern = powerToBern([s0, s1, s2], 2)
-  return reconstructRationalPHLinearD(
-    sBern.map((z) => z.re),
-    sBern.map((z) => z.im),
-    [d0.re, d1.re],
-    [d0.im, d1.im],
-    origin,
-  )
+  const r = cdiv({ re: 1, im: 0 }, csub({ re: 1, im: 0 }, prm.d1)) // D's root, d0=1 gauge
+  return rationalPHExactFromParams({ degS: 2, degD: 1, sFree: [prm.s0, prm.s2], roots: [r], origin: prm.origin })
 }
