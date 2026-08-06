@@ -32,6 +32,8 @@
 //     3D where the phenomenon is genuinely 3D (gauge, frames, torsion, families)
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
+import ThreePointsFigure from './ThreePointsFigure'
+import PinnedEndsFigure from './PinnedEndsFigure'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
@@ -65,5 +67,59 @@ export const slides: SlideDefinition[] = [
       'two-parameter family and the fairness landscape), III Moving (dragging as ' +
       'transport; monodromy and holonomy), IV Frames (ERF, Frenet, RMF, RRMF), ' +
       'V The frontier (arbitrary-degree RRMF construction — open in the survey\'s own words).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 3 — the price of PH, stated as a dimension count
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Same degrees of freedom, different number of answers</h2>
+        <ThreePointsFigure />
+      </>
+    ),
+    notes:
+      'Both objects have 6 real DOF (quadratic Bézier: 3 planar control points; planar PH cubic: ' +
+      'the linear generator w₀,w₁ = 4 real, plus the integration constant = 2). Three interpolation ' +
+      'points impose 6 real conditions. Both square. The quadratic\'s equations are LINEAR, so one ' +
+      'solution; the PH cubic\'s are QUADRATIC, so two. That is the whole price of PH, and it needs ' +
+      'no introduction to state. ' +
+      'Mechanism: c(t)−c(0) = A(t)w₀² + B(t)w₀w₁ + C(t)w₁² with A,B,C REAL, so w₁ = r·w₀ factors out ' +
+      'w₀² and the system collapses to one complex quadratic in r — hence exactly two roots, and the ' +
+      'gauge w → −w leaves both q and r fixed so it does not merge them. Verified in phCubic.test.ts ' +
+      'across many data sets and t₁ values. Both panels are closed form; no optimizer.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 4 — codimension, felt: grab one point and two move
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Grab one control point and two move</h2>
+        <PinnedEndsFigure />
+      </>
+    ),
+    notes:
+      'On the PH variety, "move one control point and freeze the others" is not a motion at all — it ' +
+      'leaves the variety. Codimension, not solver weakness, and worth hitting deliberately here ' +
+      'rather than letting someone discover it later as a bug. ' +
+      'Pin P₀,P₃: 6 DOF − 4 conditions = 2, exactly one point of freedom (forced, not chosen). So P₁ ' +
+      'is free and P₂ follows, via r² + r + (1 − D/q) = 0 — two branches. ' +
+      'Orange segment (P₃ → P₀+(4/3)D): the only placements of P₁ where EVERY branch is cusped, so ' +
+      'existence is unrestricted while regularity is not. Off the chord line no branch is cusped at ' +
+      'all, since a cusp needs r real. Purple circle: the branch point P₀+(4/3)D, where the roots ' +
+      'merge at r = −1/2 doubly. ' +
+      '"run loop" is the monodromy demonstration — P₁ goes once around the branch point and returns ' +
+      'to exactly where it started, following the nearest root at each step (which is what a drag ' +
+      'does), and P₂ lands on the OTHER solution. The branch structure is a two-sheeted cover of the ' +
+      'P₁-plane branched at a single point: the simplest nontrivial monodromy there is, on a PH curve. ' +
+      'Verified in phCubic.test.ts, including that a loop NOT enclosing the point returns unchanged. ' +
+      'Note for the free/strict toggle discussion: there is nothing here for an optimizer to choose. ' +
+      'The system is SQUARE, so the only freedom is which branch; minimum-norm transport has room to ' +
+      'act only where there is spare freedom, and in the plane with both ends pinned there is none.',
   },
 ]
