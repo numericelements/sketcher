@@ -20,6 +20,17 @@
 // Four branches need tracking (framework/branchTracking) or the colours jump as the
 // data moves; the initial pick is the fairest by absolute rotation index R = ∫|κ|ds,
 // which is the survey's recommended selector for the "good" interpolant.
+//
+// The strict/free toggle is the same contrast as slide 4, one degree up — and the
+// numbers grow the way the trichotomy predicts:
+//
+//   STRICT  prescribe {P₀,P₁,P₄,P₅}   8 DOF vs 8 conditions — square, FOUR branches
+//   FREE    prescribe one point       8 DOF vs 2 conditions — SIX spare, so
+//                                     minimum-norm chooses; one continuous solution
+//
+// Six spare degrees of freedom against the cubic's four: the more room the manifold
+// has, the more an optimizer has to decide, and the further "strict" and "free" are
+// from each other. Same core solver (core/phFreeDrag is degree-generic).
 // ============================================================================
 import { useState } from 'react'
 import { type Complex, cscale, csub } from '../../core/complex'
@@ -28,6 +39,7 @@ import {
   curveAt,
   type PHQuinticSolution,
 } from '../../core/phQuinticHermite'
+import { type PHFreeState, dragPHFree, freeControlPoints, phPolygonResidual } from '../../core/phFreeDrag'
 import FigureFrame from '../framework/FigureFrame'
 import { FIG, curveStroke, ControlPolygon, DataPoint, DerivedPoint } from '../framework/figureStyle'
 import { trackOrder, controlPolygonDistance } from '../framework/branchTracking'
@@ -93,13 +105,58 @@ const pathOf = (vp: Viewport, at: (t: number) => Complex, n = 200): string => {
   return d
 }
 
+type Mode = 'strict' | 'free'
+
 export default function QuinticHermiteFigure() {
+  const [mode, setMode] = useState<Mode>('strict')
   const [state, setState] = useState(() => ({ points: START, solutions: canonical(solveAt(START)) }))
   const [selected, setSelected] = useState(0)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [freeState, setFreeState] = useState<PHFreeState | null>(null)
+  const [freeInfo, setFreeInfo] = useState({ tracking: 0, disturbance: 0 })
 
   const { points, solutions } = state
   const sel = solutions[Math.min(selected, Math.max(0, solutions.length - 1))]
+
+  /** All six control points, from whichever mode is driving. */
+  const cps: Complex[] =
+    mode === 'free' && freeState ? freeControlPoints(freeState) : (sel?.controlPoints ?? [])
+  /** The origin the selected curve is drawn from. */
+  const origin = mode === 'free' && freeState ? freeState.p0 : points[0]
+  const generator =
+    mode === 'free' && freeState
+      ? { w0: freeState.generator[0], w1: freeState.generator[1], w2: freeState.generator[2] }
+      : sel?.generator
+
+  // --- mode handoff, continuous in both directions -----------------------------
+  const toFree = () => {
+    if (sel) {
+      setFreeState({ generator: [sel.generator.w0, sel.generator.w1, sel.generator.w2], p0: points[0] })
+    }
+    setFreeInfo({ tracking: 0, disturbance: 0 })
+    setMode('free')
+  }
+  const toStrict = () => {
+    if (freeState) {
+      const c = freeControlPoints(freeState)
+      // The Hermite data is whatever the free curve now has at its ends.
+      const nextPoints = [c[0], c[1], c[4], c[5]]
+      const solved = solveAt(nextPoints)
+      const ordered = solved.length === solutions.length
+        ? trackOrder(solved, solutions, controlPolygonDistance)
+        : canonical(solved)
+      setState({ points: nextPoints, solutions: ordered })
+      // Stay on whichever branch is the curve we were just looking at.
+      let best = 0
+      let bestD = Infinity
+      ordered.forEach((s, i) => {
+        const d = controlPolygonDistance(s, { controlPoints: c })
+        if (d < bestD) { bestD = d; best = i }
+      })
+      setSelected(best)
+    }
+    setMode('strict')
+  }
 
   // Fairest branch by R, so the readout can say whether you are on it.
   const fairest = solutions.reduce(
@@ -124,32 +181,76 @@ export default function QuinticHermiteFigure() {
     <FigureFrame
       world={WORLD}
       base={BASE}
-      notation={[
-        '8 DOF, 8 conditions',
-        'w₀,w₂ = ±√d',
-        '2w₁² + 3(w₀+w₂)w₁ + (3w₀²+w₀w₂+3w₂²−15Δp) = 0',
-        '2 signs × 2 roots ⇒ 4',
-      ]}
-      readouts={[
-        { label: 'solutions', value: String(solutions.length) },
-        { label: 'R = ∫|κ|ds', value: sel ? sel.rotationIndex.toFixed(3) : '—' },
-        { label: 'arc len', value: sel ? sel.arcLength.toFixed(3) : '—' },
-        selected === fairest
-          ? { label: '', value: 'fairest ✓', tone: 'ok' as const }
-          : { label: '', value: `fairest is another`, tone: 'plain' as const },
-      ]}
+      notation={
+        mode === 'strict'
+          ? [
+              '8 DOF, 8 conditions',
+              'w₀,w₂ = ±√d',
+              '2w₁² + 3(w₀+w₂)w₁ + (3w₀²+w₀w₂+3w₂²−15Δp) = 0',
+              '2 signs × 2 roots ⇒ 4',
+            ]
+          : ['8 DOF − 2 dragged = 6 spare', 'min Σ |Pⱼ − Pⱼᵒˡᵈ|²', 'underdetermined ⇒ a choice']
+      }
+      readouts={
+        mode === 'strict'
+          ? [
+              { label: 'solutions', value: String(solutions.length) },
+              { label: 'R = ∫|κ|ds', value: sel ? sel.rotationIndex.toFixed(3) : '—' },
+              { label: 'arc len', value: sel ? sel.arcLength.toFixed(3) : '—' },
+              selected === fairest
+                ? { label: '', value: 'fairest ✓', tone: 'ok' as const }
+                : { label: '', value: 'fairest is another', tone: 'plain' as const },
+            ]
+          : [
+              { label: 'spare DOF', value: '6' },
+              { label: 'cursor error', value: freeInfo.tracking.toFixed(4) },
+              { label: 'others moved', value: freeInfo.disturbance.toFixed(4) },
+              {
+                label: 'PH residual',
+                value: cps.length === 6 ? phPolygonResidual(cps).toExponential(1) : '—',
+                tone: 'ok' as const,
+              },
+            ]
+      }
       controls={
-        <button
-          onClick={() => {
-            setState({ points: START, solutions: canonical(solveAt(START)) })
-            setSelected(0)
-          }}
-          className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
-        >
-          reset
-        </button>
+        <span className="flex items-center gap-2">
+          <span className="inline-flex rounded overflow-hidden border border-slate-300">
+            <button
+              onClick={toStrict}
+              className={`px-2 py-[0.15em] ${mode === 'strict' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              strict
+            </button>
+            <button
+              onClick={toFree}
+              className={`px-2 py-[0.15em] ${mode === 'free' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              free
+            </button>
+          </span>
+          <button
+            onClick={() => {
+              setState({ points: START, solutions: canonical(solveAt(START)) })
+              setSelected(0)
+              setFreeState(null)
+              setFreeInfo({ tracking: 0, disturbance: 0 })
+              setMode('strict')
+            }}
+            className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
+          >
+            reset
+          </button>
+        </span>
       }
       caption={
+        mode === 'free' ? (
+          <>
+            <b>Free.</b> Nothing prescribed, so grab <i>any</i> of the six. Eight degrees of freedom
+            against two conditions leaves <b>six</b> spare — half again what the cubic had — so
+            minimum-norm has more to decide and the rest of the polygon drifts more. One continuous
+            solution instead of four branches, and the polygon stays exactly PH.
+          </>
+        ) : (
         <>
           <b>C¹ Hermite data has exactly four PH quintic interpolants — always.</b> The unknowns are
           complex, so unlike the cubic there is no existence condition to fail. Eight real degrees of
@@ -157,61 +258,87 @@ export default function QuinticHermiteFigure() {
           Which one is the good one is a real problem, and R = ∫|κ|ds is the classical answer.{' '}
           <span className="text-slate-400">Drag an end or its tangent leg; click a curve to select it.</span>
         </>
+        )
       }
     >
       {(vp) => {
         const onMove = (e: React.PointerEvent) => {
           if (dragIdx === null) return
           const w = vp.toWorld(e)
-          moveTo(dragIdx, { re: w.x, im: w.y })
+          const target: Complex = { re: w.x, im: w.y }
+          if (mode === 'strict') {
+            moveTo(dragIdx, target)
+          } else if (freeState) {
+            const step = dragPHFree(freeState, dragIdx, target)
+            setFreeState(step.state)
+            setFreeInfo({ tracking: step.trackingError, disturbance: step.disturbance })
+          }
+        }
+        const grab = (k: number) => (e: React.PointerEvent) => {
+          e.stopPropagation()
+          ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+          setDragIdx(k)
         }
         return (
           <g onPointerMove={onMove} onPointerUp={() => setDragIdx(null)}>
             <rect x={-1e4} y={-1e4} width={2e4} height={2e4} fill="transparent" />
 
-            {/* the three you are not on: grey, thin, clickable */}
-            {solutions.map((s, i) =>
-              i === selected ? null : (
-                <g key={`u${i}`}>
-                  <path d={pathOf(vp, (t) => curveAt(s.generator, points[0], t))} {...curveStroke(vp, false)} />
-                  <path
-                    d={pathOf(vp, (t) => curveAt(s.generator, points[0], t))}
-                    fill="none"
-                    stroke="transparent"
-                    strokeWidth={vp.px(FIG.size.curveHit)}
-                    style={{ cursor: 'pointer' }}
-                    onPointerDown={(e) => { e.stopPropagation(); setSelected(i) }}
-                  />
-                </g>
-              ),
-            )}
+            {/* strict: the three you are not on — grey, thin, clickable */}
+            {mode === 'strict' &&
+              solutions.map((s, i) =>
+                i === selected ? null : (
+                  <g key={`u${i}`}>
+                    <path d={pathOf(vp, (t) => curveAt(s.generator, points[0], t))} {...curveStroke(vp, false)} />
+                    <path
+                      d={pathOf(vp, (t) => curveAt(s.generator, points[0], t))}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={vp.px(FIG.size.curveHit)}
+                      style={{ cursor: 'pointer' }}
+                      onPointerDown={(e) => { e.stopPropagation(); setSelected(i) }}
+                    />
+                  </g>
+                ),
+              )}
 
-            {sel && (
+            {cps.length === 6 && generator && (
               <>
-                <ControlPolygon vp={vp} cps={sel.controlPoints} />
-                {/* P₂ and P₃ are DERIVED — the two the Hermite data does not fix */}
-                {[2, 3].map((k) => (
-                  <DerivedPoint key={k} vp={vp} p={sel.controlPoints[k]} label={`P${'₀₁₂₃₄₅'[k]}`} />
-                ))}
-                <path d={pathOf(vp, (t) => curveAt(sel.generator, points[0], t))} {...curveStroke(vp, true)} />
+                <ControlPolygon vp={vp} cps={cps} />
+                <path d={pathOf(vp, (t) => curveAt(generator, origin, t))} {...curveStroke(vp, true)} />
               </>
             )}
 
-            {/* the four prescribed points */}
-            {points.map((p, k) => (
-              <DataPoint
-                key={k}
-                vp={vp}
-                p={p}
-                label={`P${'₀₁₂₃₄₅'[PRESCRIBED[k]]}`}
-                dragging={dragIdx === k}
-                onPointerDown={(e) => {
-                  e.stopPropagation()
-                  ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
-                  setDragIdx(k)
-                }}
-              />
-            ))}
+            {mode === 'strict' ? (
+              <>
+                {/* P₂ and P₃ are DERIVED — the two the Hermite data does not fix */}
+                {cps.length === 6 &&
+                  [2, 3].map((k) => (
+                    <DerivedPoint key={k} vp={vp} p={cps[k]} label={`P${'₀₁₂₃₄₅'[k]}`} />
+                  ))}
+                {points.map((p, k) => (
+                  <DataPoint
+                    key={k}
+                    vp={vp}
+                    p={p}
+                    label={`P${'₀₁₂₃₄₅'[PRESCRIBED[k]]}`}
+                    dragging={dragIdx === k}
+                    onPointerDown={grab(k)}
+                  />
+                ))}
+              </>
+            ) : (
+              // free: all six are handles
+              cps.map((p, k) => (
+                <DataPoint
+                  key={k}
+                  vp={vp}
+                  p={p}
+                  label={`P${'₀₁₂₃₄₅'[k]}`}
+                  dragging={dragIdx === k}
+                  onPointerDown={grab(k)}
+                />
+              ))
+            )}
           </g>
         )
       }}
