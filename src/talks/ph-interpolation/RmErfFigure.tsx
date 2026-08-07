@@ -19,8 +19,14 @@
 //           back over itself — 23 reversals in a 49-member list. Fixed in core by
 //           orienting each tangent against the previous one.
 //
-//   FREE    nothing pinned; drag any of the eight control points, minimum norm spends
-//           the rest. The class is held either way.
+//   FREE    drag any of the eight control points; the class is held either way.
+//
+//           WITH THE END POINTS HELD, whichever you are not dragging. A single degree-7
+//           Bézier has NO local support, so with only the class and the cursor
+//           constrained minimum norm slides the whole curve and the edit reads as stiff
+//           — measured: the ends drift by more than 1e-3 per gesture without the pin,
+//           under 1e-8 with it. Six conditions of nineteen unknowns buys the anchor, and
+//           about four parameters are left over.
 //
 // The strict mode is the stronger statement: ride the slider through the whole family
 // and the frame STILL never twists. That is a property of the class, not of one lucky
@@ -263,7 +269,7 @@ export default function RmErfFigure() {
         { label: 'non-planar', value: planarity(curve.A).toFixed(3) },
         ...(mode === 'strict'
           ? [{ label: 'spare DOF', value: `1  (member ${index + 1}/${family.length})` }]
-          : [{ label: 'spare DOF', value: '7' }]),
+          : [{ label: 'spare DOF', value: dragIdx === 0 || dragIdx === 7 ? '7' : '4  (ends held)' }]),
         ...(stalled ? [{ label: 'step', value: 'not reached' }] : []),
       ]}
       controls={
@@ -319,11 +325,14 @@ export default function RmErfFigure() {
           </>
         ) : (
           <>
-            <b>Free.</b> Nothing pinned, so grab any of the eight — and the curve still cannot leave
-            the class. Sixteen unknowns against five constraints and the cursor leaves{' '}
-            <b>seven</b> spare, spent by minimum norm, so the rest of the polygon drifts as little as
-            the solve can manage. The five constraints are <i>hard</i> in that solve, not penalties:
-            which is why <b>“in class” and “twist” stay at machine zero</b> rather than merely small.
+            <b>Free.</b> Grab any of the eight — and the curve still cannot leave the class. A single
+            degree-7 Bézier has <i>no local support</i>, so with only the class and your cursor
+            constrained, minimum norm slides the whole curve at once. So the two{' '}
+            <b>end points are held</b> — whichever one you are not dragging — which costs six
+            conditions of the nineteen unknowns and buys an anchor: the curve now deforms{' '}
+            <i>where you pull</i> instead of drifting bodily. About four parameters are left, spent by
+            minimum norm. The five class constraints stay <i>hard</i> in that solve, never penalties,
+            which is why <b>“in class” and “twist” read machine zero</b> rather than merely small.
           </>
         )
       }
@@ -361,12 +370,21 @@ export default function RmErfFigure() {
           <DragPoint3D
             key={i}
             position={tri(p)}
-            color={dragIdx === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+            color={
+              dragIdx === i
+                ? FIG.color.dataPointDrag
+                : // an end that is being HELD this instant, rather than merely idle
+                  dragIdx !== null && (i === 0 || i === 7)
+                  ? FIG.color.pinned
+                  : FIG.color.dataPoint
+            }
             radius={0.05}
             onDragStart={() => { setDragIdx(i); setStalled(false) }}
             onDragEnd={() => setDragIdx(null)}
             onDrag={([x, y, z]) => {
-              const step = dragInClass(curve, i, { x, y, z })
+              // Hold whichever end you are not holding: one Bézier segment has no
+              // local support, so without an anchor min-norm slides the whole curve.
+              const step = dragInClass(curve, i, { x, y, z }, { pinEnds: true })
               if (step.converged) {
                 setCurve(step.state)
                 setStalled(false)

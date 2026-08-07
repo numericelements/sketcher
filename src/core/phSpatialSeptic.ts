@@ -307,14 +307,29 @@ export interface ClassDragResult {
   readonly disturbance: number
 }
 
+export interface ClassDragOptions {
+  /**
+   * Hold the curve's END POINTS — whichever of P₀, P₇ is not the one being dragged.
+   *
+   * A single degree-7 Bézier has NO local support, so with only the class and the
+   * cursor constrained, minimum norm moves everything at once and the edit reads as
+   * stiff. Pinning the ends costs six conditions (14 against 19 unknowns, one of them
+   * gauge, so about four spare) and buys a visible anchor: the curve deforms where you
+   * are pulling instead of sliding as a whole.
+   */
+  readonly pinEnds?: boolean
+  readonly iterations?: number
+}
+
 /**
  * Drag control point `index` while STAYING IN THE CLASS.
  *
- * The constraints are hard (the five RM-ERF conditions plus the cursor), and the
- * remaining freedom is spent by the minimum-norm step — so the rest of the polygon
- * moves as little as the solve can manage. Deliberately NOT a soft-penalty
- * formulation: with soft constraints the achievable class residual would be capped by
- * the weighting, and the whole claim of this figure is that ω₁ is at machine zero.
+ * The constraints are hard (the five RM-ERF conditions, the cursor, and optionally the
+ * far end points), and the remaining freedom is spent by the minimum-norm step — so the
+ * rest of the polygon moves as little as the solve can manage. Deliberately NOT a
+ * soft-penalty formulation: with soft constraints the achievable class residual would be
+ * capped by the weighting, and the whole claim of this figure is that ω₁ is at machine
+ * zero.
  *
  * Warm-started, so an interactive drag is a sequence of these.
  */
@@ -322,14 +337,27 @@ export function dragInClass(
   from: SpatialPHSeptic,
   index: number,
   target: Vec3,
-  iterations = 24,
+  options: ClassDragOptions = {},
 ): ClassDragResult {
+  const iterations = options.iterations ?? 24
+  const pinEnds = options.pinEnds ?? false
   const before = controlPoints(from)
+  const LAST = DEGREE
   const residual = (x: readonly number[]): number[] => {
     const s = unpack(x)
-    const p = controlPoints(s)[index]
-    const d = vsub(p, target)
-    return [...rmErfResidual(s.A), d.x, d.y, d.z]
+    const p = controlPoints(s)
+    const d = vsub(p[index], target)
+    const r = [...rmErfResidual(s.A), d.x, d.y, d.z]
+    if (pinEnds) {
+      // Only the end you are NOT holding — pinning the dragged point to two places at
+      // once would be inconsistent, not merely over-determined.
+      for (const end of [0, LAST]) {
+        if (end === index) continue
+        const e = vsub(p[end], before[end])
+        r.push(e.x, e.y, e.z)
+      }
+    }
+    return r
   }
 
   let x = pack(from)

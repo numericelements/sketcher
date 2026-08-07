@@ -383,3 +383,67 @@ describe('SLIDER BEHAVIOUR — the two things that made it feel wrong', () => {
     expect(Math.max(...gaps) / Math.min(...gaps)).toBeLessThan(2.5)
   })
 })
+
+// ---------------------------------------------------------------------------
+describe('PINNED ENDS in free mode — an anchor for a segment with no local support', () => {
+  const before = controlPoints(CURVE)
+
+  it('the far end points do not move, while the dragged one still tracks', () => {
+    for (const index of [1, 2, 3, 4, 5, 6]) {
+      const target = V(before[index].x + 0.22, before[index].y + 0.17, before[index].z - 0.13)
+      const r = dragInClass(CURVE, index, target, { pinEnds: true })
+      expect(r.converged, `cp ${index}`).toBe(true)
+      const after = controlPoints(r.state)
+      expect(vd(after[index], target), `cp ${index} tracks`).toBeLessThan(1e-7)
+      expect(vd(after[0], before[0]), `cp ${index} moved P₀`).toBeLessThan(1e-8)
+      expect(vd(after[7], before[7]), `cp ${index} moved P₇`).toBeLessThan(1e-8)
+      expect(Math.max(...rmErfResidual(r.state.A).map(Math.abs))).toBeLessThan(1e-9)
+      expect(totalErfTwist(r.state.A), `cp ${index} twist`).toBeLessThan(1e-8)
+    }
+  })
+
+  it('and dragging an END pins only the OTHER one', () => {
+    for (const [index, other] of [[0, 7], [7, 0]] as const) {
+      const target = V(before[index].x + 0.2, before[index].y + 0.15, before[index].z - 0.1)
+      const r = dragInClass(CURVE, index, target, { pinEnds: true })
+      expect(r.converged, `end ${index}`).toBe(true)
+      const after = controlPoints(r.state)
+      expect(vd(after[index], target), `end ${index} tracks`).toBeLessThan(1e-7)
+      expect(vd(after[other], before[other]), `end ${index} moved ${other}`).toBeLessThan(1e-8)
+      expect(totalErfTwist(r.state.A)).toBeLessThan(1e-8)
+    }
+  })
+
+  it('IT REALLY IS LESS STIFF — the ends move without the pin, and not with it', () => {
+    // The observation this exists to answer: with only the class and the cursor
+    // constrained, minimum norm slides the whole curve, because one Bézier segment has
+    // no local support at all.
+    const target = V(before[3].x + 0.25, before[3].y + 0.2, before[3].z - 0.15)
+    const loose = dragInClass(CURVE, 3, target)
+    const pinned = dragInClass(CURVE, 3, target, { pinEnds: true })
+    expect(loose.converged).toBe(true)
+    expect(pinned.converged).toBe(true)
+    const a = controlPoints(loose.state), b = controlPoints(pinned.state)
+    const endsMoved = (c: Vec3[]): number => Math.max(vd(c[0], before[0]), vd(c[7], before[7]))
+    expect(endsMoved(a)).toBeGreaterThan(1e-3)
+    expect(endsMoved(b)).toBeLessThan(1e-8)
+  })
+
+  it('a long incremental drag keeps the ends and the class', () => {
+    let state = CURVE
+    let reached = 0
+    for (let d = 0.15; d <= 2; d += 0.15) {
+      const target = V(before[4].x + 0.5 * d, before[4].y + 0.4 * d, before[4].z - 0.3 * d)
+      const r = dragInClass(state, 4, target, { pinEnds: true })
+      if (!r.converged) break
+      state = r.state
+      reached = d
+    }
+    expect(reached).toBeGreaterThanOrEqual(0.9)
+    const after = controlPoints(state)
+    expect(vd(after[0], before[0])).toBeLessThan(1e-7)
+    expect(vd(after[7], before[7])).toBeLessThan(1e-7)
+    expect(totalErfTwist(state.A)).toBeLessThan(1e-7)
+    expect(minSpeed(state.A)).toBeGreaterThan(0.01)
+  })
+})
