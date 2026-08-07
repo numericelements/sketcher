@@ -272,6 +272,126 @@ export function planarity(q: SpatialPHQuintic): number {
   return Math.sqrt(Math.max(0, lo) / hi)
 }
 
+// ---------------------------------------------------------------------------
+// THE α-ELLIPSES, and how four isolated planar members come out of two surfaces
+//
+// EVERY control point is a SINGLE HARMONIC in α — measured to 1e-16, and the reason
+// is structural: sand(A₀) = dᵢ and polar(A₀,A₂) are α-free (that is the gate), so the
+// only α-dependence anywhere sits in cross terms with B, which are LINEAR in
+// A₀ ~ exp(iα). Nothing quadratic in α survives. So at fixed β,
+//
+//     Pⱼ(α) = cⱼ + (first harmonic)   →   an exact ELLIPSE
+//
+// and the swept surface is a STACK OF ELLIPSES indexed by β. Slide 6's fiber is one
+// of these ellipses; slide 7 adds the dial that moves through the stack.
+//
+// WHICH EXPLAINS THE FOUR POINTS. A surface cut by a plane gives a CURVE, so "the
+// planar members are where the P₂ surface meets the data plane" cannot be right. It
+// is not one condition but TWO:
+//
+//     P₂ in the plane   AND   P₃ in the plane
+//
+// (P₀,P₁,P₄,P₅ are already in it for coplanar data, and four points fix a plane.)
+// Each condition alone cuts a curve out of the torus; the planar interpolants are
+// where the two curves CROSS. Two conditions, two parameters ⇒ dimension zero ⇒
+// isolated points, and the count is four.
+//
+// Concretely: at any β the P₂ ellipse pierces the plane at two α, and so does the P₃
+// ellipse — generically at DIFFERENT α, which is why the curve is not planar. At four
+// spots they coincide. That coincidence is the whole mechanism, and it is visible.
+// ---------------------------------------------------------------------------
+
+/** a + b·cos α + c·sin α — the exact α-dependence of any scalar built from a control point. */
+export interface AlphaHarmonic {
+  readonly a: number
+  readonly b: number
+  readonly c: number
+}
+
+/**
+ * The signed height of control point `index` above a plane, as a function of α at
+ * fixed β. EXACT with three samples, because the dependence is exactly one harmonic
+ * (pinned in the tests) — this is not a fit.
+ */
+export function alphaHeightHarmonic(
+  data: SpatialHermiteData,
+  beta: number,
+  index: number,
+  planeNormal: Vec3,
+  planeOrigin: Vec3,
+): AlphaHarmonic | null {
+  const h: number[] = []
+  for (let k = 0; k < 3; k++) {
+    const q = interpolateSpatialQuintic(data, (2 * Math.PI * k) / 3, beta)
+    if (q === null) return null
+    const p = controlPoints(q)[index]
+    const d = vsub(p, planeOrigin)
+    h.push(d.x * planeNormal.x + d.y * planeNormal.y + d.z * planeNormal.z)
+  }
+  return {
+    a: (h[0] + h[1] + h[2]) / 3,
+    b: (2 * h[0] - h[1] - h[2]) / 3,
+    c: (h[1] - h[2]) / Math.sqrt(3),
+  }
+}
+
+/**
+ * The α at which control point `index` pierces the plane, at this β. Zero or two of
+ * them — a single harmonic cannot do better, which is why the picture stays legible.
+ */
+export function planeCrossingAngles(
+  data: SpatialHermiteData,
+  beta: number,
+  index: number,
+  planeNormal: Vec3,
+  planeOrigin: Vec3,
+): number[] {
+  const harm = alphaHeightHarmonic(data, beta, index, planeNormal, planeOrigin)
+  if (harm === null) return []
+  const { a, b, c } = harm
+  const r = Math.hypot(b, c)
+  if (r === 0 || Math.abs(a) > r) return []
+  const phi = Math.atan2(c, b)
+  const w = Math.acos(Math.min(1, Math.max(-1, -a / r)))
+  const wrap = (x: number): number => ((x % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)
+  return [wrap(phi + w), wrap(phi - w)]
+}
+
+/**
+ * The (α, β) of the planar interpolants, for COPLANAR data. Four of them.
+ *
+ * β ∈ {0, π} is forced: a planar curve needs A(t) ∈ span{1,k} up to a global gauge,
+ * and for in-plane data nᵢ is pure and lies in span{i,j}, so nᵢ·exp(φi) enters
+ * span{1,k} only when cos φ = 0. Hence φ₀, φ₂ ∈ {±π/2} and β = φ₂ − φ₀ ∈ {0, ±π}.
+ * The α are then read off as the plane crossings, which at those β coincide for P₂
+ * and P₃ — that coincidence being exactly what planarity means.
+ *
+ * Returns [] for data that is not coplanar, rather than pretending.
+ */
+export function planarMemberAngles(data: SpatialHermiteData): [number, number][] {
+  const spanA = vsub(data.pf, data.pi)
+  const normal = {
+    x: spanA.y * data.di.z - spanA.z * data.di.y,
+    y: spanA.z * data.di.x - spanA.x * data.di.z,
+    z: spanA.x * data.di.y - spanA.y * data.di.x,
+  }
+  const nlen = Math.hypot(normal.x, normal.y, normal.z)
+  if (nlen === 0) return []
+  const unit = vscale(normal, 1 / nlen)
+  // d_f must lie in that plane too, or the data is not coplanar at all.
+  const scale = Math.hypot(data.df.x, data.df.y, data.df.z)
+  const off = Math.abs(data.df.x * unit.x + data.df.y * unit.y + data.df.z * unit.z)
+  if (scale === 0 || off / scale > 1e-9) return []
+
+  const out: [number, number][] = []
+  for (const beta of [0, Math.PI]) {
+    for (const alpha of planeCrossingAngles(data, beta, 2, unit, data.pi)) {
+      out.push([alpha, beta])
+    }
+  }
+  return out
+}
+
 /** The Hermite data a quintic actually realises — for asserting it interpolates. */
 export function hermiteDataOf(q: SpatialPHQuintic): SpatialHermiteData {
   const pts = controlPoints(q)

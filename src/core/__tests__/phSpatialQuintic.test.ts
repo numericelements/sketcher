@@ -18,6 +18,8 @@ import {
   hodographAt,
   interpolateSpatialQuintic,
   planarity,
+  planarMemberAngles,
+  planeCrossingAngles,
   speedAt,
   speedCoefficients,
 } from '../phSpatialQuintic'
@@ -263,6 +265,100 @@ describe('THE FOUR PLANAR INTERPOLANTS SIT AT THE QUARTER-TURNS', () => {
     let best = Infinity
     for (let i = 0; i <= 400; i++) best = Math.min(best, planarity(make((2 * Math.PI * i) / 400, 1.3, FLAT)))
     expect(best).toBeGreaterThan(1e-2)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('the α-ellipses, and the mechanism behind the four points', () => {
+  const NZ = V(0, 0, 1)
+
+  it('every control point is EXACTLY one harmonic in α — hence an ellipse', () => {
+    // The claim the figure rests on. Second and third harmonics must be machine zero;
+    // if they were not, "the surface is a stack of ellipses" would be a lie.
+    for (const beta of [0, 0.7, Math.PI, 2.3]) {
+      const N = 256
+      for (let j = 0; j < 6; j++) {
+        const s: Vec3[] = []
+        for (let k = 0; k < N; k++) s.push(controlPoints(make((2 * Math.PI * k) / N, beta))[j])
+        for (const h of [2, 3, 4]) {
+          let xr = 0, xi = 0, yr = 0, yi = 0, zr = 0, zi = 0
+          for (let k = 0; k < N; k++) {
+            const th = (2 * Math.PI * h * k) / N
+            const co = Math.cos(th), si = Math.sin(th)
+            xr += s[k].x * co; xi -= s[k].x * si
+            yr += s[k].y * co; yi -= s[k].y * si
+            zr += s[k].z * co; zi -= s[k].z * si
+          }
+          const amp = (2 / N) * Math.hypot(xr, xi, yr, yi, zr, zi)
+          expect(amp, `P${j} harmonic ${h} at β=${beta}`).toBeLessThan(1e-12)
+        }
+      }
+    }
+  })
+
+  it('the plane crossings really are in the plane', () => {
+    for (const beta of [0, 0.9, Math.PI, 2.7]) {
+      for (const index of [2, 3]) {
+        for (const alpha of planeCrossingAngles(FLAT, beta, index, NZ, FLAT.pi)) {
+          expect(Math.abs(controlPoints(make(alpha, beta, FLAT))[index].z)).toBeLessThan(1e-12)
+        }
+      }
+    }
+  })
+
+  it('there are two of them, or none — never more', () => {
+    for (let k = 0; k < 40; k++) {
+      const beta = (4 * Math.PI * k) / 40
+      for (const index of [2, 3]) {
+        expect([0, 2]).toContain(planeCrossingAngles(FLAT, beta, index, NZ, FLAT.pi).length)
+      }
+    }
+  })
+
+  it('AT A GENERIC β THE TWO SETS DISAGREE — which is why the curve is not planar', () => {
+    for (const beta of [0.6, 1.3, 2.4]) {
+      const c2 = planeCrossingAngles(FLAT, beta, 2, NZ, FLAT.pi)
+      const c3 = planeCrossingAngles(FLAT, beta, 3, NZ, FLAT.pi)
+      expect(c2.length).toBe(2)
+      expect(c3.length).toBe(2)
+      const gap = Math.min(...c2.map((a) => Math.min(...c3.map((b) => Math.abs(a - b)))))
+      expect(gap, `β = ${beta}`).toBeGreaterThan(1e-3)
+    }
+  })
+
+  it('AT β = 0 AND β = π THEY COINCIDE — and that is exactly planarity', () => {
+    for (const beta of [0, Math.PI]) {
+      const c2 = planeCrossingAngles(FLAT, beta, 2, NZ, FLAT.pi).sort((x, y) => x - y)
+      const c3 = planeCrossingAngles(FLAT, beta, 3, NZ, FLAT.pi).sort((x, y) => x - y)
+      expect(c2).toHaveLength(2)
+      expect(c3).toHaveLength(2)
+      for (let i = 0; i < 2; i++) expect(Math.abs(c2[i] - c3[i]), `β = ${beta}`).toBeLessThan(1e-9)
+    }
+  })
+
+  it('planarMemberAngles finds the four, and they are the quarter-turns', () => {
+    const found = planarMemberAngles(FLAT)
+    expect(found).toHaveLength(4)
+    for (const [a, b] of found) expect(planarity(make(a, b, FLAT)), `(${a}, ${b})`).toBeLessThan(1e-7)
+    const key = found.map(([a, b]) => `${(a / Math.PI).toFixed(3)},${(b / Math.PI).toFixed(3)}`).sort()
+    expect(key).toEqual(['0.000,0.000', '0.500,1.000', '1.000,0.000', '1.500,1.000'])
+  })
+
+  it('and it refuses non-coplanar data rather than inventing members', () => {
+    expect(planarMemberAngles(DATA)).toHaveLength(0)
+  })
+
+  it('the quarter-turn pattern is not an accident of one dataset', () => {
+    const other: SpatialHermiteData = {
+      pi: V(-0.8, 0.4, 0), pf: V(1.1, -0.5, 0), di: V(0.9, 1.6, 0), df: V(1.7, 0.6, 0),
+    }
+    const found = planarMemberAngles(other)
+    expect(found).toHaveLength(4)
+    for (const [a, b] of found) {
+      const q = interpolateSpatialQuintic(other, a, b)
+      expect(q).not.toBeNull()
+      expect(planarity(q as SpatialPHQuintic)).toBeLessThan(1e-7)
+    }
   })
 })
 
