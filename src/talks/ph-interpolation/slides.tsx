@@ -37,6 +37,7 @@ import PinnedEndsFigure from './PinnedEndsFigure'
 import QuinticHermiteFigure from './QuinticHermiteFigure'
 import SpatialCubicFigure from './SpatialCubicFigure'
 import SpatialQuinticFigure from './SpatialQuinticFigure'
+import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -213,7 +214,7 @@ export const slides: SlideDefinition[] = [
     type: 'content',
     content: (
       <>
-        <h2>Fourteen degrees of freedom, twelve conditions — the last two are a torus</h2>
+        <h2>Reference — the four planar members on the torus</h2>
         <WhenActive>
           <SpatialQuinticFigure />
         </WhenActive>
@@ -251,5 +252,50 @@ export const slides: SlideDefinition[] = [
       'The swept surfaces are NOT quadrics (fit residual 1e-5 against 1e-10 for a degenerate cloud) — ' +
       'do not claim a classification. Full write-up: docs/PH_SANDWICH_CHAIN.md; ' +
       'core/phSpatialQuintic, 29 tests.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8 — the spatial twin of slide 5: four discrete answers become a torus
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Fourteen degrees of freedom, twelve conditions — the last two are a torus</h2>
+        <WhenActive>
+          <QuinticHermiteSpatialFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE DECK\'S CENTRAL MOVE, said at the same degree and with the same gesture as slide 5, so ' +
+      'the only thing that differs is the dimension of the answer: four discrete interpolants become ' +
+      'a two-parameter family. ' +
+      'THE FOUR BLUE POINTS ARE THE DATA — an identity, not an analogy: P₁ = pᵢ + dᵢ/5 and ' +
+      'P₄ = p_f − d_f/5, so dragging them IS prescribing C¹ Hermite data. Twelve conditions, drawn, ' +
+      'with no tangent handles to explain. 14 − 12 = 2, and the grey pair rides what is left. ' +
+      'ARC LENGTH DEPENDS ON β ALONE — demonstrate it, do not assert it: turn α end to end and the ' +
+      'readout does not move a digit. WHY, in one sentence: α is the closure spinor\'s own gauge angle ' +
+      'in disguise. Moving α and then undoing the global gauge leaves A₀ and A₂ EXACTLY fixed and ' +
+      'spins B around its solution circle (verified to 1e-16), and |B|² = |d| is forced by the ' +
+      'sandwich with d depending on β alone. So the α-dial IS slide 6\'s fiber, one link further ' +
+      'along the chain. The ghosts all sit on that circle, so they share the live curve\'s length. ' +
+      'Exact closed form, verified to 1.8e-15: L = ⅛(|dᵢ|+|d_f|) − 1/12⟨A₀,A₂⟩ + 1/120|d|, and the ' +
+      'α-dependent cross term ⟨B,S⟩ cancels between ⟨A₁,S⟩ and ⅔|A₁|². ' +
+      'THE TOGGLE IS A LESSON, not a convenience. φ₀,φ₂ is one dial per END and the HONEST torus — ' +
+      '[0,2π)², period 2π each, no identifications — but the invariant is DIAGONAL (move both ' +
+      'together). α,β has determinant 1 but ½ entries, so it is NOT in GL(2,ℤ) and does not preserve ' +
+      'the period lattice: α period 2π, β period 4π, plus the gluing (α+π, β+2π) ≡ (α,β), so the ' +
+      'rectangle DOUBLE-COVERS the torus. Ugly domain, but the invariant is now AXIS-ALIGNED. You ' +
+      'shear coordinates to make a conserved quantity a coordinate and pay in the domain — ' +
+      'diagonalisation. Switching is a pure relabel, so the curve does not move when you flip. ' +
+      'FREE releases everything: 14 DOF against 3 conditions, ELEVEN spare, against the spatial ' +
+      'cubic\'s seven and the plane\'s four. Coming back reads the data off the polygon and recovers ' +
+      '(α,β) with anglesOf, which subtracts φ₁ first because a dragged curve carries an arbitrary ' +
+      'global gauge. ' +
+      'Gauge transport is load-bearing: the references are carried frame to frame, or the curve jumps ' +
+      'when a tangent crosses −x̂ (pinned as a fails-without-it test). ' +
+      'core/phSpatialQuintic (35 tests) and core/phSpatialFreeDragN (13, including exact agreement ' +
+      'with the cubic module).',
   },
 ]

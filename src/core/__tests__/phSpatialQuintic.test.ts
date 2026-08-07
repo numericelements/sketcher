@@ -9,12 +9,21 @@ import { describe, it, expect } from 'vitest'
 import { type Vec3, vnorm, vsub } from '../quaternion'
 import { type HermiteData, phQuinticHermite } from '../phQuinticHermite'
 import {
+  type SpatialPHCurve,
+  controlPoints as generalControlPoints,
+  dragSpatialFree,
+} from '../phSpatialFreeDragN'
+import {
+  type GaugeRefs,
   type SpatialHermiteData,
   type SpatialPHQuintic,
+  anglesOf,
   arcLength,
   closureVector,
   controlPoints,
   curveAt,
+  gaugeRefsFor,
+  hermiteDataOf,
   hodographAt,
   interpolateSpatialQuintic,
   planarity,
@@ -359,6 +368,109 @@ describe('the α-ellipses, and the mechanism behind the four points', () => {
       expect(q).not.toBeNull()
       expect(planarity(q as SpatialPHQuintic)).toBeLessThan(1e-7)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('gauge transport — so a moving datum cannot make the curve jump', () => {
+  /** Data whose start tangent sweeps a full turn, passing exactly through −x̂. */
+  const sweeping = (theta: number): SpatialHermiteData => ({
+    ...DATA,
+    di: V(1.8 * Math.cos(theta), 1.8 * Math.sin(theta), 0),
+  })
+
+  it('WITHOUT transport the curve jumps as a tangent crosses −x̂', () => {
+    // The failure this exists to prevent. quatFromSandwich builds its representative
+    // from normalise(x̂ + δ̂); at δ̂ = −x̂ that vanishes and the fallback axis flips
+    // sign, so a fixed (α,β) suddenly names a different curve.
+    let worst = 0
+    let prev = controlPoints(make(0.7, 1.3, sweeping(Math.PI - 0.05)))
+    for (const th of [Math.PI - 0.02, Math.PI + 0.02, Math.PI + 0.05]) {
+      const now = controlPoints(make(0.7, 1.3, sweeping(th)))
+      worst = Math.max(worst, ...now.map((p, i) => vd(p, prev[i])))
+      prev = now
+    }
+    expect(worst).toBeGreaterThan(0.5)
+  })
+
+  it('WITH transport it is continuous all the way round', () => {
+    let refs = gaugeRefsFor(sweeping(0))
+    expect(refs).not.toBeNull()
+    let prev: Vec3[] | null = null
+    let worst = 0
+    const N = 400
+    for (let k = 0; k <= N; k++) {
+      const data = sweeping((2 * Math.PI * k) / N)
+      refs = gaugeRefsFor(data, refs)
+      expect(refs, `step ${k}`).not.toBeNull()
+      const q = interpolateSpatialQuintic(data, 0.7, 1.3, refs)
+      expect(q, `step ${k}`).not.toBeNull()
+      const now = controlPoints(q as SpatialPHQuintic)
+      if (prev) worst = Math.max(worst, ...now.map((p, i) => vd(p, prev![i])))
+      prev = now
+    }
+    // Each step turns the tangent by 0.9°; nothing should move more than a hair.
+    expect(worst).toBeLessThan(0.05)
+  })
+
+  it('transport still interpolates the data — it only relabels the angles', () => {
+    let refs = gaugeRefsFor(sweeping(0))
+    for (let k = 0; k <= 40; k++) {
+      const data = sweeping((2 * Math.PI * k) / 40)
+      refs = gaugeRefsFor(data, refs)
+      const q = interpolateSpatialQuintic(data, 0.7, 1.3, refs) as SpatialPHQuintic
+      const pts = controlPoints(q)
+      expect(vd(pts[0], data.pi)).toBeLessThan(1e-12)
+      expect(vd(pts[5], data.pf)).toBeLessThan(1e-12)
+      expect(vd(hodographAt(q, 0), data.di)).toBeLessThan(1e-11)
+      expect(vd(hodographAt(q, 1), data.df)).toBeLessThan(1e-12)
+    }
+  })
+
+  it('and arc length is STILL β-only under transported references', () => {
+    const refs = gaugeRefsFor(sweeping(2.0), gaugeRefsFor(sweeping(0)))
+    const data = sweeping(2.0)
+    const reference = arcLength(interpolateSpatialQuintic(data, 0, 1.1, refs) as SpatialPHQuintic)
+    for (let k = 1; k < 8; k++) {
+      const got = arcLength(
+        interpolateSpatialQuintic(data, (2 * Math.PI * k) / 8, 1.1, refs) as SpatialPHQuintic,
+      )
+      expect(Math.abs(got - reference) / reference).toBeLessThan(1e-12)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('anglesOf — reading (α, β) back off a curve', () => {
+  it('round-trips exactly', () => {
+    const refs = gaugeRefsFor(DATA) as GaugeRefs
+    for (const [a, b] of [[0.4, 1.1], [2.9, -0.7], [5.5, 3.3]] as const) {
+      const q = interpolateSpatialQuintic(DATA, a, b, refs) as SpatialPHQuintic
+      const got = anglesOf(q, refs)
+      const back = interpolateSpatialQuintic(DATA, got.alpha, got.beta, refs) as SpatialPHQuintic
+      const want = controlPoints(q), have = controlPoints(back)
+      for (let i = 0; i < 6; i++) expect(vd(have[i], want[i]), `(${a},${b}) point ${i}`).toBeLessThan(1e-11)
+    }
+  })
+
+  it('recovers a FREELY dragged curve — which carries an arbitrary global gauge', () => {
+    // The free→strict handoff. A dragged curve has φ₁ ≠ 0, so anglesOf must subtract
+    // it before forming α and β, or the rebuilt curve lands somewhere else.
+    let state: SpatialPHCurve = (() => {
+      const q = interpolateSpatialQuintic(DATA, 0.8, 1.6) as SpatialPHQuintic
+      return { A: [q.A0, q.A1, q.A2], p0: q.p0 }
+    })()
+    for (let k = 0; k < 12; k++) {
+      const c = generalControlPoints(state)
+      state = dragSpatialFree(state, 2, V(c[2].x + 0.04, c[2].y + 0.03, c[2].z - 0.02)).state
+    }
+    const dragged: SpatialPHQuintic = { A0: state.A[0], A1: state.A[1], A2: state.A[2], p0: state.p0 }
+    const data = hermiteDataOf(dragged)
+    const refs = gaugeRefsFor(data) as GaugeRefs
+    const got = anglesOf(dragged, refs)
+    const rebuilt = interpolateSpatialQuintic(data, got.alpha, got.beta, refs) as SpatialPHQuintic
+    const want = controlPoints(dragged), have = controlPoints(rebuilt)
+    for (let i = 0; i < 6; i++) expect(vd(have[i], want[i]), `point ${i}`).toBeLessThan(1e-9)
   })
 })
 

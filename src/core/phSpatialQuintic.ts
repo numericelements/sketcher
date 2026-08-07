@@ -54,7 +54,9 @@
 import {
   type Quat,
   type Vec3,
+  QUAT_I,
   gaugeRotate,
+  qmul,
   polarSandwich,
   qadd,
   qnormSq,
@@ -97,23 +99,67 @@ const SQUARE_W: readonly (readonly number[])[] = [
   [0, 0, 1],
 ]
 
+// ---------------------------------------------------------------------------
+// GAUGE REFERENCES — what (α, β) are angles FROM
+//
+// α and β are only meaningful relative to a chosen representative at each end. The
+// default choice, quatFromSandwich, builds one from h = normalise(x̂ + δ̂) — which
+// DEGENERATES when a tangent points at −x̂ and flips to a perpendicular axis. Fine
+// for a static curve; fatal while dragging, because at that instant a fixed (α, β)
+// starts naming a different curve and the picture jumps.
+//
+// So a figure that lets the data move must TRANSPORT its references: keep the
+// previous ones and rotate each new one to the nearest gauge. That is not a fudge —
+// it is the honest statement that the parameterisation is relative, and transporting
+// it is the same idea as the monodromy elsewhere in this deck.
+// ---------------------------------------------------------------------------
+
+/** The representatives α and β are measured from, one per end. */
+export interface GaugeRefs {
+  readonly base0: Quat
+  readonly base2: Quat
+}
+
+/**
+ * Rotate `base` around its gauge circle to the representative closest to
+ * `previous`. Maximising ⟨base·exp(θi), previous⟩ over θ is a single atan2, since
+ * the objective is cos θ·⟨base,prev⟩ + sin θ·⟨base·i,prev⟩.
+ */
+export function alignedGauge(base: Quat, previous: Quat): Quat {
+  const bi = qmul(base, QUAT_I)
+  return gaugeRotate(base, Math.atan2(qdot(bi, previous), qdot(base, previous)))
+}
+
+/** References for this data, transported from `previous` when there is one. */
+export function gaugeRefsFor(data: SpatialHermiteData, previous?: GaugeRefs | null): GaugeRefs | null {
+  const b0 = quatFromSandwich(data.di)
+  const b2 = quatFromSandwich(data.df)
+  if (b0 === null || b2 === null) return null
+  if (!previous) return { base0: b0, base2: b2 }
+  return { base0: alignedGauge(b0, previous.base0), base2: alignedGauge(b2, previous.base2) }
+}
+
 /**
  * THE CONSTRUCTION — [FGMS08] (49)–(55). Returns null only on degenerate data:
  * a vanishing end derivative, or a vanishing closure vector d.
  *
  * α and β are angles; the family is a torus (see the identifications pinned in the
  * tests). Nothing here iterates.
+ *
+ * Pass `refs` to measure the angles from transported representatives instead of the
+ * default ones — required by anything that lets the data move (see GaugeRefs).
  */
 export function interpolateSpatialQuintic(
   data: SpatialHermiteData,
   alpha: number,
   beta: number,
+  refs?: GaugeRefs | null,
 ): SpatialPHQuintic | null {
   const { pi, pf, di, df } = data
 
   // Links 1 and 2 — the tangents. quatFromSandwich is the φ = 0 representative.
-  const base0 = quatFromSandwich(di)
-  const base2 = quatFromSandwich(df)
+  const base0 = refs ? refs.base0 : quatFromSandwich(di)
+  const base2 = refs ? refs.base2 : quatFromSandwich(df)
   if (base0 === null || base2 === null) return null
   const A0 = gaugeRotate(base0, alpha - beta / 2)
   const A2 = gaugeRotate(base2, alpha + beta / 2)
@@ -401,4 +447,29 @@ export function hermiteDataOf(q: SpatialPHQuintic): SpatialHermiteData {
     di: hodographAt(q, 0),
     df: hodographAt(q, 1),
   }
+}
+
+/** The angle from `base` to `a` around the gauge circle they share. */
+function gaugeAngle(base: Quat, a: Quat): number {
+  return Math.atan2(qdot(qmul(base, QUAT_I), a), qdot(base, a))
+}
+
+/**
+ * Read (α, β) back off a curve — the inverse of interpolateSpatialQuintic, needed to
+ * re-enter slider mode after a free drag without the curve jolting.
+ *
+ * A freely-built curve carries an arbitrary global gauge, so φ₁ is not 0. Since only
+ * differences matter, subtract it from all three before forming α and β; that is what
+ * makes this an exact round trip rather than an approximation.
+ */
+export function anglesOf(
+  q: SpatialPHQuintic,
+  refs: GaugeRefs,
+): { readonly alpha: number; readonly beta: number } {
+  const B = qadd(qadd(qscale(q.A0, 3), qscale(q.A1, 4)), qscale(q.A2, 3))
+  const baseB = quatFromSandwich(sandwich(B))
+  const phi1 = baseB === null ? 0 : gaugeAngle(baseB, B)
+  const phi0 = gaugeAngle(refs.base0, q.A0) - phi1
+  const phi2 = gaugeAngle(refs.base2, q.A2) - phi1
+  return { alpha: (phi0 + phi2) / 2, beta: phi2 - phi0 }
 }
