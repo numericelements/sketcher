@@ -18,7 +18,6 @@ import { describe, it, expect } from 'vitest'
 import { type Quat, type Vec3, vnorm, vsub } from '../quaternion'
 import { leastSquares } from '../linalg'
 import {
-  type SpatialPHSpline,
   c2SplineFromMiddles,
   continuityDefects,
   editWindow,

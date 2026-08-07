@@ -37,6 +37,7 @@ import PinnedEndsFigure from './PinnedEndsFigure'
 import QuinticHermiteFigure from './QuinticHermiteFigure'
 import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
+import LocalEditFigure from './LocalEditFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -249,5 +250,57 @@ export const slides: SlideDefinition[] = [
       'when a tangent crosses −x̂ (pinned as a fails-without-it test). ' +
       'core/phSpatialQuintic (35 tests) and core/phSpatialFreeDragN (13, including exact agreement ' +
       'with the cubic module).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8 — local editing: the window width is the dial
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Editing one point of a PH spline — and what locality costs</h2>
+        <WhenActive>
+          <LocalEditFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'ONE GESTURE, ONE LESSON: no toggle, no slider. Drag any control point; three segments move, as ' +
+      'little as they can, and C² holds. ' +
+      'THE CONTRAST TO OPEN WITH: an ordinary C² cubic B-spline gives locality for NOTHING — displace ' +
+      'one control point, four spans change, C² maintained. A PH spline does not. ' +
+      'THE PUBLISHED RESULT (Farouki–Giannelli–Sestini, Adv. Comput. Math. 42 (2016) 199–225, the B-form ' +
+      'paper): for a PLANAR C² PH quintic spline the two-segment support CANNOT preserve C². Holding the ' +
+      'neighbours fixed leaves ONE complex unknown against TWO complex equations, so "the continuity ' +
+      'between modified and unmodified segments must be relaxed from C² to C¹." Note this is the deck\'s ' +
+      'own trichotomy: more conditions than dimensions, generically empty, an obstruction — and relaxing ' +
+      'C² makes it square (two quadratics in two complex variables, hence branches). ' +
+      'OUR RESULT: that relaxation is the cost of the WINDOW WIDTH, not of the PH structure. ' +
+      'Widen by one segment and C² returns. Measured, both dimensions: keep C² needs W=3 in space and ' +
+      'W=4 in the plane; relax to C¹ needs W=2 in both, which reproduces the published scheme and is the ' +
+      'check that the model is right. ' +
+      'SO SPACE IS THE CHEAPER PLACE TO EDIT — a NARROWER window than the plane. Per segment the plane ' +
+      'offers 6 unknowns against 4 conditions per joint, space 12 against 6. ' +
+      'AND THEY ARE FEASIBLE DIFFERENTLY: the plane at W=4 is exactly square (24 unknowns, 24 equations) ' +
+      'so finitely many edits and NO slack, while space at W=3 has THREE genuinely shape-changing ' +
+      'parameters once the three per-segment gauges are quotiented out (kernel 6, gauge 3, verified — ' +
+      '|J·g| ~ 1e-10 for each segment). Space gives a family where the plane gives a count: the deck\'s ' +
+      'central move, in editing rather than interpolation. ' +
+      'The three spare parameters are spent by MINIMUM NORM and need no code — a ridge-regularised ' +
+      'Gauss–Newton step on an underdetermined system IS the minimum-norm step. They are also where ' +
+      'curvature-extrema control would live, which is the NEXT slide. ' +
+      'THERE IS NO MAXIMUM DRAG DISTANCE. A single solve attempting the whole displacement diverges past ' +
+      '~3 units — a basin-of-attraction limit, a solver artifact. Dragged incrementally the point travels ' +
+      'past 30 units in every direction tested, >10x the curve\'s extent, σ ≈ 1 (no cusp). The PH ' +
+      'structure does not bound the gesture; only invariants you choose to impose do. ' +
+      'EVERY POINT DRAGS, ends included: a boundary condition exists only to protect a NEIGHBOUR, so a ' +
+      'window reaching the start imposes nothing on its left and the start tangent is free — which is ' +
+      'the point of dragging P₁. The end POINTS are boundary data and move only when they are the ' +
+      'handle, or min-norm drifts P₀ whenever you nudge P₁. ' +
+      'READ THE READOUTS ALOUD: "outside" is the MEASURED displacement of every control point beyond ' +
+      'the window (machine zero — locality proved, not claimed), and "C² defect" the worst r″ mismatch ' +
+      'across all seven joints. ' +
+      'docs/PH_LOCAL_EDITING.md; core/phSpatialSpline, 19 tests.',
   },
 ]
