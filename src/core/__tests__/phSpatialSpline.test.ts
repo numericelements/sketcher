@@ -54,10 +54,13 @@ describe('the spline itself', () => {
     expect(splineControlPoints(SPLINE)).toHaveLength(5 * MIDDLES.length + 1)
   })
 
-  it('refuses to drag the endpoints — those ARE the end conditions', () => {
-    expect(editWindow(SPLINE, 0, 3)).toBeNull()
-    expect(editWindow(SPLINE, 5 * MIDDLES.length, 3)).toBeNull()
-    expect(localEdit(SPLINE, 0, V(0, 0, 0))).toBeNull()
+  it('EVERY control point is draggable, endpoints included', () => {
+    const last = 5 * MIDDLES.length
+    for (let i = 0; i <= last; i++) expect(editWindow(SPLINE, i, 3), `cp ${i}`).not.toBeNull()
+    expect(editWindow(SPLINE, 0, 3)).toEqual([0, 2])
+    expect(editWindow(SPLINE, last, 3)).toEqual([5, 7])
+    expect(editWindow(SPLINE, -1, 3)).toBeNull()
+    expect(editWindow(SPLINE, last + 1, 3)).toBeNull()
   })
 
   it('centres the window on the dragged point and clamps at the ends', () => {
@@ -359,5 +362,67 @@ describe('PLANE: four segments are needed, and there is no slack', () => {
     })(), { window: 3, keepC2: true })!
     expect(spatial.converged).toBe(true)
     expect(spatial.movedSegments[1] - spatial.movedSegments[0] + 1).toBe(3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('dragging the ENDS — where there is no neighbour to protect', () => {
+  const LAST = 5 * MIDDLES.length
+
+  it('P₀ moves, and the tail beyond the window does NOT come with it', () => {
+    // The trap: p₀ is the integration constant, so a naive edit translates the whole
+    // spline. The window's far END is pinned instead of its net displacement.
+    const before = splineControlPoints(SPLINE)
+    const want = V(before[0].x - 0.3, before[0].y + 0.25, before[0].z + 0.2)
+    const r = localEdit(SPLINE, 0, want, { window: 3 })
+    expect(r).not.toBeNull()
+    expect(r!.converged).toBe(true)
+    const after = splineControlPoints(r!.spline)
+    expect(vd(after[0], want)).toBeLessThan(1e-9)
+    for (let i = 5 * 3; i < before.length; i++) expect(vd(after[i], before[i]), `cp ${i}`).toBeLessThan(1e-10)
+    expect(continuityDefects(r!.spline).c2).toBeLessThan(1e-8)
+  })
+
+  it('the LAST control point likewise, with the head left alone', () => {
+    const before = splineControlPoints(SPLINE)
+    const want = V(before[LAST].x + 0.3, before[LAST].y - 0.25, before[LAST].z + 0.2)
+    const r = localEdit(SPLINE, LAST, want, { window: 3 })!
+    expect(r.converged).toBe(true)
+    const after = splineControlPoints(r.spline)
+    expect(vd(after[LAST], want)).toBeLessThan(1e-9)
+    for (let i = 0; i <= 5 * 5; i++) expect(vd(after[i], before[i]), `cp ${i}`).toBeLessThan(1e-10)
+    expect(continuityDefects(r.spline).c2).toBeLessThan(1e-8)
+  })
+
+  it('P₁ changes the start TANGENT — which is the point of dragging it', () => {
+    const before = splineControlPoints(SPLINE)
+    const want = V(before[1].x + 0.2, before[1].y + 0.3, before[1].z - 0.15)
+    const r = localEdit(SPLINE, 1, want, { window: 3 })!
+    expect(r.converged).toBe(true)
+    const after = splineControlPoints(r.spline)
+    expect(vd(after[1], want)).toBeLessThan(1e-9)
+    // the start point itself is unmoved, but the tangent (P₁ − P₀) is not
+    expect(vd(after[0], before[0])).toBeLessThan(1e-9)
+    expect(vd(vsub(after[1], after[0]), vsub(before[1], before[0]))).toBeGreaterThan(0.1)
+    expect(continuityDefects(r.spline).c2).toBeLessThan(1e-8)
+  })
+
+  it('every control point can be dragged, and each stays local and C²', () => {
+    const before = splineControlPoints(SPLINE)
+    for (let i = 0; i <= LAST; i++) {
+      const want = V(before[i].x + 0.12, before[i].y + 0.1, before[i].z - 0.08)
+      const r = localEdit(SPLINE, i, want, { window: 3 })
+      expect(r, `cp ${i}`).not.toBeNull()
+      expect(r!.converged, `cp ${i} converged`).toBe(true)
+      const after = splineControlPoints(r!.spline)
+      expect(vd(after[i], want), `cp ${i} tracks`).toBeLessThan(1e-8)
+      expect(continuityDefects(r!.spline).c2, `cp ${i} C²`).toBeLessThan(1e-7)
+      // outside the window, nothing moved
+      const [k0, k1] = r!.movedSegments
+      for (let j = 0; j < before.length; j++) {
+        const inside = j >= 5 * k0 && j <= 5 * (k1 + 1)
+        if (!inside) expect(vd(after[j], before[j]), `cp ${i} leaked to ${j}`).toBeLessThan(1e-9)
+      }
+    }
   })
 })

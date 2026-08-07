@@ -83,15 +83,23 @@ in any test.
 
 ## Conventions in the implementation
 
-- **"Local" means exactly local.** The window reproduces its original **net
-  displacement** (or the whole tail would translate) plus hodograph and `r″` matching at
-  both edges. Everything outside is unchanged to 1e-11, not approximately.
-- **The two spline endpoints are not draggable** — they *are* the end conditions
-  (`P₁ = pᵢ + dᵢ/5`, as on slide 7). `editWindow` returns null for them.
-- **The boundary conditions are imposed uniformly**, including where the window meets
-  the curve's own ends. So this implementation does *not* exploit [FGS16]'s
-  free-C²-at-the-ends result: uniform behaviour is worth more in an editor, and the
-  asymmetry is a slide rather than a feature.
+- **"Local" means exactly local.** The window reproduces where it **ends** (not merely
+  its net displacement — a moving origin would otherwise drag the untouched tail along)
+  plus hodograph and `r″` matching at each edge. Everything outside is unchanged to
+  **< 1e-9, for a drag of every one of the 41 control points**.
+- **Every control point is draggable, both endpoints included.** The boundary
+  bookkeeping follows one rule: *a boundary condition exists only to protect a
+  neighbour.* A window reaching segment 0 imposes nothing on its left, so the start
+  tangent and curvature are free — which is what dragging `P₁` means, and is [FGS16]'s
+  free-C²-at-the-ends observation arrived at for a concrete reason.
+- **One semantic exception**: the curve's **end positions** are boundary data and move
+  only when *they* are dragged. Otherwise min-norm would happily spend that freedom and
+  nudging `P₁` would drift `P₀`, leaving the two impossible to control independently.
+  So "no neighbour" frees the end *derivatives*; the end *point* stays pinned unless it
+  is the handle.
+- **`p₀` is the integration constant**, so when it *is* the handle it becomes an
+  unknown and the window's far end is pinned instead. Getting this wrong translates the
+  whole spline; it is pinned by a test.
 - **A C² spline is built by making the quaternion preimage a C¹ quadratic spline** —
   `A` continuous gives `r′ = A i A*` continuous, `A′` continuous gives
   `r″ = polarSandwich(A′, A)` continuous. For unit spacing that is the averaging rule

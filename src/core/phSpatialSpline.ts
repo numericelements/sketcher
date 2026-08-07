@@ -35,14 +35,25 @@
 // invariants you choose to impose do.
 //
 // WHAT "LOCAL" MEANS HERE. Everything outside the window is untouched — not
-// approximately, exactly. That needs the window to reproduce its original NET
-// DISPLACEMENT (or the whole tail would translate) plus hodograph and r″ matching at
-// both window edges. Those are imposed uniformly, including where the window meets
-// the curve's own ends, so an edit never moves the spline's endpoints or end
-// derivatives. (The 2016 paper notes that at the ends of an OPEN planar spline C² is
-// preserved for free, because there is no neighbour on one side. We deliberately do
-// not exploit that: uniform behaviour is worth more in an editor than a privileged
-// region, and the asymmetry is a slide, not a feature.)
+// approximately, exactly (measured < 1e-9 for every control point, for a drag of every
+// control point). That needs the window to reproduce where it ENDS, not merely its net
+// displacement, plus hodograph and r″ matching at each window edge.
+//
+// EVERY CONTROL POINT IS DRAGGABLE, THE TWO ENDPOINTS INCLUDED, and the boundary
+// bookkeeping follows one rule:
+//
+//     A boundary condition exists only to protect a NEIGHBOUR.
+//
+// So a window that reaches segment 0 imposes nothing on its left: the start tangent
+// and curvature are free, which is exactly what dragging P₁ means. (That is also
+// [FGS16]'s observation that the ends of an open planar spline keep C² for free —
+// arrived at here for a concrete reason rather than adopted.)
+//
+// With one exception, which is semantic rather than mathematical: the curve's END
+// POSITIONS are boundary data and move ONLY when they are themselves dragged.
+// Otherwise nudging P₁ would drift P₀ — min-norm would happily spend the freedom —
+// and you could no longer control the two independently. So "no neighbour" frees the
+// end DERIVATIVES; the end POINT stays pinned unless it is the handle.
 // ============================================================================
 import { leastSquares, type Matrix } from './linalg'
 import {
@@ -145,6 +156,28 @@ export function splineControlPoints(s: SpatialPHSpline): Vec3[] {
   return out
 }
 
+/**
+ * Sample one segment as a polyline. Each segment is a quintic Bézier on six
+ * consecutive composite control points, so this is de Casteljau and nothing more —
+ * kept here so the figures hold no evaluation code of their own.
+ */
+export function sampleSegment(s: SpatialPHSpline, k: number, steps = 24): Vec3[] {
+  const cps = splineControlPoints(s)
+  const base = cps.slice(DEGREE * k, DEGREE * k + DEGREE + 1)
+  const out: Vec3[] = []
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const work = base.map((p) => ({ ...p }))
+    for (let r = 1; r <= DEGREE; r++) {
+      for (let j = 0; j <= DEGREE - r; j++) {
+        work[j] = vadd(vscale(work[j], 1 - t), vscale(work[j + 1], t))
+      }
+    }
+    out.push(work[0])
+  }
+  return out
+}
+
 /** Worst hodograph and r″ mismatch across the internal joints. */
 export function continuityDefects(s: SpatialPHSpline): { c1: number; c2: number } {
   let c1 = 0
@@ -196,10 +229,11 @@ export function editWindow(
   width: number,
 ): [number, number] | null {
   const n = s.segments.length
-  const last = DEGREE * n
-  if (index <= 0 || index >= last) return null // the endpoints ARE the end conditions
+  if (index < 0 || index > DEGREE * n) return null
   if (width > n) return null
-  const own = Math.min(n - 1, Math.floor((index - 1) / DEGREE))
+  // Control point `index` is the end of leg `index-1`, which belongs to segment
+  // ⌊(index-1)/DEGREE⌋; index 0 is the start of segment 0.
+  const own = index === 0 ? 0 : Math.min(n - 1, Math.floor((index - 1) / DEGREE))
   const start = Math.max(0, Math.min(n - width, own - Math.floor((width - 1) / 2)))
   return [start, start + width - 1]
 }
@@ -232,20 +266,40 @@ export function localEdit(
   const cps = splineControlPoints(s)
   const original = s.segments.slice(k0, k1 + 1)
 
-  // Everything the window must reproduce so the outside cannot move.
+  // A boundary condition exists only to protect a NEIGHBOUR. Where the window meets
+  // the curve's own end there is no neighbour, so nothing is imposed — the start (or
+  // end) point, tangent and curvature are free, which is precisely what dragging P₀
+  // or P₁ means. That is also why the ends are the easy place to edit, as [FGS16]
+  // observe for the planar case.
+  const openLeft = k0 === 0
+  const openRight = k1 === s.segments.length - 1
+  // The curve's END POINTS are boundary data: they move only when you drag them, or
+  // nudging P₁ would drift P₀ and you could not control the two independently. So
+  // "no neighbour" frees the end TANGENT and CURVATURE, but the end POSITION stays
+  // pinned unless it is the thing being dragged.
+  const freeOrigin = openLeft && index === 0
+  const freeEnd = openRight && index === DEGREE * s.segments.length
+
   const leftHodo = sandwich(original[0][0])
   const leftAccel = accelAtStart(original[0])
   const rightHodo = sandwich(original[W - 1][2])
   const rightAccel = accelAtEnd(original[W - 1])
-  let netTarget: Vec3 = { x: 0, y: 0, z: 0 }
-  for (const A of original) for (const leg of segmentLegs(A)) netTarget = vadd(netTarget, leg)
 
   const windowStartCp = DEGREE * k0
   const legOffset = index - windowStartCp // which leg inside the window ends at `index`
-  if (legOffset < 1 || legOffset > DEGREE * W) return null
+  if (legOffset < 0 || legOffset > DEGREE * W) return null
+  // Dragging the window's own first point is only meaningful when that point is free.
+  if (legOffset === 0 && !freeOrigin) return null
 
-  const pack = (segs: readonly (readonly Quat[])[]): number[] =>
-    segs.flatMap((A) => A.flatMap((a) => [a.u, a.v, a.p, a.q]))
+  /** Where the window must end, when there is a neighbour after it to protect. */
+  const endTarget = cps[DEGREE * (k1 + 1)]
+
+  const pack = (segs: readonly (readonly Quat[])[]): number[] => {
+    const v = segs.flatMap((A) => A.flatMap((a) => [a.u, a.v, a.p, a.q]))
+    // When the window opens on the left, the curve's origin is an unknown too, so
+    // that P₀ can move without translating the whole spline.
+    return freeOrigin ? [...v, s.p0.x, s.p0.y, s.p0.z] : v
+  }
   const unpack = (x: readonly number[]): Quat[][] =>
     Array.from({ length: W }, (_, seg) =>
       [0, 1, 2].map((j) => {
@@ -253,34 +307,40 @@ export function localEdit(
         return { u: x[o], v: x[o + 1], p: x[o + 2], q: x[o + 3] }
       }),
     )
+  const originOf = (x: readonly number[]): Vec3 =>
+    freeOrigin ? { x: x[12 * W], y: x[12 * W + 1], z: x[12 * W + 2] } : cps[windowStartCp]
 
   const residual = (x: readonly number[]): number[] => {
     const w = unpack(x)
     const r: number[] = []
     const push = (v: Vec3): void => { r.push(v.x, v.y, v.z) }
 
-    push(vsub(sandwich(w[0][0]), leftHodo))
-    if (keepC2) push(vsub(accelAtStart(w[0]), leftAccel))
+    if (!openLeft) {
+      push(vsub(sandwich(w[0][0]), leftHodo))
+      if (keepC2) push(vsub(accelAtStart(w[0]), leftAccel))
+    }
     for (let seg = 1; seg < W; seg++) {
       push(vsub(sandwich(w[seg][0]), sandwich(w[seg - 1][2])))
       push(vsub(accelAtStart(w[seg]), accelAtEnd(w[seg - 1])))
     }
-    push(vsub(sandwich(w[W - 1][2]), rightHodo))
-    if (keepC2) push(vsub(accelAtEnd(w[W - 1]), rightAccel))
+    if (!openRight) {
+      push(vsub(sandwich(w[W - 1][2]), rightHodo))
+      if (keepC2) push(vsub(accelAtEnd(w[W - 1]), rightAccel))
+    }
 
-    let net: Vec3 = { x: 0, y: 0, z: 0 }
-    let cur = cps[windowStartCp]
-    let dragged = cur
+    let cur = originOf(x)
+    let dragged = legOffset === 0 ? cur : cur
     let count = 0
     for (const A of w) {
       for (const leg of segmentLegs(A)) {
-        net = vadd(net, leg)
         cur = vadd(cur, leg)
         count++
         if (count === legOffset) dragged = cur
       }
     }
-    push(vsub(net, netTarget))
+    // Pin where the window ENDS (not its net displacement), so that a moving origin
+    // cannot drag the untouched tail along with it.
+    if (!freeEnd) push(vsub(cur, endTarget))
     push(vsub(dragged, target))
     return r
   }
@@ -323,7 +383,9 @@ export function localEdit(
   const segments = s.segments.map((A, k) => (k >= k0 && k <= k1 ? edited[k - k0] : A))
   void n
   return {
-    spline: { segments, p0: s.p0 },
+    // Only a window that opens on the left owns the curve's origin; otherwise
+    // originOf is the WINDOW's start point, which is not the same thing.
+    spline: { segments, p0: freeOrigin ? originOf(x) : s.p0 },
     converged: finalResidual < 1e-10,
     residual: finalResidual,
     movedSegments: [k0, k1],
