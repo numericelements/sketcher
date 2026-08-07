@@ -38,6 +38,7 @@ import QuinticHermiteFigure from './QuinticHermiteFigure'
 import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import LocalEditFigure from './LocalEditFigure'
+import RmErfFigure from './RmErfFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -302,5 +303,55 @@ export const slides: SlideDefinition[] = [
       'the window (machine zero — locality proved, not claimed), and "C² defect" the worst r″ mismatch ' +
       'across all seven joints. ' +
       'docs/PH_LOCAL_EDITING.md; core/phSpatialSpline, 19 tests.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 9 — a frame that does not twist, and survives editing
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>A frame that never turns about the tangent</h2>
+        <WhenActive>
+          <RmErfFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE FRAMES ACT, at its simplest: one degree-7 PH curve, always inside the RM-ERF class, every ' +
+      'control point draggable. No toggle, no slider. ' +
+      'THE FRAME COSTS NOTHING — it is three sandwiches, one per axis: e₁,e₂,e₃ = A i A*, A j A*, ' +
+      'A k A* over σ. The same machinery as every other slide, and RATIONAL because σ = |A|² is a ' +
+      'polynomial. That is the whole reason a PH curve can carry a rational frame; say it once here. ' +
+      'WHY DEGREE 7 AND NOT THE RRMF QUINTIC. Two routes to a rational rotation-minimizing frame. On a ' +
+      'quintic RRMF curve the ERF twists and a rational normal-plane rotation θ = −2·arctan(b/a) ' +
+      'cancels it — TWO pieces, so the FRAME is high degree even though the curve is low. On these ' +
+      'degree-7 curves the ERF does not twist at all, so the RMF IS the ERF — ONE piece. The survey: ' +
+      '"although the curves are of higher degree than the RRMF quintics, their rational RMFs are ' +
+      'actually of LOWER degree, since the rational normal-plane rotation is not required." You pay in ' +
+      'curve degree or in frame degree. For an editor the second is much the better bargain: measured, ' +
+      'local C² editing needs a 3-segment window for degree-7 RM-ERF against 6 for quintic RRMF, ' +
+      'because a degree-7 segment has 16 unknowns and five constraints barely dent it, where a quintic ' +
+      'has 12 and three hurt. Same buy-with-degree-not-with-constraint trade as the biarcs. ' +
+      'THE MATHEMATICS, in one line: the ERF\'s angular velocity about the tangent is ' +
+      'ω₁ = 2·scal(A i A′*)/σ² (survey eq. 13), and that numerator is EXACTLY scal(A i A′*) — the same ' +
+      'scal(a i b*) form as the constraints. So "rotation-minimizing ERF" means a degree-5 polynomial ' +
+      'vanishes identically, which in Bernstein coefficients is the five conditions (14). Five and not ' +
+      'six, although the polynomial has six coefficients, because s(0,3) and s(1,2) enter only through ' +
+      '3s(1,2)+s(0,3) — measured: those two are individually NONZERO in the class. ' +
+      'WHAT TO POINT AT: the RAIL (the locus of the frame tips) runs PARALLEL to the curve instead of ' +
+      'spiralling around it, and the twist readout is the MEASURED ∫|ω₁|ds sitting at machine zero ' +
+      'while you drag. Both checkable; neither asserted. ' +
+      'THE TRAP TO MENTION IF ASKED: every PLANAR PH curve satisfies the five constraints for free ' +
+      '(for A in span{1,k} the scal terms vanish one by one), so the planar family sits inside the ' +
+      'class and minimum-norm projection falls into it — four of five seeds landed with planarity ' +
+      'exactly 0. A flat curve has nothing to twist about, so the starting curve is searched for and ' +
+      'flat ones are refused. ' +
+      'ONE FIGURE THIS DELIBERATELY DROPS: the Frenet frame\'s sudden reversal at an inflection. A ' +
+      'lovely mark, but a second lesson. ' +
+      'core/phSpatialSeptic, 18 tests, the first of which is the GATE: impose (14), sample ω₁, require ' +
+      'machine zero. If my reading of either equation were wrong that test fails and this figure would ' +
+      'never have been drawn.',
   },
 ]
