@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useReveal } from './useReveal'
+import { ActiveSlideProvider, SlideIndexProvider } from './slideContext'
 import { setCurrentSlideIndex } from './slideNav'
 import './reveal-overrides.css'
 import type { SlideDefinition } from './types'
@@ -13,7 +14,16 @@ import type { SlideDefinition } from './types'
 export default function RevealPresentation({ slides }: { slides: SlideDefinition[] }) {
   // Keep the shared slide index current so a slide's WorkbenchLink can build a
   // ?slide=N return URL to the exact slide it launched from.
-  const { containerRef, deckRef } = useReveal({ onSlideChange: setCurrentSlideIndex })
+  // Tracked so `WhenActive` can keep heavy (WebGL) figures unmounted off-slide —
+  // reveal renders every slide into the DOM at once, which SVG tolerates and
+  // WebGL does not (see framework/slideContext).
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const { containerRef, deckRef } = useReveal({
+    onSlideChange: (i) => {
+      setCurrentSlideIndex(i)
+      setActiveIndex(i)
+    },
+  })
 
   // Return-from-workbench: a ?slide=N query (set by the "Back to presentation"
   // button on a linked page) jumps the deck to that slide on load. Reveal has
@@ -35,18 +45,20 @@ export default function RevealPresentation({ slides }: { slides: SlideDefinition
   }, [deckRef])
 
   return (
+    <ActiveSlideProvider index={activeIndex}>
     <div data-theme="light" className="fixed inset-0 z-50 bg-white" style={{ colorScheme: 'light' }}>
       <div ref={containerRef} className="reveal-container">
         <div className="reveal">
           <div className="slides">
             {slides.map((slide, i) => (
               <section key={i} className={slide.type === 'title' ? 'title-slide' : ''}>
-                {slide.content}
+                <SlideIndexProvider index={i}>{slide.content}</SlideIndexProvider>
               </section>
             ))}
           </div>
         </div>
       </div>
     </div>
+    </ActiveSlideProvider>
   )
 }

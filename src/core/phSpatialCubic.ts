@@ -158,6 +158,48 @@ export function reductionRHS(A0: Quat, p0: Vec3, p3: Vec3): Vec3 {
   return vscale(qvec(inner), 6 / (qnormSq(A0) * qnormSq(A0)))
 }
 
+/**
+ * THE FIBER IS ISOMETRIC — every spatial PH cubic through the same P₀, P₁, P₃ has
+ * the SAME ARC LENGTH. The curve reshapes, P₂ sweeps an arc wider than the chord,
+ * and the length never moves. (Found by measuring while building the figure, then
+ * proved; verified to ~1e-16 across random data.)
+ *
+ * Proof. With A₁ = A₀z, the inner product ⟨A₀,A₁⟩ = Re(A₀z*A₀*) = |A₀|²z₀ and
+ * |A₁|² = |A₀|²|z|², so
+ *
+ *     3L = |A₀|²·(1 + T)        where  T = z₀ + |z|².
+ *
+ * Now take the squared length of the reduction F = u + w, with u = iz* + zi
+ * (components 2z₀, 2z₃, −2z₂) and w = 2·z i z* (so |w| = 2|z|²). The cross term
+ * collapses — expanding gives u·(z i z*) = 2z₀|z|² exactly, the z₁z₂z₃ terms
+ * cancelling — and everything reorganises into
+ *
+ *     |F|² + F.x  =  4T² + 2T .
+ *
+ * The right-hand side depends on the DATA only, so T solves a fixed quadratic and
+ * takes at most two values; T ≥ −1/4 always (since z₀ + |z|² ≥ z₀ + z₀²) while the
+ * lower root is ≤ −1/2, so the upper root is the only admissible one. Hence T is
+ * determined by the data, and so is L. ∎
+ *
+ * Two consequences worth stating on the slide:
+ *   * arc length is USELESS as a selector here — the classical fairness measure
+ *     that would distinguish planar interpolants is blind on this family;
+ *   * L has a closed form even though the family it describes does not.
+ *
+ * Since |A₀|² = |3(P₁−P₀)|, the formula reduces to L = |P₁−P₀|·(1 + T).
+ * Returns null when the data admits no real T.
+ */
+export function fiberArcLength(p0: Vec3, p1: Vec3, p3: Vec3): number | null {
+  const v1 = vscale(vsub(p1, p0), 3)
+  const A0 = quatFromSandwich(v1)
+  if (!A0) return null
+  const F = reductionRHS(A0, p0, p3)
+  const disc = 1 + 4 * (vnorm(F) ** 2 + F.x)
+  if (disc < 0) return null
+  const T = (-1 + Math.sqrt(disc)) / 4
+  return vnorm(vsub(p1, p0)) * (1 + T)
+}
+
 /** ∂(reductionLHS)/∂z — an exact 3×4 Jacobian, columns [z.u, z.v, z.p, z.q]. */
 export function reductionJacobian(z: Quat): Matrix {
   const { u, v, p, q } = z

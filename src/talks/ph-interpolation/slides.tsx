@@ -35,6 +35,8 @@ import type { SlideDefinition } from '../framework/types'
 import ThreePointsFigure from './ThreePointsFigure'
 import PinnedEndsFigure from './PinnedEndsFigure'
 import QuinticHermiteFigure from './QuinticHermiteFigure'
+import SpatialCubicFigure from './SpatialCubicFigure'
+import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
@@ -155,5 +157,40 @@ export const slides: SlideDefinition[] = [
       'control-polygon distance, exactly (4! = 24 permutations enumerated), see ' +
       'framework/branchTracking. The world box is computed once from the starting data so all four ' +
       'fit; some branches are far larger than others, so guessing it by hand gets it wrong.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6 — the first spatial slide: finite choice becomes a continuum
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>One dimension up, and P₂ is no longer determined</h2>
+        {/* WebGL: mounted only near the showing slide, or a deck of 3D figures
+            exhausts the browser's live-context budget. See framework/slideContext. */}
+        <WhenActive>
+          <SpatialCubicFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'The deck\'s central jump, at the smallest degree where it happens. Slide 4 pinned both ends ' +
+      'of a PLANAR PH cubic and dragged P₁: 6 DOF against 6 conditions, square, P₂ determined — two ' +
+      'ways, discretely. Make the curve spatial and change nothing else: 10 DOF − 3 (P₀) − 3 (P₁) − ' +
+      '3 (P₃) leaves ONE degree of freedom, so P₂ is not determined at all and the admissible ' +
+      'positions trace a curve. Measured on the reference data: P₂ roams about 1.5× the chord — a ' +
+      'large object, not a technicality. ' +
+      'Where the extra dimension comes from: 10 = 8 (A₀,A₁) − 1 (gauge) + 3 (origin), and the gauge ' +
+      'is the difference. In the plane w ↦ −w is DISCRETE and costs no dimension; in space ' +
+      'A ↦ A(cos θ + i sin θ) is a whole circle. That one missing dimension is why the plane gives a ' +
+      'count and space gives a family. ' +
+      'The reduction behind it mirrors the planar r² + r + (1 − D/q) = 0: substituting A₁ = A₀z makes ' +
+      'A₀ factor out of closure, leaving i z* + z i + 2 z i z* = F — three quadratics in four ' +
+      'unknowns, hence the curve. Sanity anchor: the straight line is z = 1, F = (4,0,0). The fiber ' +
+      'has no closed form and is traced by continuation along the exact null direction of the 3×4 ' +
+      'Jacobian (core/phSpatialCubic, 22 tests). ' +
+      'Sets up the spatial QUINTIC, where C¹ Hermite data has a TWO-parameter family — slide 5\'s ' +
+      'four discrete interpolants become a surface of them.',
   },
 ]

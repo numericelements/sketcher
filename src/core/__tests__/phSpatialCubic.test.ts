@@ -23,6 +23,7 @@ import {
   quatFromSandwich,
   qvec,
   sandwich,
+  vcross,
   vnorm,
   vsub,
 } from '../quaternion'
@@ -31,6 +32,7 @@ import {
   arcLength,
   controlPoints,
   curveAt,
+  fiberArcLength,
   hodographAt,
   legs,
   nullDirection4,
@@ -270,6 +272,78 @@ describe('the fiber — the slide’s claim', () => {
 
   it('returns nothing, rather than something invented, for degenerate data', () => {
     expect(spatialCubicFiber(P0, P0, P3)).toHaveLength(0) // P₁ = P₀: the first leg vanishes
+  })
+
+  it('IS ISOMETRIC: every curve on the fiber has the SAME arc length', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 200 })
+    const lens = fiber.map((f) => arcLength(f.curve))
+    const rel = (Math.max(...lens) - Math.min(...lens)) / Math.max(...lens)
+    expect(rel).toBeLessThan(1e-12)
+  })
+
+  it('...on every fiber, not just this one', () => {
+    // Deterministic pseudo-random configurations.
+    let x = 7
+    const r = (): number => ((x = (x * 1103515245 + 12345) % 2147483648) / 2147483648 - 0.5) * 2
+    for (let trial = 0; trial < 10; trial++) {
+      const a = V(r(), r(), r()), b = V(r(), r(), r()), c = V(r(), r(), r())
+      const fiber = spatialCubicFiber(a, b, c, { samples: 60 })
+      if (fiber.length < 10) continue
+      const lens = fiber.map((f) => arcLength(f.curve))
+      const rel = (Math.max(...lens) - Math.min(...lens)) / Math.max(...lens)
+      expect(rel, `trial ${trial}`).toBeLessThan(1e-12)
+    }
+  })
+
+  it('THE IDENTITY behind it: |F|² + F.x = 4T² + 2T with T = z₀ + |z|²', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 80 })
+    const F = reductionRHS(fiber[0].curve.A0, P0, P3)
+    const rhs = vnorm(F) ** 2 + F.x
+    for (const f of fiber) {
+      const T = f.z.u + qnormSq(f.z)
+      expect(Math.abs(4 * T * T + 2 * T - rhs) / (1 + Math.abs(rhs))).toBeLessThan(1e-12)
+    }
+  })
+
+  it('fiberArcLength gives it in CLOSED FORM, without tracing anything', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 80 })
+    const traced = arcLength(fiber[0].curve)
+    const closed = fiberArcLength(P0, P1, P3)
+    expect(closed).not.toBeNull()
+    expect(Math.abs(closed! - traced) / traced).toBeLessThan(1e-12)
+
+    // And on random data, against the traced value.
+    let x = 23
+    const r = (): number => ((x = (x * 1103515245 + 12345) % 2147483648) / 2147483648 - 0.5) * 2
+    for (let trial = 0; trial < 8; trial++) {
+      const a = V(r(), r(), r()), b = V(r(), r(), r()), c = V(r(), r(), r())
+      const f = spatialCubicFiber(a, b, c, { samples: 40 })
+      if (f.length < 5) continue
+      const got = fiberArcLength(a, b, c)
+      expect(got).not.toBeNull()
+      expect(Math.abs(got! - arcLength(f[0].curve)) / arcLength(f[0].curve), `trial ${trial}`).toBeLessThan(1e-11)
+    }
+  })
+
+  it('but the SHAPE does vary a lot — so arc length is a blind selector here', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 140 })
+    // Peak curvature over the family, as a stand-in for "how different are these".
+    const peak = (c: (typeof fiber)[number]['curve']): number => {
+      let m = 0
+      for (let i = 0; i <= 30; i++) {
+        const t = i / 30
+        const h = hodographAt(c, t)
+        const eps = 1e-5
+        const h2 = hodographAt(c, Math.min(1, t + eps))
+        const d = V((h2.x - h.x) / eps, (h2.y - h.y) / eps, (h2.z - h.z) / eps)
+        const s = speedAt(c, t)
+        m = Math.max(m, vnorm(vcross(h, d)) / (s * s * s))
+      }
+      return m
+    }
+    const ks = fiber.map((f) => peak(f.curve))
+    // Same length throughout, wildly different shapes.
+    expect(Math.max(...ks) / Math.min(...ks)).toBeGreaterThan(5)
   })
 
   it('MEASUREMENT: how far P₂ actually roams', () => {
