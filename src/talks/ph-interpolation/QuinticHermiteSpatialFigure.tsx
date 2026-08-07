@@ -1,5 +1,5 @@
 // ============================================================================
-// SLIDE 8 — the spatial twin of slide 5. Four discrete answers become a torus.
+// SLIDE 7 — the spatial twin of slide 5. Four discrete answers become a torus.
 //
 // Slide 5: planar PH quintic, C¹ Hermite data, FOUR interpolants, always. Make the
 // curve spatial and change nothing else, and the count becomes a two-parameter
@@ -36,7 +36,8 @@
 // spinor's own gauge angle in disguise. Moving α, then undoing the global gauge,
 // leaves A₀ and A₂ EXACTLY fixed and spins B around its solution circle (verified to
 // 1e-16) — and |B|² = |d| is forced by the sandwich, with d depending on β alone. The
-// α-dial is slide 6's fiber, one link along the chain.
+// α-dial is slide 6's fiber, one link along the chain — which is also why slide 6's
+// family is isometric: it is ALL travel-dial, with no β to change circles with.
 //
 // GAUGE TRANSPORT IS LOAD-BEARING HERE. The angles are measured from a representative
 // built as normalise(x̂ + δ̂), which degenerates when a tangent points at −x̂. Drag a

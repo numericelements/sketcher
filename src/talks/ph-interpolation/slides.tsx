@@ -36,7 +36,6 @@ import ThreePointsFigure from './ThreePointsFigure'
 import PinnedEndsFigure from './PinnedEndsFigure'
 import QuinticHermiteFigure from './QuinticHermiteFigure'
 import SpatialCubicFigure from './SpatialCubicFigure'
-import SpatialQuinticFigure from './SpatialQuinticFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import WhenActive from '../framework/slideContext'
 
@@ -208,54 +207,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 7 — two angles: the family is a torus, and it contains slide 5 four times
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Reference — the four planar members on the torus</h2>
-        <WhenActive>
-          <SpatialQuinticFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'One rung up from slide 6, and the same mechanism one link longer. THE UNIFYING FACT: every ' +
-      'spatial PH interpolation problem is a CHAIN OF SANDWICH EQUATIONS X u X* = v. Each link has a ' +
-      'CIRCLE of solutions, and the hodograph depends only on the DIFFERENCES of the angles — so k+1 ' +
-      'links give a k-dimensional TORUS. Cubic: two links (tangent, closure), one angle, a circle. ' +
-      'Quintic: three links (two tangents, closure), two angles α = ½(φ₀+φ₂) and β = φ₂−φ₀, a torus. ' +
-      'Nothing is solved: given the two angles you EVALUATE A FORMULA (Farouki–Giannelli–Manni–' +
-      'Sestini, CAGD 25 (2008), eqs 47–55; Carlotta is the second author). ' +
-      'ARC LENGTH DEPENDS ON β ALONE — their theorem, and the mechanism is that exp(θi) commutes with ' +
-      'i, so α cancels out of A₀ i A₂*. Demonstrate it live: drag α end to end and the readout does ' +
-      'not move a digit. This is why no heatmap is needed. Its four stationary points in β are their ' +
-      'four general HELICAL interpolants, which always exist. ' +
-      'ONLY P₂ AND P₃ MOVE: P₁ = pᵢ + dᵢ/5 and P₄ = p_f − d_f/5 are the tangents over five, so the ' +
-      'data pins them (measured extent < 1e-12 over the whole torus). ' +
-      'EVERY CONTROL POINT IS A SINGLE HARMONIC IN α (machine zero at h₂ and h₃), so at fixed β each ' +
-      'traces an EXACT ELLIPSE — slide 6\'s fiber — and the surface is a STACK of ellipses. That is ' +
-      'why the figure draws ellipses, not surfaces. ' +
-      'THE FOUR PLANAR MEMBERS, and the trap to head off: they are NOT where a surface meets the ' +
-      'plane, which would be a CURVE. Being flat is TWO conditions, P₂ in the plane AND P₃ in the ' +
-      'plane; each cuts a curve out of the torus and the planar interpolants are where the two curves ' +
-      'CROSS. Two conditions, two parameters, dimension zero, count four. They sit at the ' +
-      'QUARTER-TURNS — (0,0), (π,0), (π/2,π), (3π/2,π) — and match the planar solver of slide 5 to ' +
-      '1e-15. Why β ∈ {0,π}: a planar curve needs A(t) in span{1,k} up to gauge, and nᵢ·exp(φi) ' +
-      'enters span{1,k} only when cos φ = 0. ' +
-      'Free cross-check worth mentioning: the two β=0 branches share an arc length and the two β=π ' +
-      'branches share another — computed by the INDEPENDENT planar solver, confirming the β-only law ' +
-      'from outside. ' +
-      'TILT d_f to finish: the four do not move, they cease to EXIST, because two curves that crossed ' +
-      'have been pushed apart. The four points are a non-generic accident of coplanar data. ' +
-      'The swept surfaces are NOT quadrics (fit residual 1e-5 against 1e-10 for a degenerate cloud) — ' +
-      'do not claim a classification. Full write-up: docs/PH_SANDWICH_CHAIN.md; ' +
-      'core/phSpatialQuintic, 29 tests.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 8 — the spatial twin of slide 5: four discrete answers become a torus
+  // 7 — the spatial twin of slide 5: four discrete answers become a torus
   // ---------------------------------------------------------------------------
   {
     type: 'content',
