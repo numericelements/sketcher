@@ -166,7 +166,7 @@ export const slides: SlideDefinition[] = [
     type: 'content',
     content: (
       <>
-        <h2>One dimension up, and P₂ is no longer determined</h2>
+        <h2>Ten degrees of freedom, nine conditions — the tenth is a curve</h2>
         {/* WebGL: mounted only near the showing slide, or a deck of 3D figures
             exhausts the browser's live-context budget. See framework/slideContext. */}
         <WhenActive>
@@ -175,7 +175,15 @@ export const slides: SlideDefinition[] = [
       </>
     ),
     notes:
-      'The deck\'s central jump, at the smallest degree where it happens. Slide 4 pinned both ends ' +
+      'The deck\'s central jump, at the smallest degree where it happens. EITHER interior point can ' +
+      'be the handle (press the pale one — seamless, because prescribing P₂ with the ends pinned IS ' +
+      'prescribing P₁ from the other end), and the strict/free toggle is slide 4\'s, with SEVEN spare ' +
+      'degrees of freedom in free mode against the plane\'s four. ' +
+      'THE FAMILY IS ISOMETRIC: every member has the same arc length (measured, then proved), so the ' +
+      'classical fairness measure that ranks planar interpolants is blind here. AND IT CONTAINS SLIDE ' +
+      '4: exactly two members are PLANAR — the plane problem\'s two discrete answers, drawn as dark ' +
+      'beads. The finite set is EMBEDDED in the continuum. ' +
+      'Slide 4 pinned both ends ' +
       'of a PLANAR PH cubic and dragged P₁: 6 DOF against 6 conditions, square, P₂ determined — two ' +
       'ways, discretely. Make the curve spatial and change nothing else: 10 DOF − 3 (P₀) − 3 (P₁) − ' +
       '3 (P₃) leaves ONE degree of freedom, so P₂ is not determined at all and the admissible ' +

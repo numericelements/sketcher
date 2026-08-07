@@ -1,96 +1,119 @@
 // ============================================================================
-// SLIDE 6 — the same gesture, one dimension up, and the answer changes kind.
+// SLIDE 6 — ten degrees of freedom, nine conditions; the tenth is a curve.
 //
-// Slide 4 pinned both ends of a PLANAR PH cubic and dragged P₁: 6 DOF against 6
-// conditions, square, and P₂ was DETERMINED — two ways, discretely. Here the curve
-// is spatial and nothing else changes:
+// Slide 4 pinned both ends of a PLANAR PH cubic and prescribed one interior point:
+// 6 DOF against 6 conditions, square, so the other interior point was DETERMINED —
+// two ways, discretely. Make the curve spatial and change nothing else:
 //
-//     10 DOF − 3 (P₀) − 3 (P₁) − 3 (P₃)  =  ONE degree of freedom left over
+//     10 DOF − 3 (P₀) − 3 (handle) − 3 (P₃)  =  ONE degree of freedom left over
 //
-// so P₂ is not determined at all. It SWEEPS A CURVE of admissible positions, drawn
-// here, with a slider to travel along it. Finite choice has become a continuum — the
-// deck's central jump, at the smallest degree where it happens.
+// so the other interior point is not determined at all. It rides a CURVE of
+// admissible positions — the fiber — and a slider travels along it. Finite choice
+// has become a continuum, at the smallest degree where that happens.
 //
 // (10 = 8 for A₀,A₁ − 1 for the CONTINUOUS gauge A ↦ A(cos θ + i sin θ) + 3 for the
 // origin. In the plane the corresponding gauge is the discrete w ↦ −w, which costs
-// no dimension — that one missing dimension is the whole difference.)
+// no dimension. That one missing dimension is the whole difference.)
 //
-// AND THE FAMILY IS ISOMETRIC. Measured while building this figure, then proved
-// (core/phSpatialCubic, fiberArcLength): every curve on the fiber has the SAME ARC
-// LENGTH, to machine precision, on every fiber. The shape changes completely —
-// peak curvature varies by more than an order of magnitude along it — and the
-// length does not move at all. So the classical fairness measure that would rank
-// planar interpolants is BLIND here, which is worth saying out loud on a slide
-// about choosing.
+// EITHER interior point can be the handle, as on slide 4: press the pale one and it
+// becomes the one you hold while the other rides instead. Seamless, because
+// prescribing P₂ with the ends pinned IS prescribing P₁ from the other end — the
+// curve solves both problems (core: spatialCubicFiberAt, via reverseSpatialCubic).
 //
-// AND IT CONTAINS SLIDE 4. Exactly TWO members of the fiber are PLANAR — a planar PH
-// cubic is a spatial one, so the plane problem's two discrete solutions must live
-// somewhere on the spatial family, and they do, as two isolated points you can slide
-// onto. "Finite choice becomes a continuum" is therefore not an analogy: the finite
-// set is EMBEDDED in the continuum. They are marked on the fiber.
+// THE FAMILY IS ISOMETRIC. Every member has the SAME ARC LENGTH — measured, then
+// proved (core: fiberArcLength). The shape changes completely, peak curvature by
+// more than 5×, and the length does not move at all. So the classical fairness
+// measure that would rank planar interpolants is BLIND here, which is worth saying
+// on a slide about choosing.
 //
-// (That also explains a wrong first default. Picking the "gentlest" member by peak
-// curvature landed on a PLANAR one — planar is gentler — so the whole figure read as
-// flat. The default is now the most spatial member instead.)
+// AND IT CONTAINS SLIDE 4. Exactly TWO members are PLANAR — the plane problem's two
+// discrete solutions, sitting on this curve as dark beads. "Finite choice becomes a
+// continuum" is not an analogy: the finite set is EMBEDDED in the continuum, and you
+// can slide onto it. (They are SOLVED for by the planar solver, not hunted along the
+// trace, which was unreliable.)
 //
-// The fiber has no closed form; it is traced by continuation in core/phSpatialCubic,
-// whose 27 tests are what this figure trusts. r3f cannot be verified headlessly, so
-// the rule is that this file holds no mathematics — only marks and gestures.
+// CONTINUITY. The fiber is re-traced every drag tick, and its array length and
+// direction both shift — so selecting by INDEX made the ridden point jump between
+// solutions. The figure tracks the shape parameter z instead: pick the member whose
+// z is nearest the last one, and seed the continuation from it so the trace itself
+// stays continuous.
 //
-// Drag P₁ in the plane facing the camera; rotate the view to reach out of it.
+// r3f cannot be verified headlessly, so this file holds no mathematics — only marks
+// and gestures. core/phSpatialCubic and core/phSpatialFreeDrag carry the tests.
 // ============================================================================
 import { useMemo, useRef, useState } from 'react'
-import type { Vec3 } from '../../core/quaternion'
+import type { Quat, Vec3 } from '../../core/quaternion'
 import { vnorm, vsub } from '../../core/quaternion'
 import {
+  type FiberPoint,
+  type InteriorHandle,
+  type SpatialPHCubic,
   controlPoints,
   curveAt,
   fiberArcLength,
   hodographAt,
   planarMembers,
   planarity,
+  spatialCubicFiberAt,
   speedAt,
-  spatialCubicFiber,
-  type FiberPoint,
-  type SpatialPHCubic,
 } from '../../core/phSpatialCubic'
+import { dragSpatialCubicFree, spatialPHPolygonResidual } from '../../core/phSpatialFreeDrag'
 import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
 const P0: Vec3 = { x: -0.9, y: 0, z: -0.35 }
 const P3: Vec3 = { x: 0.9, y: 0, z: -0.35 }
-const START_P1: Vec3 = { x: -0.45, y: 0.35, z: 0.5 }
-
-/** Samples along the fiber. Cheap — a continuation step is a 3×4 least-norm solve. */
+const START_HANDLE: Vec3 = { x: -0.45, y: 0.35, z: 0.5 }
 const FIBER_SAMPLES = 140
 
 const tri = (v: Vec3): [number, number, number] => [v.x, v.y, v.z]
+const zDist = (a: Quat, b: Quat): number => Math.hypot(a.u - b.u, a.v - b.v, a.p - b.p, a.q - b.q)
 
 const sampleCurve = (c: SpatialPHCubic, n = 60): [number, number, number][] =>
   Array.from({ length: n + 1 }, (_, i) => tri(curveAt(c, i / n)))
 
+/** Index of the member whose shape is nearest `z` — the continuity rule. */
+function nearestByZ(fiber: readonly FiberPoint[], z: Quat | null): number {
+  if (!z || fiber.length === 0) return 0
+  let best = 0
+  let bestD = Infinity
+  fiber.forEach((f, i) => {
+    const d = zDist(f.z, z)
+    if (d < bestD) { bestD = d; best = i }
+  })
+  return best
+}
+
+/** The fiber member whose ridden point is nearest a target position. */
+function nearestByPoint(fiber: readonly FiberPoint[], target: Vec3): FiberPoint | null {
+  let best: FiberPoint | null = null
+  let bestD = Infinity
+  for (const f of fiber) {
+    const d = vnorm(vsub(f.derived, target))
+    if (d < bestD) { bestD = d; best = f }
+  }
+  return best
+}
+
 /**
  * Framed and defaulted ONCE from the starting configuration; recomputing either
- * during a drag would make the view lurch.
- *
- * The default is the MOST SPATIAL member. Arc length cannot choose — it is identical
- * for every member — and choosing the "gentlest" by curvature picks a PLANAR one,
- * which made the whole figure read as flat. Most-spatial is the honest default for a
- * slide whose point is that the family leaves the plane.
+ * during a drag would make the view lurch. The default is the MOST SPATIAL member —
+ * arc length cannot choose (it is identical for every member) and choosing the
+ * gentlest picks a PLANAR one, which made the whole figure read as flat.
  */
-const START_FIBER = spatialCubicFiber(P0, START_P1, P3, { samples: FIBER_SAMPLES })
-const START_ALONG = (() => {
-  if (START_FIBER.length < 2) return 0.5
-  let best = 0
+const START_FIBER = spatialCubicFiberAt(P0, P3, START_HANDLE, 1, { samples: FIBER_SAMPLES })
+const START_Z: Quat | null = (() => {
+  if (START_FIBER.length === 0) return null
+  let best = START_FIBER[0]
   let bestD = -1
-  START_FIBER.forEach((f, i) => {
+  for (const f of START_FIBER) {
     const d = Math.abs(planarity(f.curve))
-    if (d > bestD) { bestD = d; best = i }
-  })
-  return best / (START_FIBER.length - 1)
+    if (d > bestD) { bestD = d; best = f }
+  }
+  return best.z
 })()
 const BOUNDS = (() => {
-  const all: Vec3[] = [P0, P3, START_P1, ...START_FIBER.map((f) => f.p2)]
+  const all: Vec3[] = [P0, P3, START_HANDLE, ...START_FIBER.map((f) => f.derived)]
   const xs = all.map((p) => p.x), ys = all.map((p) => p.y), zs = all.map((p) => p.z)
   const pad = 0.3
   return {
@@ -99,142 +122,254 @@ const BOUNDS = (() => {
   }
 })()
 
+type Mode = 'strict' | 'free'
+
 export default function SpatialCubicFigure() {
-  const [p1, setP1] = useState<Vec3>(START_P1)
-  /** Position along the fiber as a FRACTION, so the bead keeps its place as the
-   *  fiber changes length under a drag. */
-  const [along, setAlong] = useState(START_ALONG)
-  const [dragging, setDragging] = useState(false)
+  const [mode, setMode] = useState<Mode>('strict')
+  const [ends, setEnds] = useState({ p0: P0, p3: P3 })
+  const [which, setWhich] = useState<InteriorHandle>(1)
+  const [handle, setHandle] = useState<Vec3>(START_HANDLE)
+  const [chosenZ, setChosenZ] = useState<Quat | null>(START_Z)
+  const [freeState, setFreeState] = useState<SpatialPHCubic | null>(null)
+  const [freeInfo, setFreeInfo] = useState({ tracking: 0, disturbance: 0 })
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
   const lastGood = useRef<FiberPoint[]>(START_FIBER)
 
+  const derivedIdx = which === 1 ? 2 : 1
+
+  // --- strict: the fiber, seeded from the last shape so the trace is continuous --
   const fiber = useMemo(() => {
-    const f = spatialCubicFiber(P0, p1, P3, { samples: FIBER_SAMPLES })
+    const f = spatialCubicFiberAt(ends.p0, ends.p3, handle, which, {
+      samples: FIBER_SAMPLES,
+      seed: chosenZ ?? undefined,
+    })
     if (f.length > 0) lastGood.current = f
     return f.length > 0 ? f : lastGood.current
-  }, [p1])
+    // chosenZ is a seed only — re-tracing on every slider tick would be waste.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ends, handle, which])
 
-  const index = fiber.length > 0 ? Math.min(fiber.length - 1, Math.round(along * (fiber.length - 1))) : 0
+  const index = nearestByZ(fiber, chosenZ)
   const chosen: FiberPoint | undefined = fiber[index]
-  const cps = chosen ? controlPoints(chosen.curve) : []
 
-  // A few faint members, so the family reads as a family and not as one curve.
-  const ghosts = useMemo(() => {
-    if (fiber.length < 8) return []
-    const picks = [0, 0.2, 0.4, 0.6, 0.8, 1].map((f) => Math.round(f * (fiber.length - 1)))
-    return [...new Set(picks)].filter((i) => i !== index).map((i) => sampleCurve(fiber[i].curve, 40))
-  }, [fiber, index])
+  const curve = mode === 'free' && freeState ? freeState : chosen?.curve
+  const cps: Vec3[] = curve ? controlPoints(curve) : []
 
-  const p2Path = useMemo(() => fiber.map((f) => tri(f.p2)), [fiber])
+  const planar = useMemo(
+    () => (mode === 'strict' ? planarMembers(ends.p0, ends.p3, handle, which) : []),
+    [mode, ends, handle, which],
+  )
 
-  /** The two planar members — slide 4's two answers, sitting on this curve.
-   *  Solved exactly by the PLANAR solver, not hunted along the trace. */
-  const planar = useMemo(() => planarMembers(P0, p1, P3), [p1])
+  // --- mode handoff, continuous both ways ---------------------------------------
+  const toFree = () => {
+    if (curve) setFreeState(curve)
+    setFreeInfo({ tracking: 0, disturbance: 0 })
+    setMode('free')
+  }
+  const toStrict = () => {
+    if (freeState) {
+      const c = controlPoints(freeState)
+      setEnds({ p0: c[0], p3: c[3] })
+      setHandle(c[which])
+      const f = spatialCubicFiberAt(c[0], c[3], c[which], which, { samples: FIBER_SAMPLES })
+      const best = nearestByPoint(f, c[derivedIdx])
+      if (best) setChosenZ(best.z)
+    }
+    setMode('strict')
+  }
 
-  // Honest check, sampled: |r′| must equal σ on the chosen curve.
+  /**
+   * Take hold of the ridden point instead. The curve does not change — it solves
+   * both problems — so this re-locks onto the same curve on the mirrored fiber.
+   */
+  const swapHandle = () => {
+    if (!chosen) return
+    const c = controlPoints(chosen.curve)
+    const next: InteriorHandle = which === 1 ? 2 : 1
+    const f = spatialCubicFiberAt(ends.p0, ends.p3, c[next], next, { samples: FIBER_SAMPLES })
+    const best = nearestByPoint(f, c[next === 1 ? 2 : 1])
+    setWhich(next)
+    setHandle(c[next])
+    setChosenZ(best ? best.z : null)
+  }
+
+  const reset = () => {
+    setEnds({ p0: P0, p3: P3 })
+    setWhich(1)
+    setHandle(START_HANDLE)
+    setChosenZ(START_Z)
+    setFreeState(null)
+    setFreeInfo({ tracking: 0, disturbance: 0 })
+    setMode('strict')
+  }
+
+  // --- readouts -------------------------------------------------------------------
   const phError = useMemo(() => {
-    if (!chosen) return 0
+    if (!curve) return 0
     let worst = 0
     for (let i = 0; i <= 8; i++) {
       const t = i / 8
-      worst = Math.max(worst, Math.abs(vnorm(hodographAt(chosen.curve, t)) - speedAt(chosen.curve, t)))
+      worst = Math.max(worst, Math.abs(vnorm(hodographAt(curve, t)) - speedAt(curve, t)))
     }
     return worst
-  }, [chosen])
+  }, [curve])
 
   const spread = useMemo(() => {
     if (fiber.length < 2) return 0
     let m = 0
-    for (const a of fiber) m = Math.max(m, vnorm(vsub(a.p2, fiber[0].p2)))
+    for (const a of fiber) m = Math.max(m, vnorm(vsub(a.derived, fiber[0].derived)))
     return m
   }, [fiber])
+
+  const label = (i: number): string => `P${'₀₁₂₃'[i]}`
 
   return (
     <Figure3D
       bounds={BOUNDS}
-      base={{ width: 900, height: 420 }} // same as slide 5, so the heights match
-      notation={['r′ = A i A*', '10 DOF − 9 conditions = 1', 'P₂ is NOT determined']}
-      readouts={[
-        { label: 'spare DOF', value: '1' },
-        { label: 'fiber', value: `${fiber.length} samples` },
-        { label: 'P₂ roams', value: spread.toFixed(3) },
-        { label: 'planar members', value: String(planar.length) },
-        {
-          label: 'arc len',
-          value: (fiberArcLength(P0, p1, P3) ?? 0).toFixed(4) + ' (same for all)',
-          tone: 'ok' as const,
-        },
-        { label: '|r′|−σ', value: phError.toExponential(1), tone: 'ok' as const },
-      ]}
+      base={{ width: 900, height: 420 }}
+      notation={
+        mode === 'strict'
+          ? ['r′ = A i A*', '10 DOF − 9 conditions = 1', 'the tenth is a curve']
+          : ['r′ = A i A*', '10 DOF − 3 dragged = 7 spare', 'min Σ |Pⱼ − Pⱼᵒˡᵈ|²']
+      }
+      readouts={
+        mode === 'strict'
+          ? [
+              { label: 'spare DOF', value: '1' },
+              { label: 'holding', value: label(which) },
+              { label: `${label(derivedIdx)} roams`, value: spread.toFixed(3) },
+              {
+                label: 'arc len',
+                value: `${(fiberArcLength(ends.p0, handle, ends.p3) ?? 0).toFixed(4)} (same for all)`,
+                tone: 'ok' as const,
+              },
+              { label: 'planar', value: String(planar.length) },
+              { label: '|r′|−σ', value: phError.toExponential(1), tone: 'ok' as const },
+            ]
+          : [
+              { label: 'spare DOF', value: '7' },
+              { label: 'cursor error', value: freeInfo.tracking.toFixed(4) },
+              { label: 'others moved', value: freeInfo.disturbance.toFixed(4) },
+              {
+                label: 'PH residual',
+                value: cps.length === 4 ? spatialPHPolygonResidual(cps).toExponential(1) : '—',
+                tone: 'ok' as const,
+              },
+            ]
+      }
       controls={
         <span className="flex items-center gap-2">
-          <label className="flex items-center gap-1">
-            <span className="text-slate-400">along the fiber</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.002}
-              value={along}
-              onChange={(e) => setAlong(Number(e.target.value))}
-              className="w-40"
-            />
-          </label>
-          <button
-            onClick={() => {
-              setP1(START_P1)
-              setAlong(START_ALONG)
-            }}
-            className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
-          >
+          <span className="inline-flex rounded overflow-hidden border border-slate-300">
+            <button
+              onClick={toStrict}
+              className={`px-2 py-[0.15em] ${mode === 'strict' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              strict
+            </button>
+            <button
+              onClick={toFree}
+              className={`px-2 py-[0.15em] ${mode === 'free' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              free
+            </button>
+          </span>
+          {mode === 'strict' && fiber.length > 1 && (
+            <label className="flex items-center gap-1">
+              <span className="text-slate-400">along the fiber</span>
+              <input
+                type="range"
+                min={0}
+                max={fiber.length - 1}
+                step={1}
+                value={index}
+                onChange={(e) => setChosenZ(fiber[Number(e.target.value)].z)}
+                className="w-40"
+              />
+            </label>
+          )}
+          <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
             reset
           </button>
         </span>
       }
       caption={
-        <>
-          <b>In the plane P₂ was determined — two ways. In space it is not determined at all.</b> Ten
-          degrees of freedom minus nine conditions leaves one over, so the admissible P₂ trace out the
-          grey curve and something has to choose a point on it. Same gesture, and the answer changes
-          from “pick one of two” to “pick a point on a curve”. And the family is <b>isometric</b> —
-          every member has the same arc length, so the fairness measure that would rank planar
-          interpolants cannot tell these apart at all. The two dark beads are the <b>planar</b>
-          members — the two discrete answers from before, sitting on this curve.{' '}
-          <span className="text-slate-400">Drag P₁; drag the background to rotate.</span>
-        </>
+        mode === 'strict' ? (
+          <>
+            <b>In the plane the other interior point was determined — two ways. In space it is not
+            determined at all.</b> Ten degrees of freedom minus nine conditions leaves one over, so the
+            admissible positions trace the grey curve and something has to choose a point on it. The
+            family is <b>isometric</b> — every member has the same arc length, so the measure that
+            would rank planar interpolants cannot tell these apart. The two dark beads are the{' '}
+            <b>planar</b> members: the two discrete answers from before, sitting on this curve.{' '}
+            <span className="text-slate-400">
+              Drag the blue point; press the pale one to hold it instead; drag the background to rotate.
+            </span>
+          </>
+        ) : (
+          <>
+            <b>Free.</b> Nothing pinned, so grab <i>any</i> of the four. Ten degrees of freedom against
+            three conditions leaves <b>seven</b> spare — against the plane’s four — so minimum-norm has
+            far more to decide and the rest of the polygon drifts more. And the curve stays exactly PH,
+            by construction.
+          </>
+        )
       }
     >
-      {/* the fiber: every P₂ the data permits */}
-      <Curve3D points={p2Path} color={FIG.color.derived} width={2} />
-
-      {/* the two PLANAR members — slide 4's discrete pair, embedded here */}
-      {planar.map((m, i) => (
-        <Point3D key={`pl${i}`} position={tri(m.p2)} color={FIG.color.curve} radius={0.042} />
-      ))}
-
-      {/* a few members of the family, faint */}
-      {ghosts.map((g, i) => (
-        <Curve3D key={i} points={g} color={FIG.color.curveMuted} width={1.2} />
-      ))}
-
-      {chosen && (
+      {mode === 'strict' && (
         <>
-          <Curve3D points={sampleCurve(chosen.curve)} color={FIG.color.curve} width={3.5} />
-          <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1.2} dashed />
-          {/* P₂ — the bead the slider drives along the fiber */}
-          <Point3D position={tri(cps[2])} derived radius={0.055} />
+          {/* the fiber: every position the data permits for the ridden point */}
+          <Curve3D points={fiber.map((f) => tri(f.derived))} color={FIG.color.derived} width={2} />
+          {/* the two planar members — slide 4's discrete pair, embedded here */}
+          {planar.map((c, i) => (
+            <Point3D key={`pl${i}`} position={tri(c[derivedIdx])} color={FIG.color.curve} radius={0.042} />
+          ))}
         </>
       )}
 
-      <Point3D position={tri(P0)} color={FIG.color.pinned} radius={0.045} />
-      <Point3D position={tri(P3)} color={FIG.color.pinned} radius={0.045} />
+      {curve && cps.length === 4 && (
+        <>
+          <Curve3D points={sampleCurve(curve)} color={FIG.color.curve} width={3.5} />
+          <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1.2} dashed />
+        </>
+      )}
 
-      <DragPoint3D
-        position={tri(p1)}
-        color={dragging ? FIG.color.dataPointDrag : FIG.color.dataPoint}
-        onDragStart={() => setDragging(true)}
-        onDragEnd={() => setDragging(false)}
-        onDrag={([x, y, z]) => setP1({ x, y, z })}
-      />
+      {mode === 'strict' && cps.length === 4 ? (
+        <>
+          <Point3D position={tri(cps[0])} color={FIG.color.pinned} radius={0.045} />
+          <Point3D position={tri(cps[3])} color={FIG.color.pinned} radius={0.045} />
+          {/* the ridden point: pressing it takes hold, and drags in the same gesture */}
+          <DragPoint3D
+            position={tri(cps[derivedIdx])}
+            color={FIG.color.derived}
+            radius={0.055}
+            onDragStart={swapHandle}
+            onDrag={([x, y, z]) => setHandle({ x, y, z })}
+          />
+          <DragPoint3D
+            position={tri(cps[which])}
+            color={dragIdx === which ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+            onDragStart={() => setDragIdx(which)}
+            onDragEnd={() => setDragIdx(null)}
+            onDrag={([x, y, z]) => setHandle({ x, y, z })}
+          />
+        </>
+      ) : (
+        cps.map((p, i) => (
+          <DragPoint3D
+            key={i}
+            position={tri(p)}
+            color={dragIdx === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+            onDragStart={() => setDragIdx(i)}
+            onDragEnd={() => setDragIdx(null)}
+            onDrag={([x, y, z]) => {
+              if (!freeState) return
+              const step = dragSpatialCubicFree(freeState, i, { x, y, z })
+              setFreeState(step.state)
+              setFreeInfo({ tracking: step.trackingError, disturbance: step.disturbance })
+            }}
+          />
+        ))
+      )}
     </Figure3D>
   )
 }

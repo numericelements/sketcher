@@ -248,11 +248,11 @@ describe('the fiber — the slide’s claim', () => {
 
   it('P₂ genuinely SWEEPS — it is not determined, unlike the planar case', () => {
     const fiber = spatialCubicFiber(P0, P1, P3, { samples: 120 })
-    const spread = Math.max(...fiber.map((f) => vd(f.p2, fiber[0].p2)))
+    const spread = Math.max(...fiber.map((f) => vd(f.derived, fiber[0].derived)))
     expect(spread).toBeGreaterThan(0.05)
     // ...and it moves continuously, with no jumps between samples.
     for (let i = 1; i < fiber.length; i++) {
-      expect(vd(fiber[i].p2, fiber[i - 1].p2), `gap at ${i}`).toBeLessThan(0.5)
+      expect(vd(fiber[i].derived, fiber[i - 1].derived), `gap at ${i}`).toBeLessThan(0.5)
     }
   })
 
@@ -268,7 +268,7 @@ describe('the fiber — the slide’s claim', () => {
 
   it('the reference curve itself lies on its own fiber', () => {
     const fiber = spatialCubicFiber(P0, P1, P3, { samples: 200 })
-    const best = Math.min(...fiber.map((f) => vd(f.p2, cps[2])))
+    const best = Math.min(...fiber.map((f) => vd(f.derived, cps[2])))
     expect(best).toBeLessThan(0.02)
   })
 
@@ -351,24 +351,24 @@ describe('the fiber — the slide’s claim', () => {
   it('CONTAINS SLIDE 4: exactly TWO planar members, and they LIE ON the fiber', () => {
     // The plane problem's two discrete solutions must appear on the spatial family,
     // because a planar PH cubic is a spatial one. This is the embedding, checked.
-    const planar = planarMembers(P0, P1, P3)
+    const planar = planarMembers(P0, P3, P1)
     expect(planar).toHaveLength(2)
 
-    for (const m of planar) {
+    for (const cps of planar) {
       // Interpolates the same data...
-      expect(vd(m.controlPoints[0], P0)).toBeLessThan(1e-10)
-      expect(vd(m.controlPoints[1], P1)).toBeLessThan(1e-9)
-      expect(vd(m.controlPoints[3], P3)).toBeLessThan(1e-9)
+      expect(vd(cps[0], P0)).toBeLessThan(1e-10)
+      expect(vd(cps[1], P1)).toBeLessThan(1e-9)
+      expect(vd(cps[3], P3)).toBeLessThan(1e-9)
       // ...and is genuinely coplanar with it.
-      const [a, b, c] = [1, 2, 3].map((i) => vsub(m.controlPoints[i], m.controlPoints[0]))
+      const [a, b, c] = [1, 2, 3].map((i) => vsub(cps[i], cps[0]))
       const det = a.x * (b.y * c.z - b.z * c.y) - a.y * (b.x * c.z - b.z * c.x) + a.z * (b.x * c.y - b.y * c.x)
       expect(Math.abs(det)).toBeLessThan(1e-9)
     }
 
     // THE POINT: each planar solution's P₂ sits on the traced spatial fiber.
     const fiber = spatialCubicFiber(P0, P1, P3, { samples: 240 })
-    for (const m of planar) {
-      const nearest = Math.min(...fiber.map((f) => vd(f.p2, m.p2)))
+    for (const cps of planar) {
+      const nearest = Math.min(...fiber.map((f) => vd(f.derived, cps[2])))
       expect(nearest, 'planar member is on the fiber').toBeLessThan(0.05)
     }
   })
@@ -378,10 +378,10 @@ describe('the fiber — the slide’s claim', () => {
     const r = (): number => ((x = (x * 1103515245 + 12345) % 2147483648) / 2147483648 - 0.5) * 2
     for (let trial = 0; trial < 10; trial++) {
       const a = V(r(), r(), r()), b = V(r(), r(), r()), c = V(r(), r(), r())
-      expect(planarMembers(a, b, c), `trial ${trial}`).toHaveLength(2)
+      expect(planarMembers(a, c, b), `trial ${trial}`).toHaveLength(2)
     }
     // Collinear data has no unique plane, and says so rather than guessing.
-    expect(planarMembers(V(0, 0, 0), V(1, 0, 0), V(2, 0, 0))).toHaveLength(0)
+    expect(planarMembers(V(0, 0, 0), V(2, 0, 0), V(1, 0, 0))).toHaveLength(0)
   })
 
   it('but the family as a whole is NOT planar — most of it leaves the plane', () => {
@@ -392,7 +392,7 @@ describe('the fiber — the slide’s claim', () => {
 
   it('MEASUREMENT: how far P₂ actually roams', () => {
     const fiber = spatialCubicFiber(P0, P1, P3, { samples: 200 })
-    const spread = Math.max(...fiber.map((a) => Math.max(...fiber.map((b) => vd(a.p2, b.p2)))))
+    const spread = Math.max(...fiber.map((a) => Math.max(...fiber.map((b) => vd(a.derived, b.derived)))))
     const chord = vd(P3, P0)
     console.log(
       `\nspatial PH cubic fiber: ${fiber.length} samples, ` +

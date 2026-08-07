@@ -47,7 +47,7 @@
 // ============================================================================
 import type { Complex } from './complex'
 import { leastSquares, type Matrix } from './linalg'
-import { phCubicFromP1 } from './phCubic'
+import { phCubicFromP1, phCubicFromP2 } from './phCubic'
 import {
   type Quat,
   type Vec3,
@@ -269,15 +269,35 @@ export function solveReduction(F: Vec3, tolerance = 1e-10): Quat | null {
   return null
 }
 
+/**
+ * The same curve traversed backwards, t ↦ 1−t. Its control points are reversed, so
+ * this is what lets P₂ be the handle: "pin the ends and prescribe P₂" IS "pin the
+ * ends and prescribe P₁" seen from the other end.
+ *
+ * The generator needs care, because reversing NEGATES the hodograph:
+ * s′(t) = −r′(1−t), and −(A i A*) is not (A i A*) for any relabelling. Right
+ * multiplication by j fixes it — (Bj) i (Bj)* = B (j i j*) B* = −B i B*, since
+ * j i j* = −j i j = −i. So with B(t) = A(1−t) (which just swaps A₀ and A₁), the
+ * reversed generator is B·j, i.e. A₁j and A₀j, based at the old end point.
+ */
+export function reverseSpatialCubic(c: SpatialPHCubic): SpatialPHCubic {
+  const j: Quat = { u: 0, v: 0, p: 1, q: 0 }
+  return { A0: qmul(c.A1, j), A1: qmul(c.A0, j), p0: controlPoints(c)[3] }
+}
+
 // ---------------------------------------------------------------------------
-// The fiber: all spatial PH cubics with the ends pinned and P₁ prescribed
+// The fiber: all spatial PH cubics with the ends pinned and one interior point
+// prescribed
 // ---------------------------------------------------------------------------
 
 export interface FiberPoint {
   readonly curve: SpatialPHCubic
   readonly z: Quat
-  /** The one control point the data does NOT determine. */
-  readonly p2: Vec3
+  /**
+   * The interior control point the data does NOT determine — P₂ when P₁ is the
+   * handle, P₁ when P₂ is (the two are mirror images; see `spatialCubicFiberAt`).
+   */
+  readonly derived: Vec3
 }
 
 /**
@@ -288,6 +308,9 @@ export function planarity(c: SpatialPHCubic): number {
   const [a, b, d] = legs(c.A0, c.A1)
   return a.x * (b.y * d.z - b.z * d.y) - a.y * (b.x * d.z - b.z * d.x) + a.z * (b.x * d.y - b.y * d.x)
 }
+
+/** Which interior control point you hold. The other one rides the fiber. */
+export type InteriorHandle = 1 | 2
 
 /**
  * The PLANAR members of the family — exactly TWO, in closed form.
@@ -306,8 +329,8 @@ export function planarity(c: SpatialPHCubic): number {
  *
  * Returns [] when P₀, P₁, P₃ are collinear and there is no unique plane.
  */
-export function planarMembers(p0: Vec3, p1: Vec3, p3: Vec3): { controlPoints: Vec3[]; p2: Vec3 }[] {
-  const a = vsub(p1, p0)
+export function planarMembers(p0: Vec3, p3: Vec3, handle: Vec3, which: InteriorHandle = 1): Vec3[][] {
+  const a = vsub(handle, p0)
   const b = vsub(p3, p0)
   const n = vcross(a, b)
   if (vnorm(n) < 1e-12) return []
@@ -320,10 +343,8 @@ export function planarMembers(p0: Vec3, p1: Vec3, p3: Vec3): { controlPoints: Ve
   }
   const to3D = (c: Complex): Vec3 => vadd(p0, vadd(vscale(ex, c.re), vscale(ey, c.im)))
 
-  return phCubicFromP1(to2D(p0), to2D(p3), to2D(p1)).map((sol) => {
-    const cps = sol.controlPoints.map(to3D)
-    return { controlPoints: cps, p2: cps[2] }
-  })
+  const solve = which === 1 ? phCubicFromP1 : phCubicFromP2
+  return solve(to2D(p0), to2D(p3), to2D(handle)).map((sol) => sol.controlPoints.map(to3D))
 }
 
 export interface FiberOptions {
@@ -331,6 +352,13 @@ export interface FiberOptions {
   readonly samples?: number
   /** Arc-length step in z-space (default 0.06). */
   readonly step?: number
+  /**
+   * Start the continuation from this z if it converges. Passing the previously
+   * chosen shape keeps the trace itself continuous under a drag, which is half of
+   * why the derived point stops jumping (the other half is choosing by nearest z
+   * rather than by index — the array's length and direction both shift).
+   */
+  readonly seed?: Quat
 }
 
 /**
@@ -358,12 +386,14 @@ export function spatialCubicFiber(
   const A0 = quatFromSandwich(v1)
   if (!A0) return []
   const F = reductionRHS(A0, p0, p3)
-  const seed = solveReduction(F)
+  const warm = options.seed ? correct(options.seed, F, 40) : null
+  const seed =
+    warm && vnorm(vsub(reductionLHS(warm), F)) < 1e-10 ? warm : solveReduction(F)
   if (!seed) return []
 
   const build = (z: Quat): FiberPoint => {
     const curve: SpatialPHCubic = { A0, A1: qmul(A0, z), p0 }
-    return { curve, z, p2: controlPoints(curve)[2] }
+    return { curve, z, derived: controlPoints(curve)[2] }
   }
 
   const walk = (sign: number): FiberPoint[] => {
@@ -402,4 +432,28 @@ export function spatialCubicFiber(
     Math.hypot(...asArray(forward[forward.length - 1].z).map((c, k) => c - asArray(seed)[k])) < step * 1.2
   const backward = closed ? [] : walk(-1).reverse()
   return [...backward, build(seed), ...forward]
+}
+
+/**
+ * The fiber with both ends pinned and ONE interior control point prescribed —
+ * either of them.
+ *
+ * `which = 2` is solved by reversing: prescribing P₂ with ends (P₀,P₃) is
+ * prescribing P₁ with ends (P₃,P₀) on the reversed curve, so we solve that and
+ * reverse each solution back. The curves are identical objects either way, which is
+ * what makes clicking to swap the handle seamless — as in the plane, where the two
+ * choices are mirror images under t ↦ 1−t.
+ */
+export function spatialCubicFiberAt(
+  p0: Vec3,
+  p3: Vec3,
+  handle: Vec3,
+  which: InteriorHandle,
+  options: FiberOptions = {},
+): FiberPoint[] {
+  if (which === 1) return spatialCubicFiber(p0, handle, p3, options)
+  return spatialCubicFiber(p3, handle, p0, options).map((f) => {
+    const curve = reverseSpatialCubic(f.curve)
+    return { curve, z: f.z, derived: controlPoints(curve)[1] }
+  })
 }
