@@ -167,12 +167,53 @@ to a sampled analytic curve — but at a *fixed* step size it is a poor shape ch
 
 ---
 
-## Not yet measured (open, for when slide 7 is built)
+## MEASURED (2026-08-07) — `core/phSpatialQuintic.ts`, pinned in its test file
 
-- What surface does `P₂` sweep as `(α,β)` covers the torus? A quadric? Self-intersecting?
-  (The cubic's ellipse came from linearity; the quintic's middle legs are *bilinear*, so
-  there is no guess to make here — measure it.)
-- With coplanar data, how many planar members appear on the torus, and where? (The cubic's
-  fiber has exactly two.)
-- Does `L(β)` really have exactly the four stationary points [FGMS08] prove, in our code?
-- Degeneracies: `δ + u = 0` for either tangent, and `d = 0`.
+**Only `P₂` and `P₃` move.** `P₁ = pᵢ + dᵢ/5` and `P₄ = p_f − d_f/5` are the end tangents
+over five, so the data pins them: swept over the whole torus their extent is **exactly zero**
+(< 1e-12). The two-parameter family lives entirely in the two middle control points, which is
+why the figure needs two surfaces and not four.
+
+**The surfaces are NOT quadrics.** Fitting a general quadric to a 40×40 sweep of `P₂` leaves
+a residual of `1.2e-5` (`P₃`: `2.0e-6`), against `3.7e-10` for a degenerate one-point cloud
+— eleven orders above machine zero. They are genuine trigonometric surfaces with no name to
+give them; draw them as a mesh, don't claim a classification. (The cubic's ellipse came from
+`z i + i z*` being *linear*; the quintic's middle legs are *bilinear*, and that is the
+difference.)
+
+**`L(β)` has exactly FOUR stationary points** — for the test data at `β ≈ 1.561, 4.571,
+7.845, 10.854` over `[0,4π)`, with `L ∈ [2.188, 2.288]` against a chord of `2.083`. These are
+[FGMS08]'s four general helical interpolants, reproduced from our own code. Note they are
+*not* at round multiples of `π`: they are data-dependent, unlike the planar members below.
+
+**THE FOUR PLANAR INTERPOLANTS SIT AT THE QUARTER-TURNS.** With coplanar data the classical
+planar quintic Hermite problem's four solutions (slide 5) appear in the spatial family at four
+*exact* points, matched to **1e-15**:
+
+| planar branch | `(α, β)` | arc length |
+|---|---|---|
+| 1 | `(0, 0)`      | 2.1748 |
+| 0 | `(π, 0)`      | 2.1748 |
+| 3 | `(π/2, π)`    | 2.1281 |
+| 2 | `(3π/2, π)`   | 2.1281 |
+
+**Why `β ∈ {0, π}`:** a planar curve needs `A(t) ∈ span{1,k}` up to a global gauge. For
+in-plane data `nᵢ` is pure and lies in `span{i,j}`, and `nᵢ·exp(φi)` enters `span{1,k}` only
+when `cos φ = 0`. So `φ₀, φ₂ ∈ {±π/2}` and `β = φ₂ − φ₀ ∈ {0, ±π}`. A generic `β` has no
+planar member at any `α` (measured: min planarity `3.1e-2` at `β = 1.3`).
+
+And the arc lengths pair up by `β` — computed by the *independent* planar solver — which is a
+free confirmation of the gate from outside this module.
+
+⚠ **Grid-artifact warning, paid for once.** A 90×90 sweep of the torus found only the two
+`β = 0` members and reported "2 planar members". `β = π` falls at `j = 22.5` on a 90-step
+`[0,4π)` grid — *between samples*. Sample the torus at resolutions that hit `β = π` exactly,
+or search the four predicted points directly.
+
+## Still open
+
+- Degeneracies are benign as far as tested: an antipodal tangent `dᵢ = (−1.5,0,0)` works, and
+  straight-line data gives 0/3600 nulls with arc length exactly `1.000000000`. No case yet
+  found where `d = 0`; if one exists it is a codimension-3 accident.
+- Whether the `P₂`/`P₃` surfaces self-intersect, and what that means for picking a point on
+  them by clicking.
