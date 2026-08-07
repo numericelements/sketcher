@@ -38,6 +38,11 @@
 // z is nearest the last one, and seed the continuation from it so the trace itself
 // stays continuous.
 //
+// THE FIBER IS AN ELLIPSE — proved and tested in core (fiberEllipseRadiusSq): z₂²+z₃² is
+// constant along it, z₀ is affine in (z₂,z₃), and the middle leg is linear in those, so
+// the admissible positions are a circle lifted affinely and then linearly mapped. Which
+// makes it CLOSED, so the drawn path loops and the slider is really an angle.
+//
 // A handful of the family is drawn faintly (toggle "family"), because the fiber alone
 // reads as a decorative line; the ghosts are what make it legible as a set of
 // POSSIBILITIES.
@@ -65,6 +70,7 @@ import {
   hodographAt,
   planarMembers,
   planarity,
+  fiberTraceIsClosed,
   spatialCubicFiberAt,
   speedAt,
 } from '../../core/phSpatialCubic'
@@ -173,6 +179,19 @@ export default function SpatialCubicFigure() {
     () => (mode === 'strict' ? planarMembers(ends.p0, ends.p3, handle, which) : []),
     [mode, ends, handle, which],
   )
+
+  /**
+   * The fiber as a drawn path, CLOSED when the trace came back on itself. Legitimate
+   * rather than cosmetic: the fiber is an ellipse (core: fiberEllipseRadiusSq), hence a
+   * closed curve, so a small end-to-end gap is the continuation's last step and not a
+   * real opening. A trace that stopped early is left open, which is the honest thing to
+   * draw.
+   */
+  const fiberPath = useMemo(() => {
+    const pts = fiber.map((f) => tri(f.derived))
+    if (fiberTraceIsClosed(fiber)) pts.push(pts[0])
+    return pts
+  }, [fiber])
 
   /** Six members spread along the fiber, drawn faintly — the family, not one curve. */
   const family = useMemo(() => {
@@ -350,7 +369,7 @@ export default function SpatialCubicFigure() {
             <Curve3D key={`fam${i}`} points={g} color={FIG.color.curveMuted} width={1.2} />
           ))}
           {/* the fiber: every position the data permits for the ridden point */}
-          <Curve3D points={fiber.map((f) => tri(f.derived))} color={FIG.color.derived} width={2} />
+          <Curve3D points={fiberPath} color={FIG.color.derived} width={2} />
           {/* the two PLANAR members — slide 4's discrete pair, embedded here.
               Deliberately NOT interactive: a small clickable target in a 3D view
               steals the drag gestures meant for orbiting. */}

@@ -24,6 +24,7 @@ import {
   qvec,
   sandwich,
   vcross,
+  vdot,
   vnorm,
   vsub,
 } from '../quaternion'
@@ -33,6 +34,8 @@ import {
   controlPoints,
   curveAt,
   fiberArcLength,
+  fiberEllipseRadiusSq,
+  fiberTraceIsClosed,
   hodographAt,
   legs,
   nullDirection4,
@@ -388,6 +391,60 @@ describe('the fiber — the slide’s claim', () => {
     const fiber = spatialCubicFiber(P0, P1, P3, { samples: 160 })
     const worst = Math.max(...fiber.map((f) => Math.abs(planarity(f.curve))))
     expect(worst).toBeGreaterThan(0.1)
+  })
+
+  it('IS AN ELLIPSE, step 1: z₂² + z₃² is CONSTANT along the fiber', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 200 })
+    const predicted = fiberEllipseRadiusSq(fiber[0].curve.A0, P0, P3, fiber[0].z)
+    expect(predicted).toBeGreaterThan(0)
+    for (const f of fiber) {
+      expect(Math.abs(f.z.p * f.z.p + f.z.q * f.z.q - predicted)).toBeLessThan(1e-12)
+    }
+  })
+
+  it('IS AN ELLIPSE, step 2: z₀ is AFFINE in (z₂, z₃)', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 200 })
+    const F = reductionRHS(fiber[0].curve.A0, P0, P3)
+    const rho2 = fiberEllipseRadiusSq(fiber[0].curve.A0, P0, P3, fiber[0].z)
+    for (const f of fiber) {
+      const predicted = (F.y * f.z.q - F.z * f.z.p) / (4 * rho2) - 0.5
+      expect(Math.abs(predicted - f.z.u)).toBeLessThan(1e-12)
+    }
+  })
+
+  it('IS AN ELLIPSE, step 3: the traced positions are exactly PLANAR, and eccentric', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 200 })
+    const pts = fiber.map((f) => f.derived)
+    const n = pts.length
+    const c = pts.reduce((a, q) => V(a.x + q.x / n, a.y + q.y / n, a.z + q.z / n), V(0, 0, 0))
+    // Smallest-variance direction, by power iteration on (trace·I − covariance).
+    const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    for (const q of pts) {
+      const d = [q.x - c.x, q.y - c.y, q.z - c.z]
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) C[i][j] += (d[i] * d[j]) / n
+    }
+    const tr = C[0][0] + C[1][1] + C[2][2]
+    let v = [0.3, 0.7, 0.6]
+    for (let k = 0; k < 400; k++) {
+      const w = [0, 1, 2].map((i) => tr * v[i] - (C[i][0] * v[0] + C[i][1] * v[1] + C[i][2] * v[2]))
+      const L = Math.hypot(...w)
+      v = w.map((x) => x / L)
+    }
+    const normal = V(v[0], v[1], v[2])
+    const extent = Math.max(...pts.map((q) => vnorm(vsub(q, c))))
+    const worst = Math.max(...pts.map((q) => Math.abs(vdot(vsub(q, c), normal))))
+    expect(worst / extent, 'planar').toBeLessThan(1e-9)
+    // Eccentric, so an ellipse rather than a circle.
+    const radii = pts.map((q) => vnorm(vsub(q, c)))
+    expect(Math.max(...radii) / Math.min(...radii)).toBeGreaterThan(1.05)
+  })
+
+  it('IS CLOSED — so the slider is an angle, and the drawn fiber should loop', () => {
+    expect(fiberTraceIsClosed(spatialCubicFiber(P0, P1, P3, { samples: 200 }))).toBe(true)
+    // A truncated trace is NOT reported closed — the figure must leave that one open.
+    const partial = spatialCubicFiber(P0, P1, P3, { samples: 200 }).slice(0, 40)
+    expect(fiberTraceIsClosed(partial)).toBe(false)
+    expect(fiberTraceIsClosed([])).toBe(false)
   })
 
   it('MEASUREMENT: how far P₂ actually roams', () => {

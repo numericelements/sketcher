@@ -457,3 +457,55 @@ export function spatialCubicFiberAt(
     return { curve, z: f.z, derived: controlPoints(curve)[1] }
   })
 }
+
+/**
+ * THE FIBER IS AN ELLIPSE — so it is a CLOSED curve, and a small end-to-end gap in a
+ * trace is the continuation's last step rather than a real opening.
+ *
+ * Proof, each step pinned in the tests. Write ρ² = (T − F.x/2)/2 with T = z₀ + |z|²
+ * (constant, by the isometry result).
+ *
+ *   1. Substituting |z|² = T − z₀ into the i-component
+ *      F.x = 2z₀ + 2(z₀² + z₁² − z₂² − z₃²) gives F.x/2 = T − 2(z₂² + z₃²), i.e.
+ *
+ *          z₂² + z₃² = ρ²        — CONSTANT along the fiber.
+ *
+ *   2. Combining the j and k components, z₃F.y − z₂F.z = 2(z₂²+z₃²)(1 + 2z₀), so
+ *
+ *          z₀ = (F.y·z₃ − F.z·z₂)/(4ρ²) − 1/2      — AFFINE in (z₂, z₃).
+ *
+ *   3. So (z₀, z₂, z₃) is a circle of radius ρ lifted by an affine function — a
+ *      cylinder cut by a plane, hence an ELLIPSE.
+ *
+ *   4. And the middle leg is LINEAR in it: 6·ΔP₁ = A₀(2z₀i + 2z₃j − 2z₂k)A₀conj, because
+ *      z i + i z* is linear. A linear image of an ellipse is an ellipse, and stays
+ *      planar — measured planar to 5e-16, with the radius genuinely varying, so it is
+ *      an eccentric ellipse and not a circle.
+ *
+ * Consequence for the figures: the slider is really an ANGLE, and the drawn fiber
+ * should be closed.
+ */
+export function fiberEllipseRadiusSq(A0: Quat, p0: Vec3, p3: Vec3, z: Quat): number {
+  const F = reductionRHS(A0, p0, p3)
+  const T = z.u + qnormSq(z)
+  return (T - F.x / 2) / 2
+}
+
+/**
+ * Did the trace come back on itself? Compared against the MEDIAN step rather than an
+ * absolute tolerance, so it holds at any sample count or scale.
+ *
+ * The fiber is always a closed ellipse, but a TRACE need not be complete — the
+ * continuation stops if the Jacobian loses rank — so this distinguishes "closed, draw
+ * the loop" from "stopped early, leave it open", which is the honest thing to draw.
+ */
+export function fiberTraceIsClosed(fiber: readonly FiberPoint[]): boolean {
+  if (fiber.length < 8) return false
+  const gaps: number[] = []
+  for (let i = 1; i < fiber.length; i++) gaps.push(vnorm(vsub(fiber[i].derived, fiber[i - 1].derived)))
+  const sorted = [...gaps].sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)]
+  if (!(median > 0)) return false
+  const endGap = vnorm(vsub(fiber[fiber.length - 1].derived, fiber[0].derived))
+  return endGap < 2.5 * median
+}
