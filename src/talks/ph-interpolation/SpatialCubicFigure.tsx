@@ -151,7 +151,7 @@ export default function SpatialCubicFigure() {
   return (
     <Figure3D
       bounds={BOUNDS}
-      height={400}
+      base={{ width: 900, height: 420 }} // same as slide 5, so the heights match
       notation={['r′ = A i A*', '10 DOF − 9 conditions = 1', 'P₂ is NOT determined']}
       readouts={[
         { label: 'spare DOF', value: '1' },

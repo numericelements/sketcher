@@ -38,6 +38,17 @@ import { Line, TrackballControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { FIG } from './figureStyle'
 
+/**
+ * Nominal size, used ONLY for the aspect ratio — the same `base` convention as
+ * FigureFrame, so a 3D figure and an SVG figure given the same numbers occupy the
+ * same height on a slide. (A fixed pixel height does not: reveal scales the deck, so
+ * the SVG figures grow and shrink with it while a pixel height stays put.)
+ */
+export interface BaseSize3D {
+  width: number
+  height: number
+}
+
 export interface Bounds3D {
   min: [number, number, number]
   max: [number, number, number]
@@ -206,8 +217,8 @@ export function Curve3D({
 
 export interface Figure3DProps {
   bounds: Bounds3D
-  /** Canvas height in CSS pixels. */
-  height?: number
+  /** Aspect ratio of the canvas — match the SVG figures' base to match their height. */
+  base?: BaseSize3D
   notation?: readonly string[]
   readouts?: readonly { label: string; value: string; tone?: 'ok' | 'warn' | 'plain' }[]
   caption?: ReactNode
@@ -221,9 +232,11 @@ const TONE: Record<string, string> = {
   plain: 'text-slate-600',
 }
 
+const DEFAULT_BASE: BaseSize3D = { width: 900, height: 420 }
+
 export default function Figure3D({
   bounds,
-  height = 380,
+  base = DEFAULT_BASE,
   notation,
   readouts,
   caption,
@@ -242,19 +255,29 @@ export default function Figure3D({
         </div>
       )}
 
+      {/* Percentage padding-bottom rather than `aspect-ratio`: the site has to run on
+          Safari 15.6 (iPad 6), and this trick works everywhere. */}
       <div
-        style={{ height, background: FIG.color.background, border: `1px solid ${FIG.color.border}` }}
-        className="w-full rounded overflow-hidden touch-none"
+        style={{
+          position: 'relative',
+          width: '100%',
+          paddingBottom: `${(100 * base.height) / base.width}%`,
+          background: FIG.color.background,
+          border: `1px solid ${FIG.color.border}`,
+        }}
+        className="rounded overflow-hidden touch-none"
       >
-        <ControlsContext.Provider value={controlsRef}>
-          <Canvas camera={{ fov: 40, up: [0, 0, 1], near: 0.01, far: 500 }}>
-            <Rig bounds={bounds} />
-            <ambientLight intensity={0.65} />
-            <directionalLight position={[4, -5, 6]} intensity={0.75} />
-            <directionalLight position={[-4, 3, -2]} intensity={0.25} />
-            {children}
-          </Canvas>
-        </ControlsContext.Provider>
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <ControlsContext.Provider value={controlsRef}>
+            <Canvas camera={{ fov: 40, up: [0, 0, 1], near: 0.01, far: 500 }}>
+              <Rig bounds={bounds} />
+              <ambientLight intensity={0.65} />
+              <directionalLight position={[4, -5, 6]} intensity={0.75} />
+              <directionalLight position={[-4, 3, -2]} intensity={0.25} />
+              {children}
+            </Canvas>
+          </ControlsContext.Provider>
+        </div>
       </div>
 
       {(readouts?.length || controls) && (
