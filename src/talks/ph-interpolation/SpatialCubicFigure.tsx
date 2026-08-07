@@ -38,6 +38,17 @@
 // z is nearest the last one, and seed the continuation from it so the trace itself
 // stays continuous.
 //
+// A handful of the family is drawn faintly (toggle "family"), because the fiber alone
+// reads as a decorative line; the ghosts are what make it legible as a set of
+// POSSIBILITIES.
+//
+// A NOTE ON THE BEADS, since they were nearly cut. A mark that the figure cannot
+// demonstrate is a mark the caption merely asserts — and planarity is invisible until
+// you rotate, so at first they read as two unexplained dots. The fix is not to remove
+// them but to tell the viewer how to CHECK: slide onto one and rotate, and the curve
+// really is flat. They are also deliberately non-interactive, because a small
+// clickable target in a 3D view steals the drag gestures meant for orbiting.
+//
 // r3f cannot be verified headlessly, so this file holds no mathematics — only marks
 // and gestures. core/phSpatialCubic and core/phSpatialFreeDrag carry the tests.
 // ============================================================================
@@ -133,6 +144,9 @@ export default function SpatialCubicFigure() {
   const [freeState, setFreeState] = useState<SpatialPHCubic | null>(null)
   const [freeInfo, setFreeInfo] = useState({ tracking: 0, disturbance: 0 })
   const [dragIdx, setDragIdx] = useState<number | null>(null)
+  /** Draw a handful of the family faintly — it is what makes the fiber legible as a
+   *  set of POSSIBILITIES rather than a decorative line. On by default. */
+  const [showFamily, setShowFamily] = useState(true)
   const lastGood = useRef<FiberPoint[]>(START_FIBER)
 
   const derivedIdx = which === 1 ? 2 : 1
@@ -159,6 +173,14 @@ export default function SpatialCubicFigure() {
     () => (mode === 'strict' ? planarMembers(ends.p0, ends.p3, handle, which) : []),
     [mode, ends, handle, which],
   )
+
+  /** Six members spread along the fiber, drawn faintly — the family, not one curve. */
+  const family = useMemo(() => {
+    if (!showFamily || mode !== 'strict' || fiber.length < 8) return []
+    const picks = [0, 0.2, 0.4, 0.6, 0.8, 1].map((f) => Math.round(f * (fiber.length - 1)))
+    return [...new Set(picks)].filter((i) => i !== index).map((i) => sampleCurve(fiber[i].curve, 40))
+  }, [showFamily, mode, fiber, index])
+
 
   // --- mode handoff, continuous both ways ---------------------------------------
   const toFree = () => {
@@ -243,7 +265,7 @@ export default function SpatialCubicFigure() {
                 value: `${(fiberArcLength(ends.p0, handle, ends.p3) ?? 0).toFixed(4)} (same for all)`,
                 tone: 'ok' as const,
               },
-              { label: 'planar', value: String(planar.length) },
+              { label: 'flat members', value: String(planar.length) },
               { label: '|r′|−σ', value: phError.toExponential(1), tone: 'ok' as const },
             ]
           : [
@@ -287,6 +309,12 @@ export default function SpatialCubicFigure() {
               />
             </label>
           )}
+          {mode === 'strict' && (
+            <label className="flex items-center gap-1 cursor-pointer select-none">
+              <input type="checkbox" checked={showFamily} onChange={(e) => setShowFamily(e.target.checked)} />
+              <span className="text-slate-400">family</span>
+            </label>
+          )}
           <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
             reset
           </button>
@@ -317,9 +345,15 @@ export default function SpatialCubicFigure() {
     >
       {mode === 'strict' && (
         <>
+          {/* a few members of the family, faint — the possibilities, drawn */}
+          {family.map((g, i) => (
+            <Curve3D key={`fam${i}`} points={g} color={FIG.color.curveMuted} width={1.2} />
+          ))}
           {/* the fiber: every position the data permits for the ridden point */}
           <Curve3D points={fiber.map((f) => tri(f.derived))} color={FIG.color.derived} width={2} />
-          {/* the two planar members — slide 4's discrete pair, embedded here */}
+          {/* the two PLANAR members — slide 4's discrete pair, embedded here.
+              Deliberately NOT interactive: a small clickable target in a 3D view
+              steals the drag gestures meant for orbiting. */}
           {planar.map((c, i) => (
             <Point3D key={`pl${i}`} position={tri(c[derivedIdx])} color={FIG.color.curve} radius={0.042} />
           ))}
