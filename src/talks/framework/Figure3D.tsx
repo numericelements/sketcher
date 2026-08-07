@@ -29,6 +29,11 @@
 // solved at the slide level by WhenActive instead, and one to three canvases
 // rendering continuously is not a real cost.
 //
+// NAVIGATION matches the project's other 3D viewers (LabPH3D, LabLieSphere), which use
+// TrackballControls with its defaults: LEFT rotates, MIDDLE dollies, RIGHT PANS. An
+// earlier version passed `noPan`, which silently removed right-drag panning; the
+// control also suppresses the browser context menu itself, so nothing else is needed.
+//
 // CONTEXTS. Mount is gated by WhenActive at the slide level, not here — see
 // framework/slideContext for why WebGL forces that and SVG does not.
 // ============================================================================
@@ -93,7 +98,6 @@ function Rig({ bounds }: { bounds: Bounds3D }) {
       target={target.c}
       rotateSpeed={3}
       zoomSpeed={1.2}
-      noPan
     />
   )
 }
