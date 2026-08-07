@@ -45,7 +45,9 @@
 // the object is — a curve with no closed form — and it is the same machinery the
 // spatial QUINTIC's two-parameter family will need.
 // ============================================================================
+import type { Complex } from './complex'
 import { leastSquares, type Matrix } from './linalg'
+import { phCubicFromP1 } from './phCubic'
 import {
   type Quat,
   type Vec3,
@@ -59,6 +61,8 @@ import {
   qvec,
   sandwich,
   vadd,
+  vcross,
+  vdot,
   vnorm,
   vquat,
   vscale,
@@ -269,18 +273,64 @@ export function solveReduction(F: Vec3, tolerance = 1e-10): Quat | null {
 // The fiber: all spatial PH cubics with the ends pinned and P₁ prescribed
 // ---------------------------------------------------------------------------
 
-export interface FiberOptions {
-  /** How many samples to walk around the fiber (default 160). */
-  readonly samples?: number
-  /** Arc-length step in z-space (default 0.06). */
-  readonly step?: number
-}
-
 export interface FiberPoint {
   readonly curve: SpatialPHCubic
   readonly z: Quat
   /** The one control point the data does NOT determine. */
   readonly p2: Vec3
+}
+
+/**
+ * How far from planar a cubic is: the signed volume spanned by its three legs.
+ * Zero exactly when the four control points are coplanar.
+ */
+export function planarity(c: SpatialPHCubic): number {
+  const [a, b, d] = legs(c.A0, c.A1)
+  return a.x * (b.y * d.z - b.z * d.y) - a.y * (b.x * d.z - b.z * d.x) + a.z * (b.x * d.y - b.y * d.x)
+}
+
+/**
+ * The PLANAR members of the family — exactly TWO, in closed form.
+ *
+ * This is what ties this object to the planar one. A planar PH cubic IS a spatial PH
+ * cubic, so the plane problem's two discrete solutions (phCubic, r² + r + (1 − D/q)
+ * = 0) must appear somewhere on the spatial one-parameter family. They do, as two
+ * isolated points on it — so "finite choice becomes a continuum" is not an analogy:
+ * the finite set is EMBEDDED in the continuum, and you can slide onto it.
+ *
+ * Computed by mapping P₀,P₁,P₃ into their own plane, calling the PLANAR solver, and
+ * mapping back — which makes the embedding self-evident rather than inferred. An
+ * earlier version hunted sign changes of `planarity` along the traced fiber and was
+ * unreliable: continuation need not cover the whole fiber (or every component), so
+ * it found one member or two depending on the sample count.
+ *
+ * Returns [] when P₀, P₁, P₃ are collinear and there is no unique plane.
+ */
+export function planarMembers(p0: Vec3, p1: Vec3, p3: Vec3): { controlPoints: Vec3[]; p2: Vec3 }[] {
+  const a = vsub(p1, p0)
+  const b = vsub(p3, p0)
+  const n = vcross(a, b)
+  if (vnorm(n) < 1e-12) return []
+  const ex = vscale(b, 1 / vnorm(b))
+  const ez = vscale(n, 1 / vnorm(n))
+  const ey = vcross(ez, ex)
+  const to2D = (v: Vec3): Complex => {
+    const d = vsub(v, p0)
+    return { re: vdot(d, ex), im: vdot(d, ey) }
+  }
+  const to3D = (c: Complex): Vec3 => vadd(p0, vadd(vscale(ex, c.re), vscale(ey, c.im)))
+
+  return phCubicFromP1(to2D(p0), to2D(p3), to2D(p1)).map((sol) => {
+    const cps = sol.controlPoints.map(to3D)
+    return { controlPoints: cps, p2: cps[2] }
+  })
+}
+
+export interface FiberOptions {
+  /** How many samples to walk around the fiber (default 160). */
+  readonly samples?: number
+  /** Arc-length step in z-space (default 0.06). */
+  readonly step?: number
 }
 
 /**

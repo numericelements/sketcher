@@ -36,6 +36,8 @@ import {
   hodographAt,
   legs,
   nullDirection4,
+  planarMembers,
+  planarity,
   reductionJacobian,
   reductionLHS,
   reductionRHS,
@@ -344,6 +346,48 @@ describe('the fiber — the slide’s claim', () => {
     const ks = fiber.map((f) => peak(f.curve))
     // Same length throughout, wildly different shapes.
     expect(Math.max(...ks) / Math.min(...ks)).toBeGreaterThan(5)
+  })
+
+  it('CONTAINS SLIDE 4: exactly TWO planar members, and they LIE ON the fiber', () => {
+    // The plane problem's two discrete solutions must appear on the spatial family,
+    // because a planar PH cubic is a spatial one. This is the embedding, checked.
+    const planar = planarMembers(P0, P1, P3)
+    expect(planar).toHaveLength(2)
+
+    for (const m of planar) {
+      // Interpolates the same data...
+      expect(vd(m.controlPoints[0], P0)).toBeLessThan(1e-10)
+      expect(vd(m.controlPoints[1], P1)).toBeLessThan(1e-9)
+      expect(vd(m.controlPoints[3], P3)).toBeLessThan(1e-9)
+      // ...and is genuinely coplanar with it.
+      const [a, b, c] = [1, 2, 3].map((i) => vsub(m.controlPoints[i], m.controlPoints[0]))
+      const det = a.x * (b.y * c.z - b.z * c.y) - a.y * (b.x * c.z - b.z * c.x) + a.z * (b.x * c.y - b.y * c.x)
+      expect(Math.abs(det)).toBeLessThan(1e-9)
+    }
+
+    // THE POINT: each planar solution's P₂ sits on the traced spatial fiber.
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 240 })
+    for (const m of planar) {
+      const nearest = Math.min(...fiber.map((f) => vd(f.p2, m.p2)))
+      expect(nearest, 'planar member is on the fiber').toBeLessThan(0.05)
+    }
+  })
+
+  it('...two on other data too, always, since the plane problem always has two', () => {
+    let x = 31
+    const r = (): number => ((x = (x * 1103515245 + 12345) % 2147483648) / 2147483648 - 0.5) * 2
+    for (let trial = 0; trial < 10; trial++) {
+      const a = V(r(), r(), r()), b = V(r(), r(), r()), c = V(r(), r(), r())
+      expect(planarMembers(a, b, c), `trial ${trial}`).toHaveLength(2)
+    }
+    // Collinear data has no unique plane, and says so rather than guessing.
+    expect(planarMembers(V(0, 0, 0), V(1, 0, 0), V(2, 0, 0))).toHaveLength(0)
+  })
+
+  it('but the family as a whole is NOT planar — most of it leaves the plane', () => {
+    const fiber = spatialCubicFiber(P0, P1, P3, { samples: 160 })
+    const worst = Math.max(...fiber.map((f) => Math.abs(planarity(f.curve))))
+    expect(worst).toBeGreaterThan(0.1)
   })
 
   it('MEASUREMENT: how far P₂ actually roams', () => {

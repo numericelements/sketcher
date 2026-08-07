@@ -23,6 +23,16 @@
 // planar interpolants is BLIND here, which is worth saying out loud on a slide
 // about choosing.
 //
+// AND IT CONTAINS SLIDE 4. Exactly TWO members of the fiber are PLANAR — a planar PH
+// cubic is a spatial one, so the plane problem's two discrete solutions must live
+// somewhere on the spatial family, and they do, as two isolated points you can slide
+// onto. "Finite choice becomes a continuum" is therefore not an analogy: the finite
+// set is EMBEDDED in the continuum. They are marked on the fiber.
+//
+// (That also explains a wrong first default. Picking the "gentlest" member by peak
+// curvature landed on a PLANAR one — planar is gentler — so the whole figure read as
+// flat. The default is now the most spatial member instead.)
+//
 // The fiber has no closed form; it is traced by continuation in core/phSpatialCubic,
 // whose 27 tests are what this figure trusts. r3f cannot be verified headlessly, so
 // the rule is that this file holds no mathematics — only marks and gestures.
@@ -37,6 +47,8 @@ import {
   curveAt,
   fiberArcLength,
   hodographAt,
+  planarMembers,
+  planarity,
   speedAt,
   spatialCubicFiber,
   type FiberPoint,
@@ -57,40 +69,23 @@ const tri = (v: Vec3): [number, number, number] => [v.x, v.y, v.z]
 const sampleCurve = (c: SpatialPHCubic, n = 60): [number, number, number][] =>
   Array.from({ length: n + 1 }, (_, i) => tri(curveAt(c, i / n)))
 
-/** Peak curvature — a stand-in for "how contorted", used only to pick a default. */
-function peakCurvature(c: SpatialPHCubic): number {
-  let m = 0
-  for (let i = 0; i <= 30; i++) {
-    const t = i / 30
-    const h = hodographAt(c, t)
-    const eps = 1e-5
-    const h2 = hodographAt(c, Math.min(1, t + eps))
-    const d: Vec3 = { x: (h2.x - h.x) / eps, y: (h2.y - h.y) / eps, z: (h2.z - h.z) / eps }
-    const s = speedAt(c, t)
-    const cr: Vec3 = {
-      x: h.y * d.z - h.z * d.y,
-      y: h.z * d.x - h.x * d.z,
-      z: h.x * d.y - h.y * d.x,
-    }
-    m = Math.max(m, vnorm(cr) / (s * s * s))
-  }
-  return m
-}
-
 /**
- * Framed and defaulted ONCE from the starting configuration. Arc length cannot pick
- * the default here — it is the same for every member (see the header) — so the
- * gentlest curve by peak curvature is used instead, which lands on the visually
- * symmetric one. Recomputing either during a drag would make the view lurch.
+ * Framed and defaulted ONCE from the starting configuration; recomputing either
+ * during a drag would make the view lurch.
+ *
+ * The default is the MOST SPATIAL member. Arc length cannot choose — it is identical
+ * for every member — and choosing the "gentlest" by curvature picks a PLANAR one,
+ * which made the whole figure read as flat. Most-spatial is the honest default for a
+ * slide whose point is that the family leaves the plane.
  */
 const START_FIBER = spatialCubicFiber(P0, START_P1, P3, { samples: FIBER_SAMPLES })
 const START_ALONG = (() => {
   if (START_FIBER.length < 2) return 0.5
   let best = 0
-  let bestK = Infinity
+  let bestD = -1
   START_FIBER.forEach((f, i) => {
-    const k = peakCurvature(f.curve)
-    if (k < bestK) { bestK = k; best = i }
+    const d = Math.abs(planarity(f.curve))
+    if (d > bestD) { bestD = d; best = i }
   })
   return best / (START_FIBER.length - 1)
 })()
@@ -131,6 +126,10 @@ export default function SpatialCubicFigure() {
 
   const p2Path = useMemo(() => fiber.map((f) => tri(f.p2)), [fiber])
 
+  /** The two planar members — slide 4's two answers, sitting on this curve.
+   *  Solved exactly by the PLANAR solver, not hunted along the trace. */
+  const planar = useMemo(() => planarMembers(P0, p1, P3), [p1])
+
   // Honest check, sampled: |r′| must equal σ on the chosen curve.
   const phError = useMemo(() => {
     if (!chosen) return 0
@@ -158,6 +157,7 @@ export default function SpatialCubicFigure() {
         { label: 'spare DOF', value: '1' },
         { label: 'fiber', value: `${fiber.length} samples` },
         { label: 'P₂ roams', value: spread.toFixed(3) },
+        { label: 'planar members', value: String(planar.length) },
         {
           label: 'arc len',
           value: (fiberArcLength(P0, p1, P3) ?? 0).toFixed(4) + ' (same for all)',
@@ -197,13 +197,19 @@ export default function SpatialCubicFigure() {
           grey curve and something has to choose a point on it. Same gesture, and the answer changes
           from “pick one of two” to “pick a point on a curve”. And the family is <b>isometric</b> —
           every member has the same arc length, so the fairness measure that would rank planar
-          interpolants cannot tell these apart at all.{' '}
+          interpolants cannot tell these apart at all. The two dark beads are the <b>planar</b>
+          members — the two discrete answers from before, sitting on this curve.{' '}
           <span className="text-slate-400">Drag P₁; drag the background to rotate.</span>
         </>
       }
     >
       {/* the fiber: every P₂ the data permits */}
       <Curve3D points={p2Path} color={FIG.color.derived} width={2} />
+
+      {/* the two PLANAR members — slide 4's discrete pair, embedded here */}
+      {planar.map((m, i) => (
+        <Point3D key={`pl${i}`} position={tri(m.p2)} color={FIG.color.curve} radius={0.042} />
+      ))}
 
       {/* a few members of the family, faint */}
       {ghosts.map((g, i) => (

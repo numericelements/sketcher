@@ -19,9 +19,15 @@
 //   3. Warm-start each tick from the CURRENT state, never from the grab moment;
 //      re-solving from the grab moment every frame is what made it jumpy.
 //
-// RENDERING. `frameloop="demand"` so an idle figure costs nothing, with invalidation
-// wired explicitly rather than trusted to library internals: once per React render
-// (so any state change paints) and on every controls change (so orbiting is smooth).
+// RENDERING — and a trap worth recording. `frameloop="demand"` DEADLOCKS orbiting.
+// drei's TrackballControls calls controls.update() inside useFrame, and update() is
+// what emits the 'change' event that triggers invalidate(). On demand, no frame runs
+// until something invalidates, so: pointer moves → no frame → no update() → no
+// 'change' → no invalidate → no frame. The view freezes and the figure reads as a
+// still picture. (This is exactly what happened; LabPH3D works because it uses the
+// default "always".) So: always. The live-context problem that motivated demand is
+// solved at the slide level by WhenActive instead, and one to three canvases
+// rendering continuously is not a real cost.
 //
 // CONTEXTS. Mount is gated by WhenActive at the slide level, not here — see
 // framework/slideContext for why WebGL forces that and SVG does not.
@@ -40,17 +46,8 @@ export interface Bounds3D {
 /** Shared so a draggable point can silence the orbit controls at pointer-down. */
 const ControlsContext = createContext<{ current: { enabled: boolean } | null } | null>(null)
 
-/** Repaint after every React render — cheap, and makes `demand` safe. */
-function Invalidator() {
-  const invalidate = useThree((s) => s.invalidate)
-  useEffect(() => {
-    invalidate()
-  })
-  return null
-}
-
 function Rig({ bounds }: { bounds: Bounds3D }) {
-  const { camera, invalidate } = useThree()
+  const { camera } = useThree()
   const controls = useContext(ControlsContext)
   const target = useMemo(() => {
     const c = new THREE.Vector3(
@@ -75,7 +72,6 @@ function Rig({ bounds }: { bounds: Bounds3D }) {
     camera.position.set(target.c.x + d * 0.55, target.c.y - d * 0.75, target.c.z + d * 0.45)
     camera.lookAt(target.c)
     camera.updateProjectionMatrix()
-    invalidate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -87,7 +83,6 @@ function Rig({ bounds }: { bounds: Bounds3D }) {
       rotateSpeed={3}
       zoomSpeed={1.2}
       noPan
-      onChange={() => invalidate()}
     />
   )
 }
@@ -252,8 +247,7 @@ export default function Figure3D({
         className="w-full rounded overflow-hidden touch-none"
       >
         <ControlsContext.Provider value={controlsRef}>
-          <Canvas frameloop="demand" camera={{ fov: 40, up: [0, 0, 1], near: 0.01, far: 500 }}>
-            <Invalidator />
+          <Canvas camera={{ fov: 40, up: [0, 0, 1], near: 0.01, far: 500 }}>
             <Rig bounds={bounds} />
             <ambientLight intensity={0.65} />
             <directionalLight position={[4, -5, 6]} intensity={0.75} />
