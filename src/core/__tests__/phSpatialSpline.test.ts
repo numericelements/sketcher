@@ -425,3 +425,65 @@ describe('dragging the ENDS — where there is no neighbour to protect', () => {
     }
   })
 })
+
+// ---------------------------------------------------------------------------
+describe('WHY A MINIMAL WINDOW FEELS UNPREDICTABLE, and what fixes it', () => {
+  // Observed while using the figure: most drags behave, but some produce startling
+  // motion. The cause is AMPLIFICATION — at the minimal window some control points,
+  // when dragged, force OTHERS to move several times further. Holding C² at both
+  // edges plus the end position plus the cursor leaves only three parameters, and the
+  // compensating excursions have to be large.
+  //
+  // The cure is a WIDER window, not less continuity: worst amplification falls from
+  // ~4.4x at W=3 to ~1.5x at W=5 and then saturates, while C² and the speed margin are
+  // untouched. The price is that more points move — but each moves less, which is what
+  // reads as predictable.
+  const amplification = (W: number): { worst: number; mean: number; moving: number } => {
+    const before = splineControlPoints(SPLINE)
+    let worst = 0, sum = 0, n = 0
+    for (let i = 0; i < before.length; i++) {
+      const want = V(before[i].x + 0.3, before[i].y + 0.24, before[i].z - 0.18)
+      const r = localEdit(SPLINE, i, want, { window: W, keepC2: true })
+      if (!r || !r.converged) continue
+      const after = splineControlPoints(r.spline)
+      const dragged = vd(want, before[i])
+      let other = 0
+      for (let j = 0; j < after.length; j++) if (j !== i) other = Math.max(other, vd(after[j], before[j]))
+      worst = Math.max(worst, other / dragged)
+      sum += other / dragged
+      n++
+    }
+    const mid = 18
+    const r = localEdit(SPLINE, mid, V(before[mid].x + 0.3, before[mid].y + 0.24, before[mid].z - 0.18), { window: W })!
+    const after = splineControlPoints(r.spline)
+    let moving = 0
+    for (let j = 0; j < after.length; j++) if (vd(after[j], before[j]) > 1e-6) moving++
+    return { worst, mean: sum / n, moving }
+  }
+
+  it('the minimal window amplifies — some points move several times the drag', () => {
+    const a = amplification(3)
+    expect(a.worst).toBeGreaterThan(3)
+    expect(a.mean).toBeLessThan(2.5) // most drags are fine; it is the tail that startles
+  })
+
+  it('widening calms it, monotonically, and then saturates', () => {
+    const w3 = amplification(3), w4 = amplification(4), w5 = amplification(5)
+    expect(w4.worst).toBeLessThan(w3.worst)
+    expect(w5.worst).toBeLessThan(w4.worst)
+    expect(w5.worst).toBeLessThan(2)
+    // and it costs locality in the honest way: five more points per added segment
+    expect(w4.moving - w3.moving).toBe(5)
+    expect(w5.moving - w4.moving).toBe(5)
+  })
+
+  it('and it is free — C² and the speed margin do not pay for it', () => {
+    const before = splineControlPoints(SPLINE)
+    for (const W of [3, 4, 5]) {
+      const r = localEdit(SPLINE, 18, V(before[18].x + 0.3, before[18].y + 0.24, before[18].z - 0.18), { window: W })!
+      expect(r.converged, `W=${W}`).toBe(true)
+      expect(continuityDefects(r.spline).c2, `W=${W} C²`).toBeLessThan(1e-9)
+      expect(minSpeed(r.spline), `W=${W} σ`).toBeGreaterThan(0.1)
+    }
+  })
+})

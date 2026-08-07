@@ -1,7 +1,7 @@
 # Local editing of C² PH quintic splines — the window width is the dial
 
 Established 2026-08-07. Code: `src/core/phSpatialSpline.ts`. Pinned:
-`src/core/__tests__/phSpatialSpline.test.ts` (13 tests, both the spatial and the
+`src/core/__tests__/phSpatialSpline.test.ts` (22 tests, both the spatial and the
 planar half).
 
 Source: **[FGS16]** R. T. Farouki, C. Giannelli, A. Sestini, *Local modification of
@@ -124,7 +124,68 @@ orders, stable across step sizes), never a fixed tolerance.
 
 ## Open
 
-- Does the end-of-spline privilege survive in 3D, and does it narrow the window to 2
-  there? Not measured — the implementation imposes uniform boundary conditions instead.
-- Where the five-dimensional slack at W = 3 should be spent: this is the natural home
-  for curvature-extrema control, and the reason the 3D case is the interesting one.
+- Does the end-of-spline privilege NARROW the window at the ends in 3D? The
+  implementation now imposes no conditions where there is no neighbour, so the freedom
+  is there, but the minimum feasible width near an end has not been measured.
+- Where the three-dimensional slack at W = 3 should be spent: this is the natural home
+  for curvature-extrema control or a curvature bound, and the reason the 3D case is the
+  interesting one. Note the slack GROWS with the window (W = 4 adds four more essential
+  parameters), so an invariant that does not fit at W = 3 may fit at W = 4 — the same
+  dial again.
+
+---
+
+## Why a minimal window feels unpredictable — measured 2026-08-07
+
+Observed while using the slide-8 figure: most drags behave, and some produce startling
+motion. The cause is **amplification**, and it is a property of the constraints, not of
+the choice rule.
+
+| window | worst amplification | mean | control points that move | min σ |
+|---|---|---|---|---|
+| **3** | **4.44×** | 1.60× | 10 of 41 | 0.113 |
+| 4 | 2.41× | 1.21× | 15 | 0.116 |
+| **5** | **1.51×** | 1.06× | 20 | 0.117 |
+| 6 | 1.53× | 1.06× | 25 | 0.118 |
+
+"Amplification" is the furthest any *other* control point moves, divided by how far the
+dragged one moved. At W = 3 some points force others **4.4× further than the point in
+your hand**. At W = 5 nothing moves much more than what you are dragging, and it
+saturates there.
+
+Holding C² at both edges, plus the end position, plus the cursor, leaves only three
+parameters — so the compensating excursions have to be large. **Widening is the cure**,
+it is monotone, and it is free: C² defect stays at 1e-15 and the speed margin even
+improves slightly. The price is locality in the honest currency — **five more moving
+control points per added segment**, each moving less.
+
+So the window width is a dial with three legible settings:
+
+- **W = 2** — a C¹ edit (the published scheme)
+- **W = 3** — the minimum that keeps C²
+- **W = 5** — C² *and* motion that never exceeds the gesture
+
+### A fix that did NOT work, so it is not tried again
+
+The obvious diagnosis is that minimum norm is computed in **generator** space —
+`leastSquares` minimises ‖δx‖ where `x` holds the generator coefficients — while the
+generator-to-geometry map is *quadratic*, so equal generator steps produce unequal
+geometric motion. Correct diagnosis; the corresponding fix is worse.
+
+Replacing it with a weighted minimum norm that minimises the **control-point**
+displacement (`min ‖Bδ‖` subject to `Jδ = −r`, solved as `δ = G⁻¹Jᵀ(JG⁻¹Jᵀ)⁻¹(−r)` with
+`G = BᵀB + λI`) measured **worse on every axis**:
+
+| metric | worst other-point move | ratio | min σ | failures |
+|---|---|---|---|---|
+| generator | **1.88** | **4.4×** | **0.113** | 0 |
+| geometric | 2.47 | 5.8× | **0.012** | 1 |
+
+**Why it fails, and this is the durable lesson:** minimising ‖Bδ‖ rewards configurations
+where the geometry responds *weakly* to the generator — that is, where `|A|` is small.
+Since `σ = |A|²`, **a geometric metric biases the solve toward cusps.** The generator
+metric carries no such bias. Do not reach for geometric weighting here.
+
+(Also worth knowing: a soft-penalty formulation is not an alternative. With hard
+constraints at weight 1 and soft goals at weight ε, the achievable constraint residual
+is capped at O(ε²), so a C² claim of 1e-10 would be a fiction.)
