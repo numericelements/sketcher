@@ -590,15 +590,47 @@ export function classHermiteFamily(
   const walk = (direction: 1 | -1): number[][] => {
     const out: number[][] = []
     let x = start.slice()
+    let previousTangent: number[] | null = null
+    let twoAgo: SpatialPHSeptic | null = null
+    let oneAgo: SpatialPHSeptic = { A: A_FROM(x), p0: data.pi }
+
     for (let i = 0; i < samples; i++) {
       const f = (y: readonly number[]): number[] => hermiteClassResidual(A_FROM(y), data)
       const rows = [...jacobianOf(f, x), gaugeDirection(A_FROM(x))]
-      const v = nullVector(rows)
-      if (v === null) break
-      const predicted = x.map((c, k) => c + direction * step * v[k])
+      const raw = nullVector(rows)
+      if (raw === null) break
+
+      // ORIENT THE TANGENT — the bug that made the slider unusable.
+      //
+      // nullVector's SIGN depends on which pivot happened to succeed, so it flips
+      // unpredictably from step to step, and an unoriented continuation turns round and
+      // retraces its own path. Measured before this was fixed: 23 reversals in a
+      // 49-member trace, the tail oscillating between two states forever. That is what
+      // made the slider jump between two curves, and what made selection-by-shape
+      // ambiguous across half the list (23 non-adjacent near-duplicates).
+      let tangent = raw
+      if (previousTangent !== null) {
+        const dot = raw.reduce((acc, c, k) => acc + c * (previousTangent as number[])[k], 0)
+        if (dot < 0) tangent = raw.map((c) => -c)
+      } else if (direction === -1) {
+        tangent = raw.map((c) => -c)
+      }
+
+      const predicted = x.map((c, k) => c + step * tangent[k])
       const corrected = correct(predicted, data, 12)
       if (corrected === null) break
+      const member: SpatialPHSeptic = { A: A_FROM(corrected), p0: data.pi }
+
+      // Stop AT a turning point rather than padding the list with near-duplicates:
+      // either the corrector put us back where we were, or we are heading back toward
+      // where we came from.
+      if (memberDistance(member, oneAgo) < step * 0.05) break
+      if (twoAgo !== null && memberDistance(member, twoAgo) <= memberDistance(oneAgo, twoAgo)) break
+
       x = corrected
+      previousTangent = tangent
+      twoAgo = oneAgo
+      oneAgo = member
       out.push(x.slice())
     }
     return out
@@ -611,6 +643,42 @@ export function classHermiteFamily(
     .map((x) => ({ A: A_FROM(x), p0: data.pi }))
     .filter((c) => minSpeed(c.A) > 1e-6)
 }
+
+/**
+ * Move a curve onto NEW C¹ Hermite data without leaving the class, staying as close to
+ * where it was as the solve can manage.
+ *
+ * This is what dragging a data point should do. Re-tracing the whole family on every
+ * drag tick is both slow and JUMPY — the traced list's length varies as the walks
+ * terminate, so a slider indexed into it moves under your hand. Correcting the current
+ * curve is smooth by construction, and the family only has to be re-traced once the
+ * gesture ends.
+ *
+ * Returns null rather than a near-miss, so a caller can keep its last good curve.
+ */
+export function moveToData(
+  from: SpatialPHSeptic,
+  data: SepticHermiteData,
+): SpatialPHSeptic | null {
+  const corrected = correct(A_TO(from.A), data, 24)
+  if (corrected === null) return null
+  return { A: A_FROM(corrected), p0: data.pi }
+}
+
+/** Largest control-point displacement between two members — the geometric metric. */
+function memberDistance(a: SpatialPHSeptic, b: SpatialPHSeptic): number {
+  const p = controlPoints(a), q = controlPoints(b)
+  let d = 0
+  for (let i = 0; i < p.length; i++) d = Math.max(d, vnorm(vsub(p[i], q[i])))
+  return d
+}
+
+// A HYPOTHESIS THAT MEASURED FALSE, recorded so it is not retried: that the tracer's
+// fixed step in GENERATOR space would land unevenly on the curve, making a slider over
+// the raw trace lurch, and that geometric resampling would fix it. Measured on the
+// shipped settings: gaps 0.0148–0.0227, spread max/min = 1.5 — already even. The lurch
+// came from the tangent's SIGN flipping instead (see classHermiteFamily), and a
+// resampler layered on top of a folded trace only made it worse by picking duplicates.
 
 /** The frame's normal, sampled along the curve — what the figure combs. */
 export function frameComb(

@@ -10,6 +10,15 @@
 //           any given data, and a single slider rides it. The spatial cubic's fiber,
 //           one act later, and now with a frame attached.
 //
+//           TWO THINGS THAT MADE THIS FEEL WRONG, both fixed and both worth knowing.
+//           The slider thumb oscillated while dragging a datum, because the family was
+//           re-traced every tick and the traced list's LENGTH varies as the walks
+//           terminate; now a datum drag corrects the current curve (moveToData) and the
+//           trace happens on release. And riding the slider jumped between two curves,
+//           because the continuation's tangent SIGN was unoriented so the trace doubled
+//           back over itself — 23 reversals in a 49-member list. Fixed in core by
+//           orienting each tangent against the previous one.
+//
 //   FREE    nothing pinned; drag any of the eight control points, minimum norm spends
 //           the rest. The class is held either way.
 //
@@ -56,12 +65,11 @@
 // SPATIAL member and refuses flat ones.
 //
 // r3f cannot be verified headlessly, so this file holds NO mathematics — only marks
-// and gestures. core/phSpatialSeptic carries all of it, with 18 tests.
+// and gestures. core/phSpatialSeptic carries all of it, with 30 tests.
 // ============================================================================
 import { useMemo, useRef, useState } from 'react'
 import type { Vec3 } from '../../core/quaternion'
 import {
-  type SepticHermiteData,
   type SpatialPHSeptic,
   classHermiteFamily,
   controlPoints,
@@ -71,6 +79,7 @@ import {
   findClassMember,
   hermiteDataOf,
   minSpeed,
+  moveToData,
   planarity,
   rmErfResidual,
   totalErfTwist,
@@ -102,7 +111,7 @@ const shapeDistance = (a: readonly Vec3[], b: readonly Vec3[]): number => {
   }
   return d
 }
-/** Tracing is the expensive step, so it happens when the DATA moves, not per slider tick. */
+/** Tracing is the expensive step, so it runs when a gesture ENDS, not per tick. */
 const FAMILY_SAMPLES = 24
 const FAMILY_STEP = 0.08
 type Mode = 'strict' | 'free'
@@ -124,38 +133,48 @@ const BOUNDS = (() => {
 
 export default function RmErfFigure() {
   const [mode, setMode] = useState<Mode>('strict')
-  const [data, setData] = useState<SepticHermiteData>(() => hermiteDataOf(START))
-  /** Which member is selected, identified by SHAPE so it survives a re-trace. */
-  const [chosen, setChosen] = useState<Vec3[]>(() => middleOf(START))
-  const [freeState, setFreeState] = useState<SpatialPHSeptic>(START)
+  /**
+   * THE CURVE IS STATE, not something derived from the family.
+   *
+   * It used to be `family[index]`, with the family re-traced on every data change —
+   * which made the slider thumb oscillate under your hand, because the traced list's
+   * LENGTH varies as the walks terminate and selection-by-shape then re-indexes. Now
+   * dragging a datum corrects THIS curve onto the new data (moveToData: smooth by
+   * construction, and cheap), and the family is re-traced only when the gesture ENDS.
+   */
+  const [curve, setCurve] = useState<SpatialPHSeptic>(START)
+  const [family, setFamily] = useState<SpatialPHSeptic[]>(
+    () => classHermiteFamily(hermiteDataOf(START), START.A, { samples: FAMILY_SAMPLES, step: FAMILY_STEP }),
+  )
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [stalled, setStalled] = useState(false)
-  const seed = useRef(START.A)
-  const lastFamily = useRef<SpatialPHSeptic[]>([])
+  const lastFamily = useRef<SpatialPHSeptic[]>(family)
 
-  const family = useMemo(() => {
-    const traced = classHermiteFamily(data, seed.current, {
+  /** Re-trace, centred on where the curve now is. Called on gesture END, never per tick. */
+  const retrace = (from: SpatialPHSeptic): void => {
+    const traced = classHermiteFamily(hermiteDataOf(from), from.A, {
       samples: FAMILY_SAMPLES,
       step: FAMILY_STEP,
     })
-    if (traced.length > 0) lastFamily.current = traced
-    return traced.length > 0 ? traced : lastFamily.current
-  }, [data])
+    if (traced.length > 0) {
+      lastFamily.current = traced
+      setFamily(traced)
+    } else {
+      setFamily(lastFamily.current)
+    }
+  }
 
-  /** Track by shape, as slide 6 does — an index would jump when the trace shifts. */
+  /** Where the current curve sits on the traced family — by SHAPE, as slide 6 does. */
   const index = useMemo(() => {
+    const want = middleOf(curve)
     let best = 0
     let bestD = Infinity
     family.forEach((m, i) => {
-      const d = shapeDistance(middleOf(m), chosen)
+      const d = shapeDistance(middleOf(m), want)
       if (d < bestD) { bestD = d; best = i }
     })
     return best
-  }, [family, chosen])
-
-  const strictCurve = family[index]
-  const curve = mode === 'free' ? freeState : (strictCurve ?? freeState)
-  if (mode === 'strict' && strictCurve) seed.current = strictCurve.A
+  }, [family, curve])
 
   const cps = useMemo(() => controlPoints(curve), [curve])
 
@@ -188,40 +207,44 @@ export default function RmErfFigure() {
 
   // --- mode handoff, continuous both ways --------------------------------------
   const toFree = (): void => {
-    setFreeState(curve)
     setStalled(false)
     setMode('free')
   }
   const toStrict = (): void => {
-    seed.current = freeState.A
-    setData(hermiteDataOf(freeState))
-    setChosen(middleOf(freeState))
+    retrace(curve)
     setStalled(false)
     setMode('strict')
   }
 
   const reset = (): void => {
-    seed.current = START.A
-    lastFamily.current = []
-    setData(hermiteDataOf(START))
-    setChosen(middleOf(START))
-    setFreeState(START)
+    setCurve(START)
+    retrace(START)
     setDragIdx(null)
     setStalled(false)
     setMode('strict')
   }
 
-  /** In strict mode the outer four points ARE the data: dragging them re-prescribes it. */
+  /**
+   * In strict mode the outer four points ARE the data — dᵢ = 7(P₁ − P₀) — so dragging
+   * one re-prescribes it. Correct the CURRENT curve onto the new data rather than
+   * re-tracing: one warm-started solve, smooth, and it leaves the slider alone.
+   */
   const setDatum = (i: number, at: Vec3): void => {
-    const c = cps
-    const put = (k: number): Vec3 => (k === i ? at : c[k])
+    const put = (k: number): Vec3 => (k === i ? at : cps[k])
     const p0 = put(0), p1 = put(1), p6 = put(6), p7 = put(7)
-    setData({
+    const next = moveToData(curve, {
       pi: p0,
       pf: p7,
       di: { x: 7 * (p1.x - p0.x), y: 7 * (p1.y - p0.y), z: 7 * (p1.z - p0.z) },
       df: { x: 7 * (p7.x - p6.x), y: 7 * (p7.y - p6.y), z: 7 * (p7.z - p6.z) },
     })
+    if (next) {
+      setCurve(next)
+      setStalled(false)
+    } else {
+      // Report and keep the last good curve — never leave the class silently.
+      setStalled(true)
+    }
   }
 
   return (
@@ -268,7 +291,7 @@ export default function RmErfFigure() {
                 max={family.length - 1}
                 step={1}
                 value={index}
-                onChange={(e) => setChosen(middleOf(family[Number(e.target.value)]))}
+                onChange={(e) => setCurve(family[Number(e.target.value)])}
                 className="w-40"
               />
             </label>
@@ -328,7 +351,7 @@ export default function RmErfFigure() {
               color={dragIdx === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
               radius={0.05}
               onDragStart={() => { setDragIdx(i); setStalled(false) }}
-              onDragEnd={() => setDragIdx(null)}
+              onDragEnd={() => { setDragIdx(null); retrace(curve) }}
               onDrag={([x, y, z]) => setDatum(i, { x, y, z })}
             />
           ))}
@@ -343,9 +366,9 @@ export default function RmErfFigure() {
             onDragStart={() => { setDragIdx(i); setStalled(false) }}
             onDragEnd={() => setDragIdx(null)}
             onDrag={([x, y, z]) => {
-              const step = dragInClass(freeState, i, { x, y, z })
+              const step = dragInClass(curve, i, { x, y, z })
               if (step.converged) {
-                setFreeState(step.state)
+                setCurve(step.state)
                 setStalled(false)
               } else {
                 // Report and keep the last good curve — never leave the class silently.

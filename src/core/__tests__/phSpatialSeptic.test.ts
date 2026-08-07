@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest'
 import { type Quat, type Vec3, vnorm, vsub } from '../quaternion'
 import {
+  type SepticHermiteData,
   type SpatialPHSeptic,
   allScalIQ,
   classHermiteFamily,
@@ -22,6 +23,7 @@ import {
   hermiteDataOf,
   hodographAt,
   minSpeed,
+  moveToData,
   planarity,
   findClassMember,
   projectToClass,
@@ -287,5 +289,97 @@ describe('C¹ HERMITE inside the class — a one-parameter family', () => {
   it('refuses rather than inventing a family for unreachable data', () => {
     const absurd = { ...DATA, df: V(0, 0, 0) }
     expect(classHermiteFamily(absurd, CURVE.A, { samples: 5 })).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('SLIDER BEHAVIOUR — the two things that made it feel wrong', () => {
+  const DATA = hermiteDataOf(CURVE)
+
+  it('moveToData reaches new data smoothly, without leaving the class', () => {
+    // What dragging a data point should do: correct the CURRENT curve, rather than
+    // re-tracing the family (slow, and the trace length varies so a slider jumps).
+    let state = CURVE
+    let moved = 0
+    for (let k = 1; k <= 12; k++) {
+      const shifted: SepticHermiteData = {
+        ...hermiteDataOf(state),
+        pf: V(DATA.pf.x + 0.04 * k, DATA.pf.y + 0.03 * k, DATA.pf.z - 0.02 * k),
+      }
+      const next = moveToData(state, shifted)
+      expect(next, `step ${k}`).not.toBeNull()
+      const got = hermiteDataOf(next as SpatialPHSeptic)
+      expect(vd(got.pf, shifted.pf), `step ${k} data`).toBeLessThan(1e-8)
+      expect(Math.max(...rmErfResidual((next as SpatialPHSeptic).A).map(Math.abs))).toBeLessThan(1e-8)
+      expect(totalErfTwist((next as SpatialPHSeptic).A)).toBeLessThan(1e-7)
+      moved = Math.max(moved, vd(controlPoints(next as SpatialPHSeptic)[7], controlPoints(state)[7]))
+      state = next as SpatialPHSeptic
+    }
+    expect(moved).toBeGreaterThan(0)
+  })
+
+  it('and each step is SMALL — that is what makes the drag feel continuous', () => {
+    const shifted: SepticHermiteData = { ...DATA, pf: V(DATA.pf.x + 0.05, DATA.pf.y, DATA.pf.z) }
+    const next = moveToData(CURVE, shifted) as SpatialPHSeptic
+    const a = controlPoints(CURVE), b = controlPoints(next)
+    let worst = 0
+    for (let i = 0; i < 8; i++) worst = Math.max(worst, vd(a[i], b[i]))
+    expect(worst).toBeLessThan(0.5)
+  })
+
+  it('the trace does NOT double back — the tangent stays oriented', () => {
+    // The bug this pins: nullVector's SIGN depends on which pivot succeeded, so an
+    // unoriented continuation reverses mid-walk. Measured before the fix: 23 reversals
+    // in a 49-member trace, its tail oscillating between two states — which is exactly
+    // what made the slider jump between two curves.
+    const family = classHermiteFamily(DATA, CURVE.A, { samples: 40, step: 0.05 })
+    expect(family.length).toBeGreaterThan(20)
+    const first = controlPoints(family[0]).slice(2, 6)
+    const away = family.map((m) => {
+      const sh = controlPoints(m).slice(2, 6)
+      let d = 0
+      for (let i = 0; i < 4; i++) d = Math.max(d, vd(sh[i], first[i]))
+      return d
+    })
+    let reversals = 0
+    for (let i = 2; i < away.length; i++) {
+      if ((away[i] - away[i - 1]) * (away[i - 1] - away[i - 2]) < 0) reversals++
+    }
+    expect(reversals).toBeLessThanOrEqual(1)
+  })
+
+  it('and no two non-adjacent members are near-duplicates', () => {
+    // Ambiguity here is what made the slider THUMB oscillate: selection tracks by
+    // shape, so duplicates in the list make "nearest" jump around.
+    const family = classHermiteFamily(DATA, CURVE.A, { samples: 40, step: 0.05 })
+    const shapes = family.map((m) => controlPoints(m).slice(2, 6))
+    const gap = (a: Vec3[], b: Vec3[]): number => {
+      let d = 0
+      for (let i = 0; i < 4; i++) d = Math.max(d, vd(a[i], b[i]))
+      return d
+    }
+    let typical = 0
+    for (let i = 1; i < shapes.length; i++) typical = Math.max(typical, gap(shapes[i - 1], shapes[i]))
+    let duplicates = 0
+    for (let i = 0; i < shapes.length; i++) {
+      for (let j = 0; j < shapes.length; j++) {
+        if (Math.abs(i - j) > 2 && gap(shapes[i], shapes[j]) < typical) duplicates++
+      }
+    }
+    expect(duplicates).toBe(0)
+  })
+
+  it('the spacing is already EVEN — so no resampling is warranted', () => {
+    // Pinned so the resampling idea is not revived: the tracer steps in generator
+    // space, yet the geometric gaps come out within a factor of two.
+    const family = classHermiteFamily(DATA, CURVE.A, { samples: 40, step: 0.05 })
+    const gaps: number[] = []
+    for (let i = 1; i < family.length; i++) {
+      const p = controlPoints(family[i - 1]), q = controlPoints(family[i])
+      let d = 0
+      for (let j = 0; j < 8; j++) d = Math.max(d, vd(p[j], q[j]))
+      gaps.push(d)
+    }
+    expect(Math.max(...gaps) / Math.min(...gaps)).toBeLessThan(2.5)
   })
 })
