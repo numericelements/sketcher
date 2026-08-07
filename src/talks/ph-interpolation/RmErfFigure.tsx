@@ -1,8 +1,21 @@
 // ============================================================================
 // SLIDE 9 — a curve whose natural frame does not twist, and you can edit it.
 //
-// The simplest possible statement of the frames story: ONE degree-7 PH curve, always
-// inside the RM-ERF class, every control point draggable. No toggle, no slider.
+// One degree-7 PH curve, always inside the RM-ERF class. Two ways to move it, the same
+// pair as slides 4 and 6:
+//
+//   STRICT  pin the C¹ Hermite data — 16 unknowns against 14 conditions (5 class, 9
+//           Hermite), rank measured at 14, so the null space is TWO-dimensional: one
+//           gauge and ONE real freedom. So there is a CURVE of RM-ERF interpolants to
+//           any given data, and a single slider rides it. The spatial cubic's fiber,
+//           one act later, and now with a frame attached.
+//
+//   FREE    nothing pinned; drag any of the eight control points, minimum norm spends
+//           the rest. The class is held either way.
+//
+// The strict mode is the stronger statement: ride the slider through the whole family
+// and the frame STILL never twists. That is a property of the class, not of one lucky
+// curve.
 //
 // WHY THIS CLASS. A rational rotation-minimizing frame is reachable two ways. On a
 // quintic RRMF curve the ERF twists and a rational normal-plane rotation
@@ -48,18 +61,21 @@
 import { useMemo, useRef, useState } from 'react'
 import type { Vec3 } from '../../core/quaternion'
 import {
+  type SepticHermiteData,
   type SpatialPHSeptic,
+  classHermiteFamily,
   controlPoints,
   curveAt,
   dragInClass,
   erfAt,
   findClassMember,
+  hermiteDataOf,
   minSpeed,
   planarity,
   rmErfResidual,
   totalErfTwist,
 } from '../../core/phSpatialSeptic'
-import Figure3D, { Curve3D, DragPoint3D } from '../framework/Figure3D'
+import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
 const STATIONS = 26
@@ -77,6 +93,19 @@ const START: SpatialPHSeptic = {
 }
 
 const tri = (v: Vec3): [number, number, number] => [v.x, v.y, v.z]
+/** The four control points the data does NOT fix — they ride the family. */
+const middleOf = (c: SpatialPHSeptic): Vec3[] => controlPoints(c).slice(2, 6)
+const shapeDistance = (a: readonly Vec3[], b: readonly Vec3[]): number => {
+  let d = 0
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    d = Math.max(d, Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y, a[i].z - b[i].z))
+  }
+  return d
+}
+/** Tracing is the expensive step, so it happens when the DATA moves, not per slider tick. */
+const FAMILY_SAMPLES = 24
+const FAMILY_STEP = 0.08
+type Mode = 'strict' | 'free'
 
 const BOUNDS = (() => {
   const pts = [...controlPoints(START)]
@@ -94,10 +123,39 @@ const BOUNDS = (() => {
 })()
 
 export default function RmErfFigure() {
-  const [curve, setCurve] = useState<SpatialPHSeptic>(START)
+  const [mode, setMode] = useState<Mode>('strict')
+  const [data, setData] = useState<SepticHermiteData>(() => hermiteDataOf(START))
+  /** Which member is selected, identified by SHAPE so it survives a re-trace. */
+  const [chosen, setChosen] = useState<Vec3[]>(() => middleOf(START))
+  const [freeState, setFreeState] = useState<SpatialPHSeptic>(START)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [stalled, setStalled] = useState(false)
-  const last = useRef<SpatialPHSeptic>(START)
+  const seed = useRef(START.A)
+  const lastFamily = useRef<SpatialPHSeptic[]>([])
+
+  const family = useMemo(() => {
+    const traced = classHermiteFamily(data, seed.current, {
+      samples: FAMILY_SAMPLES,
+      step: FAMILY_STEP,
+    })
+    if (traced.length > 0) lastFamily.current = traced
+    return traced.length > 0 ? traced : lastFamily.current
+  }, [data])
+
+  /** Track by shape, as slide 6 does — an index would jump when the trace shifts. */
+  const index = useMemo(() => {
+    let best = 0
+    let bestD = Infinity
+    family.forEach((m, i) => {
+      const d = shapeDistance(middleOf(m), chosen)
+      if (d < bestD) { bestD = d; best = i }
+    })
+    return best
+  }, [family, chosen])
+
+  const strictCurve = family[index]
+  const curve = mode === 'free' ? freeState : (strictCurve ?? freeState)
+  if (mode === 'strict' && strictCurve) seed.current = strictCurve.A
 
   const cps = useMemo(() => controlPoints(curve), [curve])
 
@@ -128,47 +186,123 @@ export default function RmErfFigure() {
     [curve],
   )
 
+  // --- mode handoff, continuous both ways --------------------------------------
+  const toFree = (): void => {
+    setFreeState(curve)
+    setStalled(false)
+    setMode('free')
+  }
+  const toStrict = (): void => {
+    seed.current = freeState.A
+    setData(hermiteDataOf(freeState))
+    setChosen(middleOf(freeState))
+    setStalled(false)
+    setMode('strict')
+  }
+
   const reset = (): void => {
-    setCurve(START)
-    last.current = START
+    seed.current = START.A
+    lastFamily.current = []
+    setData(hermiteDataOf(START))
+    setChosen(middleOf(START))
+    setFreeState(START)
     setDragIdx(null)
     setStalled(false)
+    setMode('strict')
+  }
+
+  /** In strict mode the outer four points ARE the data: dragging them re-prescribes it. */
+  const setDatum = (i: number, at: Vec3): void => {
+    const c = cps
+    const put = (k: number): Vec3 => (k === i ? at : c[k])
+    const p0 = put(0), p1 = put(1), p6 = put(6), p7 = put(7)
+    setData({
+      pi: p0,
+      pf: p7,
+      di: { x: 7 * (p1.x - p0.x), y: 7 * (p1.y - p0.y), z: 7 * (p1.z - p0.z) },
+      df: { x: 7 * (p7.x - p6.x), y: 7 * (p7.y - p6.y), z: 7 * (p7.z - p6.z) },
+    })
   }
 
   return (
     <Figure3D
       bounds={BOUNDS}
       base={{ width: 900, height: 430 }}
-      notation={['e₁,e₂,e₃ = A i A*, A j A*, A k A* over σ', 'ω₁ = 2·scal(A i A′*)/σ² ≡ 0', 'the ERF *is* the RMF']}
+      notation={
+        mode === 'strict'
+          ? ['e₁,e₂,e₃ = A i A*, A j A*, A k A* over σ', '16 unknowns − 14 conditions', 'a curve of untwisted interpolants']
+          : ['e₁,e₂,e₃ = A i A*, A j A*, A k A* over σ', 'ω₁ = 2·scal(A i A′*)/σ² ≡ 0', 'the ERF *is* the RMF']
+      }
       readouts={[
         { label: 'twist ∫|ω₁|ds', value: twist.toExponential(1), tone: 'ok' as const },
         { label: 'in class', value: classResidual.toExponential(1), tone: 'ok' as const },
         { label: 'min σ', value: minSpeed(curve.A).toFixed(3), tone: 'ok' as const },
         { label: 'non-planar', value: planarity(curve.A).toFixed(3) },
+        ...(mode === 'strict'
+          ? [{ label: 'spare DOF', value: `1  (member ${index + 1}/${family.length})` }]
+          : [{ label: 'spare DOF', value: '7' }]),
         ...(stalled ? [{ label: 'step', value: 'not reached' }] : []),
       ]}
       controls={
-        <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
-          reset
-        </button>
+        <span className="flex items-center gap-2">
+          <span className="inline-flex rounded overflow-hidden border border-slate-300">
+            <button
+              onClick={toStrict}
+              className={`px-2 py-[0.15em] ${mode === 'strict' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              strict
+            </button>
+            <button
+              onClick={toFree}
+              className={`px-2 py-[0.15em] ${mode === 'free' ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              free
+            </button>
+          </span>
+          {mode === 'strict' && family.length > 1 && (
+            <label className="flex items-center gap-1">
+              <span className="text-slate-400">along the family</span>
+              <input
+                type="range"
+                min={0}
+                max={family.length - 1}
+                step={1}
+                value={index}
+                onChange={(e) => setChosen(middleOf(family[Number(e.target.value)]))}
+                className="w-40"
+              />
+            </label>
+          )}
+          <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
+            reset
+          </button>
+        </span>
       }
       caption={
-        <>
-          <b>A curve whose natural frame never rotates about the tangent — and it stays that way
-          while you edit it.</b>{' '}
-          On a degree-7 PH curve the Euler–Rodrigues frame is three sandwiches,{' '}
-          <i>A i A*</i>, <i>A j A*</i>, <i>A k A*</i> over σ — rational, because σ is a polynomial.
-          Normally it twists. On this class five constraints on A make the twist vanish{' '}
-          <i>identically</i>, so the ERF <b>is</b> the rotation-minimizing frame: one piece, not a
-          rational rotation applied to another frame. Watch the <b>rail</b> — the locus of the frame
-          tips — run parallel to the curve rather than spiralling around it, and the{' '}
-          <b>twist readout stay at machine zero</b> as you drag. That number is measured from the
-          frame, not asserted.{' '}
-          <span className="text-slate-400">
-            Drag any of the eight control points; the curve never leaves the class. Drag the
-            background to rotate.
-          </span>
-        </>
+        mode === 'strict' ? (
+          <>
+            <b>Pin the data and the untwisted interpolants form a curve — one slider rides it.</b>{' '}
+            Sixteen unknowns against fourteen conditions (five for the class, nine for C¹ Hermite)
+            leaves <b>one</b> real freedom once the gauge is quotiented out. The four blue points{' '}
+            <i>are</i> the data — dᵢ = 7(P₁ − P₀) — and the four grey ones ride what is left. The
+            frame is three sandwiches, <i>A i A*</i>, <i>A j A*</i>, <i>A k A*</i> over σ: rational,
+            because σ is a polynomial. <b>Ride the slider from end to end and it still never turns
+            about the tangent</b> — watch the rail stay parallel and the twist readout stay at
+            machine zero. That is a property of the whole class, not of one lucky curve.{' '}
+            <span className="text-slate-400">
+              Drag a blue point to change the data; press “free” to release it. Drag the background
+              to rotate.
+            </span>
+          </>
+        ) : (
+          <>
+            <b>Free.</b> Nothing pinned, so grab any of the eight — and the curve still cannot leave
+            the class. Sixteen unknowns against five constraints and the cursor leaves{' '}
+            <b>seven</b> spare, spent by minimum norm, so the rest of the polygon drifts as little as
+            the solve can manage. The five constraints are <i>hard</i> in that solve, not penalties:
+            which is why <b>“in class” and “twist” stay at machine zero</b> rather than merely small.
+          </>
+        )
       }
     >
       {/* the frame comb, and the rail its tips trace */}
@@ -180,26 +314,47 @@ export default function RmErfFigure() {
       <Curve3D points={curvePts} color={FIG.color.curve} width={3.5} />
       <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1.2} dashed />
 
-      {cps.map((p, i) => (
-        <DragPoint3D
-          key={i}
-          position={tri(p)}
-          color={dragIdx === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
-          radius={0.05}
-          onDragStart={() => { setDragIdx(i); setStalled(false); last.current = curve }}
-          onDragEnd={() => setDragIdx(null)}
-          onDrag={([x, y, z]) => {
-            const step = dragInClass(curve, i, { x, y, z })
-            if (step.converged) {
-              setCurve(step.state)
-              setStalled(false)
-            } else {
-              // Report and keep the last good curve — never leave the class silently.
-              setStalled(true)
-            }
-          }}
-        />
-      ))}
+      {mode === 'strict' ? (
+        <>
+          {/* the four the data does not fix: they ride the family, not your cursor */}
+          {[2, 3, 4, 5].map((i) => (
+            <Point3D key={`d${i}`} position={tri(cps[i])} color={FIG.color.derived} radius={0.045} />
+          ))}
+          {/* the data, drawn — dᵢ = 7(P₁ − P₀), so dragging these re-prescribes it */}
+          {[0, 1, 6, 7].map((i) => (
+            <DragPoint3D
+              key={i}
+              position={tri(cps[i])}
+              color={dragIdx === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+              radius={0.05}
+              onDragStart={() => { setDragIdx(i); setStalled(false) }}
+              onDragEnd={() => setDragIdx(null)}
+              onDrag={([x, y, z]) => setDatum(i, { x, y, z })}
+            />
+          ))}
+        </>
+      ) : (
+        cps.map((p, i) => (
+          <DragPoint3D
+            key={i}
+            position={tri(p)}
+            color={dragIdx === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+            radius={0.05}
+            onDragStart={() => { setDragIdx(i); setStalled(false) }}
+            onDragEnd={() => setDragIdx(null)}
+            onDrag={([x, y, z]) => {
+              const step = dragInClass(freeState, i, { x, y, z })
+              if (step.converged) {
+                setFreeState(step.state)
+                setStalled(false)
+              } else {
+                // Report and keep the last good curve — never leave the class silently.
+                setStalled(true)
+              }
+            }}
+          />
+        ))
+      )}
     </Figure3D>
   )
 }

@@ -12,12 +12,14 @@ import { type Quat, type Vec3, vnorm, vsub } from '../quaternion'
 import {
   type SpatialPHSeptic,
   allScalIQ,
+  classHermiteFamily,
   controlPoints,
   curveAt,
   dragInClass,
   erfAt,
   erfTwistRate,
   frameDefect,
+  hermiteDataOf,
   hodographAt,
   minSpeed,
   planarity,
@@ -225,5 +227,65 @@ describe('EDITING inside the class', () => {
     const r = dragInClass(CURVE, 4, target)
     expect(r.trackingError).toBeLessThan(1e-8)
     expect(r.disturbance).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('C¹ HERMITE inside the class — a one-parameter family', () => {
+  const DATA = hermiteDataOf(CURVE)
+  const FAMILY = classHermiteFamily(DATA, CURVE.A, { samples: 40, step: 0.05 })
+
+  it('the family is traced, and is more than a point', () => {
+    expect(FAMILY.length).toBeGreaterThan(20)
+  })
+
+  it('EVERY member interpolates the same data', () => {
+    for (const m of FAMILY) {
+      const got = hermiteDataOf(m)
+      expect(vd(got.pi, DATA.pi)).toBeLessThan(1e-9)
+      expect(vd(got.pf, DATA.pf)).toBeLessThan(1e-8)
+      expect(vd(got.di, DATA.di)).toBeLessThan(1e-8)
+      expect(vd(got.df, DATA.df)).toBeLessThan(1e-8)
+    }
+  })
+
+  it('and EVERY member is still in the class, untwisted — the point of the slide', () => {
+    for (const m of FAMILY) {
+      expect(Math.max(...rmErfResidual(m.A).map(Math.abs))).toBeLessThan(1e-8)
+      expect(totalErfTwist(m.A)).toBeLessThan(1e-7)
+      expect(frameDefect(m.A)).toBeLessThan(1e-12)
+    }
+  })
+
+  it('the family genuinely MOVES the curve — so the slider is not decorative', () => {
+    const mid = controlPoints(FAMILY[Math.floor(FAMILY.length / 2)])
+    let spread = 0
+    for (const m of FAMILY) {
+      const c = controlPoints(m)
+      for (let i = 0; i < 8; i++) spread = Math.max(spread, vd(c[i], mid[i]))
+    }
+    expect(spread).toBeGreaterThan(0.1)
+  })
+
+  it('it is ordered along the family — consecutive members are close', () => {
+    for (let i = 1; i < FAMILY.length; i++) {
+      const a = controlPoints(FAMILY[i - 1]), b = controlPoints(FAMILY[i])
+      let d = 0
+      for (let j = 0; j < 8; j++) d = Math.max(d, vd(a[j], b[j]))
+      expect(d, `step ${i}`).toBeLessThan(0.35)
+    }
+  })
+
+  it('the outer four control points do not move — they ARE the data', () => {
+    const ref = controlPoints(FAMILY[0])
+    for (const m of FAMILY) {
+      const c = controlPoints(m)
+      for (const i of [0, 1, 6, 7]) expect(vd(c[i], ref[i]), `cp ${i}`).toBeLessThan(1e-7)
+    }
+  })
+
+  it('refuses rather than inventing a family for unreachable data', () => {
+    const absurd = { ...DATA, df: V(0, 0, 0) }
+    expect(classHermiteFamily(absurd, CURVE.A, { samples: 5 })).toHaveLength(0)
   })
 })

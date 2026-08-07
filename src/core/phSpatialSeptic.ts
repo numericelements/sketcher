@@ -451,6 +451,167 @@ export function findClassMember(options: { minPlanarity?: number } = {}): Quat[]
   return best
 }
 
+// ---------------------------------------------------------------------------
+// C¹ HERMITE INSIDE THE CLASS — a one-parameter family
+//
+// Pin the data and the class and count: 16 unknowns against 14 equations (5 class,
+// 3 for Δp, 3 for r′(0), 3 for r′(1)), rank measured at 14, so the null space is
+// TWO-dimensional — one gauge direction and one real freedom. So there is a CURVE of
+// degree-7 RM-ERF interpolants to any given C¹ Hermite data, and a single slider rides
+// it. Exactly the spatial cubic's fiber, one act later, and now with a frame attached.
+//
+// The gauge direction is known analytically (A_j ↦ A_j·i), so the family tangent is
+// found as the null direction orthogonal to it, rather than by hoping an SVD separates
+// them.
+// ---------------------------------------------------------------------------
+
+/** C¹ Hermite data. `P₁ = pᵢ + dᵢ/7`, so the outer control points ARE this data. */
+export interface SepticHermiteData {
+  readonly pi: Vec3
+  readonly pf: Vec3
+  readonly di: Vec3
+  readonly df: Vec3
+}
+
+export function hermiteDataOf(s: SpatialPHSeptic): SepticHermiteData {
+  const cps = controlPoints(s)
+  return { pi: cps[0], pf: cps[7], di: hodographAt(s.A, 0), df: hodographAt(s.A, 1) }
+}
+
+const A_FROM = (x: readonly number[]): Quat[] =>
+  [0, 1, 2, 3].map((k) => ({ u: x[4 * k], v: x[4 * k + 1], p: x[4 * k + 2], q: x[4 * k + 3] }))
+const A_TO = (A: readonly Quat[]): number[] => A.flatMap((a) => [a.u, a.v, a.p, a.q])
+
+/** The 14 residuals: five class conditions plus C¹ Hermite. */
+function hermiteClassResidual(A: readonly Quat[], data: SepticHermiteData): number[] {
+  const d = hodographCoefficients(A)
+  let net: Vec3 = { x: 0, y: 0, z: 0 }
+  for (const leg of d) net = vadd(net, vscale(leg, 1 / DEGREE))
+  const r = [...rmErfResidual(A)]
+  const push = (a: Vec3, b: Vec3): void => { r.push(a.x - b.x, a.y - b.y, a.z - b.z) }
+  push(net, vsub(data.pf, data.pi))
+  push(sandwich(A[0]), data.di)
+  push(sandwich(A[3]), data.df)
+  return r
+}
+
+/** The gauge direction A_j ↦ A_j·i, as a 16-vector. Moves the unknowns, not the curve. */
+const gaugeDirection = (A: readonly Quat[]): number[] =>
+  A.flatMap((a) => [-a.v, a.u, a.q, -a.p])
+
+function jacobianOf(f: (x: readonly number[]) => number[], x: readonly number[]): number[][] {
+  const m = f(x).length
+  const h = 1e-6
+  const J: number[][] = Array.from({ length: m }, () => new Array(x.length).fill(0))
+  for (let c = 0; c < x.length; c++) {
+    const plus = x.slice(); plus[c] += h
+    const minus = x.slice(); minus[c] -= h
+    const fp = f(plus), fm = f(minus)
+    for (let e = 0; e < m; e++) J[e][c] = (fp[e] - fm[e]) / (2 * h)
+  }
+  return J
+}
+
+/** A unit vector in the null space of `rows`, chosen by best-conditioned pivot. */
+function nullVector(rows: readonly (readonly number[])[]): number[] | null {
+  const n = rows[0].length
+  let best: number[] | null = null
+  let bestResidual = Infinity
+  for (let k = 0; k < n; k++) {
+    const A = rows.map((row) => row.filter((_, i) => i !== k))
+    const b = rows.map((row) => -row[k])
+    let y: number[]
+    try {
+      y = leastSquares(A, b, 1e-12)
+    } catch {
+      continue
+    }
+    if (!y.every(Number.isFinite)) continue
+    const v = new Array(n).fill(0)
+    v[k] = 1
+    let j = 0
+    for (let i = 0; i < n; i++) if (i !== k) v[i] = y[j++]
+    let res = 0
+    for (const row of rows) res = Math.max(res, Math.abs(row.reduce((s, c, i) => s + c * v[i], 0)))
+    const norm = Math.hypot(...v)
+    if (res / norm < bestResidual) {
+      bestResidual = res / norm
+      best = v.map((c) => c / norm)
+    }
+  }
+  return bestResidual < 1e-6 ? best : null
+}
+
+/** Pull `x` back onto the 14 conditions with min-norm steps. */
+function correct(x: number[], data: SepticHermiteData, iterations = 20): number[] | null {
+  let cur = x.slice()
+  const f = (y: readonly number[]): number[] => hermiteClassResidual(A_FROM(y), data)
+  for (let it = 0; it < iterations; it++) {
+    const r = f(cur)
+    if (Math.max(...r.map(Math.abs)) < 1e-13) break
+    let step: number[]
+    try {
+      step = leastSquares(jacobianOf(f, cur), r.map((v) => -v), 1e-12)
+    } catch {
+      return null
+    }
+    if (!step.every(Number.isFinite)) return null
+    const next = cur.map((v, i) => v + step[i])
+    if (!next.every(Number.isFinite)) return null
+    cur = next
+  }
+  return Math.max(...f(cur).map(Math.abs)) < 1e-9 ? cur : null
+}
+
+export interface HermiteFamilyOptions {
+  readonly samples?: number
+  readonly step?: number
+}
+
+/**
+ * Trace the one-parameter family of RM-ERF degree-7 interpolants to `data`, starting
+ * from `seed`. Predictor–corrector along the family tangent, in both directions, so
+ * the returned list is ordered along the family and a slider can index it.
+ *
+ * Returns [] when the seed cannot be corrected onto the family — the caller keeps its
+ * last good trace rather than showing something that is not an interpolant.
+ */
+export function classHermiteFamily(
+  data: SepticHermiteData,
+  seed: readonly Quat[],
+  options: HermiteFamilyOptions = {},
+): SpatialPHSeptic[] {
+  const samples = options.samples ?? 60
+  const step = options.step ?? 0.05
+
+  const start = correct(A_TO(seed), data)
+  if (start === null) return []
+
+  const walk = (direction: 1 | -1): number[][] => {
+    const out: number[][] = []
+    let x = start.slice()
+    for (let i = 0; i < samples; i++) {
+      const f = (y: readonly number[]): number[] => hermiteClassResidual(A_FROM(y), data)
+      const rows = [...jacobianOf(f, x), gaugeDirection(A_FROM(x))]
+      const v = nullVector(rows)
+      if (v === null) break
+      const predicted = x.map((c, k) => c + direction * step * v[k])
+      const corrected = correct(predicted, data, 12)
+      if (corrected === null) break
+      x = corrected
+      out.push(x.slice())
+    }
+    return out
+  }
+
+  const forward = walk(1)
+  const backward = walk(-1)
+  const ordered = [...backward.reverse(), start, ...forward]
+  return ordered
+    .map((x) => ({ A: A_FROM(x), p0: data.pi }))
+    .filter((c) => minSpeed(c.A) > 1e-6)
+}
+
 /** The frame's normal, sampled along the curve — what the figure combs. */
 export function frameComb(
   s: SpatialPHSeptic,

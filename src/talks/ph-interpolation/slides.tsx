@@ -319,8 +319,15 @@ export const slides: SlideDefinition[] = [
       </>
     ),
     notes:
-      'THE FRAMES ACT, at its simplest: one degree-7 PH curve, always inside the RM-ERF class, every ' +
-      'control point draggable. No toggle, no slider. ' +
+      'THE FRAMES ACT: one degree-7 PH curve, always inside the RM-ERF class, with slide 6\'s pair of ' +
+      'modes. STRICT pins the C¹ Hermite data — 16 unknowns against 14 conditions (5 class, 9 Hermite), ' +
+      'rank measured at 14, so the null space is two-dimensional: one gauge and ONE real freedom. So ' +
+      'there is a CURVE of untwisted interpolants to any given data and a single slider rides it — the ' +
+      'spatial cubic\'s fiber, one act later, now with a frame attached. FREE releases the data: grab ' +
+      'any of the eight, seven spare parameters, minimum norm spends them. ' +
+      'THE STRICT MODE IS THE STRONGER DEMONSTRATION — ride the slider end to end and the frame STILL ' +
+      'never turns about the tangent. That is a property of the CLASS, not of one lucky curve, and it ' +
+      'is the thing to do on stage. ' +
       'THE FRAME COSTS NOTHING — it is three sandwiches, one per axis: e₁,e₂,e₃ = A i A*, A j A*, ' +
       'A k A* over σ. The same machinery as every other slide, and RATIONAL because σ = |A|² is a ' +
       'polynomial. That is the whole reason a PH curve can carry a rational frame; say it once here. ' +
@@ -350,7 +357,7 @@ export const slides: SlideDefinition[] = [
       'flat ones are refused. ' +
       'ONE FIGURE THIS DELIBERATELY DROPS: the Frenet frame\'s sudden reversal at an inflection. A ' +
       'lovely mark, but a second lesson. ' +
-      'core/phSpatialSeptic, 18 tests, the first of which is the GATE: impose (14), sample ω₁, require ' +
+      'core/phSpatialSeptic, 25 tests, the first of which is the GATE: impose (14), sample ω₁, require ' +
       'machine zero. If my reading of either equation were wrong that test fails and this figure would ' +
       'never have been drawn.',
   },
