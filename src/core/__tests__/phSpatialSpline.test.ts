@@ -23,6 +23,7 @@ import {
   continuityDefects,
   editWindow,
   localEdit,
+  segmentHodograph,
   minSpeed,
   splineControlPoints,
 } from '../phSpatialSpline'
@@ -108,6 +109,99 @@ describe('SPACE: three segments keep C², two do not', () => {
     expect(d.c1).toBeLessThan(1e-9)
     expect(d.c2).toBeLessThan(1e-8)
     expect(minSpeed(r.spline)).toBeGreaterThan(0.1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('HOW MANY FREE PARAMETERS the edit really has', () => {
+  // The W=3 system has a 6-dimensional kernel, but THREE of those dimensions are
+  // per-segment gauge: every residual is built from sandwich/polarSandwich WITHIN one
+  // segment, and both are invariant under A ↦ A·e^{iθ}. So they move the unknowns and
+  // leave the curve exactly where it was.
+  //
+  // That leaves THREE genuinely shape-changing parameters — the slack a further
+  // invariant (curvature-extrema count, a curvature bound) would live in.
+  const eig = (Ain: number[][]): number[] => {
+    const n = Ain.length
+    const A = Ain.map((r) => r.slice())
+    for (let s = 0; s < 3000; s++) {
+      let off = 0
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += A[i][j] * A[i][j]
+      if (off < 1e-34) break
+      for (let p = 0; p < n; p++) {
+        for (let q = p + 1; q < n; q++) {
+          if (Math.abs(A[p][q]) < 1e-300) continue
+          const th = (A[q][q] - A[p][p]) / (2 * A[p][q])
+          const t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1))
+          const co = 1 / Math.sqrt(t * t + 1), si = t * co
+          for (let k = 0; k < n; k++) { const a = A[k][p], b = A[k][q]; A[k][p] = co * a - si * b; A[k][q] = si * a + co * b }
+          for (let k = 0; k < n; k++) { const a = A[p][k], b = A[q][k]; A[p][k] = co * a - si * b; A[q][k] = si * a + co * b }
+        }
+      }
+    }
+    return A.map((r, i) => r[i]).sort((a, b) => a - b)
+  }
+
+  const p = splineControlPoints(SPLINE)[PICK]
+  const edited = localEdit(SPLINE, PICK, V(p.x + 0.3, p.y + 0.25, p.z - 0.2), { window: 3 })!
+  const [k0, k1] = edited.movedSegments
+  const W = k1 - k0 + 1
+  const segs = edited.spline.segments.slice(k0, k1 + 1)
+  const x0 = segs.flatMap((A) => A.flatMap((a) => [a.u, a.v, a.p, a.q]))
+  /** The window's geometry as a function of its unknowns. */
+  const geometry = (x: readonly number[]): number[] => {
+    const out: number[] = []
+    for (let s = 0; s < W; s++) {
+      const A = [0, 1, 2].map((j) => {
+        const o = 12 * s + 4 * j
+        return { u: x[o], v: x[o + 1], p: x[o + 2], q: x[o + 3] }
+      })
+      for (const d of segmentHodograph(A)) out.push(d.x, d.y, d.z)
+    }
+    return out
+  }
+  const U = x0.length
+  const m = geometry(x0).length
+  const h = 1e-6
+  const J: number[][] = Array.from({ length: m }, () => new Array(U).fill(0))
+  for (let c = 0; c < U; c++) {
+    const a = x0.slice(); a[c] += h
+    const b = x0.slice(); b[c] -= h
+    const fa = geometry(a), fb = geometry(b)
+    for (let e = 0; e < m; e++) J[e][c] = (fa[e] - fb[e]) / (2 * h)
+  }
+
+  it('the geometry map has a 3-dimensional kernel — one gauge per segment', () => {
+    const G = Array.from({ length: U }, () => new Array(U).fill(0))
+    for (let i = 0; i < U; i++) {
+      for (let j = 0; j < U; j++) {
+        let s = 0
+        for (let e = 0; e < m; e++) s += J[e][i] * J[e][j]
+        G[i][j] = s
+      }
+    }
+    const sv = eig(G).map((v) => Math.sqrt(Math.max(0, v)))
+    const rel = sv.map((v) => v / sv[U - 1])
+    // A clean gap: three at zero, then O(1e-1). Not a tolerance judgement.
+    expect(rel[2]).toBeLessThan(1e-12)
+    expect(rel[3]).toBeGreaterThan(1e-3)
+  })
+
+  it('and the gauge directions are exactly those — verified, not assumed', () => {
+    for (let s = 0; s < W; s++) {
+      const g = new Array(U).fill(0)
+      for (let j = 0; j < 3; j++) {
+        const a = segs[s][j], o = 12 * s + 4 * j
+        g[o] = -a.v; g[o + 1] = a.u; g[o + 2] = a.q; g[o + 3] = -a.p
+      }
+      let worst = 0
+      for (let e = 0; e < m; e++) {
+        let d = 0
+        for (let c = 0; c < U; c++) d += J[e][c] * g[c]
+        worst = Math.max(worst, Math.abs(d))
+      }
+      expect(worst, `segment ${s} gauge`).toBeLessThan(1e-8)
+    }
   })
 })
 
