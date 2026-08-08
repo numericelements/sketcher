@@ -747,6 +747,29 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 // {ρ₂, ρ₃, L} coordinates) is a true statement about a quartic. The dimension table at the top of
 // this file is honest at 4 and 6 and describes reducible curves at 3, 5 and 7.
 //
+// DOES DEGREE 4'S SINGLE DIMENSION WRAP? Best evidence says NO — it is an open arc with two
+// ends, not the circle that the polynomial cubic's single angle gives. Stated with its strength,
+// because continuation is the weakest kind of evidence and this rests partly on it:
+//
+//   · MEASURED, on the one member the walker could trace: arc-length continuation along the
+//     dial (tangent step, Newton projection back onto the 12 defining rows and the 12 Hermite
+//     rows, w₀ = 1 each step) runs away in BOTH directions — 11.7k steps and a path length of
+//     5e3 one way, 13.0k steps and 4e4 the other, with max|weight| reaching 3.4e3 and 2.8e4.
+//     The two ends are DIFFERENT curves, 1.26 extents apart, so it is not a circle closing
+//     through a degenerate seam either.
+//
+//   · AND THERE IS A MECHANISM, which is what makes the traced result believable. At the far end
+//     the sandwich equation is A(1) i A(1)* = w(1)²·d₁ — and w(1) is a FREE POSITIVE SCALE.
+//     The polynomial case has no such scale: its endpoint condition is A₂ i A₂* = d_f exactly,
+//     whose solution set is a circle, hence compact, hence slide 7's torus. Rationality adds the
+//     denominator's endpoint value, and a positive scale is not compact. That is the difference
+//     between a dial that wraps and a slider with two walls.
+//
+//   · WHAT IS NOT ESTABLISHED: on two of three members the walker could not take a single step —
+//     the tangent extraction breaks on the pinned Jacobian's two-plateau spectrum — so this is
+//     one traced member plus a mechanism, NOT a theorem. A figure built on it should say
+//     "one-parameter family with two ends" and must not say "circle".
+//
 // SO A GENUINELY SPATIAL, GENUINELY IRREDUCIBLE FIGURE IS DEGREE 6 — which is also the degree
 // where working directly in R^{4,1} first beats bending a polynomial (17 dimensions against the
 // Möbius orbit's 13). Measured there: pinning the C¹ Hermite data leaves FIVE dimensions, not
