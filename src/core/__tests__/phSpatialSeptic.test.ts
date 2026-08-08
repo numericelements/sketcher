@@ -447,3 +447,158 @@ describe('PINNED ENDS in free mode — an anchor for a segment with no local sup
     expect(minSpeed(state.A)).toBeGreaterThan(0.01)
   })
 })
+
+// ---------------------------------------------------------------------------
+// WHY DEGREE 7 — the first degree at which this class contains a non-planar curve
+//
+// Not a stylistic choice, and not "degree 7 is generic enough". At degree 5 the same
+// condition forces the curve to be PLANAR, so the frame story would be vacuous.
+//
+// THE MECHANISM, and it is entirely about "five, not six". Write s(a,b) = scal(a i b*).
+// Since scal(p q*) = ⟨p,q⟩, s(a,b) = ⟨Ja, b⟩ where J is right-multiplication by i — an
+// orthogonal map with J² = −1, and antisymmetric, which is why s(a,a) = 0.
+//
+// Degree 5 means A is QUADRATIC, and expanding scal(A i A′*) ≡ 0 in the Bernstein basis
+// gives Bernstein coefficients (σ₀₁, (σ₀₁+σ₀₂)/3, (σ₀₂+σ₁₂)/3, σ₁₂) with σⱼₖ = s(Aⱼ,Aₖ). All four vanish
+// only if ALL THREE pairs do. And "all pairs vanish" says V = span{A₀,A₁,A₂} satisfies
+// V ⊥ JV; since dim JV = dim V and both sit in R⁴, dim V ≤ 2. A quadratic A confined to
+// such a plane has A i A* confined to a plane in R³ — e.g. V = span{1,j} gives
+// A i A* = (α²−β²)i − 2αβk. Planar.
+//
+// Degree 7 escapes because its conditions are FIVE, not six: s(A₀,A₃) is not required to
+// vanish on its own, only the combination 3s(A₁,A₂) + s(A₀,A₃). So the coefficients need
+// not span a J-isotropic plane, and non-planar members exist — which findClassMember
+// finds, and the rest of this file exercises.
+//
+// One boundary worth stating: this is about OUR class (the ERF itself is the RMF), not
+// about RRMF curves in general. Rational-RMF quintics are a studied, non-empty, non-planar
+// class in the literature; they satisfy the weaker condition that a rational ROTATION of
+// the ERF is rotation-minimizing. That is a different constraint and not what is tested
+// here.
+// ---------------------------------------------------------------------------
+describe('WHY DEGREE 7: at degree 5 the same condition forces planarity', () => {
+  const I: Quat = { u: 0, v: 1, p: 0, q: 0 }
+  const s = (a: Quat, b: Quat): number => {
+    // scal(a i b*), written out so this test depends on nothing under test
+    const ai = {
+      u: a.u * 0 - a.v * 1, v: a.u * 1 + a.v * 0, p: a.p * 0 + a.q * 1, q: -a.p * 1 + a.q * 0,
+    }
+    return ai.u * b.u + ai.v * b.v + ai.p * b.p + ai.q * b.q
+  }
+  const det3 = (m: number[][]): number =>
+    m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+    m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+    m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
+  const vec4 = (q: Quat): number[] => [q.u, q.v, q.p, q.q]
+  const gramDet = (V: number[][]): number =>
+    det3(V.map((a) => V.map((b) => a.reduce((x, ai, i) => x + ai * b[i], 0))))
+
+  it('s(a,b) = ⟨Ja,b⟩ with J orthogonal, J² = −1 and antisymmetric', () => {
+    const P: Quat[] = [
+      { u: 0.7, v: -0.3, p: 1.1, q: 0.4 },
+      { u: -0.2, v: 0.9, p: 0.5, q: -1.3 },
+    ]
+    expect(s(P[0], P[0])).toBeCloseTo(0, 15)
+    expect(s(P[0], P[1]) + s(P[1], P[0])).toBeCloseTo(0, 15)
+    // agrees with the module's own scalIQ, via allScalIQ
+    const A = [P[0], P[1], P[0], P[1]] as Quat[]
+    expect(allScalIQ(A)[0]).toBeCloseTo(s(P[0], P[1]), 12)
+  })
+
+  it('the three degree-5 conditions are FORCED (all pairs), unlike degree 7\'s five', () => {
+    // scal(A i A'*) for quadratic A has Bernstein coefficients σ01, σ01+σ02, σ02+σ12, σ12.
+    // Sampled directly, so the claim is checked rather than asserted.
+    const A: Quat[] = [
+      { u: 1.2, v: 0.4, p: -0.7, q: 0.3 },
+      { u: 0.6, v: -0.9, p: 0.2, q: 1.1 },
+      { u: -0.4, v: 0.5, p: 1.3, q: -0.2 },
+    ]
+    const at = (t: number): Quat => {
+      const b = [(1 - t) ** 2, 2 * (1 - t) * t, t * t]
+      return {
+        u: A.reduce((x, q, k) => x + b[k] * q.u, 0), v: A.reduce((x, q, k) => x + b[k] * q.v, 0),
+        p: A.reduce((x, q, k) => x + b[k] * q.p, 0), q: A.reduce((x, q, k) => x + b[k] * q.q, 0),
+      }
+    }
+    const deriv = (t: number): Quat => {
+      const d = [0, 1].map((k) => ({
+        u: 2 * (A[k + 1].u - A[k].u), v: 2 * (A[k + 1].v - A[k].v),
+        p: 2 * (A[k + 1].p - A[k].p), q: 2 * (A[k + 1].q - A[k].q),
+      }))
+      const b = [1 - t, t]
+      return {
+        u: d.reduce((x, q, k) => x + b[k] * q.u, 0), v: d.reduce((x, q, k) => x + b[k] * q.v, 0),
+        p: d.reduce((x, q, k) => x + b[k] * q.p, 0), q: d.reduce((x, q, k) => x + b[k] * q.q, 0),
+      }
+    }
+    const s01 = s(A[0], A[1]), s02 = s(A[0], A[2]), s12 = s(A[1], A[2])
+    // Bernstein, so the middle two carry the 1/3 that B₁³ = 3s²t and B₂³ = 3st² supply.
+    const bern = [s01, (s01 + s02) / 3, (s02 + s12) / 3, s12]
+    for (const t of [0, 0.2, 0.5, 0.8, 1]) {
+      const b3 = [(1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3]
+      const predicted = bern.reduce((x, c, k) => x + c * b3[k], 0)
+      expect(s(at(t), deriv(t)) / 2, `t=${t}`).toBeCloseTo(predicted, 11)
+    }
+  })
+
+  it('AND EVERY SOLUTION IS PLANAR — measured from 8 independent seeds', () => {
+    // Solve s01 = s02 = s12 = 0 from random seeds (12 unknowns, 3 conditions — plenty of
+    // room for a non-planar solution to exist if one did), then measure.
+    for (let seed = 0; seed < 8; seed++) {
+      const rnd = (n: number): number => {
+        const x = Math.sin(seed * 97.13 + n * 13.7) * 43758.5453
+        return (x - Math.floor(x)) * 2 - 1
+      }
+      const unpack = (x: number[]): Quat[] =>
+        [0, 1, 2].map((k) => ({ u: x[4 * k], v: x[4 * k + 1], p: x[4 * k + 2], q: x[4 * k + 3] }))
+      const res = (X: Quat[]): number[] => [s(X[0], X[1]), s(X[0], X[2]), s(X[1], X[2])]
+      let x = [0, 1, 2].flatMap((k) => [1 + 0.5 * rnd(4 * k), rnd(4 * k + 1), rnd(4 * k + 2), rnd(4 * k + 3)])
+      for (let it = 0; it < 400; it++) {
+        const r = res(unpack(x))
+        if (Math.max(...r.map(Math.abs)) < 1e-15) break
+        const g = new Array(12).fill(0)
+        const h = 1e-7
+        for (let c = 0; c < 12; c++) {
+          const xp = x.slice(); xp[c] += h
+          const rp = res(unpack(xp))
+          for (let e = 0; e < 3; e++) g[c] += (2 * r[e] * (rp[e] - r[e])) / h
+        }
+        const gn = Math.hypot(...g)
+        if (gn === 0) break
+        for (let c = 0; c < 12; c++) x[c] -= (0.3 / gn) * g[c] * Math.min(1, Math.hypot(...r))
+      }
+      const A = unpack(x)
+      expect(Math.max(...res(A).map(Math.abs)), `seed ${seed} solved`).toBeLessThan(1e-12)
+
+      // rank of span{A₀,A₁,A₂} in R⁴ is at most 2 — the J-isotropy bound
+      expect(Math.abs(gramDet(A.map(vec4))), `seed ${seed} A-rank`).toBeLessThan(1e-12)
+
+      // and therefore the HODOGRAPH lies in a plane: the curve is planar
+      const H: number[][] = []
+      for (let j = 0; j < 3; j++) {
+        for (let k = 0; k < 3; k++) {
+          // A_j i A_k*, R³ part
+          const a = A[j], b = A[k]
+          const ai = { u: -a.v, v: a.u, p: a.q, q: -a.p }
+          H.push([
+            ai.u * -b.v + ai.v * b.u + ai.p * -b.q - ai.q * -b.p,
+            ai.u * -b.p - ai.v * -b.q + ai.p * b.u + ai.q * -b.v,
+            ai.u * -b.q + ai.v * -b.p - ai.p * -b.v + ai.q * b.u,
+          ])
+        }
+      }
+      const G = [0, 1, 2].map((a) => [0, 1, 2].map((b) => H.reduce((t, h) => t + h[a] * h[b], 0)))
+      const scale = (G[0][0] + G[1][1] + G[2][2]) / 3
+      expect(Math.abs(det3(G)) / scale ** 3, `seed ${seed} planar`).toBeLessThan(1e-9)
+    }
+  })
+
+  it('while degree 7 does NOT force it: the class member found is genuinely non-planar', () => {
+    const A = findClassMember()
+    expect(A).not.toBeNull()
+    // s(A₀,A₃) is free — only 3s(A₁,A₂) + s(A₀,A₃) must vanish — so the coefficients need
+    // not span a J-isotropic plane, and they do not.
+    expect(Math.abs(gramDet((A as Quat[]).slice(0, 3).map(vec4)))).toBeGreaterThan(1e-6)
+    expect(planarity(A as Quat[])).toBeGreaterThan(0.05)
+  })
+})
