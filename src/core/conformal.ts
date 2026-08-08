@@ -258,9 +258,47 @@ export function evaluateRationalBezier(rb: RationalBezier, t: number): Vec3 | nu
   return { x: h[0][0] / h[0][3], y: h[0][1] / h[0][3], z: h[0][2] / h[0][3] }
 }
 
-/** Smallest |weight| — near zero means a control point escaping to infinity. */
+/**
+ * Smallest |weight| — near zero means one CONTROL POINT escaping to infinity.
+ *
+ * NOT a health check on the curve, and it was displayed as one by mistake. A control
+ * point at infinity is a fact about the REPRESENTATION: the point becomes a direction and
+ * the polygon can no longer be drawn in affine space, while the curve itself carries on
+ * perfectly well. Use `minDenominator` for the curve.
+ */
 export function minAbsWeight(rb: RationalBezier): number {
   return Math.min(...rb.weights.map(Math.abs))
+}
+
+/**
+ * min over t∈[0,1] of the denominator W(t) = Σ wᵢBᵢ(t) — the quantity that actually
+ * decides whether the image is a bounded curve.
+ *
+ * And there is an exact identity behind it, verified in the tests to 1e-9:
+ *
+ *     W(t) = λ · ‖r(t) − pole‖²          pole = μ⁻¹(∞), λ constant
+ *
+ * because W = −⟨M·P(r), ∞⟩ = −⟨P(r), M⁻¹∞⟩ and the conformal inner product of two lifted
+ * points IS a squared distance. Three consequences, all of them useful:
+ *
+ *   · "min W" and "how close the pole comes to the curve" are the SAME readout;
+ *   · W is λ times a sum of squares, so it can only TOUCH zero, never cross — the image
+ *     runs to infinity at one parameter and comes back, and never flips branch;
+ *   · the zero is therefore a DOUBLE root, which is why sampling finds 1e-19 rather than
+ *     a clean sign change (see the test).
+ */
+export function minDenominator(rb: RationalBezier, samples = 200): number {
+  const n = rb.points.length - 1
+  let worst = Infinity
+  for (let k = 0; k <= samples; k++) {
+    const t = k / samples
+    const w = rb.weights.slice()
+    for (let r = 1; r <= n; r++) {
+      for (let i = 0; i <= n - r; i++) w[i] = (1 - t) * w[i] + t * w[i + 1]
+    }
+    worst = Math.min(worst, w[0])
+  }
+  return worst
 }
 
 // ---------------------------------------------------------------------------

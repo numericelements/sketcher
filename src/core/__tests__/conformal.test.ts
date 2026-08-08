@@ -21,6 +21,7 @@ import {
   isometryDefect,
   matrixExp5,
   minAbsWeight,
+  minDenominator,
   mobiusImageRationalBezier,
   multiply5,
   pointMap,
@@ -308,5 +309,74 @@ describe('GENERATORS — exp(Σ sᵢXᵢ) so a slider starts at the identity', (
     // and the image's weights vary, the coefficient-level version of the same fact
     const rb = mobiusImageRationalBezier(conformalLiftBezier(septicControlPoints(CURVE)), M)
     expect(Math.max(...rb.weights) / Math.min(...rb.weights)).toBeGreaterThan(1.02)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// WHAT ACTUALLY BREAKS — the pole on the curve, not a weight near zero
+//
+// The figure used to display min |w| as though a small value threatened the curve. It does
+// not: a weight at zero puts one CONTROL POINT at infinity, which is a fact about the
+// polygon. The image blows up exactly when the denominator W(t) vanishes, i.e. when the
+// map's POLE lies on the curve — a geometric event you have to aim for.
+// ---------------------------------------------------------------------------
+describe('the pole is the singularity, not a small weight', () => {
+  it('bending hard does NOT reach a singularity: W stays positive and the pole misses', () => {
+    const lift7 = conformalLiftBezier(septicControlPoints(CURVE))
+    // Measured over the full useful slider range. min |w| bottoms out near 0.07 and
+    // climbs back; W(t) never comes close to zero, so the curve is fine throughout.
+    for (const s of [0.5, 1, 2, 3]) {
+      const M = matrixExp5(inversiveBendGenerator(V(s, 0, 0)))
+      const rb = mobiusImageRationalBezier(lift7, M)
+      expect(minDenominator(rb)).toBeGreaterThan(0.05)
+      // and the pole — μ⁻¹(∞) — really does stay off the curve
+      const Minv = matrixExp5(inversiveBendGenerator(V(-s, 0, 0)))
+      const pole = project(applyMatrix(Minv, POINT_AT_INFINITY)) as Vec3
+      const near = Math.min(
+        ...Array.from({ length: 201 }, (_, k) => vnorm(vsub(curveAt(CURVE, k / 200), pole))),
+      )
+      expect(near).toBeGreaterThan(0.2)
+    }
+  })
+
+  it('THE DENOMINATOR IS THE SQUARED DISTANCE TO THE POLE, times a constant', () => {
+    // W(t) = −⟨M·P(r), ∞⟩ = −⟨P(r), M⁻¹∞⟩ = λ‖r(t) − pole‖², because the conformal inner
+    // product of two lifted points IS a squared distance. So "min W" and "how close does
+    // the pole come to the curve" are the SAME readout, and W is λ times a sum of squares.
+    const lift7 = conformalLiftBezier(septicControlPoints(CURVE))
+    for (const s of [0.5, 2, 3]) {
+      const M = matrixExp5(inversiveBendGenerator(V(s, 0, 0)))
+      const Minv = matrixExp5(inversiveBendGenerator(V(-s, 0, 0)))
+      const pole = project(applyMatrix(Minv, POINT_AT_INFINITY)) as Vec3
+      const rb = mobiusImageRationalBezier(lift7, M)
+      const W = (t: number): number => {
+        const w = rb.weights.slice()
+        for (let r = 1; r <= 14; r++) for (let i = 0; i <= 14 - r; i++) w[i] = (1 - t) * w[i] + t * w[i + 1]
+        return w[0]
+      }
+      const d2 = (t: number): number => vnorm(vsub(curveAt(CURVE, t), pole)) ** 2
+      const lambda = W(0.5) / d2(0.5)
+      for (const t of TS) {
+        expect(Math.abs(W(t) - lambda * d2(t)) / W(t), `s=${s} t=${t}`).toBeLessThan(1e-9)
+      }
+    }
+  })
+
+  it('put the pole ON the curve and W TOUCHES zero — but cannot change sign', () => {
+    // An inversion centred at a point of the curve: its pole is that point by
+    // construction, so the image runs to infinity at that parameter. And because W is a
+    // squared distance, it has a DOUBLE root there and stays non-negative — the image is
+    // unbounded but never flips branch. Measured: min W = 3.7e-19, not negative.
+    const centre = curveAt(CURVE, 0.4)
+    const M = reflectionMatrix(sphereVector(centre, 1)) as Mat5
+    const rb = mobiusImageRationalBezier(conformalLiftBezier(septicControlPoints(CURVE)), M)
+    const worst = minDenominator(rb, 400)
+    expect(Math.abs(worst)).toBeLessThan(1e-12)
+    expect(worst).toBeGreaterThanOrEqual(0)
+    // and the honest contrast: min |w| does NOT see the tear. It reads 2.8e-3 — small,
+    // but SIXTEEN ORDERS above the denominator's 3.7e-19, so it registers nothing special
+    // about the one transformation that actually breaks the curve. It measures the
+    // polygon's drawability, not the curve's.
+    expect(minAbsWeight(rb) / Math.max(Math.abs(worst), 1e-300)).toBeGreaterThan(1e12)
   })
 })

@@ -11,38 +11,55 @@
 //                        with computing the rotation-minimizing frame. Verified in
 //                        core/phMobius, along with the stronger fact that the image's own
 //                        Euler–Rodrigues frame stays rotation-minimizing too.
-//   the DEGREE           8 control points become 15. Inversion doubles it.
+//   the DEGREE           8 control points become 15.
+//
+// TWO CURVES ARE DRAWN, AND THAT IS THE POINT — a slide about a map should show both sides.
+// The thin curve with the blue handles is the polynomial source; the bold one is its image.
+// At all sliders zero they coincide exactly (the identity, seen), and the image peels away
+// as you bend.
+//
+// WHY THE SOURCE'S CONTROL POINTS ARE NOT DRAWN IN IMAGE SPACE — the correction that shaped
+// this figure. A Möbius transformation does NOT send control points to control points: μ(Pᵢ)
+// is not the i-th control point of μ∘r, and nothing like it, apart from the two endpoints.
+// An earlier version drew the μ(Pᵢ) as a polygon around the bent curve, which invites the
+// reading "these eight points control this curve" — they do not. Affine maps are covariant
+// on control points; Möbius maps are covariant on the CONFORMAL LIFT, which is exactly why
+// the honest polygon has 15 points and not 8. So the blue handles stay on the source, where
+// they mean something, and the image carries only its own polygon.
+//
+// It also makes the editing simpler than it was: dragging a source point needs no pull-back
+// through μ⁻¹, and the solve happens where the constraints live — five RM-ERF conditions on
+// sixteen unknowns, which dragInClass already handles. In the image those conditions would
+// have to be expressed on fifteen weighted control points; the Möbius map stays a pure
+// display transformation and no new solver was needed.
+//
+// THE 15-POINT POLYGON IS THE MODEL PAYING FOR ITSELF. Since a Möbius transformation is a
+// CONSTANT matrix and Bernstein basis functions are scalars, M·Σ Cₖ Bₖ(t) = Σ (M Cₖ) Bₖ(t) —
+// the matrix acts on each coefficient INDEPENDENTLY. Fifteen matrix–vector products and
+// fifteen divisions. No resultants, no fitting. And it is 15 even at zero bend: the LIFT
+// doubles the degree, the bend adds none.
 //
 // WHY THE SLIDERS ARE GENERATORS, not an inversion centre. The transformation is
 // exp(Σ sᵢXᵢ) on the conformal model, exactly as the Lie-sphere lab does it, so all-zeros
-// is the identity and each slider is an infinitesimal generator. The three exposed here are
-// the SPECIAL CONFORMAL ones — "inversive bend" — because the Möbius group is rotations,
-// translations, scaling and these, and only these BEND anything: the others are
-// similarities. Their range is deliberately small; a little inversive bend goes a long way.
+// is the identity and each slider is an infinitesimal generator. The three exposed are the
+// SPECIAL CONFORMAL ones — "inversive bend" — because the Möbius group is rotations,
+// translations, scaling and these, and only these BEND anything: the others are similarities.
 //
-// HOW EDITING WORKS, AND WHY NO NEW SOLVER WAS NEEDED. The constraints are simple in the
-// PREIMAGE — five RM-ERF conditions on sixteen unknowns, which dragInClass already solves —
-// and hopeless in the image, where they would have to be expressed on fifteen weighted
-// control points. So the Möbius map is a pure DISPLAY transformation and the solve stays
-// where it is easy. Möbius maps are invertible, so the gesture still feels direct:
+// THE RANGE IS ±2, FROM MEASUREMENT. The generator moves the map's POLE in from infinity —
+// at zero the pole IS at infinity, which is why the identity is affine. Measured pole
+// distance: 8.2 at slider 0.22, 1.15 at 1, 0.30 at 2. The old range of ±0.22 therefore bent
+// the curve by 6% and looked broken. Past 3 the pole has swept by and the curve is crushed
+// instead of bent, so 2 is where the interesting deformation lives.
 //
-//     cursor in image space  →  μ⁻¹(cursor)  →  dragInClass on the source  →  push forward
-//
-// and exp(−G) inverts exp(G), so μ⁻¹ costs nothing.
-//
-// THE REAL 15-POINT POLYGON IS DRAWN, and getting it is the model paying for itself. Since
-// a Möbius transformation is a CONSTANT matrix and Bernstein basis functions are scalars,
-// M·Σ Cₖ Bₖ(t) = Σ (M Cₖ) Bₖ(t) — the matrix acts on each coefficient INDEPENDENTLY. So the
-// image's rational Bézier data is fifteen matrix–vector products and fifteen divisions. No
-// resultants, no fitting. Two independent routes to that curve agree to 1e-9 in the tests.
-//
-// THE HONEST GUARD. As the transformation strengthens, a weight approaches zero and the
-// corresponding control point escapes to infinity — a genuine singularity, not a numerical
-// wobble. "min |w|" is that distance, displayed, and watching the image swell as it falls is
-// the most vivid demonstration of what inversion actually does.
+// AND THE READOUT IS THE DENOMINATOR, not min |w| — a correction, measured. A weight near
+// zero puts one CONTROL POINT at infinity, a fact about the polygon; the curve itself blows
+// up only where W(t) = 0, which happens exactly when the pole lies ON it. The two are wildly
+// different: aim the pole at the curve and W reads 1e-19 while min |w| still reads 2.8e-3,
+// sixteen orders away from noticing. And W = λ‖r(t) − pole‖² exactly, so "min W" IS the
+// pole's distance to the curve, squared and scaled.
 //
 // r3f cannot be verified headlessly, so this file holds NO mathematics — only marks and
-// gestures. core/phMobius (14 tests), core/conformal (22), core/phSpatialSeptic (25).
+// gestures. core/phMobius (14 tests), core/conformal (25), core/phSpatialSeptic (25).
 // ============================================================================
 import { useMemo, useState } from 'react'
 import type { Vec3 } from '../../core/quaternion'
@@ -65,7 +82,7 @@ import {
   infinityDisplacement,
   inversiveBendGenerator,
   matrixExp5,
-  minAbsWeight,
+  minDenominator,
   mobiusImageRationalBezier,
   pointMap,
   applyMatrix,
@@ -73,11 +90,12 @@ import {
 import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
-/** A little inversive bend goes a long way — the Lie lab uses ±0.3 for the same reason. */
-const BEND_RANGE = 0.22
+/** ±2, from the pole-distance measurement in the header — not a guess this time. */
+const BEND_RANGE = 2
 const STATIONS = 30
 const COMB = 0.3
 const CURVE_SAMPLES = 140
+const POINT_RADIUS = 0.05
 
 const START: SpatialPHSeptic = {
   A: findClassMember() ?? [
@@ -88,6 +106,7 @@ const START: SpatialPHSeptic = {
   ],
   p0: { x: -0.9, y: -0.3, z: 0.1 },
 }
+const LAST = 7
 
 const tri = (v: Vec3): [number, number, number] => [v.x, v.y, v.z]
 const apply3 = (m: number[][], v: Vec3): Vec3 => ({
@@ -96,7 +115,11 @@ const apply3 = (m: number[][], v: Vec3): Vec3 => ({
   z: m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z,
 })
 
-/** Framed once, wide enough that a moderate bend stays inside it. */
+/**
+ * Framed once from the SOURCE, so the view never lurches. A strong bend grows the image
+ * past the frame — measured max radius 2.9 at slider 2 against a source radius of 1 — and
+ * that is accepted: leaving the screen is not a failure, it is what a big Möbius map does.
+ */
 const BOUNDS = (() => {
   const pts = [...controlPoints(START), ...frameCombByArcLength(asSpline(START), STATIONS, COMB).rail]
   const pad = 1.6
@@ -119,14 +142,19 @@ export default function MobiusFigure() {
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [stalled, setStalled] = useState(false)
 
-  /** exp(Σ sᵢXᵢ), and its inverse exp(−ΣsᵢXᵢ) — which is what makes the drag invertible. */
-  const { forward, inverse, matrix } = useMemo(() => {
+  /** exp(Σ sᵢXᵢ) — a constant 5×5 matrix, which is the whole reason the image is cheap. */
+  const { forward, matrix } = useMemo(() => {
     const m = matrixExp5(inversiveBendGenerator(bend))
-    const mi = matrixExp5(inversiveBendGenerator({ x: -bend.x, y: -bend.y, z: -bend.z }))
-    return { forward: pointMap(m), inverse: pointMap(mi), matrix: m as Mat5 }
+    return { forward: pointMap(m), matrix: m as Mat5 }
   }, [bend])
 
   const sourceCps = useMemo(() => controlPoints(source), [source])
+
+  /** The source curve — drawn, because it is the thing you are editing. */
+  const sourcePts = useMemo(
+    () => Array.from({ length: CURVE_SAMPLES + 1 }, (_, k) => tri(curveAt(source, k / CURVE_SAMPLES))),
+    [source],
+  )
 
   /** The image's own rational Bézier: 15 matrix–vector products, nothing more. */
   const image = useMemo(
@@ -134,8 +162,8 @@ export default function MobiusFigure() {
     [sourceCps, matrix],
   )
 
-  /** The curve drawn FROM the rational Bézier, so the polygon and the curve share a source. */
-  const curvePts = useMemo(() => {
+  /** The image curve drawn FROM that data, so the polygon and the curve share a source. */
+  const imagePts = useMemo(() => {
     const out: [number, number, number][] = []
     for (let k = 0; k <= CURVE_SAMPLES; k++) {
       const p = evaluateRationalBezier(image, k / CURVE_SAMPLES)
@@ -192,12 +220,6 @@ export default function MobiusFigure() {
     setStalled(false)
   }
 
-  /** Images of the SOURCE control points — the handles. Not the image's control polygon. */
-  const handles = useMemo(
-    () => sourceCps.map((p) => forward(p)).filter((p): p is Vec3 => p !== null),
-    [sourceCps, forward],
-  )
-
   return (
     <Figure3D
       bounds={BOUNDS}
@@ -211,7 +233,7 @@ export default function MobiusFigure() {
         { label: 'twist ∫|ω₁|ds', value: twist.toExponential(1), tone: 'ok' as const },
         { label: 'in class', value: classDefect.toExponential(1), tone: 'ok' as const },
         { label: 'degree', value: `${image.points.length - 1} (${image.points.length} points)` },
-        { label: 'min |w|', value: minAbsWeight(image).toFixed(3) },
+        { label: 'min W(t)', value: minDenominator(image).toFixed(3), tone: 'ok' as const },
         { label: 'bend', value: bendStrength.toFixed(3) },
         ...(stalled ? [{ label: 'step', value: 'not reached' }] : []),
       ]}
@@ -224,7 +246,7 @@ export default function MobiusFigure() {
                 type="range"
                 min={-BEND_RANGE}
                 max={BEND_RANGE}
-                step={BEND_RANGE / 60}
+                step={BEND_RANGE / 80}
                 value={bend[key]}
                 onChange={(e) => setBend((b) => ({ ...b, [key]: Number(e.target.value) }))}
                 className="w-24"
@@ -244,19 +266,19 @@ export default function MobiusFigure() {
           <b>rational</b>: a polynomial PH curve bent by Möbius is a rational PH curve. And Möbius
           transformations <i>commute</i> with computing the rotation-minimizing frame, so the carried
           frame is still rotation-minimizing — the twist readout is measured on the{' '}
-          <i>image</i>, not inherited. What does change is the <b>degree</b>: eight control points
-          become <b>fifteen</b>, and the faint polygon is the real one, obtained by pushing fifteen
-          Bernstein coefficients through a constant matrix. The eight blue handles are the{' '}
-          <i>source</i>’s points; dragging one pulls your cursor back through <i>μ⁻¹</i> and solves
-          where the constraints are easy.{' '}
+          <i>image</i>, not inherited. The thin curve with the blue handles is the polynomial{' '}
+          <b>source</b>, which is what you edit; the bold one is its image, and at zero they coincide.
+          What changes is the <b>degree</b>: the image’s own polygon has <b>fifteen</b> points, obtained
+          by pushing fifteen Bernstein coefficients through one constant matrix — and it has fifteen
+          even at zero bend, because the <i>lift</i> doubles the degree and the bend adds none.{' '}
           <span className="text-slate-400">
-            Watch “min |w|” fall as you bend — at zero a control point escapes to infinity. Drag the
-            background to rotate.
+            A Möbius map does not send control points to control points, so the source’s eight are
+            drawn only on the source. Drag the background to rotate.
           </span>
         </>
       }
     >
-      {/* the image's REAL control polygon, 15 points — read-only */}
+      {/* THE IMAGE — bold, with its own real 15-point polygon, read-only */}
       <Curve3D points={image.points.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
       {image.points.map((p, i) => (
         <Point3D key={`w${i}`} position={tri(p)} color={FIG.color.derived} radius={0.02} />
@@ -267,21 +289,30 @@ export default function MobiusFigure() {
       ))}
       <Curve3D points={frame.rail} color={FIG.color.derived} width={1.4} dashed />
 
-      <Curve3D points={curvePts} color={FIG.color.curve} width={3.5} />
+      <Curve3D points={imagePts} color={FIG.color.curve} width={3.5} />
 
-      {handles.map((p, i) => (
+      {/* THE SOURCE — thin, and the only thing with handles */}
+      <Curve3D points={sourcePts} color={FIG.color.curveMuted} width={1.8} />
+      <Curve3D points={sourceCps.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
+
+      {sourceCps.map((p, i) => (
         <DragPoint3D
           key={i}
           position={tri(p)}
-          color={dragIdx === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
-          radius={0.05}
+          color={
+            dragIdx === i
+              ? FIG.color.dataPointDrag
+              : dragIdx !== null && (i === 0 || i === LAST)
+                ? FIG.color.pinned
+                : FIG.color.dataPoint
+          }
+          radius={POINT_RADIUS}
           onDragStart={() => { setDragIdx(i); setStalled(false) }}
           onDragEnd={() => setDragIdx(null)}
           onDrag={([x, y, z]) => {
-            // Pull the cursor back through μ⁻¹ and solve in the preimage.
-            const target = inverse({ x, y, z })
-            if (!target) { setStalled(true); return }
-            const step = dragInClass(source, i, target)
+            // Straight into the source's own space — no pull-back needed, because the
+            // handles live where the solve does. Ends held, as on the previous slide.
+            const step = dragInClass(source, i, { x, y, z }, { pinEnds: true })
             if (step.converged) {
               setSource(step.state)
               setStalled(false)
