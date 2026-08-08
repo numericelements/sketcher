@@ -659,6 +659,47 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 // so that is honest; hiding it would mean displaying one quantity while enforcing another.
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// THE BRIDGE TO THE QUATERNION FORM — derived, half-verified, and wanted twice
+//
+// These curves also have a Hopf/quaternion representation, and finding it connects this module
+// to everything on slides 4–8. With p = q/w:
+//
+//     p′ = N/w²           N = q′w − qw′,  the hodograph NUMERATOR, degree ≤ 2n−2
+//     ‖N‖ = h·w           verified to 9.3e-10 — this is the load-bearing identity
+//
+// So ‖N‖ is a POLYNOMIAL, which by the classical Pythagorean-quadruple theorem means N = A i A*
+// for a quaternion polynomial A. Then |A|² = ‖N‖ = hw and
+//
+//     p′ = A i A* / w²     so W = w EXACTLY: the conformal weight IS the PH denominator
+//
+// Degrees: |A|² = hw has degree (n−2) + n = 2n−2, so deg A = n−1 — five quaternion coefficients
+// at n = 5.
+//
+// AND THE GAUGE SURVIVES, which is the point. Write A = u + vj with u, v complex. Expanding
+// A i A* and separating gives
+//
+//     |u|² = (‖N‖ + N₁)/2      |v|² = (‖N‖ − N₁)/2      u·v = (iN₂ − N₃)/2
+//
+// The product u·v is DETERMINED by N; the split between u and v is not, because
+// u ↦ u·e^{iθ}, v ↦ v·e^{−iθ} leaves it alone — and that substitution is exactly A ↦ A·e^{iθ},
+// the gauge, since e^{iθ} commutes with i and the denominator does not see it. So the phase
+// ambiguity in splitting u from v IS the sandwich chain's circle, now in the rational setting.
+//
+// WHAT THAT PREDICTS, and it is a prediction rather than a measurement: prescribing p′ at each
+// end fixes N there, hence u·v there, leaving one phase per end; quotient the single global
+// gauge and you get a 2-TORUS — slide 7's torus — plus one direction from the denominator.
+// That would make the measured 3 into 2 + 1 and turn the "+1 dimension" result into a sentence:
+// rationality adds a radial direction to slide 7's torus. It would also give the figure two
+// dials that WRAP instead of three scalars with feasibility walls.
+//
+// WHAT IS STILL MISSING: extracting u as a POLYNOMIAL. That means writing the non-negative real
+// polynomial (‖N‖ + N₁)/2 as |u|², i.e. as a sum of two squares — always possible over R by
+// pairing conjugate roots, but it is a factorisation, not a formula, and it is not implemented
+// here. Until it is, the 2 + 1 split is unverified and must not be stated as fact. The same
+// extraction is what an RRMF condition would need, so it is wanted twice.
+// ---------------------------------------------------------------------------
+
 /** C¹ Hermite data: the two end points and the two end derivative VECTORS. */
 export interface HermiteData {
   readonly p0: Vec3
