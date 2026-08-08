@@ -405,8 +405,14 @@ export const slides: SlideDefinition[] = [
       'measured profile 1.00 0.92, no decay to speak of. On longer splines the same mechanism DOES ' +
       'decay (n=6: 1.00 0.99 0.77 0.59 0.39 0.20, roughly linearly, reach still n of n), so the ' +
       'trade-off story is real but it lives here in the notes. The honest claim on screen is ' +
-      'PROPORTIONALITY, not locality, and the GHOST lets the room see how far each change travelled ' +
-      'instead of taking a number on trust. ' +
+      'PROPORTIONALITY, not locality, and the amplification and reach readouts measure it live rather ' +
+      'than asserting it. (A ghost of the pre-drag curve was tried and removed: at two segments it had ' +
+      'almost nothing to show, and it was a third dashed element fighting the control polygon and the ' +
+      'frame rail.) ' +
+      'THE FRAME COMB IS SPACED BY ARC LENGTH, not by parameter — ω₁ = dθ/ds is defined per unit arc ' +
+      'length, so arc length is the frame\'s own parameter and the honest sampling for showing twist. ' +
+      'It shows: σ varies about 2.4x along a member here, so parameter-uniform stations crowd at the ' +
+      'slow end. Slide 9 is spaced the same way. ' +
       'So the pair of slides is a genuine trade, not a progression: slide 8 has a guarantee and a bad ' +
       'feel, slide 10 has a good feel and no guarantee. The window width is what you pay with. ' +
       'CONSTRUCTION, worth telling if asked, because two attempts failed by MEASUREMENT: (1) continuity ' +

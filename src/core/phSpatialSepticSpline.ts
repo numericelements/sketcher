@@ -152,6 +152,104 @@ export function planarity(s: SepticSpline): number {
   return best
 }
 
+/** A single degree-7 curve IS a one-segment spline — lets one curve share this machinery. */
+export const asSpline = (q: { readonly A: readonly Quat[]; readonly p0: Vec3 }): SepticSpline => ({
+  segments: [q.A],
+  p0: q.p0,
+})
+
+/** One point of segment `k`, by de Casteljau on its eight control points. */
+function segmentPointAt(cps: readonly Vec3[], k: number, t: number): Vec3 {
+  const work = cps.slice(DEGREE * k, DEGREE * k + DEGREE + 1).map((p) => ({ ...p }))
+  for (let r = 1; r <= DEGREE; r++) {
+    for (let j = 0; j <= DEGREE - r; j++) {
+      work[j] = vadd(vscale(work[j], 1 - t), vscale(work[j + 1], t))
+    }
+  }
+  return work[0]
+}
+
+/**
+ * The whole spline as ONE polyline.
+ *
+ * Drawn per segment instead, two strokes meet at each joint and can notch at any real
+ * line width — and a coarse sample count that looks fine on a short segment reads as a
+ * visible polygon over a longer span. One continuous path avoids both.
+ */
+export function sampleSpline(s: SepticSpline, perSegment = 60): Vec3[] {
+  const cps = splineControlPoints(s)
+  const out: Vec3[] = []
+  for (let k = 0; k < s.segments.length; k++) {
+    // Skip each joint's duplicate sample; the previous segment already emitted it.
+    for (let i = k === 0 ? 0 : 1; i <= perSegment; i++) {
+      out.push(segmentPointAt(cps, k, i / perSegment))
+    }
+  }
+  return out
+}
+
+/** Cumulative arc length: nodes of (segment, parameter, distance travelled). */
+function arcTable(s: SepticSpline, perSegment: number): { k: number; t: number; s: number }[] {
+  const nodes: { k: number; t: number; s: number }[] = [{ k: 0, t: 0, s: 0 }]
+  let travelled = 0
+  for (let k = 0; k < s.segments.length; k++) {
+    for (let i = 0; i < perSegment; i++) {
+      // σ = |A|² is the speed with respect to t, exactly — no square roots to quadrature.
+      travelled += speedAt(s.segments[k], (i + 0.5) / perSegment) / perSegment
+      nodes.push({ k, t: (i + 1) / perSegment, s: travelled })
+    }
+  }
+  return nodes
+}
+
+/** Total arc length, ∫σ dt over every segment. */
+export function arcLength(s: SepticSpline, perSegment = 128): number {
+  const nodes = arcTable(s, perSegment)
+  return nodes[nodes.length - 1].s
+}
+
+/**
+ * The frame comb with stations at EQUAL ARC LENGTH rather than equal parameter.
+ *
+ * Not merely tidier: ω₁ = dθ/ds is defined PER UNIT ARC LENGTH, so arc length is the
+ * frame's own parameter and the honest sampling for showing twist. It also matters
+ * visibly — σ varies about 2.4× along a typical member here, so parameter-uniform
+ * stations crowd at the slow end and thin out at the fast one.
+ */
+export function frameCombByArcLength(
+  s: SepticSpline,
+  stations: number,
+  length: number,
+  resolution = 96,
+): { bars: [Vec3, Vec3][]; rail: Vec3[] } {
+  const cps = splineControlPoints(s)
+  const nodes = arcTable(s, resolution)
+  const total = nodes[nodes.length - 1].s
+  const bars: [Vec3, Vec3][] = []
+  const rail: Vec3[] = []
+  if (total <= 0) return { bars, rail }
+
+  let cursor = 0
+  for (let j = 0; j <= stations; j++) {
+    const want = (total * j) / stations
+    while (cursor < nodes.length - 2 && nodes[cursor + 1].s < want) cursor++
+    const a = nodes[cursor], b = nodes[cursor + 1]
+    // Linear inversion of the arc-length function between neighbouring nodes.
+    const span = b.s - a.s
+    const u = span > 0 ? Math.min(1, Math.max(0, (want - a.s) / span)) : 0
+    // A joint sits between nodes of different segments; take the later one's start.
+    const k = b.k
+    const t = a.k === b.k ? a.t + u * (b.t - a.t) : u * b.t
+    const f = erfAt(s.segments[k], t)
+    if (!f) continue
+    const at = segmentPointAt(cps, k, t)
+    const tip = vadd(at, vscale(f.e2, length))
+    bars.push([at, tip])
+    rail.push(tip)
+  }
+  return { bars, rail }
+}
+
 /** The frame along the whole spline, as bars and the rail their tips trace. */
 export function frameComb(
   s: SepticSpline,

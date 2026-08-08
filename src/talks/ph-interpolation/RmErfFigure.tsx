@@ -90,6 +90,7 @@ import {
   rmErfResidual,
   totalErfTwist,
 } from '../../core/phSpatialSeptic'
+import { asSpline, frameCombByArcLength } from '../../core/phSpatialSepticSpline'
 import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
@@ -189,20 +190,15 @@ export default function RmErfFigure() {
     [curve],
   )
 
-  /** The comb and the rail: the frame's second axis, drawn along the curve. */
+  /**
+   * The comb and the rail, with stations at EQUAL ARC LENGTH rather than equal
+   * parameter — ω₁ = dθ/ds is defined per unit arc length, so arc length is the frame's
+   * own parameter and the honest sampling for showing twist. A single degree-7 curve is
+   * borrowed into the spline module's machinery as a one-segment spline.
+   */
   const frame = useMemo(() => {
-    const bars: [number, number, number][][] = []
-    const rail: [number, number, number][] = []
-    for (let k = 0; k <= STATIONS; k++) {
-      const t = k / STATIONS
-      const f = erfAt(curve.A, t)
-      if (!f) continue
-      const at = curveAt(curve, t)
-      const tip: Vec3 = { x: at.x + f.e2.x * COMB, y: at.y + f.e2.y * COMB, z: at.z + f.e2.z * COMB }
-      bars.push([tri(at), tri(tip)])
-      rail.push(tri(tip))
-    }
-    return { bars, rail }
+    const { bars, rail } = frameCombByArcLength(asSpline(curve), STATIONS, COMB)
+    return { bars: bars.map(([a, b]) => [tri(a), tri(b)]), rail: rail.map(tri) }
   }, [curve])
 
   const twist = useMemo(() => totalErfTwist(curve.A), [curve])

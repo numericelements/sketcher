@@ -24,7 +24,12 @@
 // splines the same mechanism does decay (n=6: 1.00 0.99 0.77 0.59 0.39 0.20, roughly
 // linearly, reach still n of n). Fifteen control points was chosen for CONTROL, after 43
 // proved to be more handles than anyone can hold in mind; the decay story lives in the
-// notes, and the ghost still shows honestly how far each change travelled.
+// notes, and the readouts measure the amplification and the reach live as you drag.
+//
+// A GHOST of the pre-drag curve was tried here and removed. At two segments it had almost
+// nothing to show (measured profile 1.00 0.92 — no decay), and it was a THIRD dashed
+// element competing with the control polygon and the frame rail. The readouts carry the
+// same measurement without the clutter.
 //
 // The frame is still three sandwiches per segment, A i A*, A j A*, A k A* over σ, and
 // every segment still satisfies the five RM-ERF constraints, so ω₁ ≡ 0 along the whole
@@ -42,11 +47,11 @@ import {
   classDefect,
   continuityDefects,
   dragSpline,
-  frameComb,
+  frameCombByArcLength,
   minSpeed,
   planarity,
   reach,
-  sampleSegment,
+  sampleSpline,
   splineControlPoints,
   totalTwist,
 } from '../../core/phSpatialSepticSpline'
@@ -55,7 +60,10 @@ import { FIG } from '../framework/figureStyle'
 
 const SEGMENTS = 2
 const COMB = 0.30
-const PER_SEGMENT = 7
+/** Curve samples per segment. Was 14, which read as a visible polygon. */
+const CURVE_SAMPLES = 60
+/** Comb stations over the WHOLE spline, spaced by arc length. */
+const STATIONS = 34
 
 const START: SepticSpline | null = buildRmErfSpline(SEGMENTS, { p0: { x: -1.5, y: -0.4, z: 0.1 } })
 
@@ -67,7 +75,7 @@ const BOUNDS = (() => {
     max: [3, 3, 3] as [number, number, number],
   }
   if (!START) return fallback
-  const pts = [...splineControlPoints(START), ...frameComb(START, PER_SEGMENT, COMB).rail]
+  const pts = [...splineControlPoints(START), ...frameCombByArcLength(START, STATIONS, COMB).rail]
   const pad = 0.6
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y), zs = pts.map((p) => p.z)
   return {
@@ -85,21 +93,15 @@ export default function RmErfSplineFigure() {
 
   const cps = useMemo(() => (spline ? splineControlPoints(spline) : []), [spline])
 
-  const curvePaths = useMemo(
-    () => (spline ? Array.from({ length: SEGMENTS }, (_, k) => sampleSegment(spline, k, 14).map(tri)) : []),
+  /** ONE polyline for the whole spline: per-segment strokes notch at the joints. */
+  const curvePts = useMemo(
+    () => (spline ? sampleSpline(spline, CURVE_SAMPLES).map(tri) : []),
     [spline],
-  )
-  const ghostPaths = useMemo(
-    () =>
-      baseline && baseline !== spline
-        ? Array.from({ length: SEGMENTS }, (_, k) => sampleSegment(baseline, k, 14).map(tri))
-        : [],
-    [baseline, spline],
   )
 
   const frame = useMemo(() => {
     if (!spline) return { bars: [], rail: [] as Vec3[] }
-    return frameComb(spline, PER_SEGMENT, COMB)
+    return frameCombByArcLength(spline, STATIONS, COMB)
   }, [spline])
 
   /** How far the change actually travelled, against the gesture that caused it. */
@@ -164,10 +166,11 @@ export default function RmErfSplineFigure() {
           travelled up to <b>4.4×</b> further than the one being dragged. Here there is{' '}
           <b>no window at all</b> — both segments may move, the two end points are held, and minimum
           norm spends what is left. So there is <b>no locality guarantee</b>, and at this size
-          scarcely any locality: the ghost shows the change reaching the whole curve. What you get
-          instead is <b>proportionality</b> — measured amplification <b>1.68×</b> worst,{' '}
+          scarcely any locality — the change reaches the whole curve. What you get instead is{' '}
+          <b>proportionality</b> — measured amplification <b>1.68×</b> worst,{' '}
           <b>1.08×</b> on average, against slide 8’s 4.4. Nothing moves much more than the point in
-          your hand, which is what makes it feel controllable.{' '}
+          your hand, which is what makes it feel controllable — the readouts measure both as you
+          drag.{' '}
           <span className="text-slate-400">
             Both segments still satisfy ω₁ ≡ 0 and meet with C², so the rail stays parallel across
             the joint. Drag the background to rotate.
@@ -175,18 +178,12 @@ export default function RmErfSplineFigure() {
         </>
       }
     >
-      {ghostPaths.map((g, i) => (
-        <Curve3D key={`gh${i}`} points={g} color={FIG.color.curveMuted} width={1.4} dashed />
-      ))}
-
       {frame.bars.map((bar, i) => (
         <Curve3D key={`bar${i}`} points={[tri(bar[0]), tri(bar[1])]} color={FIG.color.derived} width={1.1} />
       ))}
       <Curve3D points={frame.rail.map(tri)} color={FIG.color.derived} width={1.4} dashed />
 
-      {curvePaths.map((path, k) => (
-        <Curve3D key={`seg${k}`} points={path} color={FIG.color.curve} width={3.2} />
-      ))}
+      <Curve3D points={curvePts} color={FIG.color.curve} width={3.2} />
       <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
 
       {cps.map((p, i) => (

@@ -10,14 +10,19 @@ import { type Vec3, vnorm, vsub } from '../quaternion'
 import { hodographAt } from '../phSpatialSeptic'
 import {
   type SepticSpline,
+  arcLength,
+  asSpline,
   buildRmErfSpline,
   classDefect,
   continuityDefects,
   displacementProfile,
   dragSpline,
+  frameComb,
+  frameCombByArcLength,
   minSpeed,
   planarity,
   reach,
+  sampleSpline,
   splineControlPoints,
   totalTwist,
 } from '../phSpatialSepticSpline'
@@ -153,5 +158,70 @@ describe('EDITING with no window', () => {
     expect(continuityDefects(state).c2).toBeLessThan(1e-6)
     expect(totalTwist(state)).toBeLessThan(1e-6)
     expect(minSpeed(state)).toBeGreaterThan(0.01)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('ARC-LENGTH sampling — the frame\'s own parameter', () => {
+  const s = SPLINE as SepticSpline
+
+  it('arc length is positive and matches a fine quadrature', () => {
+    const coarse = arcLength(s, 32)
+    const fine = arcLength(s, 512)
+    expect(fine).toBeGreaterThan(0)
+    expect(Math.abs(coarse - fine) / fine).toBeLessThan(1e-3)
+  })
+
+  it('the comb stations really are EQUALLY spaced in arc length', () => {
+    // Parameter-uniform stations crowd where σ is small; this is the fix, and it is
+    // checked by measuring the arc between consecutive stations rather than assumed.
+    const { bars } = frameCombByArcLength(s, 40, 0.3)
+    expect(bars.length).toBeGreaterThan(35)
+    // Straight-line distance between consecutive feet approximates the arc for small
+    // steps, so its spread is a fair proxy for even arc spacing.
+    const gaps: number[] = []
+    for (let i = 1; i < bars.length; i++) gaps.push(vd(bars[i][0], bars[i - 1][0]))
+    expect(Math.max(...gaps) / Math.min(...gaps)).toBeLessThan(1.25)
+  })
+
+  it('and parameter-uniform stations are measurably WORSE — so the change earns its place', () => {
+    const even = frameCombByArcLength(s, 40, 0.3).bars
+    const byParam = frameComb(s, 20, 0.3).bars
+    const spread = (bars: [Vec3, Vec3][]): number => {
+      const gaps: number[] = []
+      for (let i = 1; i < bars.length; i++) gaps.push(vd(bars[i][0], bars[i - 1][0]))
+      return Math.max(...gaps) / Math.min(...gaps)
+    }
+    expect(spread(even)).toBeLessThan(spread(byParam))
+  })
+
+  it('every station carries a frame, and the rail matches the bars', () => {
+    const { bars, rail } = frameCombByArcLength(s, 30, 0.3)
+    expect(rail).toHaveLength(bars.length)
+    for (let i = 0; i < bars.length; i++) {
+      expect(vd(bars[i][1], rail[i])).toBeLessThan(1e-12)
+      // the bar has the requested length
+      expect(Math.abs(vd(bars[i][0], bars[i][1]) - 0.3)).toBeLessThan(1e-9)
+    }
+  })
+
+  it('sampleSpline is ONE continuous polyline through every joint', () => {
+    const pts = sampleSpline(s, 40)
+    expect(pts).toHaveLength(40 * N + 1)
+    const cps = splineControlPoints(s)
+    expect(vd(pts[0], cps[0])).toBeLessThan(1e-12)
+    expect(vd(pts[pts.length - 1], cps[cps.length - 1])).toBeLessThan(1e-12)
+    // no duplicated joint samples, and no gaps
+    let worst = 0
+    for (let i = 1; i < pts.length; i++) worst = Math.max(worst, vd(pts[i], pts[i - 1]))
+    expect(worst).toBeGreaterThan(0)
+    expect(worst).toBeLessThan(0.2)
+  })
+
+  it('a single curve can borrow it, as a one-segment spline', () => {
+    const one = asSpline({ A: s.segments[0], p0: s.p0 })
+    expect(one.segments).toHaveLength(1)
+    expect(frameCombByArcLength(one, 20, 0.3).bars.length).toBeGreaterThan(15)
+    expect(arcLength(one)).toBeGreaterThan(0)
   })
 })
