@@ -284,17 +284,32 @@ export default function Figure3D({
         </div>
       </div>
 
-      {(readouts?.length || controls) && (
+      {/*
+        READOUTS AND CONTROLS GET SEPARATE ROWS, and this is a bug fix rather than a layout
+        preference. They shared one flex-wrap container, so a readout whose text changed width
+        while a slider was being dragged re-flowed the row and slid the slider out from under the
+        pointer — the drag then read as a jump. Eric reported it twice, on slide 12 and again on
+        slide 13, and diagnosed it exactly: "there is text on the same line that changes to
+        something else, this moves the slider position under the mouse".
+
+        A control must never share a wrapping line with live-updating text. Values still shift
+        within their own row, which is harmless because nothing there is draggable.
+      */}
+      {readouts?.length ? (
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 font-mono text-[0.42em]">
-          {readouts?.map((r, i) => (
+          {readouts.map((r, i) => (
             <span key={i} className={TONE[r.tone ?? 'plain']}>
               <span className="text-slate-400">{r.label} </span>
               {r.value}
             </span>
           ))}
+        </div>
+      ) : null}
+      {controls ? (
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 font-mono text-[0.42em]">
           {controls}
         </div>
-      )}
+      ) : null}
 
       {caption && (
         <div className="text-center text-[0.44em] leading-snug text-slate-600 max-w-[46em] mx-auto">

@@ -238,7 +238,13 @@ export default function RationalPHQuarticFigure() {
         { label: 'dial', value: dialOf(state).toFixed(3) },
         {
           label: 'step',
-          value: atLimit ? 'at the family’s limit' : stalled ? 'not reached' : '—',
+          // Padded to a constant width with non-breaking spaces. The font is monospace, so equal
+          // character counts are equal pixels, and the readouts row can no longer WRAP differently
+          // as this value changes — which would shift the controls row below it vertically and move
+          // the slider under the pointer even now that the two have separate rows. The pad
+          // character is a NON-BREAKING space, because HTML collapses runs of ordinary ones and
+          // padding with those would silently do nothing.
+          value: (atLimit ? 'at the family’s limit' : stalled ? 'not reached' : '—').padEnd(21, '\u00A0'),
         },
       ]}
       controls={
