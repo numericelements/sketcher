@@ -51,6 +51,15 @@ export const slides: SlideDefinition[] = [
         <h1>Pythagorean–Hodograph Curves and Their Rational Frames</h1>
         <div className="subtitle">Solution structure, selection, and interactive motion</div>
         <div className="author">Eric Demers</div>
+        <div className="event">Polytechnique Montréal</div>
+        <div className="event">A preliminary version, offered for discussion</div>
+        {/* A dedication, not a venue — hence the italic. It says nothing about a
+            recipient, so it survives being forwarded; the personal note ("I prepared
+            this for you") belongs in the covering email, where it stays warm instead of
+            becoming puzzling to a third reader. */}
+        <div className="event dedication" style={{ marginTop: '2em' }}>
+          For the beautiful city of Florence
+        </div>
       </>
     ),
     notes:
