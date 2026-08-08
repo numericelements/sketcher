@@ -40,6 +40,7 @@ import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import RmErfFigure from './RmErfFigure'
 import RmErfSplineFigure from './RmErfSplineFigure'
 import MobiusFigure from './MobiusFigure'
+import RationalPHCubicFigure from './RationalPHCubicFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -444,5 +445,66 @@ export const slides: SlideDefinition[] = [
       'live in the conformal model, not the Hopf model. In 2D it works because Möbius is a CONSTANT 2×2 ' +
       'matrix on (N : D) and a Farin point is a projective sum. ' +
       'core/phMobius (14 tests), core/conformal (22), core/phSpatialSeptic (25).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 11 — a rational PH curve built directly in the conformal model
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Or build it there in the first place</h2>
+        <WhenActive>
+          <RationalPHCubicFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE POINT OF THIS SLIDE, against the previous one: nothing was bent. The control points are ' +
+      'placed directly in the conformal model, and this curve is NOT reachable by any Mobius ' +
+      'transformation of a polynomial PH curve — the lift doubles the degree, so a Mobius image always ' +
+      'has EVEN conformal degree, and degree 3 is unreachable. Degree 3 is where the smallest genuinely ' +
+      'rational PH curves live. ' +
+      'THE DEFINITION IS TWO CONDITIONS AND NOTHING ELSE: P is NULL, so it is a curve of points, and ' +
+      '<P\u2032,P\u2032> is a PERFECT SQUARE, which is what PH means here. That second one is the find — ' +
+      'the exact analogue of "|A|\u00b2 is a polynomial" in the Hopf form, but stated with no ' +
+      'quaternions, no coordinates and no choice of origin. Verified to 1e-15, and a non-PH curve ' +
+      'fails it by 1.9e-2. ' +
+      'WHY NOTHING FIVE-DIMENSIONAL IS DRAWN: a conformal vector\u2019s five coordinates ARE weight + ' +
+      'centre + radius, because the infinity-component is fixed by the null condition. So the four ' +
+      'sphere centres are the ordinary rational-Bezier control points, the ends have radius zero (they ' +
+      'are point-spheres), and — the load-bearing fact, verified to 1e-9 — the interior radii are ' +
+      'DETERMINED: rho_1 = |P1-P0|, rho_2 = |P2-P3|. The spheres are drawn from the polygon with ' +
+      'nothing stored, which is why both pictures fit in one figure. ' +
+      'THE REST OF THE DICTIONARY, if pressed: w0w2 pow(P0,S2) = 3w1^2 rho_1^2, mirrored, and ' +
+      'w0w3|P0-P3|^2 + 9w1w2(|P1-P2|^2 - rho_1^2 - rho_2^2) = 0. Each is a null condition read as ' +
+      'geometry, all confirmed to 1e-11 or better. ' +
+      'THE WEIGHTS ARE FARIN BEADS and the count is exact: three legs, three weight ratios after the ' +
+      'overall scale. All three at the midpoints would mean polynomial, so the rationality is visibly ' +
+      'how far off-centre they sit; a bead leaving its segment would mean a negative weight ratio. Same ' +
+      'visual language as the sketcher\u2019s complex rational B-splines. ' +
+      'THE COST OF PH, and this is the number to say out loud: an ordinary rational cubic has 15 ' +
+      'degrees of freedom, the PH ones have 11 — measured two independent ways, as the rank of the ' +
+      'conformal system and as 15 minus the four conditions for ||q\u2032w-qw\u2032|| to be a ' +
+      'polynomial. PH is CODIMENSION 4. So a rational cubic built by placing points and weights is ' +
+      'essentially never PH, and nothing moves alone: drag a point and the weights answer. ' +
+      'WHY DIRECT BEATS BENDING, if anyone asks whether this is just slide 10 again: the family has ' +
+      'dimension 2n+5, of which 9 are Mobius MOTIONS, so 2n-4 genuine shape moduli. At conformal ' +
+      'degree 6, where the two constructions finally meet, direct is 17-dimensional against the Mobius ' +
+      'orbit\u2019s measured 13 — 8 shape moduli against 4, twice as many. ' +
+      'BE HONEST ABOUT DEGREE 3 THOUGH: only 2 of its 11 dimensions change the shape, so much of what a ' +
+      'drag does here is MOVE the curve rather than reshape it. Pinning the ends freezes most of the ' +
+      'motions, which is why they are pinned. Diversity needs higher degree, and the counting says by ' +
+      'how much. ' +
+      'THE TRAP, if the figure ever looks collapsed: the family has a large degenerate stratum, and ' +
+      'unguarded solves land on it — interior radii collapsing to 1e-3, weights going negative, the ' +
+      'curve spanning a hundredth of its polygon. The mechanism is in the dictionary: as rho_1 goes to ' +
+      'zero, P1 falls onto P0 and the cross condition drags P0 onto S2. Same shape of trap as the ' +
+      'septic\u2019s planar locus, hence the guards in findMember. ' +
+      'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w with h LINEAR and w cubic. That degree drop is where ' +
+      'the one rank deficiency in the system came from, and it is pinned. ' +
+      'core/conformalPHCubic (13 tests), conformalPHFamily (10), conformal (28). Drag tracks the cursor ' +
+      'to 1e-16 with the defining conditions at 1e-13.',
   },
 ]

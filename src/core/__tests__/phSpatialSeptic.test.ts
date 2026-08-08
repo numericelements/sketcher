@@ -477,7 +477,6 @@ describe('PINNED ENDS in free mode — an anchor for a segment with no local sup
 // here.
 // ---------------------------------------------------------------------------
 describe('WHY DEGREE 7: at degree 5 the same condition forces planarity', () => {
-  const I: Quat = { u: 0, v: 1, p: 0, q: 0 }
   const s = (a: Quat, b: Quat): number => {
     // scal(a i b*), written out so this test depends on nothing under test
     const ai = {
