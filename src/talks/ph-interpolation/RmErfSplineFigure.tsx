@@ -11,15 +11,20 @@
 //     unknowns 16n+3, conditions 11n+3 (5n class, 6(n−1) C², 2 ends, 1 cursor),
 //     gauge n  →  spare 4n  →  about 0.59 per movable point, FOR ANY n
 //
-// WHAT WAS MEASURED, and it is the point of the slide:
+// WHAT WAS MEASURED. Amplification does NOT fall monotonically with n — measured worst
+// cases 1.68 (n=2), 1.61 (n=3), 2.40 (n=4), 1.52 (n=6), 1.58 (n=8), with the mean at
+// 1.06–1.11 throughout — so the figure reports the number for the size it actually ships
+// rather than a general claim. At the shipped n=2: 15 control points, worst amplification
+// 1.68, mean 1.08, no failures on any of the fifteen. Compare slide 8's hard window at
+// W=3: 4.44. Nothing here moves much more than the point you hold, and THAT is what
+// predictable means — proportionality, not locality.
 //
-//   · AMPLIFICATION 1.52 at n=6 and 1.58 at n=8, mean 1.06 — identical to slide 8's best
-//     case (W=5: 1.51, mean 1.06), but at any length and with a frame attached. Nothing
-//     moves much more than the point you hold. THAT is what predictable means.
-//   · LOCALITY IS NOT ACHIEVED. Reach is n of n: the disturbance spans the whole curve,
-//     decaying roughly LINEARLY to 12–30% at the far end. So the honest claim here is
-//     proportionality, not locality — and the ghost of the pre-drag curve lets the viewer
-//     see exactly that rather than take a number on trust.
+// AND AT THIS SIZE LOCALITY IS SIMPLY ABSENT, which the figure says rather than hides:
+// two segments, and the measured profile is 1.00 0.92 — no decay to speak of. On longer
+// splines the same mechanism does decay (n=6: 1.00 0.99 0.77 0.59 0.39 0.20, roughly
+// linearly, reach still n of n). Fifteen control points was chosen for CONTROL, after 43
+// proved to be more handles than anyone can hold in mind; the decay story lives in the
+// notes, and the ghost still shows honestly how far each change travelled.
 //
 // The frame is still three sandwiches per segment, A i A*, A j A*, A k A* over σ, and
 // every segment still satisfies the five RM-ERF constraints, so ω₁ ≡ 0 along the whole
@@ -48,9 +53,9 @@ import {
 import Figure3D, { Curve3D, DragPoint3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
-const SEGMENTS = 6
-const COMB = 0.34
-const PER_SEGMENT = 5
+const SEGMENTS = 2
+const COMB = 0.30
+const PER_SEGMENT = 7
 
 const START: SepticSpline | null = buildRmErfSpline(SEGMENTS, { p0: { x: -1.5, y: -0.4, z: 0.1 } })
 
@@ -132,7 +137,7 @@ export default function RmErfSplineFigure() {
     <Figure3D
       bounds={BOUNDS}
       base={{ width: 900, height: 430 }}
-      notation={['every segment RM-ERF: ω₁ ≡ 0', 'C² because the generator is C¹', 'no window — locality measured']}
+      notation={['every segment RM-ERF: ω₁ ≡ 0', 'C² because the generator is C¹', 'no window — proportional, not local']}
       readouts={[
         { label: 'twist ∫|ω₁|ds', value: totalTwist(spline).toExponential(1), tone: 'ok' as const },
         { label: 'in class', value: classDefect(spline).toExponential(1), tone: 'ok' as const },
@@ -154,19 +159,18 @@ export default function RmErfSplineFigure() {
       }
       caption={
         <>
-          <b>The same untwisting frame, now along a whole spline — and locality measured instead of
-          promised.</b>{' '}
-          Slide 8 bought <i>exact</i> locality and paid for it: far control points travelled up to{' '}
-          <b>4.4×</b> further than the one being dragged. Here there is <b>no window at all</b> — every
-          segment may move, the two end points are held, and minimum norm spends the rest. The result
-          is not locality: the change reaches the whole curve, decaying to roughly a fifth at the far
-          end. But <b>nothing moves much more than the point in your hand</b> — measured
-          amplification about <b>1.5×</b>, the same as slide 8’s best case, at any length. The{' '}
-          <b>ghost</b> is the curve as it was when you started dragging, so you can see how far the
-          change travelled.{' '}
+          <b>The same untwisting frame, now across a joint — and nothing amplifies.</b>{' '}
+          Slide 8 bought <i>exact</i> locality on a spline and paid for it: far control points
+          travelled up to <b>4.4×</b> further than the one being dragged. Here there is{' '}
+          <b>no window at all</b> — both segments may move, the two end points are held, and minimum
+          norm spends what is left. So there is <b>no locality guarantee</b>, and at this size
+          scarcely any locality: the ghost shows the change reaching the whole curve. What you get
+          instead is <b>proportionality</b> — measured amplification <b>1.68×</b> worst,{' '}
+          <b>1.08×</b> on average, against slide 8’s 4.4. Nothing moves much more than the point in
+          your hand, which is what makes it feel controllable.{' '}
           <span className="text-slate-400">
-            Every segment still satisfies ω₁ ≡ 0, so the rail stays parallel. Drag the background to
-            rotate.
+            Both segments still satisfy ω₁ ≡ 0 and meet with C², so the rail stays parallel across
+            the joint. Drag the background to rotate.
           </span>
         </>
       }
@@ -196,7 +200,7 @@ export default function RmErfSplineFigure() {
                 ? FIG.color.pinned
                 : FIG.color.dataPoint
           }
-          radius={0.032}
+          radius={0.042}
           onDragStart={() => { setDragIdx(i); setStalled(false); setBaseline(spline) }}
           onDragEnd={() => setDragIdx(null)}
           onDrag={([x, y, z]) => {

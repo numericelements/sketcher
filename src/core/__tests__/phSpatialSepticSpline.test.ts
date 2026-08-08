@@ -64,7 +64,7 @@ describe('THE GATE — a C² RM-ERF spline exists, and is not flat', () => {
   })
 
   it('and it scales — the construction works from 3 to 10 segments', () => {
-    for (const n of [3, 8, 10]) {
+    for (const n of [2, 3, 8, 10]) {
       const s = buildRmErfSpline(n, { p0: V(0, 0, 0) })
       expect(s, `n = ${n}`).not.toBeNull()
       expect(classDefect(s as SepticSpline), `n = ${n} class`).toBeLessThan(1e-9)

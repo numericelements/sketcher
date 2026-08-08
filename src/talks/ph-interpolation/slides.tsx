@@ -383,13 +383,19 @@ export const slides: SlideDefinition[] = [
       'the one in your hand. So this slide takes slide 9\'s mechanism to a spline by DROPPING THE ' +
       'WINDOW: 16n+3 unknowns against 11n+3 conditions with n gauges leaves 4n spare, about 0.59 per ' +
       'movable point FOR ANY n — essentially slide 9\'s 0.67. ' +
-      'THE MEASUREMENT IS THE POINT. Amplification 1.52 at n=6 and 1.58 at n=8, mean 1.06 — identical ' +
-      'to slide 8\'s best case (W=5: 1.51, mean 1.06), but at any length and with a frame attached. ' +
-      'Nothing moves much more than the point you hold; THAT is what predictable means. ' +
-      'AND LOCALITY IS NOT ACHIEVED — say so plainly. Reach is n of n: the disturbance spans the whole ' +
-      'curve, decaying roughly LINEARLY to 12–30% at the far end. The honest claim is PROPORTIONALITY, ' +
-      'not locality, and the GHOST of the pre-drag curve lets the room see exactly that instead of ' +
-      'taking a number on trust. ' +
+      'THE MEASUREMENT IS THE POINT. Amplification does NOT fall monotonically with n — worst cases ' +
+      '1.68 (n=2), 1.61 (n=3), 2.40 (n=4), 1.52 (n=6), 1.58 (n=8), mean 1.06–1.11 throughout — so ' +
+      'quote the SHIPPED size\'s own number, not a general claim. At the shipped n=2: 15 control ' +
+      'points, worst 1.68, mean 1.08, no failures on any of the fifteen, against slide 8\'s 4.44 at ' +
+      'W=3. Nothing moves much more than the point you hold; THAT is what predictable means. ' +
+      'FIFTEEN CONTROL POINTS WAS A DELIBERATE CHOICE, after 43 proved to be more handles than anyone ' +
+      'can hold in mind — Eric\'s own reading of slide 8, and the reason this figure shrank. ' +
+      'AND AT THIS SIZE LOCALITY IS SIMPLY ABSENT — say so plainly rather than hide it. Two segments, ' +
+      'measured profile 1.00 0.92, no decay to speak of. On longer splines the same mechanism DOES ' +
+      'decay (n=6: 1.00 0.99 0.77 0.59 0.39 0.20, roughly linearly, reach still n of n), so the ' +
+      'trade-off story is real but it lives here in the notes. The honest claim on screen is ' +
+      'PROPORTIONALITY, not locality, and the GHOST lets the room see how far each change travelled ' +
+      'instead of taking a number on trust. ' +
       'So the pair of slides is a genuine trade, not a progression: slide 8 has a guarantee and a bad ' +
       'feel, slide 10 has a good feel and no guarantee. The window width is what you pay with. ' +
       'CONSTRUCTION, worth telling if asked, because two attempts failed by MEASUREMENT: (1) continuity ' +
