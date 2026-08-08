@@ -43,6 +43,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   type ConformalPHCurve,
+  curveAt,
   definingJacobian,
   hermiteDataOf,
   normalize,
@@ -51,6 +52,7 @@ import {
   unpack,
 } from '../conformalPHCurve'
 import { bernsteinToPower, hodograph, hopfForm } from '../conformalPHHopf'
+import { vnorm, vsub } from '../quaternion'
 import { leastSquares } from '../linalg'
 
 // ---------------------------------------------------------------------------
@@ -154,6 +156,84 @@ function singularValues(J: readonly (readonly number[])[]): number[] {
     if (rotated === 0) break
   }
   return Array.from({ length: E }, (_, k) => Math.hypot(...A.map((r) => r[k]))).sort((a, b) => b - a)
+}
+
+
+/** Orthonormal nullspace basis by pivoted Gram–Schmidt: row space first, then what is left. */
+function nullspaceBasis(J: readonly (readonly number[])[], dim: number): number[][] {
+  const U = J[0].length
+  const rowBasis: number[][] = []
+  for (const row of J) {
+    let v = row.slice()
+    for (let pass = 0; pass < 2; pass++) {
+      for (const b of rowBasis) {
+        const d = v.reduce((acc, x, i) => acc + x * b[i], 0)
+        v = v.map((x, i) => x - d * b[i])
+      }
+    }
+    const nn = Math.hypot(...v)
+    if (nn > 1e-7 * Math.hypot(...row)) rowBasis.push(v.map((x) => x / nn))
+  }
+  const out: number[][] = []
+  const candidates: number[][] = []
+  for (let i = 0; i < U; i++) {
+    let v = new Array(U).fill(0)
+    v[i] = 1
+    for (const b of rowBasis) {
+      const d = v.reduce((acc, x, k) => acc + x * b[k], 0)
+      v = v.map((x, k) => x - d * b[k])
+    }
+    candidates.push(v)
+  }
+  for (let pick = 0; pick < dim; pick++) {
+    let best = 0, bestNorm = -1
+    for (let i = 0; i < candidates.length; i++) {
+      const nn = Math.hypot(...candidates[i])
+      if (nn > bestNorm) { bestNorm = nn; best = i }
+    }
+    const v = candidates[best].map((x) => x / bestNorm)
+    out.push(v)
+    for (let i = 0; i < candidates.length; i++) {
+      const d = candidates[i].reduce((acc, x, k) => acc + x * v[k], 0)
+      candidates[i] = candidates[i].map((x, k) => x - d * v[k])
+    }
+  }
+  return out
+}
+
+/** The 12 defining rows plus the C¹ Hermite rows, at a member. */
+function pinnedJacobian(m: ConformalPHCurve): { J: number[][]; x: number[] } {
+  const data = hermiteDataOf(m)
+  const rows = (s: ConformalPHCurve): number[] => {
+    const d = hermiteDataOf(s)
+    return [
+      d.p0.x - data.p0.x, d.p0.y - data.p0.y, d.p0.z - data.p0.z,
+      d.p1.x - data.p1.x, d.p1.y - data.p1.y, d.p1.z - data.p1.z,
+      d.d0.x - data.d0.x, d.d0.y - data.d0.y, d.d0.z - data.d0.z,
+      d.d1.x - data.d1.x, d.d1.y - data.d1.y, d.d1.z - data.d1.z,
+    ]
+  }
+  const x = [...m.C.flatMap((c) => [...c]), ...m.h]
+  const base = definingJacobian(m)
+  const J = base.map((r) => r.slice())
+  for (let e = 0; e < 12; e++) J.push(new Array(x.length).fill(0))
+  const step = 1e-7
+  for (let c = 0; c < x.length; c++) {
+    const xp = x.slice(); xp[c] += step
+    const xm = x.slice(); xm[c] -= step
+    const rp = rows(unpack(xp)), rm = rows(unpack(xm))
+    for (let e = 0; e < 12; e++) J[base.length + e][c] = (rp[e] - rm[e]) / (2 * step)
+  }
+  return { J, x }
+}
+
+const rankFromGap = (sv: number[]): { rank: number; gap: number } => {
+  let rank = sv.length, gap = 1
+  for (let k = 1; k < sv.length; k++) {
+    const ratio = sv[k - 1] / (sv[k] + 1e-300)
+    if (ratio > gap) { gap = ratio; rank = k }
+  }
+  return { rank, gap }
 }
 
 // ---------------------------------------------------------------------------
@@ -351,4 +431,48 @@ describe('what the even degrees offer', () => {
     // CLOSES into a circle is a separate question and is not measured here.
     expect(U - rank - 1).toBe(want)
   }, 300000)
+})
+
+// ---------------------------------------------------------------------------
+// COUNTED IN CURVES RATHER THAN POLYGONS — what slide 12 has actually been showing.
+//
+// A tangent direction to the pinned family may move the CURVE, or it may only reshuffle the
+// polygon and leave the curve pointwise identical. The rescale (C,h) ↦ (λC,λh) is the obvious
+// example. At odd degree there is another one, and it is not obvious at all: the redundant linear
+// factor (t−r) of the parity theorem can slide freely, changing every weight and radius on screen
+// while the curve does not move.
+//
+// Measured: at degree 5 the four nullspace directions produce a curve-motion map of rank TWO
+// (singular values 1.0, 0.73, 7e-6, 4e-9 — gap 1e5). One is the rescale, so of slide 12's THREE
+// strict dimensions only two are curve shape. At degree 4 the two directions give rank ONE, and
+// the one that does nothing is exactly the rescale — no hidden redundancy left.
+//
+// That is why degree 4 is the honest figure: every dial it offers moves the curve.
+// ---------------------------------------------------------------------------
+
+describe('the strict family, counted in curves', () => {
+  it.each([[4, 2, 1], [5, 4, 2]])(
+    'degree %i: %i tangent directions, only %i of which move the curve',
+    (n, directions, moving) => {
+      const m = membersOf(n, 6).filter((c) =>
+        n % 2 === 1 || realRoots(c.C.map((x) => x[0])).length === 0)[0]
+      const { J, x } = pinnedJacobian(m)
+      const basis = nullspaceBasis(J, directions)
+      const ts = [0.1, 0.25, 0.4, 0.55, 0.7, 0.85]
+      const samples = ts.map((t) => curveAt(m, t))
+      const extent = Math.max(...samples.map((p) => (p ? vnorm(vsub(p, samples[0]!)) : 0)))
+      const motion = basis.map((d) => {
+        const eps = 1e-6
+        const plus = unpack(x.map((v, i) => v + eps * d[i]))
+        const minus = unpack(x.map((v, i) => v - eps * d[i]))
+        return ts.flatMap((t) => {
+          const a = curveAt(plus, t), b = curveAt(minus, t)
+          if (!a || !b) return [0, 0, 0]
+          return [(a.x - b.x), (a.y - b.y), (a.z - b.z)].map((v) => v / (2 * eps) / extent)
+        })
+      })
+      const { rank, gap } = rankFromGap(singularValues(motion))
+      expect(gap, 'the curve-motion rank gap must be decisive').toBeGreaterThan(1e4)
+      expect(rank, `directions that move the curve at degree ${n}`).toBe(moving)
+    }, 300000)
 })
