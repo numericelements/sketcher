@@ -48,6 +48,7 @@ import {
   continuityDefects,
   dragSpline,
   frameCombByArcLength,
+  frameJumpAtJoints,
   minSpeed,
   planarity,
   reach,
@@ -155,6 +156,14 @@ export default function RmErfSplineFigure() {
         { label: 'twist ∫|ω₁|ds', value: totalTwist(spline).toExponential(1), tone: 'ok' as const },
         { label: 'in class', value: classDefect(spline).toExponential(1), tone: 'ok' as const },
         { label: 'C² defect', value: continuityDefects(spline).c2.toExponential(1), tone: 'ok' as const },
+        {
+          // Deliberately its own readout: totalTwist integrates WITHIN each segment and
+          // cannot see a discontinuity at a joint, so a figure that showed only the twist
+          // once claimed a rotation-minimizing frame while the frame snapped by 5.6°.
+          label: 'joint jump',
+          value: `${((frameJumpAtJoints(spline) * 180) / Math.PI).toExponential(1)}°`,
+          tone: 'ok' as const,
+        },
         { label: 'min σ', value: minSpeed(spline).toFixed(3) },
         { label: 'non-planar', value: planarity(spline).toFixed(3) },
         ...(measured
@@ -183,8 +192,9 @@ export default function RmErfSplineFigure() {
           your hand, which is what makes it feel controllable — the readouts measure both as you
           drag.{' '}
           <span className="text-slate-400">
-            Both segments still satisfy ω₁ ≡ 0 and meet with C², so the rail stays parallel across
-            the joint. Drag the background to rotate.
+            Both segments satisfy ω₁ ≡ 0, meet with C², and share their generator at the joint — so
+            the frame is continuous there too, which the “joint jump” readout keeps honest. Drag the
+            background to rotate.
           </span>
         </>
       }

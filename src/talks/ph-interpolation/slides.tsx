@@ -425,7 +425,17 @@ export const slides: SlideDefinition[] = [
       'spare dimensions at n=6, and climb planarity along the class\'s own tangent space. (3) But ' +
       'climbing planarity drives |A| DOWN toward a cusp — the same small-|A| attraction that made a ' +
       'geometric drag metric fail on slide 8 — so the ascent stops at a speed floor. ' +
-      'core/phSpatialSepticSpline, 9 tests; drags run 13–28ms at n=6–8 with class, C² and twist all at ' +
-      'machine zero throughout.',
+      'A BUG WORTH TELLING, because Eric found it by dragging and the readouts were blind to it: the ' +
+      'FRAME can jump at a joint while the CURVE stays perfectly C². The joint condition ' +
+      'sandwich(A_k[3]) = sandwich(A_{k+1}[0]) is GAUGE-INVARIANT, so it ties the two generators only ' +
+      'up to A ↦ A·exp(iθ) — which leaves the tangent fixed and rotates e₂, e₃ by 2θ about it. ' +
+      'Measured: 3.01°, 3.74°, 5.64° opening up over successive drags while C¹, C² AND the twist ' +
+      'readout all sat at machine zero, because totalTwist integrates WITHIN segments and cannot see a ' +
+      'discontinuity. Fixed by constraining the GENERATOR at the joint (four conditions) instead of ' +
+      'its sandwich (three); the per-segment gauges then collapse to one global gauge, so the spare ' +
+      'count is unchanged at 4n. And "joint jump" is now its own readout, so the figure can no longer ' +
+      'display one quantity while enforcing another. ' +
+      'core/phSpatialSepticSpline, 19 tests; drags run 13–28ms at n=6–8 with class, C², twist and the ' +
+      'joint jump all at machine zero throughout.',
   },
 ]

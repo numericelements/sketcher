@@ -45,6 +45,7 @@ import {
   qsub,
   sandwich,
   vadd,
+  vdot,
   vnorm,
   vscale,
   vsub,
@@ -118,6 +119,32 @@ export function continuityDefects(s: SepticSpline): { c1: number; c2: number } {
     c2 = Math.max(c2, vnorm(vsub(accelAtEnd(a), accelAtStart(b))))
   }
   return { c1, c2 }
+}
+
+/**
+ * WORST FRAME JUMP AT A JOINT, in radians — the quantity `totalTwist` cannot see.
+ *
+ * totalTwist integrates |ω₁| WITHIN each segment, so a discontinuity at a joint
+ * contributes nothing to it. And a joint really can jump while the curve stays C²: the
+ * hodograph condition sandwich(A_k[3]) = sandwich(A_{k+1}[0]) is GAUGE-INVARIANT, so it
+ * forces the two generators to agree only up to A ↦ A·exp(iθ) — which leaves the tangent
+ * fixed and rotates e₂, e₃ by 2θ about it.
+ *
+ * Measured before dragSpline was fixed: 3.01°, 3.74°, 5.64° after successive drags, with
+ * C¹, C² and the twist readout all at machine zero the whole time. A figure claiming a
+ * rotation-minimizing frame while the frame snapped at the joint was showing one quantity
+ * and enforcing another, so this is now both constrained and displayed.
+ */
+export function frameJumpAtJoints(s: SepticSpline): number {
+  let worst = 0
+  for (let k = 0; k + 1 < s.segments.length; k++) {
+    const a = erfAt(s.segments[k], 1)
+    const b = erfAt(s.segments[k + 1], 0)
+    if (!a || !b) continue
+    const dot = Math.max(-1, Math.min(1, vdot(a.e2, b.e2)))
+    worst = Math.max(worst, Math.acos(dot))
+  }
+  return worst
 }
 
 /** Worst RM-ERF residual over all segments — class membership, measured. */
@@ -515,7 +542,13 @@ export function dragSpline(
     const push = (a: Vec3, b: Vec3): void => { r.push(a.x - b.x, a.y - b.y, a.z - b.z) }
     for (const A of s.segments) r.push(...rmErfResidual(A))
     for (let k = 0; k + 1 < n; k++) {
-      push(sandwich(s.segments[k][3]), sandwich(s.segments[k + 1][0]))
+      // THE GENERATOR ITSELF, not merely its sandwich. Matching the sandwich is
+      // gauge-invariant, so it lets A_{k+1}[0] drift to A_k[3]·exp(iθ) — the curve stays
+      // C² and the FRAME jumps by 2θ. Four conditions instead of three; and because the
+      // generators are now tied at every joint, the per-segment gauges collapse to one
+      // global gauge, so the spare count is unchanged at 4n.
+      const a = s.segments[k][3], b = s.segments[k + 1][0]
+      r.push(a.u - b.u, a.v - b.v, a.p - b.p, a.q - b.q)
       push(accelAtEnd(s.segments[k]), accelAtStart(s.segments[k + 1]))
     }
     for (const end of [0, LAST]) {

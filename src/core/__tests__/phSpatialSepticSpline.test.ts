@@ -6,8 +6,8 @@
 // editing, and that whatever locality emerges is MEASURED rather than promised.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { type Vec3, vnorm, vsub } from '../quaternion'
-import { hodographAt } from '../phSpatialSeptic'
+import { type Vec3, gaugeRotate, vdot, vnorm, vsub } from '../quaternion'
+import { erfAt, hodographAt } from '../phSpatialSeptic'
 import {
   type SepticSpline,
   arcLength,
@@ -19,6 +19,7 @@ import {
   dragSpline,
   frameComb,
   frameCombByArcLength,
+  frameJumpAtJoints,
   minSpeed,
   planarity,
   reach,
@@ -223,5 +224,86 @@ describe('ARC-LENGTH sampling — the frame\'s own parameter', () => {
     expect(one.segments).toHaveLength(1)
     expect(frameCombByArcLength(one, 20, 0.3).bars.length).toBeGreaterThan(15)
     expect(arcLength(one)).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('THE FRAME MUST NOT JUMP AT A JOINT', () => {
+  const s = SPLINE as SepticSpline
+
+  it('the mechanism: a gauge rotation keeps the curve and TURNS the frame', () => {
+    // This is why the joint condition has to be on the GENERATOR and not on its
+    // sandwich. Rotating a whole segment by exp(iθ) leaves the hodograph — hence the
+    // curve — untouched, while rotating e₂ and e₃ by 2θ about the tangent.
+    const theta = 0.4
+    const rotated = s.segments[0].map((a) => gaugeRotate(a, theta))
+    for (const t of [0, 0.5, 1]) {
+      // same curve
+      expect(vd(hodographAt(rotated, t), hodographAt(s.segments[0], t))).toBeLessThan(1e-12)
+      const before = erfAt(s.segments[0], t)
+      const after = erfAt(rotated, t)
+      expect(before).not.toBeNull()
+      expect(after).not.toBeNull()
+      // same tangent
+      expect(vd(after!.e1, before!.e1)).toBeLessThan(1e-12)
+      // and e₂ turned by exactly 2θ
+      const angle = Math.acos(Math.max(-1, Math.min(1, vdot(after!.e2, before!.e2))))
+      expect(Math.abs(angle - 2 * theta), `t = ${t}`).toBeLessThan(1e-9)
+    }
+  })
+
+  it('the built spline has no jump', () => {
+    // The floor here is √eps, not eps: the measure is an acos near 1, which loses half
+    // its digits (dot = 1 − ε gives acos ≈ √(2ε), so ~3e-8 for double precision).
+    // Measured 2.98e-8 — machine zero for this quantity, and the drift it exists to
+    // catch was 5.64° = 0.098 rad, six orders larger.
+    expect(frameJumpAtJoints(s)).toBeLessThan(1e-6)
+  })
+
+  it('and DRAGGING does not open one — the bug this pins', () => {
+    // Measured before the fix, with the joint condition on the sandwich alone: 3.01°,
+    // 3.74°, 5.64° after successive drags, while C¹, C² and totalTwist all stayed at
+    // machine zero. The readouts could not see it, which is what made it dangerous.
+    const before = splineControlPoints(s)
+    for (const index of [4, 7, 10, 13]) {
+      let state = s
+      for (let step = 1; step <= 8; step++) {
+        const target = V(
+          before[index].x + 0.05 * step,
+          before[index].y + 0.04 * step,
+          before[index].z - 0.03 * step,
+        )
+        const r = dragSpline(state, index, target)
+        if (!r.converged) break
+        state = r.state
+      }
+      expect(frameJumpAtJoints(state), `cp ${index} opened a joint jump`).toBeLessThan(1e-5)
+      // and the things that were already true stay true
+      expect(classDefect(state)).toBeLessThan(1e-8)
+      expect(continuityDefects(state).c2).toBeLessThan(1e-6)
+      expect(totalTwist(state)).toBeLessThan(1e-6)
+    }
+  }, 30000)
+
+  it('the drawn comb has no OUTLIER step — a jump would be one, fast turning is not', () => {
+    // An absolute per-station bound would be the wrong test: e₂ swings in space as the
+    // tangent turns, so a sharply curved member turns the frame quickly and legitimately.
+    // What a discontinuity looks like is one step far larger than its neighbours, so
+    // compare the worst step against the MEDIAN rather than against a constant.
+    const before = splineControlPoints(s)
+    const r = dragSpline(s, 8, V(before[8].x + 0.25, before[8].y + 0.2, before[8].z - 0.15))
+    expect(r.converged).toBe(true)
+    const { bars } = frameCombByArcLength(r.state, 80, 0.3)
+    const steps: number[] = []
+    for (let i = 1; i < bars.length; i++) {
+      const a = vsub(bars[i - 1][1], bars[i - 1][0])
+      const b = vsub(bars[i][1], bars[i][0])
+      const cos = vdot(a, b) / (vnorm(a) * vnorm(b))
+      steps.push(Math.acos(Math.max(-1, Math.min(1, cos))))
+    }
+    const sorted = [...steps].sort((x, y) => x - y)
+    const median = sorted[Math.floor(sorted.length / 2)]
+    expect(median).toBeGreaterThan(0)
+    expect(Math.max(...steps) / median).toBeLessThan(4)
   })
 })
