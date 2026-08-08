@@ -30,6 +30,7 @@ import {
   normalizedDifferentialOf,
   orthogonalityDefect,
   transportFrame,
+  transportedTwist,
 } from '../phMobius'
 
 const V = (x: number, y: number, z: number): Vec3 => ({ x, y, z })
@@ -240,5 +241,50 @@ describe('THEOREM 1 — Möbius commutes with the rotation-minimizing frame', ()
       ])
     expect(hand(before)).toBeGreaterThan(0.99)
     expect(hand(after)).toBeLessThan(-0.99)
+  })
+})
+
+// ---------------------------------------------------------------------------
+describe('the transported twist, measured on the image', () => {
+  const frameAt = (t: number): { e2: Vec3; e3: Vec3 } | null => {
+    const f = erfAt(A0, t)
+    return f ? { e2: f.e2, e3: f.e3 } : null
+  }
+
+  it('is ~zero for an RM-ERF source under every sphere', () => {
+    for (const s of SPHERES) {
+      const differential = (t: number) => {
+        const y = curveAt(CURVE, t)
+        return (v: Vec3) => normalizedDifferential(v, y, s)
+      }
+      expect(transportedTwist(frameAt, differential, 200), `ρ=${s.radius}`).toBeLessThan(1e-6)
+    }
+  })
+
+  it('and is NOT zero for a frame that does twist — so the measure bites', () => {
+    // Rotate e₂ steadily about the tangent: a deliberately twisting frame.
+    const twisting = (t: number): { e2: Vec3; e3: Vec3 } | null => {
+      const f = erfAt(A0, t)
+      if (!f) return null
+      const a = 3 * t
+      return {
+        e2: {
+          x: Math.cos(a) * f.e2.x + Math.sin(a) * f.e3.x,
+          y: Math.cos(a) * f.e2.y + Math.sin(a) * f.e3.y,
+          z: Math.cos(a) * f.e2.z + Math.sin(a) * f.e3.z,
+        },
+        e3: {
+          x: -Math.sin(a) * f.e2.x + Math.cos(a) * f.e3.x,
+          y: -Math.sin(a) * f.e2.y + Math.cos(a) * f.e3.y,
+          z: -Math.sin(a) * f.e2.z + Math.cos(a) * f.e3.z,
+        },
+      }
+    }
+    const s = SPHERES[0]
+    const differential = (t: number) => {
+      const y = curveAt(CURVE, t)
+      return (v: Vec3) => normalizedDifferential(v, y, s)
+    }
+    expect(transportedTwist(twisting, differential, 200)).toBeGreaterThan(1)
   })
 })

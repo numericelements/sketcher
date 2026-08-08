@@ -39,6 +39,7 @@ import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import RmErfFigure from './RmErfFigure'
 import RmErfSplineFigure from './RmErfSplineFigure'
+import MobiusFigure from './MobiusFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -386,5 +387,62 @@ export const slides: SlideDefinition[] = [
       'display one quantity while enforcing another. ' +
       'core/phSpatialSepticSpline, 19 tests; drags run 13–28ms at n=6–8 with class, C², twist and the ' +
       'joint jump all at machine zero throughout.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10 — bend it with Möbius: a rational PH curve, frame intact
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Bend it, and it becomes rational — the frame does not notice</h2>
+        <WhenActive>
+          <MobiusFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE CONSTRUCTION, in one line: a polynomial PH curve bent by a Möbius transformation is a ' +
+      'RATIONAL PH curve, and it keeps its rational rotation-minimizing frame. Both halves verified in ' +
+      'core/phMobius rather than quoted. ' +
+      'WHY RATIONAL: |s′| = ρ²σ/|u|², and σ = |A|² is a POLYNOMIAL for a PH curve, so the image speed ' +
+      'is rational. That IS the construction — there is nothing else to it. ' +
+      'WHY THE FRAME SURVIVES: Theorem 1 of Bartoň–Jüttler–Wang — Möbius transformations COMMUTE with ' +
+      'computing the RMF, via the NORMALIZED differential. Measured here at 1e-9 across four spheres. ' +
+      'And STRONGER than the theorem: the image\'s OWN Euler–Rodrigues frame stays rotation-minimizing ' +
+      'too, so the RM-ERF class survives inversion. The twist readout is measured on the IMAGE frame, ' +
+      'not inherited from the source. ' +
+      'WHAT CHANGES IS THE DEGREE: 8 control points become 15. Say it three ways if pressed, because ' +
+      'three independent routes give the same 14 — the denominator |r−c|² is degree 14; the generator ' +
+      'law A ↦ ρuAj/|u|² is degree 10 over 14; and the conformal lift doubles n. ' +
+      'THE SLIDERS ARE GENERATORS, not an inversion centre: exp(Σ sᵢXᵢ) on the conformal model, exactly ' +
+      'as the Lie-sphere lab does it, so all-zeros is the identity. The three exposed are the SPECIAL ' +
+      'CONFORMAL ones, because the Möbius group is rotations + translations + scaling + these, and only ' +
+      'these BEND — the rest are similarities, which fix ∞ and leave the degree alone. That split is ' +
+      'exactly how the lab groups its generators. ' +
+      'NO NEW SOLVER WAS NEEDED, and this is the design point worth making: the constraints are simple ' +
+      'in the PREIMAGE (five conditions on sixteen unknowns, dragInClass) and hopeless in the image ' +
+      '(fifteen weighted control points). So Möbius is a pure DISPLAY map, and the gesture stays direct ' +
+      'because Möbius maps are invertible — the cursor is pulled back through μ⁻¹, and exp(−G) inverts ' +
+      'exp(G) for free. ' +
+      'THE 15-POINT POLYGON IS THE REAL ONE, and the model pays for itself getting it: a Möbius ' +
+      'transformation is a CONSTANT matrix and Bernstein basis functions are scalars, so it acts on ' +
+      'each coefficient INDEPENDENTLY — fifteen matrix-vector products and fifteen divisions, no ' +
+      'resultants and no fitting. Two independent routes to that curve agree to 1e-9 in the tests. ' +
+      'THE GUARD: as the bend strengthens a weight approaches zero and a control point escapes to ' +
+      'infinity — a genuine singularity. "min |w|" is that distance, displayed. Watching the image ' +
+      'swell as it falls is the most vivid demonstration of what inversion is. ' +
+      'AND THE PIECE OF MATHEMATICS THAT CAME OUT OF BUILDING IT: how inversion acts on the generator, ' +
+      'A ↦ ρ·u·A·j/|u|², where u = r − c. My first derivation was WRONG (I took the reflection to be ' +
+      '−n v n, which is a rotation by π); the right multiplication by j IS the orientation reversal the ' +
+      'determinant predicted. It matters beyond bookkeeping: the law factors into a CONSTANT right ' +
+      'multiplier and a t-DEPENDENT left one, and the left factor depends on r = ∫A i A*, the INTEGRAL. ' +
+      'A constant multiplier maps control points one for one; a varying one is a B-spline product that ' +
+      'raises the degree and destroys the correspondence. So the Hopf/spinor representation is ' +
+      'affine-covariant but NOT Möbius-covariant — which is why the covariant control structure has to ' +
+      'live in the conformal model, not the Hopf model. In 2D it works because Möbius is a CONSTANT 2×2 ' +
+      'matrix on (N : D) and a Farin point is a projective sum. ' +
+      'core/phMobius (14 tests), core/conformal (22), core/phSpatialSeptic (25).',
   },
 ]

@@ -178,3 +178,40 @@ export function determinant3(m: readonly (readonly number[])[]): number {
     m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
   )
 }
+
+/**
+ * ∫|ω₁| ds for a frame carried through a Möbius map — the IMAGE's twist, measured on the
+ * image rather than inferred from the source.
+ *
+ * The figure claims the transported frame does not rotate about the tangent, so it should
+ * display a number taken from the transported frame.
+ *
+ * ω₁ = (de₂/ds)·e₃, and the integrand is |(de₂/dt)·e₃| dt. The derivative is a CENTRAL
+ * difference and e₃ is taken at the same station — a first attempt accumulated
+ * |Δe₂ · e₃| between neighbouring stations instead, which is only first-order and left a
+ * floor of 1e-2 at 200 steps on a frame whose true twist is zero. Too coarse to display.
+ */
+export function transportedTwist(
+  sample: (t: number) => { readonly e2: Vec3; readonly e3: Vec3 } | null,
+  differential: (t: number) => ((v: Vec3) => Vec3 | null) | null,
+  steps = 60,
+  h = 1e-4,
+): number {
+  const transported = (t: number, pick: (f: { e2: Vec3; e3: Vec3 }) => Vec3): Vec3 | null => {
+    const frame = sample(t)
+    const d = differential(t)
+    if (!frame || !d) return null
+    return d(pick(frame))
+  }
+  let acc = 0
+  for (let k = 0; k < steps; k++) {
+    const t = (k + 0.5) / steps
+    const plus = transported(Math.min(1, t + h), (f) => f.e2)
+    const minus = transported(Math.max(0, t - h), (f) => f.e2)
+    const e3 = transported(t, (f) => f.e3)
+    if (!plus || !minus || !e3) continue
+    const de2 = vscale(vsub(plus, minus), 1 / (2 * h))
+    acc += (Math.abs(vdot(de2, e3)) * 1) / steps
+  }
+  return acc
+}

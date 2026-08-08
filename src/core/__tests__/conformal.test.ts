@@ -16,8 +16,14 @@ import {
   conformalLiftBezier,
   evaluateRationalBezier,
   matrixOf,
+  applyMatrix,
+  inversiveBendGenerator,
+  isometryDefect,
+  matrixExp5,
   minAbsWeight,
   mobiusImageRationalBezier,
+  multiply5,
+  pointMap,
   reflectionMatrix,
   distanceFromInnerProduct,
   euclideanDistance,
@@ -250,3 +256,57 @@ function evalConformal(coeffs: readonly Conformal[], t: number): Conformal {
   }
   return h[0] as unknown as Conformal
 }
+
+// ---------------------------------------------------------------------------
+describe('GENERATORS — exp(Σ sᵢXᵢ) so a slider starts at the identity', () => {
+  it('exp of a generator is in O(4,1) — a genuine Möbius transformation', () => {
+    for (const b of [V(0.2, 0, 0), V(0, -0.15, 0.1), V(0.08, 0.12, -0.2)]) {
+      for (const s of [0.2, 1, 3]) {
+        const G = inversiveBendGenerator({ x: b.x * s, y: b.y * s, z: b.z * s })
+        expect(isometryDefect(matrixExp5(G)), `b=${b.x},${b.y},${b.z} s=${s}`).toBeLessThan(1e-10)
+      }
+    }
+  })
+
+  it('at zero it IS the identity, so the slider home position is no transformation', () => {
+    const M = matrixExp5(inversiveBendGenerator(V(0, 0, 0)))
+    for (const x of PTS) {
+      expect(vnorm(vsub(pointMap(M)(x) as Vec3, x))).toBeLessThan(1e-12)
+    }
+  })
+
+  it('the inversive bend generator is NILPOTENT, so exp = I + G + G²/2 exactly', () => {
+    const G = inversiveBendGenerator(V(0.3, -0.2, 0.15))
+    const G3 = multiply5(multiply5(G, G), G)
+    let worst = 0
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) worst = Math.max(worst, Math.abs(G3[i][j]))
+    expect(worst).toBeLessThan(1e-14)
+    // and the closed form agrees with scaling-and-squaring
+    const G2 = multiply5(G, G)
+    const closed = [0, 1, 2, 3, 4].map((i) =>
+      [0, 1, 2, 3, 4].map((j) => (i === j ? 1 : 0) + G[i][j] + G2[i][j] / 2))
+    const viaExp = matrixExp5(G)
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 5; j++) expect(Math.abs(closed[i][j] - viaExp[i][j])).toBeLessThan(1e-12)
+    }
+  })
+
+  it('exp(−G) inverts exp(G) — which is what makes the drag invertible', () => {
+    const b = V(0.25, -0.18, 0.12)
+    const M = matrixExp5(inversiveBendGenerator(b))
+    const Minv = matrixExp5(inversiveBendGenerator(V(-b.x, -b.y, -b.z)))
+    for (const x of PTS) {
+      const there = pointMap(M)(x) as Vec3
+      const back = pointMap(Minv)(there) as Vec3
+      expect(vnorm(vsub(back, x))).toBeLessThan(1e-9)
+    }
+  })
+
+  it('it MOVES ∞ — so it genuinely bends, and doubles the degree', () => {
+    const M = matrixExp5(inversiveBendGenerator(V(0.2, -0.1, 0.15)))
+    expect(infinityDisplacement((X) => applyMatrix(M, X))).toBeGreaterThan(0.05)
+    // and the image's weights vary, the coefficient-level version of the same fact
+    const rb = mobiusImageRationalBezier(conformalLiftBezier(septicControlPoints(CURVE)), M)
+    expect(Math.max(...rb.weights) / Math.min(...rb.weights)).toBeGreaterThan(1.02)
+  })
+})

@@ -262,3 +262,102 @@ export function evaluateRationalBezier(rb: RationalBezier, t: number): Vec3 | nu
 export function minAbsWeight(rb: RationalBezier): number {
   return Math.min(...rb.weights.map(Math.abs))
 }
+
+// ---------------------------------------------------------------------------
+// GENERATORS — the Lie algebra so(4,1), so a slider can start at the identity
+//
+// The Lie-sphere lab's design: the transformation is exp(Σ sᵢXᵢ), so all-zeros is "no
+// transformation" and each slider is an infinitesimal generator. so(4,1) is spanned by
+// bivectors a∧b acting as
+//
+//     G_{a,b}(X) = ⟨X,a⟩b − ⟨X,b⟩a
+//
+// which is antisymmetric for the form, so exp(sG) lands in O(4,1) — a genuine Möbius
+// transformation — for every s. The ten generators split as rotations (eᵢ∧eⱼ),
+// translations (eᵢ∧∞), dilation (o∧∞) and the SPECIAL CONFORMAL ones (eᵢ∧o). Only the
+// last group bends anything: the others are similarities, which fix ∞ and leave the degree
+// alone. That is why the lab groups them separately and gives the inversive ones a tighter
+// slider range.
+//
+// A convenience worth knowing: any combination of the three special conformal generators
+// is again a SINGLE one, G_{b,o} with b = (s₁,s₂,s₃) — and G_{b,o}³ = 0, so its exponential
+// is the finite series I + G + G²/2, exactly. No matrix-exponential routine required,
+// though `matrixExp5` is provided and tested against that closed form.
+// ---------------------------------------------------------------------------
+
+/** The metric, as a matrix: ⟨X,Y⟩ = Xᵀ η Y. */
+const ETA: number[][] = [
+  [0, 0, 0, 0, -1],
+  [0, 1, 0, 0, 0],
+  [0, 0, 1, 0, 0],
+  [0, 0, 0, 1, 0],
+  [-1, 0, 0, 0, 0],
+]
+
+const etaTimes = (a: Conformal): number[] =>
+  [0, 1, 2, 3, 4].map((i) => ETA[i].reduce((acc, v, j) => acc + v * a[j], 0))
+
+/** G_{a,b}(X) = ⟨X,a⟩b − ⟨X,b⟩a, as a 5×5 matrix. Antisymmetric for the form. */
+export function bivectorGenerator(a: Conformal, b: Conformal): Mat5 {
+  const ea = etaTimes(a)
+  const eb = etaTimes(b)
+  return [0, 1, 2, 3, 4].map((i) => [0, 1, 2, 3, 4].map((j) => b[i] * ea[j] - a[i] * eb[j]))
+}
+
+const ORIGIN_VECTOR: Conformal = [1, 0, 0, 0, 0]
+
+/**
+ * The special conformal ("inversive bend") generator along b — the only part of the
+ * Möbius group that bends straight lines into circles.
+ */
+export function inversiveBendGenerator(b: Vec3): Mat5 {
+  return bivectorGenerator([0, b.x, b.y, b.z, 0], ORIGIN_VECTOR)
+}
+
+/** exp(M), by scaling and squaring — correct for any generator, not just nilpotent ones. */
+export function matrixExp5(m: Mat5, terms = 18): Mat5 {
+  let scale = 0
+  let norm = 0
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) norm = Math.max(norm, Math.abs(m[i][j]))
+  while (norm > 0.25) { norm /= 2; scale++ }
+  const s = 2 ** -scale
+  const a: number[][] = m.map((row) => row.map((v) => v * s))
+
+  let result: number[][] = [0, 1, 2, 3, 4].map((i) => [0, 1, 2, 3, 4].map((j) => (i === j ? 1 : 0)))
+  let term: number[][] = result.map((r) => [...r])
+  for (let k = 1; k <= terms; k++) {
+    term = multiply5(term, a).map((row) => row.map((v) => v / k))
+    result = result.map((row, i) => row.map((v, j) => v + term[i][j]))
+  }
+  for (let k = 0; k < scale; k++) result = multiply5(result, result)
+  return result
+}
+
+export function multiply5(a: Mat5, b: Mat5): number[][] {
+  return [0, 1, 2, 3, 4].map((i) =>
+    [0, 1, 2, 3, 4].map((j) => {
+      let acc = 0
+      for (let k = 0; k < 5; k++) acc += a[i][k] * b[k][j]
+      return acc
+    }),
+  )
+}
+
+/** How far a matrix is from preserving the form — the "is it Möbius?" check. */
+export function isometryDefect(m: Mat5): number {
+  // Mᵀ η M should equal η.
+  let worst = 0
+  for (let i = 0; i < 5; i++) {
+    for (let j = 0; j < 5; j++) {
+      let acc = 0
+      for (let p = 0; p < 5; p++) for (let q = 0; q < 5; q++) acc += m[p][i] * ETA[p][q] * m[q][j]
+      worst = Math.max(worst, Math.abs(acc - ETA[i][j]))
+    }
+  }
+  return worst
+}
+
+/** The Möbius point map of a matrix, and its inverse — exp(−G) inverts exp(G). */
+export function pointMap(m: Mat5): (x: Vec3) => Vec3 | null {
+  return (x) => project(applyMatrix(m, lift(x)))
+}
