@@ -64,6 +64,15 @@ const COMB = 0.30
 const CURVE_SAMPLES = 60
 /** Comb stations over the WHOLE spline, spaced by arc length. */
 const STATIONS = 34
+/**
+ * Sized against the CONTROL POINT SPACING, not chosen by eye.
+ *
+ * Fifteen control points over an arc of ~1.04 give a mean gap of 0.076 and a minimum of
+ * 0.052. At the old radius of 0.042 the spheres were 111% of the mean gap — they merged
+ * into a solid tube and hid the curve completely. Slide 9, which reads well, runs at 62%
+ * of its mean gap and 78% of its minimum; 0.020 puts this figure at 53% and 77%.
+ */
+const POINT_RADIUS = 0.02
 
 const START: SepticSpline | null = buildRmErfSpline(SEGMENTS, { p0: { x: -1.5, y: -0.4, z: 0.1 } })
 
@@ -76,7 +85,9 @@ const BOUNDS = (() => {
   }
   if (!START) return fallback
   const pts = [...splineControlPoints(START), ...frameCombByArcLength(START, STATIONS, COMB).rail]
-  const pad = 0.6
+  // Modest, because the content was occupying under half the frame — and a bigger
+  // curve on screen is what keeps a small drag target grabbable.
+  const pad = 0.35
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y), zs = pts.map((p) => p.z)
   return {
     min: [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.min(...zs) - pad] as [number, number, number],
@@ -183,7 +194,7 @@ export default function RmErfSplineFigure() {
       ))}
       <Curve3D points={frame.rail.map(tri)} color={FIG.color.derived} width={1.4} dashed />
 
-      <Curve3D points={curvePts} color={FIG.color.curve} width={3.2} />
+      <Curve3D points={curvePts} color={FIG.color.curve} width={3.5} />
       <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
 
       {cps.map((p, i) => (
@@ -197,7 +208,7 @@ export default function RmErfSplineFigure() {
                 ? FIG.color.pinned
                 : FIG.color.dataPoint
           }
-          radius={0.042}
+          radius={POINT_RADIUS}
           onDragStart={() => { setDragIdx(i); setStalled(false); setBaseline(spline) }}
           onDragEnd={() => setDragIdx(null)}
           onDrag={([x, y, z]) => {
