@@ -13,6 +13,10 @@
 //     dimension  11     15     19          (degree 6, where the two constructions meet:
 //     moduli      2      6     10           direct 17 against 13 — 8 moduli against 4)
 //
+// Read that table with the PARITY THEOREM in hand (block near the bottom of this file): the ODD
+// columns count representations of LOWER-degree curves, because an odd-degree member always
+// carries a common linear factor. The honest columns are the even ones.
+//
 // WHY NOT DEGREE 3, AND THIS IS A RESULT RATHER THAN A LIMITATION. Four coefficients span at
 // most a 4-dimensional subspace V of R⁵, so V^⊥ contains a vector S, and ⟨P(x),S⟩ = 0 says
 // every point of the curve lies on the single sphere S. Degree 3 is confined to a sphere by
@@ -641,6 +645,13 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 // has 14 before its data and 2 after, so RATIONALITY BUYS EXACTLY ONE MORE DIMENSION at the
 // same degree and the same data — slide 7's torus becomes a 3-fold.
 //
+// EXCEPT THAT THE CURVE IS A QUARTIC. See the parity theorem below: a degree-5 member always
+// carries a common linear factor, so this whole block is a true statement about the QUARTIC
+// family in a quintic polygon, and "the same degree as slide 7" is not what it looks like.
+// The same measurement at degree 6 — genuinely irreducible — leaves FIVE dimensions, not three.
+// Everything below (the coordinates, the one-at-a-time reformulation, the rate limits) is sound
+// and carries over; the DEGREE it is applied at is what has to change.
+//
 // WHAT COORDINATIZES IT, measured rather than guessed by adding candidate rows and watching the
 // rank: {ρ₂, ρ₃, arc length} is complete — rank 34, freedom 0. So are {ρ₂, ρ₃, ⟨C₂,C₃⟩} and
 // {L, λ₁, λ₂}. And {ρ₂, ρ₃, λ₁} is NOT: it leaves freedom 1, because λ₁ is dependent on the two
@@ -668,13 +679,21 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 //     p′ = N/w²           N = q′w − qw′,  the hodograph NUMERATOR, degree ≤ 2n−2
 //     ‖N‖ = h·w           verified to 9.3e-10 — this is the load-bearing identity
 //
-// So ‖N‖ is a POLYNOMIAL, which by the classical Pythagorean-quadruple theorem means N = A i A*
-// for a quaternion polynomial A. Then |A|² = ‖N‖ = hw and
+// CAREFUL WITH THAT STEP, because the first version of this block got it wrong. ‖N‖ = |h·w|, and
+// |hw| is a polynomial only if hw never CHANGES SIGN — the pointwise check above ran on [0,1],
+// where it cannot. What the defining equations give as an identity is ΣNᵢ² = h²w², and taking a
+// square root of that needs the non-negative branch to be polynomial. It is (see the parity
+// theorem below: at odd degree hw's real root is DOUBLE), so the conclusion stands — but it
+// stands for a reason, not by inspection.
+//
+// Then, by the classical Pythagorean-quadruple theorem, N = A i A* for a quaternion polynomial A,
+// with |A|² = ‖N‖ = hw and
 //
 //     p′ = A i A* / w²     so W = w EXACTLY: the conformal weight IS the PH denominator
 //
 // Degrees: |A|² = hw has degree (n−2) + n = 2n−2, so deg A = n−1 — five quaternion coefficients
-// at n = 5.
+// at n = 5. Built and verified in core/conformalPHHopf: A i A* reproduces N to 1e-11…1e-12 at
+// even degree, with the root selection decisive by 1e7…1e10.
 //
 // AND THE GAUGE SURVIVES, which is the point. Write A = u + vj with u, v complex. Expanding
 // A i A* and separating gives
@@ -693,11 +712,45 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 // rationality adds a radial direction to slide 7's torus. It would also give the figure two
 // dials that WRAP instead of three scalars with feasibility walls.
 //
-// WHAT IS STILL MISSING: extracting u as a POLYNOMIAL. That means writing the non-negative real
-// polynomial (‖N‖ + N₁)/2 as |u|², i.e. as a sum of two squares — always possible over R by
-// pairing conjugate roots, but it is a factorisation, not a formula, and it is not implemented
-// here. Until it is, the 2 + 1 split is unverified and must not be stated as fact. The same
-// extraction is what an RRMF condition would need, so it is wanted twice.
+// The extraction that was missing is now core/conformalPHHopf. The 2 + 1 split is STILL
+// unverified and must not be stated as fact: it has to be measured at degree 6, for the reason
+// immediately below.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// THE PARITY THEOREM — ODD CONFORMAL DEGREE IS NEVER GENUINELY ODD
+//
+// Found while testing the extraction above, and it is the sharper of the two results. The null
+// condition is an identity between POLYNOMIALS:
+//
+//     ⟨C,C⟩ = ‖q‖² − 2·w·c∞ = 0     so     ‖q‖² = 2·w·c∞
+//
+// At every real root r of w that forces ‖q(r)‖² = 0, and q is REAL, so q(r) = 0 — hence (t−r)
+// divides q, w, c∞ and h alike, and the member is (t−r) × a member of degree n−1. A real
+// polynomial of odd degree always has a real root, and deg w = n. Therefore
+//
+//     n odd   →  every member is a degree-(n−1) rational curve in disguise
+//     n even  →  w may avoid the real axis, and generically does → genuinely degree n
+//
+// Measured (conformalPHHopf.test.ts) and the pattern is total: degrees 3, 5, 7 give exactly ONE
+// real root of w every time with q vanishing there to 1e-7…1e-8; degree 6 gives NONE, five
+// members out of five; degree 4 gives none in three of five and TWO in the other two — reducible
+// by two degrees, which is what an even degree allows.
+//
+// THE DEGREE-3 CIRCLE IS A COROLLARY. A degree-3 member is (t−r) × a degree-2 member, a rational
+// quadratic is a conic, and PH makes it a circle. The "WHY NOT DEGREE 3" note at the top of this
+// file reached the same fact by counting the span of the coefficients; this says why.
+//
+// WHAT IT COSTS US. The degree-5 figures (slides 11 and 12) draw a genuine rational PH curve —
+// but a QUARTIC one, carried in a quintic polygon whose sixth control point is redundant
+// parametrisation. Everything measured on that family (dimension 15, the strict 3-fold, the
+// {ρ₂, ρ₃, L} coordinates) is a true statement about a quartic. The dimension table at the top of
+// this file is honest at 4 and 6 and describes reducible curves at 3, 5 and 7.
+//
+// SO A GENUINELY SPATIAL, GENUINELY IRREDUCIBLE FIGURE IS DEGREE 6 — which is also the degree
+// where working directly in R^{4,1} first beats bending a polynomial (17 dimensions against the
+// Möbius orbit's 13). Measured there: pinning the C¹ Hermite data leaves FIVE dimensions, not
+// three, with a decisive rank gap.
 // ---------------------------------------------------------------------------
 
 /** C¹ Hermite data: the two end points and the two end derivative VECTORS. */
