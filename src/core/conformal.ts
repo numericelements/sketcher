@@ -142,3 +142,123 @@ export function distanceFromInnerProduct(a: Conformal, b: Conformal): number {
 
 /** Convenience for tests and callers: the Euclidean distance, for comparison. */
 export const euclideanDistance = (x: Vec3, y: Vec3): number => vnorm(vsub(x, y))
+
+// ---------------------------------------------------------------------------
+// FROM A MÖBIUS TRANSFORMATION TO THE IMAGE'S RATIONAL BÉZIER DATA
+//
+// This is where the model pays for itself. Because a Möbius transformation is a CONSTANT
+// matrix M, and the Bernstein basis functions are scalars,
+//
+//     M · Σₖ Cₖ Bₖᴺ(t)  =  Σₖ (M Cₖ) Bₖᴺ(t)
+//
+// M acts on each Bernstein coefficient INDEPENDENTLY. So computing the control polygon of
+// a Möbius image is N+1 matrix–vector products and N+1 divisions — no resultants, no
+// reparameterisation, no fitting. Read the weight off the o-component and the control
+// point off the vector part, exactly as for any rational Bézier.
+//
+// A useful tell falls out: the o-component of the plain lift is the CONSTANT polynomial 1,
+// so a polynomial curve has all weights equal to 1. A similarity leaves that component
+// alone and the weights stay equal — the curve is still polynomial. An inversion turns it
+// into something of degree 2n and the weights genuinely vary. So "are the weights
+// constant?" is the degree criterion again, now visible in the coefficients.
+// ---------------------------------------------------------------------------
+
+import { bernsteinElevate, bernsteinMultiply } from './bernstein'
+
+/** A linear map of the conformal model — 5×5, rows first. */
+export type Mat5 = readonly (readonly number[])[]
+
+export function applyMatrix(m: Mat5, x: Conformal): Conformal {
+  const out = [0, 0, 0, 0, 0]
+  for (let i = 0; i < 5; i++) {
+    let acc = 0
+    for (let j = 0; j < 5; j++) acc += m[i][j] * x[j]
+    out[i] = acc
+  }
+  return out as unknown as Conformal
+}
+
+/** The matrix of any linear map, read off its action on the basis. */
+export function matrixOf(apply: (x: Conformal) => Conformal | null): Mat5 | null {
+  const cols: Conformal[] = []
+  for (let j = 0; j < 5; j++) {
+    const e = [0, 0, 0, 0, 0]
+    e[j] = 1
+    const image = apply(e as unknown as Conformal)
+    if (!image) return null
+    cols.push(image)
+  }
+  return [0, 1, 2, 3, 4].map((i) => cols.map((c) => c[i]))
+}
+
+/** Inversion in a sphere, as a constant 5×5 matrix. */
+export function reflectionMatrix(s: Conformal): Mat5 | null {
+  return matrixOf((x) => reflectIn(x, s))
+}
+
+/**
+ * The conformal lift of a polynomial Bézier curve, as the Bernstein coefficients of a
+ * degree-2n null 5-vector polynomial.
+ *
+ * Components are (1, r, ½‖r‖²) of degrees (0, n, 2n), all elevated to 2n — which is the
+ * degree law made concrete: the lift doubles because ‖r‖² does.
+ */
+export function conformalLiftBezier(controlPoints: readonly Vec3[]): Conformal[] {
+  const n = controlPoints.length - 1
+  const target = 2 * n
+  const xs = controlPoints.map((p) => p.x)
+  const ys = controlPoints.map((p) => p.y)
+  const zs = controlPoints.map((p) => p.z)
+  const norm2 = bernsteinMultiply(xs, xs)
+    .map((v, i) => v + bernsteinMultiply(ys, ys)[i] + bernsteinMultiply(zs, zs)[i])
+
+  const o = bernsteinElevate([1], target)
+  const X = bernsteinElevate(xs, target)
+  const Y = bernsteinElevate(ys, target)
+  const Z = bernsteinElevate(zs, target)
+  const inf = bernsteinElevate(norm2.map((v) => 0.5 * v), target)
+
+  return Array.from({ length: target + 1 }, (_, k) => [o[k], X[k], Y[k], Z[k], inf[k]] as unknown as Conformal)
+}
+
+export interface RationalBezier {
+  readonly points: Vec3[]
+  readonly weights: number[]
+}
+
+/**
+ * The image's rational Bézier data: apply M to each lift coefficient, then read off the
+ * weight and the control point. Nothing else to do — that is the whole point of the model.
+ */
+export function mobiusImageRationalBezier(liftCoeffs: readonly Conformal[], m: Mat5): RationalBezier {
+  const points: Vec3[] = []
+  const weights: number[] = []
+  for (const c of liftCoeffs) {
+    const a = applyMatrix(m, c)
+    weights.push(a[0])
+    points.push(a[0] === 0
+      ? { x: NaN, y: NaN, z: NaN }
+      : { x: a[1] / a[0], y: a[2] / a[0], z: a[3] / a[0] })
+  }
+  return { points, weights }
+}
+
+/** Evaluate a rational Bézier, by de Casteljau on the homogeneous coefficients. */
+export function evaluateRationalBezier(rb: RationalBezier, t: number): Vec3 | null {
+  const n = rb.points.length - 1
+  const h = rb.points.map((p, i) => [
+    rb.weights[i] * p.x, rb.weights[i] * p.y, rb.weights[i] * p.z, rb.weights[i],
+  ])
+  for (let r = 1; r <= n; r++) {
+    for (let i = 0; i <= n - r; i++) {
+      for (let c = 0; c < 4; c++) h[i][c] = (1 - t) * h[i][c] + t * h[i + 1][c]
+    }
+  }
+  if (h[0][3] === 0) return null
+  return { x: h[0][0] / h[0][3], y: h[0][1] / h[0][3], z: h[0][2] / h[0][3] }
+}
+
+/** Smallest |weight| — near zero means a control point escaping to infinity. */
+export function minAbsWeight(rb: RationalBezier): number {
+  return Math.min(...rb.weights.map(Math.abs))
+}

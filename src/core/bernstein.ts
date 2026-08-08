@@ -50,7 +50,7 @@ export function bernsteinBreaks(knots: readonly number[], closed: boolean): numb
 }
 
 /** Degree-elevate a single Bernstein polynomial to `targetDegree`. */
-function bernsteinElevate(coeffs: number[], targetDegree: number): number[] {
+export function bernsteinElevate(coeffs: number[], targetDegree: number): number[] {
   let result = coeffs
   while (result.length - 1 < targetDegree) {
     const n = result.length - 1
@@ -67,7 +67,7 @@ function bernsteinElevate(coeffs: number[], targetDegree: number): number[] {
 }
 
 /** Product of two Bernstein polynomials (on the same interval): degree p+q. */
-function bernsteinMultiply(f: number[], g: number[]): number[] {
+export function bernsteinMultiply(f: number[], g: number[]): number[] {
   const p = f.length - 1
   const q = g.length - 1
   const fs = f.map((v, i) => v * binomial(p, i))
