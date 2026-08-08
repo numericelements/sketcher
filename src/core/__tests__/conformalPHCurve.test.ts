@@ -12,7 +12,7 @@
 // the figure is degree 5.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { type Vec3, vnorm, vsub } from '../quaternion'
+import { type Vec3, vnorm, vscale, vsub } from '../quaternion'
 import {
   controlPoints,
   curveAt,
@@ -33,6 +33,11 @@ import {
   freeRadiusIndices,
   mobiusImage,
   farinVectors,
+  hermiteDataOf,
+  strictCoordinates,
+  arcLength,
+  dragStrict,
+  moveToData,
 } from '../conformalPHCurve'
 import { inversiveBendGenerator, matrixExp5, pointMap, project } from '../conformal'
 
@@ -394,3 +399,77 @@ describe('Möbius covariance of the conformal control structure', () => {
     }
   })
 })
+
+// ---------------------------------------------------------------------------
+// STRICT MODE — the C¹ Hermite data pinned, three coordinates to ride
+// ---------------------------------------------------------------------------
+describe('strict mode', () => {
+  const DATA = hermiteDataOf(MEMBER!)
+
+  it('the free radii and the arc length are the three coordinates', () => {
+    const c = strictCoordinates(MEMBER!)
+    expect(c.radii).toHaveLength(2)
+    expect(c.length).toBeGreaterThan(0)
+  })
+
+  it('r′(0) depends on the WEIGHTS — slide 7\'s "the points are the data" does NOT carry over', () => {
+    // For a polynomial quintic, dᵢ = 5(P₁−P₀). Here dᵢ = 5(w₁/w₀)(P₁−P₀), so a rational strict
+    // mode has to choose whether it pins the points or the data; they are different families.
+    const n = 5
+    const P = controlPoints(MEMBER!)
+    const w = weights(MEMBER!)
+    const naive = vscale(vsub(P[1], P[0]), n)
+    expect(vnorm(vsub(DATA.d0, naive)), 'the weight factor is not 1').toBeGreaterThan(1e-3)
+    expect(Math.abs(w[1] / w[0] - 1)).toBeGreaterThan(1e-3)
+  })
+
+  it('EACH COORDINATE can be driven, warm-started, with the data held and the family kept', () => {
+    for (const coord of [
+      { kind: 'radius' as const, index: 2 },
+      { kind: 'radius' as const, index: 3 },
+      { kind: 'length' as const },
+    ]) {
+      let state = MEMBER!
+      const start = coord.kind === 'length' ? arcLength(state) : radii(state)[coord.index]
+      const goal = start * 1.2
+      // a slider is a sequence of small warm-started steps; dragStrict rate-limits each to 4%
+      for (let tick = 0; tick < 14; tick++) {
+        const step = dragStrict(state, coord, goal, { data: DATA })
+        expect(step.converged, `${coord.kind} tick ${tick}`).toBe(true)
+        expect(step.defect, `${coord.kind} defect ${tick}`).toBeLessThan(1e-9)
+        state = step.state
+      }
+      const got = coord.kind === 'length' ? arcLength(state) : radii(state)[coord.index]
+      // it moved decisively toward the goal
+      expect((got - start) / (goal - start), `${coord.kind} progress`).toBeGreaterThan(0.8)
+      // and the DATA is still what it was — this is the whole point of strict mode
+      const d = hermiteDataOf(state)
+      const scale = vnorm(vsub(DATA.p1, DATA.p0))
+      expect(vnorm(vsub(d.p0, DATA.p0)) / scale, `${coord.kind} p0`).toBeLessThan(1e-6)
+      expect(vnorm(vsub(d.p1, DATA.p1)) / scale, `${coord.kind} p1`).toBeLessThan(1e-6)
+      expect(vnorm(vsub(d.d0, DATA.d0)) / vnorm(DATA.d0), `${coord.kind} d0`).toBeLessThan(1e-6)
+      expect(vnorm(vsub(d.d1, DATA.d1)) / vnorm(DATA.d1), `${coord.kind} d1`).toBeLessThan(1e-6)
+    }
+  })
+
+  it('and the DATA itself can be moved, which is strict mode\'s other gesture', () => {
+    const scale = vnorm(vsub(DATA.p1, DATA.p0))
+    const want = { ...DATA, p1: { x: DATA.p1.x + 0.05 * scale, y: DATA.p1.y, z: DATA.p1.z } }
+    let state = MEMBER!
+    for (let tick = 0; tick < 4; tick++) {
+      const step = moveToData(state, want)
+      expect(step.converged, `tick ${tick}`).toBe(true)
+      expect(step.defect, `defect ${tick}`).toBeLessThan(1e-9)
+      state = step.state
+    }
+    expect(step_trackingOf(state, want) / scale).toBeLessThan(1e-6)
+  })
+})
+
+function step_trackingOf(s: Parameters<typeof hermiteDataOf>[0], want: ReturnType<typeof hermiteDataOf>): number {
+  const d = hermiteDataOf(s)
+  return Math.max(
+    vnorm(vsub(d.p0, want.p0)), vnorm(vsub(d.p1, want.p1)),
+    vnorm(vsub(d.d0, want.d0)), vnorm(vsub(d.d1, want.d1)),
+  )
+}

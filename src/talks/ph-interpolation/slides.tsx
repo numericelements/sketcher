@@ -41,6 +41,7 @@ import RmErfFigure from './RmErfFigure'
 import RmErfSplineFigure from './RmErfSplineFigure'
 import MobiusFigure from './MobiusFigure'
 import RationalPHCurveFigure from './RationalPHCurveFigure'
+import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -520,5 +521,50 @@ export const slides: SlideDefinition[] = [
       'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w, so h is CUBIC here and w is quintic. That degree drop ' +
       'is where the one rank deficiency in the system came from, and it is pinned. ' +
       'core/conformalPHCurve (22 tests), conformalPHFamily (10), conformal (28).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 12 — strict and free on the rational curve
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Strict and free, one dimension richer</h2>
+        <WhenActive>
+          <StrictFreeRationalFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE COMPARISON IS THE SLIDE, and it is the same gesture pair as slides 4, 6, 7 and 8. Pin the ' +
+      'C1 Hermite data: 12 conditions against the degree-5 rational family\u2019s 15, so THREE remain. ' +
+      'Measured, rank 31 of 32 with a gap of 2.5e8. Slide 7\u2019s POLYNOMIAL PH quintic has 14 before ' +
+      'its data and 2 after. So at the same degree and the same data, RATIONALITY BUYS EXACTLY ONE MORE ' +
+      'DIMENSION: the torus becomes a 3-fold, two dials become three sliders. ' +
+      'WHAT THE THREE SLIDERS ARE was measured, not chosen. Candidate quantities were added to the ' +
+      'pinned system one at a time and the rank watched: {rho_2, rho_3, arc length} is COMPLETE — rank ' +
+      '34, freedom 0. So are {rho_2, rho_3, <C2,C3>} and {L, lambda_1, lambda_2}. And {rho_2, rho_3, ' +
+      'lambda_1} is NOT — freedom 1 — because lambda_1 is dependent on the two radii once the data is ' +
+      'pinned. Worth saying if anyone asks why these three: because the other obvious triple fails. ' +
+      'The two radii were already handles on slide 11, and arc length rhymes with slide 7, where L ' +
+      'turns out to depend on one coordinate alone. ' +
+      'ONE SLIDER AT A TIME, and this is the engineering point. Prescribing all three leaves the system ' +
+      'exactly determined with a projective kernel, and Newton stalls at a defect of 1e-6 to 1e-7 — the ' +
+      'three coordinates were hit EXACTLY while the defining conditions were not, which would have been ' +
+      'a figure enforcing something other than what it displays. Pinning w_0 = 1 to kill the kernel ' +
+      'made it worse, so that diagnosis was wrong. Prescribing only the slider being touched leaves 2 ' +
+      'spare dimensions — the shape of every drag in this codebase that behaves — and the defect ' +
+      'returns to 1e-13. ' +
+      'SO THE OTHER TWO READINGS DRIFT while you move one, and the sliders show their measured values ' +
+      'rather than holding position. They are genuinely coupled by the defining conditions; hiding that ' +
+      'would be displaying one quantity and enforcing another. ' +
+      'AND THE FOUR OUTER POINTS ARE NOT THE DATA, unlike slide 7 where P1 = p_i + d_i/5 makes dragging ' +
+      'them identical to prescribing Hermite data. For a rational curve r\u2032(0) = 5(w_1/w_0)(P1-P0) ' +
+      'carries the weights too, so pinning the four points and pinning the data give DIFFERENT 3-folds ' +
+      'of the same dimension — both freedom 3, measured. The figure pins the data and drags the points ' +
+      'to move it. ' +
+      'FREE releases everything but the ends: 9 dimensions, and the Farin beads come back. ' +
+      'core/conformalPHCurve, 32 tests.',
   },
 ]

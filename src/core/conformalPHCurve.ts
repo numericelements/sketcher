@@ -633,6 +633,141 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
     (s.C[i] as unknown as number[]).map((v, k) => v + (s.C[i + 1] as unknown as number[])[k]) as unknown as Conformal)
 }
 
+// ---------------------------------------------------------------------------
+// STRICT MODE — pin the C¹ Hermite data and ride what is left
+//
+// Pinning r(0), r′(0), r(1), r′(1) is 12 conditions; the degree-5 family has 15, so THREE
+// remain. Measured, rank 31 of 32 with a gap of 2.5e8. The polynomial PH quintic of slide 7
+// has 14 before its data and 2 after, so RATIONALITY BUYS EXACTLY ONE MORE DIMENSION at the
+// same degree and the same data — slide 7's torus becomes a 3-fold.
+//
+// WHAT COORDINATIZES IT, measured rather than guessed by adding candidate rows and watching the
+// rank: {ρ₂, ρ₃, arc length} is complete — rank 34, freedom 0. So are {ρ₂, ρ₃, ⟨C₂,C₃⟩} and
+// {L, λ₁, λ₂}. And {ρ₂, ρ₃, λ₁} is NOT: it leaves freedom 1, because λ₁ is dependent on the two
+// radii once the data is pinned. The two radii are already handles on the figure, and arc length
+// echoes slide 7, where L turns out to depend on one coordinate alone.
+//
+// ONE COORDINATE AT A TIME, and this is the reformulation that made it work. Prescribing all
+// three leaves the system exactly determined with a projective kernel, and Newton then stalls at
+// a defect of 1e-6…1e-7 — the coordinates were hit exactly but the defining conditions were not.
+// (Pinning w₀ = 1 to remove the kernel made it worse, so that diagnosis was wrong.) Prescribing
+// only the coordinate being moved leaves 2 spare dimensions, which is the shape of every drag in
+// this codebase that behaves, and the spare directions absorb the arc-length quadrature error
+// instead of feeding it into the defining rows.
+//
+// The cost is that the OTHER two readouts drift while you move one. They are genuinely coupled,
+// so that is honest; hiding it would mean displaying one quantity while enforcing another.
+// ---------------------------------------------------------------------------
+
+/** C¹ Hermite data: the two end points and the two end derivative VECTORS. */
+export interface HermiteData {
+  readonly p0: Vec3
+  readonly p1: Vec3
+  readonly d0: Vec3
+  readonly d1: Vec3
+}
+
+/** r′(0) = n(w₁/w₀)(P₁−P₀) — note it depends on the WEIGHTS, unlike the polynomial case. */
+export function hermiteDataOf(s: ConformalPHCurve): HermiteData {
+  const n = degreeOf(s)
+  const P = controlPoints(s)
+  const w = weights(s)
+  return {
+    p0: P[0],
+    p1: P[n],
+    d0: vscale(vsub(P[1], P[0]), (n * w[1]) / w[0]),
+    d1: vscale(vsub(P[n], P[n - 1]), (n * w[n - 1]) / w[n]),
+  }
+}
+
+/**
+ * ∫₀¹ |h/w| dt by the midpoint rule. 24 points by default because this sits inside a
+ * finite-difference Jacobian and h/w is smooth; the solve converges to the root of THIS
+ * discretisation, which is why the spare dimensions matter (see the block comment).
+ */
+export function arcLength(s: ConformalPHCurve, samples = 24): number {
+  let acc = 0
+  for (let k = 0; k < samples; k++) acc += Math.abs(speedAt(s, (k + 0.5) / samples)) / samples
+  return acc
+}
+
+/** The three coordinates on the strict family: the free radii, then the arc length. */
+export function strictCoordinates(s: ConformalPHCurve): { radii: number[]; length: number } {
+  const r = radii(s)
+  return { radii: freeRadiusIndices(s).map((i) => r[i]), length: arcLength(s) }
+}
+
+/** Which coordinate a strict-mode slider is prescribing. */
+export type StrictCoordinate =
+  | { readonly kind: 'radius'; readonly index: number }
+  | { readonly kind: 'length' }
+
+/**
+ * Move along the strict family by prescribing ONE coordinate, with the C¹ Hermite data held.
+ *
+ * Rate-limited for the same reason dragFarin is: a slider event can jump, and asking for a
+ * large reshape in one solve is what made the bead appear to explode.
+ */
+export function dragStrict(
+  from: ConformalPHCurve,
+  coordinate: StrictCoordinate,
+  target: number,
+  options: { data?: HermiteData; iterations?: number; maxStepRatio?: number } = {},
+): DragResult {
+  const data = options.data ?? hermiteDataOf(from)
+  const maxStepRatio = options.maxStepRatio ?? 0.04
+  const current = coordinate.kind === 'length' ? arcLength(from) : radii(from)[coordinate.index]
+  const limit = Math.abs(current) * maxStepRatio
+  const wanted = Number.isFinite(current)
+    ? Math.min(current + limit, Math.max(current - limit, target))
+    : target
+  const measure = (s: ConformalPHCurve): number =>
+    coordinate.kind === 'length' ? arcLength(s) : radii(s)[coordinate.index]
+  return solveWith(from, {
+    rows: (s) => {
+      const d = hermiteDataOf(s)
+      return [
+        d.p0.x - data.p0.x, d.p0.y - data.p0.y, d.p0.z - data.p0.z,
+        d.p1.x - data.p1.x, d.p1.y - data.p1.y, d.p1.z - data.p1.z,
+        d.d0.x - data.d0.x, d.d0.y - data.d0.y, d.d0.z - data.d0.z,
+        d.d1.x - data.d1.x, d.d1.y - data.d1.y, d.d1.z - data.d1.z,
+        measure(s) - wanted,
+      ]
+    },
+    track: (s) => Math.abs(measure(s) - wanted),
+  }, options.iterations ?? 80)
+}
+
+/**
+ * Re-prescribe the Hermite data itself — strict mode's other gesture, so the DATA can be
+ * dragged as well as the family ridden. Nothing else is pinned, so the leftover 3 dimensions
+ * are spent by minimum norm.
+ */
+export function moveToData(
+  from: ConformalPHCurve,
+  data: HermiteData,
+  options: { iterations?: number } = {},
+): DragResult {
+  return solveWith(from, {
+    rows: (s) => {
+      const d = hermiteDataOf(s)
+      return [
+        d.p0.x - data.p0.x, d.p0.y - data.p0.y, d.p0.z - data.p0.z,
+        d.p1.x - data.p1.x, d.p1.y - data.p1.y, d.p1.z - data.p1.z,
+        d.d0.x - data.d0.x, d.d0.y - data.d0.y, d.d0.z - data.d0.z,
+        d.d1.x - data.d1.x, d.d1.y - data.d1.y, d.d1.z - data.d1.z,
+      ]
+    },
+    track: (s) => {
+      const d = hermiteDataOf(s)
+      return Math.max(
+        vnorm(vsub(d.p0, data.p0)), vnorm(vsub(d.p1, data.p1)),
+        vnorm(vsub(d.d0, data.d0)), vnorm(vsub(d.d1, data.d1)),
+      )
+    },
+  }, options.iterations ?? 80)
+}
+
 /** Power of a point with respect to a sphere: ‖x−c‖² − ρ², the quantity the tests pin. */
 export function powerOfPoint(x: Vec3, centre: Vec3, radius: number): number {
   const d = vsub(x, centre)
