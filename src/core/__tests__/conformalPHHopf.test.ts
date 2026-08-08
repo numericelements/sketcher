@@ -47,12 +47,15 @@ import {
   curveAt,
   dragAlongLocus,
   dragControlPoint,
+  farinParameters,
   definingJacobian,
   hermiteDataOf,
   normalize,
   residual,
   shapeMeasures,
+  slideAlongFamily,
   unpack,
+  weights,
 } from '../conformalPHCurve'
 import { bernsteinToPower, hodograph, hopfForm } from '../conformalPHHopf'
 import { vadd, vnorm, vsub } from '../quaternion'
@@ -567,5 +570,59 @@ describe('slide 13 gestures', () => {
     for (const i of [0, 4]) expect(vnorm(vsub(after[i], before[i])), `end ${i}`).toBeLessThan(1e-7)
     // And P₁ IS allowed to answer here — that is the difference from strict mode.
     expect(vnorm(vsub(after[1], before[1])), 'P₁ responds in free mode').toBeGreaterThan(0)
+  }, 300000)
+})
+
+// ---------------------------------------------------------------------------
+// THE DIAL WITH FOUR POINTS PINNED IS A REPARAMETRISATION — Eric spotted it in the figure
+// ("the dial does not change the shape of the curve, it just moves the Farin points") and he is
+// right. Measured: the weights move by w_k ↦ λᵏ·w_k with a single λ = 3.4218 recovered to four
+// decimals from all four ratios, and the curve's IMAGE is unchanged to 2.6e-3 of its extent, which
+// is the sampling resolution. Points slide ALONG the curve, so samples at equal t move by 0.56 of
+// the extent while the curve itself does not move at all.
+//
+// It explains every earlier observation at a stroke: the control points cannot move because λᵏ
+// leaves them fixed; all the weights change; the wall is asymptotic because λ ranges over (0,∞);
+// and the "open arc that does not close projectively" is that half-line.
+//
+// SO THE FAMILY'S 13 DIMENSIONS INCLUDE THIS PARAMETER GAUGE. Geometric content is 12, and
+// pinning the four outer control points leaves ZERO genuine freedom — the frozen-polygon reading
+// was wrong, and the slide needs the C¹ HERMITE DATA pinned instead. λᵏ rescales p′(0) by λ
+// (since p′(0) = n(w₁/w₀)(P₁−P₀)), so pinning the data DOES fix λ, and the one dimension left
+// there is genuine shape: measured curve motion 6.9e-4 per unit against control-point motion
+// 1.3e-2, nonzero and rank 1 with a decisive gap.
+// ---------------------------------------------------------------------------
+
+describe('the four-points dial is the parameter gauge', () => {
+  it('moves the weights as λᵏ and leaves the curve where it was', () => {
+    const m = membersOf(4, 6).filter((c) => realRoots(c.C.map((x) => x[0])).length === 0)[0]
+    const dial = (s: ConformalPHCurve): number => farinParameters(s)[0]
+    let s = m
+    for (let k = 0; k < 20; k++) {
+      const step = slideAlongFamily(s, { pin: [0, 1, 3, 4], readout: dial, target: dial(m) + 0.3 })
+      if (!step.converged) break
+      s = step.state
+    }
+    expect(dial(s) - dial(m), 'the dial moved').toBeGreaterThan(0.1)
+
+    // A single λ explains every weight ratio — that IS the classical reparametrisation.
+    const before = weights(m), after = weights(s)
+    const ratio = after.map((v, k) => v / before[k])
+    const lambdas = ratio.slice(1).map((r, i) => Math.pow(r / ratio[0], 1 / (i + 1)))
+    for (const l of lambdas) expect(l / lambdas[0], 'one λ for every k').toBeCloseTo(1, 3)
+
+    // And the IMAGE is unchanged: every point of the new curve lies on the old one.
+    const ts = Array.from({ length: 61 }, (_, k) => k / 60)
+    // The REFERENCE curve is sampled far more finely than the test points: a nearest-neighbour
+    // distance cannot resolve below the reference's own spacing, and at 61 samples it read 0.022 —
+    // the grid, not the curve. At 401 it reads 2.6e-3.
+    const old = Array.from({ length: 401 }, (_, k) => curveAt(m, k / 400)!)
+    const extent = Math.max(...old.map((p) => vnorm(vsub(p, old[0]))))
+    let worst = 0
+    for (const t of ts) {
+      const q = curveAt(s, t)!
+      worst = Math.max(worst, Math.min(...old.map((p) => vnorm(vsub(q, p)))))
+    }
+    expect(worst / extent, 'the curve is the same set of points').toBeLessThan(0.02)
   }, 300000)
 })
