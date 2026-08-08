@@ -66,6 +66,25 @@ const tri = (v: Vec3): [number, number, number] => [v.x, v.y, v.z]
 
 type Mode = 'strict' | 'free'
 
+/**
+ * Slider ranges, computed ONCE from the starting member and never again.
+ *
+ * THE BUG THIS EXISTS TO PREVENT, because Eric diagnosed it from the feel: a slider whose
+ * min/max derive from the LIVE measured value chases the cursor. The range recenters as you
+ * drag, so the same value maps to a new pixel position and the thumb slides out from under the
+ * mouse — and because the step is rate-limited, the measured value lags the request and the
+ * thumb snaps back toward the middle as well. Fixed ranges, and a thumb that carries the
+ * REQUESTED value rather than the achieved one, remove both.
+ */
+const RANGES = (() => {
+  if (!START) return { radii: {} as Record<number, [number, number]>, length: [0, 1] as [number, number] }
+  const r = radii(START)
+  const entries: Record<number, [number, number]> = {}
+  for (const i of freeRadiusIndices(START)) entries[i] = [r[i] * 0.6, r[i] * 1.5]
+  const L = arcLength(START)
+  return { radii: entries, length: [L * 0.75, L * 1.35] as [number, number] }
+})()
+
 const BOUNDS = (() => {
   if (!START) {
     return { min: [-1.5, -1.5, -1.5] as [number, number, number], max: [1.5, 1.5, 1.5] as [number, number, number] }
@@ -86,6 +105,12 @@ export default function StrictFreeRationalFigure() {
   const [data, setData] = useState<HermiteData | null>(START ? hermiteDataOf(START) : null)
   const [grabbed, setGrabbed] = useState<string | null>(null)
   const [stalled, setStalled] = useState(false)
+  /**
+   * What each slider is ASKING for. The thumb shows this; the readouts show what was
+   * achieved. Keeping the two separate is what stops the thumb fighting the cursor, and it is
+   * also the honest arrangement — ask and achieve are different numbers and both are visible.
+   */
+  const [asked, setAsked] = useState<Record<string, number>>({})
 
   const cps = useMemo(() => (state ? controlPoints(state) : []), [state])
   const beads = useMemo(() => (state ? farinPoints(state) : []), [state])
@@ -115,15 +140,30 @@ export default function StrictFreeRationalFigure() {
     ) / scale
   }, [state, data, mode])
 
-  const ride = (coordinate: StrictCoordinate, target: number): void => {
+  /**
+   * Walk toward the requested value in several rate-limited steps. One step per event would
+   * lag the thumb badly; the rate limit is what keeps each solve well conditioned, so the
+   * answer is more steps rather than bigger ones.
+   */
+  const ride = (key: string, coordinate: StrictCoordinate, target: number): void => {
     if (!state || !data) return
-    const step = dragStrict(state, coordinate, target, { data })
-    if (step.converged) { setState(step.state); setStalled(false) } else setStalled(true)
+    setAsked((a) => ({ ...a, [key]: target }))
+    let current = state
+    let moved = false
+    for (let k = 0; k < 6; k++) {
+      const step = dragStrict(current, coordinate, target, { data })
+      if (!step.converged) break
+      current = step.state
+      moved = true
+      if (step.trackingError < 1e-6) break
+    }
+    if (moved) { setState(current); setStalled(false) } else setStalled(true)
   }
 
   const reset = (): void => {
     setState(START)
     setData(START ? hermiteDataOf(START) : null)
+    setAsked({})
     setGrabbed(null)
     setStalled(false)
   }
@@ -136,19 +176,27 @@ export default function StrictFreeRationalFigure() {
   const grabbable = (i: number): boolean =>
     mode === 'free' || i === 0 || i === 1 || i === DEGREE - 1 || i === DEGREE
 
-  const slider = (label: string, value: number, coordinate: StrictCoordinate, span: number): ReactElement => (
-    <label key={label} className="flex items-center gap-1">
-      <span className="text-slate-400">{label}</span>
+  /**
+   * A fixed-geometry slider: the range never moves, the thumb shows the REQUEST, and no live
+   * number sits on this line. The measured value goes in the readouts instead — a number
+   * whose width changes on a flex-wrap row can re-wrap it and physically move the control
+   * out from under the mouse, which is the other half of the escaping-slider bug.
+   */
+  const slider = (
+    key: string, label: string, measured: number,
+    coordinate: StrictCoordinate, range: [number, number],
+  ): ReactElement => (
+    <label key={key} className="flex items-center gap-1">
+      <span className="text-slate-400 w-14 text-right">{label}</span>
       <input
         type="range"
-        min={value * (1 - span)}
-        max={value * (1 + span)}
-        step={(value * span) / 40}
-        value={value}
-        onChange={(e) => ride(coordinate, Number(e.target.value))}
-        className="w-20"
+        min={range[0]}
+        max={range[1]}
+        step={(range[1] - range[0]) / 200}
+        value={asked[key] ?? measured}
+        onChange={(e) => ride(key, coordinate, Number(e.target.value))}
+        className="w-24"
       />
-      <span className="tabular-nums text-slate-500">{value.toFixed(3)}</span>
     </label>
   )
 
@@ -161,14 +209,20 @@ export default function StrictFreeRationalFigure() {
         'slide 7’s quintic left 2',
         'ρ₂, ρ₃, L coordinatize it',
       ]}
+      /* Every row is ALWAYS present, with a dash when it does not apply. A row that appears
+         and disappears mid-drag reflows the panel, which is the same class of problem as the
+         number that used to sit on the slider line. */
       readouts={[
         { label: 'on the family', value: defect.toExponential(1), tone: 'ok' as const },
-        ...(mode === 'strict'
-          ? [{ label: 'data drift', value: dataDrift.toExponential(1), tone: 'ok' as const }]
-          : []),
+        {
+          label: 'data drift',
+          value: mode === 'strict' ? dataDrift.toExponential(1) : '—',
+          tone: 'ok' as const,
+        },
+        ...free.map((i) => ({ label: `ρ${i}`, value: rho[i].toFixed(3) })),
         { label: 'arc length', value: length.toFixed(3) },
         { label: 'min W(t)', value: denominatorFloor(state).toFixed(3), tone: 'ok' as const },
-        ...(stalled ? [{ label: 'step', value: 'not reached' }] : []),
+        { label: 'step', value: stalled ? 'not reached' : '—' },
       ]}
       controls={
         <span className="flex items-center gap-3 flex-wrap">
@@ -176,7 +230,7 @@ export default function StrictFreeRationalFigure() {
             {(['strict', 'free'] as Mode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setData(hermiteDataOf(state)); setGrabbed(null) }}
+                onClick={() => { setMode(m); setData(hermiteDataOf(state)); setAsked({}); setGrabbed(null) }}
                 className={`px-2 py-[0.15em] ${mode === m ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
               >
                 {m}
@@ -184,9 +238,9 @@ export default function StrictFreeRationalFigure() {
             ))}
           </span>
           {mode === 'strict' && free.map((i) =>
-            slider(`ρ${i}`, rho[i], { kind: 'radius', index: i }, 0.35),
+            slider(`r${i}`, `ρ${i}`, rho[i], { kind: 'radius', index: i }, RANGES.radii[i]),
           )}
-          {mode === 'strict' && slider('arc length', length, { kind: 'length' }, 0.3)}
+          {mode === 'strict' && slider('len', 'arc length', length, { kind: 'length' }, RANGES.length)}
           <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
             reset
           </button>
