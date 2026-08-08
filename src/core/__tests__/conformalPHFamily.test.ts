@@ -23,9 +23,16 @@
 //     Möbius motions inside it             9       9       9       9
 //     genuine shape moduli                 2       4       6       8
 //
-//   · The Jacobian's rank is one LESS than the number of equations, at every n and every
-//     seed — so there is exactly one relation among the 4n conditions. Its algebraic origin
-//     is not identified here; the dimension is measured, not derived.
+//   · The Jacobian's rank is one LESS than the number of equations — and the reason is now
+//     identified (see the last describe block). It is not a dependency among the geometric
+//     conditions: h is over-parametrized by one degree. The null conditions force P's
+//     leading power coefficient pₙ to be a NULL vector, ⟨pₙ,pₙ⟩ = 0; the leading power
+//     coefficient of ⟨P′,P′⟩ is n²⟨pₙ,pₙ⟩, hence also zero; so ⟨P′,P′⟩ has degree ≤ 2n−3,
+//     and being a square it has EVEN degree, so ≤ 2n−4 — giving deg h ≤ n−2. Parametrizing
+//     h at degree n−1 therefore carries one coordinate pinned to zero, and because h enters
+//     quadratically the matching constraint combination equals h_top²/(n²A): it vanishes to
+//     SECOND order, so its gradient vanishes and the rank drops by exactly one. The
+//     dimension is unaffected — the extra unknown and the lost rank cancel in U − rank.
 //
 //   · A Möbius image of a polynomial PH curve has EVEN conformal degree, because the lift
 //     doubles. So odd degrees — degree 3 included — are unreachable by bending, and at
@@ -194,7 +201,7 @@ describe('the direct family in R^{4,1}: dimension', () => {
         const { rank, gap } = rankFromGap(sv)
         // The gap must be decisive, or the rank is not a measurement.
         expect(gap, `n=${n} seed=${seed} gap`).toBeGreaterThan(1e6)
-        // rank is one BELOW the equation count: exactly one relation among the conditions
+        // rank is one BELOW the equation count — the over-parametrized h, explained below
         expect(rank, `n=${n} seed=${seed} rank`).toBe(J.length - 1)
         // dim = (nullspace) − 1 for the (C,h) ↦ (λC,λh) rescaling, which is not a new curve
         expect(U - rank - 1, `n=${n} seed=${seed} dim`).toBe(EXPECTED[n])
@@ -269,5 +276,146 @@ describe('the direct family in R^{4,1}: dimension', () => {
       const fd = Math.hypot(...a.map((v, i) => (v - b[i]) / (2 * hStep)))
       expect(Math.abs(speed - fd) / fd, `speed at t=${t}`).toBeLessThan(1e-7)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// WHERE THE ONE RELATION COMES FROM — h carries one degree too many
+//
+// The Jacobian's rank is E−1, not E, and the left null vector says exactly why. Extracting
+// the LEADING POWER coefficient of a degree-N Bernstein polynomial is the functional
+// b ↦ Σ (−1)^m C(N,m) b_m, and the measured λ is precisely that functional on both blocks:
+//
+//     null block:  (−1)^m C(2n,   m) / A
+//     PH block:   −(−1)^m C(2n−2, m) / (n²A)
+//
+// so λ·F = ( a_{2n}[⟨P,P⟩] − a_{2n−2}[⟨P′,P′⟩ − h²] / n² ) / A. Writing P's leading power
+// coefficient as pₙ, those two leading coefficients are ⟨pₙ,pₙ⟩ and n²⟨pₙ,pₙ⟩ − h_top², so
+//
+//     λ·F = h_top² / (n² A)
+//
+// which is ZERO to SECOND order at every solution. A function vanishing to second order has
+// vanishing gradient, hence the rank drop — and it is one, not two, because there is one
+// such coordinate.
+//
+// The chain that pins h_top: ⟨P,P⟩ ≡ 0 forces ⟨pₙ,pₙ⟩ = 0, so ⟨P′,P′⟩ has degree ≤ 2n−3;
+// but it equals h², whose degree is EVEN, so ≤ 2n−4; so deg h ≤ n−2. Independently, from
+// p = q/w: ‖q′w − qw′‖ = h·w with deg(q′w − qw′) ≤ 2n−2 gives the same bound. So the
+// PARAMETRIC SPEED of these curves is ‖p′‖ = h/w with degrees (n−2)/n — for n = 3, degree
+// one over degree three.
+//
+// Nothing here changes the dimension: the redundant unknown and the lost rank cancel.
+// ---------------------------------------------------------------------------
+describe('the one relation: h is over-parametrized by one degree', () => {
+  const binom = (a: number, b: number): number => {
+    if (b < 0 || b > a) return 0
+    let c = 1
+    for (let i = 0; i < b; i++) c = (c * (a - i)) / (i + 1)
+    return c
+  }
+  /** one-sided Jacobi on Jᵀ, accumulating V, so the LEFT null vector of J is available */
+  const leftNull = (J: readonly (readonly number[])[]): number[] => {
+    const E = J.length, U = J[0].length
+    const A: number[][] = Array.from({ length: U }, (_, i) => Array.from({ length: E }, (_, j) => J[j][i]))
+    const V: number[][] = Array.from({ length: E }, (_, i) =>
+      Array.from({ length: E }, (_, j) => (i === j ? 1 : 0)))
+    for (let sweep = 0; sweep < 100; sweep++) {
+      let rotated = 0
+      for (let p = 0; p < E; p++) {
+        for (let q = p + 1; q < E; q++) {
+          let app = 0, aqq = 0, apq = 0
+          for (let i = 0; i < U; i++) { app += A[i][p] ** 2; aqq += A[i][q] ** 2; apq += A[i][p] * A[i][q] }
+          if (app === 0 || aqq === 0 || Math.abs(apq) <= 1e-18 * Math.sqrt(app * aqq)) continue
+          const z = (aqq - app) / (2 * apq)
+          const t = Math.sign(z) / (Math.abs(z) + Math.sqrt(1 + z * z))
+          const cs = 1 / Math.sqrt(1 + t * t), sn = cs * t
+          for (let i = 0; i < U; i++) { const a = A[i][p], b = A[i][q]; A[i][p] = cs*a-sn*b; A[i][q] = sn*a+cs*b }
+          for (let i = 0; i < E; i++) { const a = V[i][p], b = V[i][q]; V[i][p] = cs*a-sn*b; V[i][q] = sn*a+cs*b }
+          rotated++
+        }
+      }
+      if (rotated === 0) break
+    }
+    const norms = Array.from({ length: E }, (_, k) => Math.hypot(...A.map((r) => r[k])))
+    const idx = norms.indexOf(Math.min(...norms))
+    return V.map((r) => r[idx])
+  }
+
+  for (const n of [3, 4, 5, 6]) {
+    it(`n=${n}: λ IS the leading-coefficient functional, scaled by 1/n² on the PH block`, () => {
+      let x: number[] | null = null
+      for (let seed = 0; seed < 14 && !x; seed++) x = findMember(n, seed)
+      expect(x, `n=${n}: a member`).not.toBeNull()
+      const found = x as number[]
+      const C = asC(found, n)
+      const h = found.slice(5 * (n + 1))
+
+      // (a) P's leading POWER coefficient is a NULL vector — forced by ⟨P,P⟩ ≡ 0
+      const pTop = Array.from({ length: 5 }, (_, c) =>
+        C.reduce((s, ck, m) => s + (-1) ** (n - m) * binom(n, m) * (ck as unknown as number[])[c], 0))
+      const pScale = Math.max(...pTop.map(Math.abs))
+      const pp = innerProduct(pTop as unknown as Conformal, pTop as unknown as Conformal)
+      expect(Math.abs(pp) / (pScale * pScale), `n=${n} ⟨pₙ,pₙ⟩`).toBeLessThan(1e-8)
+
+      // (b) so h's leading power coefficient is PINNED TO ZERO. It converges only to about
+      // √(solver tolerance) — 1e-7…1e-9 against a 1e-14 residual — which is itself the
+      // signature of a quantity that vanishes to SECOND order rather than first.
+      const hTop = h.reduce((s, v, m) => s + (-1) ** (n - 1 - m) * binom(n - 1, m) * v, 0)
+      expect(Math.abs(hTop) / Math.max(...h.map(Math.abs)), `n=${n} h_top`).toBeLessThan(1e-5)
+
+      // (c) and the left null vector is the leading-coefficient functional on each block,
+      // with the PH block weighted by exactly −1/n². This is the relation, identified.
+      //
+      // Read it as the RATIO of λ to the pattern (−1)^m C(N,m): that ratio must be one
+      // constant across the null block and another across the PH block, and the second
+      // must be −1/n² times the first. (Comparing raw signs at the two peaks would be
+      // wrong — the peaks sit at m=n and m=n−1, whose parities differ, so the explicit
+      // minus in the PH block is cancelled by the parity and the two peak values come out
+      // with the SAME sign. The signed ratio is the invariant statement.)
+      const lam = leftNull(jacobianOf(found, n))
+      const EN = 2 * n + 1
+      const alphas = Array.from({ length: 2 * n + 1 }, (_, m) =>
+        lam[m] / ((-1) ** m * binom(2 * n, m)))
+      const betas = Array.from({ length: 2 * n - 1 }, (_, m) =>
+        lam[EN + m] / ((-1) ** m * binom(2 * n - 2, m)))
+      const alpha = alphas[n], beta = betas[n - 1]
+      for (const [label, arr, ref] of [['null', alphas, alpha], ['PH', betas, beta]] as const) {
+        for (let m = 0; m < arr.length; m++) {
+          expect(Math.abs(arr[m] / ref - 1), `n=${n} ${label} block shape at m=${m}`)
+            .toBeLessThan(2e-3)
+        }
+      }
+      // THE NUMBER: the PH block's weight relative to the null block's is exactly −1/n².
+      expect(beta / alpha, `n=${n} PH/null weight`).toBeCloseTo(-1 / (n * n), 5)
+    })
+  }
+
+  it('so the parametric speed is h/w with degrees (n−2)/n, not (n−1)/n', () => {
+    // The structural consequence, checked by fitting: for n=3, ‖p′‖·w is LINEAR in t.
+    const n = 3
+    let x: number[] | null = null
+    for (let seed = 0; seed < 14 && !x; seed++) x = findMember(n, seed)
+    const C = asC(x as number[], n)
+    const D = derivativeCoefficients(C)
+    const ev = (K: readonly Conformal[], t: number): number[] => {
+      let p = K.map((c) => [...(c as unknown as number[])])
+      while (p.length > 1) {
+        const nx: number[][] = []
+        for (let i = 0; i < p.length - 1; i++) nx.push(p[i].map((v, j) => (1 - t) * v + t * p[i + 1][j]))
+        p = nx
+      }
+      return p[0]
+    }
+    // h(t) = √⟨P′,P′⟩ sampled; second differences of a LINEAR function vanish
+    const N = 9
+    const ys = Array.from({ length: N }, (_, k) => {
+      const t = k / (N - 1)
+      const Pp = ev(D, t) as unknown as Conformal
+      return Math.sqrt(Math.abs(innerProduct(Pp, Pp)))
+    })
+    const scale = Math.max(...ys)
+    let d = ys.slice()
+    for (let round = 0; round < 2; round++) d = d.slice(1).map((v, i) => v - d[i])
+    expect(Math.max(...d.map(Math.abs)) / scale, 'h is linear for n=3').toBeLessThan(1e-6)
   })
 })
