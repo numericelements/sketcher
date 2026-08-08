@@ -40,7 +40,7 @@ import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import RmErfFigure from './RmErfFigure'
 import RmErfSplineFigure from './RmErfSplineFigure'
 import MobiusFigure from './MobiusFigure'
-import RationalPHCubicFigure from './RationalPHCubicFigure'
+import RationalPHCurveFigure from './RationalPHCurveFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -456,7 +456,7 @@ export const slides: SlideDefinition[] = [
       <>
         <h2>Or build it there in the first place</h2>
         <WhenActive>
-          <RationalPHCubicFigure />
+          <RationalPHCurveFigure />
         </WhenActive>
       </>
     ),
@@ -464,8 +464,20 @@ export const slides: SlideDefinition[] = [
       'THE POINT OF THIS SLIDE, against the previous one: nothing was bent. The control points are ' +
       'placed directly in the conformal model, and this curve is NOT reachable by any Mobius ' +
       'transformation of a polynomial PH curve — the lift doubles the degree, so a Mobius image always ' +
-      'has EVEN conformal degree, and degree 3 is unreachable. Degree 3 is where the smallest genuinely ' +
-      'rational PH curves live. ' +
+      'has EVEN conformal degree, and the odd ones are unreachable by bending. ' +
+      'WHY DEGREE 5 AND NOT 3, and say this if anyone asks why not start smaller — it is a result, not ' +
+      'a preference. Four coefficients span at most a 4-dimensional subspace of R^{4,1}, so a vector S ' +
+      'is left orthogonal to all of them, and <P(x),S> = 0 confines every point of the curve to the ' +
+      'single sphere S. Measured, the span collapses further to rank 3 (sigma = 2.2, 1.5, 1.1, 6e-9), ' +
+      'which meets the null cone in a CIRCLE: flat to 1e-9, curvature spread 0.000. And it stays a ' +
+      'circle with the PH conditions REMOVED, so the null condition is doing it, not PH. The count ' +
+      'closes: null-only degree 3 is 13-dimensional = 6 for the circle in R^3 plus 7 for the degree-3 ' +
+      'rational maps onto it, and PH cuts 13 to 11 — so PH does not choose the shape there at all, only ' +
+      'how the circle is traversed. Degree 4 and up have no such confinement. ' +
+      'AND THE FIRST VERSION OF THIS FIGURE WAS DEGREE 3. It drew a circular arc under a caption about ' +
+      'general rational PH cubics, because findMember guarded radii, weights, span and the denominator ' +
+      'and NOT planarity — in a module whose own header carries the septic planar-trap warning. Eric ' +
+      'asked whether the curve was staying in a plane. It was. ' +
       'THE DEFINITION IS TWO CONDITIONS AND NOTHING ELSE: P is NULL, so it is a curve of points, and ' +
       '<P\u2032,P\u2032> is a PERFECT SQUARE, which is what PH means here. That second one is the find — ' +
       'the exact analogue of "|A|\u00b2 is a polynomial" in the Hopf form, but stated with no ' +
@@ -484,27 +496,29 @@ export const slides: SlideDefinition[] = [
       'overall scale. All three at the midpoints would mean polynomial, so the rationality is visibly ' +
       'how far off-centre they sit; a bead leaving its segment would mean a negative weight ratio. Same ' +
       'visual language as the sketcher\u2019s complex rational B-splines. ' +
-      'THE COST OF PH, and this is the number to say out loud: an ordinary rational cubic has 15 ' +
-      'degrees of freedom, the PH ones have 11 — measured two independent ways, as the rank of the ' +
-      'conformal system and as 15 minus the four conditions for ||q\u2032w-qw\u2032|| to be a ' +
-      'polynomial. PH is CODIMENSION 4. So a rational cubic built by placing points and weights is ' +
-      'essentially never PH, and nothing moves alone: drag a point and the weights answer. ' +
+      'THE COST OF PH, at degree 3 where the elementary count is easy to state: an ordinary rational ' +
+      'cubic has 15 degrees of freedom and the PH ones 11 — measured two independent ways, as the rank ' +
+      'of the conformal system and as 15 minus the four conditions for ||q\u2032w-qw\u2032|| to be a ' +
+      'polynomial. CODIMENSION 4. So nothing moves alone here either: drag a point and the weights ' +
+      'answer, which is what the beads make visible. ' +
+      'THE MIDDLE RADII ARE THE REASON FOR DEGREE 5 rather than just more moduli. b_1 = <C_0,C_1> and ' +
+      'b_{2n-1} = <C_{n-1},C_n> hold at EVERY degree, so the OUTER spheres always grip the endpoints ' +
+      'and are drawn from the polygon. At degree 3 that is all of them, so the spheres carry no ' +
+      'handles. From degree 5 on the middle radii are pinned to nothing — real freedom, with their own ' +
+      'handles, and the sphere picture becomes load-bearing instead of derived. ' +
       'WHY DIRECT BEATS BENDING, if anyone asks whether this is just slide 10 again: the family has ' +
       'dimension 2n+5, of which 9 are Mobius MOTIONS, so 2n-4 genuine shape moduli. At conformal ' +
       'degree 6, where the two constructions finally meet, direct is 17-dimensional against the Mobius ' +
       'orbit\u2019s measured 13 — 8 shape moduli against 4, twice as many. ' +
-      'BE HONEST ABOUT DEGREE 3 THOUGH: only 2 of its 11 dimensions change the shape, so much of what a ' +
-      'drag does here is MOVE the curve rather than reshape it. Pinning the ends freezes most of the ' +
-      'motions, which is why they are pinned. Diversity needs higher degree, and the counting says by ' +
-      'how much. ' +
+      'THE SHAPE BUDGET HERE: 15 dimensions, 9 Mobius motions, 6 shape moduli — three times degree 3. ' +
+      'Pinning the ends freezes most of the motions, which is why they are pinned. ' +
       'THE TRAP, if the figure ever looks collapsed: the family has a large degenerate stratum, and ' +
       'unguarded solves land on it — interior radii collapsing to 1e-3, weights going negative, the ' +
       'curve spanning a hundredth of its polygon. The mechanism is in the dictionary: as rho_1 goes to ' +
       'zero, P1 falls onto P0 and the cross condition drags P0 onto S2. Same shape of trap as the ' +
       'septic\u2019s planar locus, hence the guards in findMember. ' +
-      'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w with h LINEAR and w cubic. That degree drop is where ' +
-      'the one rank deficiency in the system came from, and it is pinned. ' +
-      'core/conformalPHCubic (13 tests), conformalPHFamily (10), conformal (28). Drag tracks the cursor ' +
-      'to 1e-16 with the defining conditions at 1e-13.',
+      'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w, so h is CUBIC here and w is quintic. That degree drop ' +
+      'is where the one rank deficiency in the system came from, and it is pinned. ' +
+      'core/conformalPHCurve (22 tests), conformalPHFamily (10), conformal (28).',
   },
 ]

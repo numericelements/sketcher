@@ -1,23 +1,31 @@
 // ============================================================================
-// SLIDE 11 — a rational PH curve built where Möbius transformations are linear, and
-// nothing bent to make it.
+// SLIDE 11 — a rational PH curve built where Möbius transformations are linear, and nothing
+// bent to make it. DEGREE 5, and the degree matters.
 //
 // The previous slide bent a polynomial curve. This one never has one: the control points are
 // placed directly in the conformal model, so this is a rational PH curve that NO Möbius
-// transformation of a polynomial one can produce — the conformal lift doubles the degree, so
-// a Möbius image always has EVEN conformal degree, and degree 3 is unreachable by bending.
+// transformation of a polynomial one can produce — the conformal lift doubles the degree, so a
+// Möbius image always has EVEN conformal degree, and the odd ones are unreachable by bending.
+//
+// WHY NOT DEGREE 3, WHICH WAS THE FIRST VERSION OF THIS FIGURE. Four coefficients span at most
+// a 4-dimensional subspace of R⁵, so a vector S is left orthogonal to all of them and
+// ⟨P(x),S⟩ = 0 confines the curve to a single sphere. Measured, the span collapses further to
+// rank 3 and the curve is a CIRCULAR ARC — flat to 1e-9, curvature spread 0.000 — and it stays
+// one with the PH conditions removed, so it is the null condition doing it. That version
+// shipped, drawn under a caption about general rational PH cubics, until Eric asked whether the
+// curve was staying in a plane. Degree 5 is the first degree the figure can honestly use.
 //
 // AND YET NOTHING FIVE-DIMENSIONAL IS DRAWN. A conformal vector's five coordinates are
 // weight + centre + radius (the ∞-component is fixed by the null condition), so:
 //
-//   · the four SPHERE CENTRES are the ordinary rational-Bézier control points;
+//   · the six SPHERE CENTRES are the ordinary rational-Bézier control points;
 //   · the two end spheres have radius ZERO — the ends are point-spheres;
-//   · and the two interior radii are DETERMINED: ρ₁ = ‖P₁−P₀‖, ρ₂ = ‖P₂−P₃‖, verified to
-//     1e-9. So each sphere is drawn from the polygon, with nothing stored.
-//
-// That last fact is why the figure can show both pictures at once and neither is a
-// translation of the other: the spheres GRIP THE TWO ENDPOINTS, and PH-ness is a statement
-// about how they relate to each other and to the chord.
+//   · the OUTER two radii are DETERMINED — ρ₁ = ‖P₁−P₀‖ and ρ₄ = ‖P₄−P₅‖, verified to 1e-8 —
+//     so those spheres GRIP the endpoints and are drawn from the polygon;
+//   · but the MIDDLE two, ρ₂ and ρ₃, are genuine extra freedom, pinned to nothing. They get
+//     their own handles, and they are the reason degree 5 is a better figure than degree 3
+//     rather than merely a bigger one: at degree 3 every radius is determined, so the spheres
+//     are a reveal with no controls attached.
 //
 // THE WEIGHTS ARE FARIN BEADS, one per leg — and the count is exact, since degree 3 has three
 // legs and three weight ratios after the overall scale. A bead at its leg's midpoint means
@@ -25,45 +33,40 @@
 // rationality is visible as how far off-centre they sit. A bead leaving its segment would
 // mean a weight ratio went negative.
 //
-// WHAT EDITING COSTS. An ordinary rational cubic has 15 degrees of freedom; the PH ones have
-// 11, measured — so PH is CODIMENSION 4 and a rational cubic you build by placing points and
-// weights is essentially never PH. You cannot move anything alone: four of the sixteen
-// numbers are spoken for, and dragging a point makes the weights answer, which is exactly
-// what the beads make visible.
-//
-// The budget is thin on paper — 11, less 6 for the pinned ends, less 3 for the cursor, leaves
-// 2 — and it works anyway: measured tracking 1e-16 with the defining conditions at 1e-13.
-//
-// ONE HONEST WARNING ON THE SLIDE. Of the 11 dimensions, 9 are Möbius MOTIONS and only 2
-// change the shape, so a lot of what a drag does here is move the curve rather than reshape
-// it. Pinning the ends helps, by freezing most of the motions. Shape diversity needs higher
-// degree, and the counting says so: 2n−4 moduli.
+// WHAT EDITING COSTS. The degree-5 family is 15-dimensional, of which 9 are Möbius MOTIONS,
+// leaving 6 genuine shape moduli — three times what degree 3 offers. Nothing moves alone: the
+// defining conditions couple the centres, the weights and the radii, so dragging a point makes
+// the weights answer, which is exactly what the beads make visible.
 //
 // r3f cannot be verified headlessly, so this file holds NO mathematics — only marks and
-// gestures. core/conformalPHCubic (13 tests), core/conformalPHFamily (10), core/conformal (28).
+// gestures. core/conformalPHCurve (22 tests), core/conformalPHFamily (10), core/conformal (28).
 // ============================================================================
 import { useMemo, useState } from 'react'
 import type { Vec3 } from '../../core/quaternion'
 import { vadd, vcross, vnorm, vscale, vsub } from '../../core/quaternion'
 import {
-  type ConformalPHCubic,
+  type ConformalPHCurve,
   controlPoints,
   curveAt,
   denominatorFloor,
   dragControlPoint,
   dragFarin,
+  dragRadius,
   farinParameters,
   farinPoints,
   findMember,
+  freeRadiusIndices,
   measuredSpeed,
   radii,
   residual,
+  shapeMeasures,
   speedAt,
-} from '../../core/conformalPHCubic'
+} from '../../core/conformalPHCurve'
 import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
-const START = findMember()
+const DEGREE = 5
+const START = findMember(DEGREE)
 const CURVE_SAMPLES = 120
 const RING_SAMPLES = 48
 
@@ -98,7 +101,7 @@ const BOUNDS = (() => {
   const pts = [...controlPoints(START)]
   const r = radii(START)
   // include the spheres, or a big one leaves the frame
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k <= DEGREE; k++) {
     if (r[k] > 0) {
       for (const s of [-1, 1]) {
         pts.push({ x: pts[k].x + s * r[k], y: pts[k].y + s * r[k], z: pts[k].z + s * r[k] })
@@ -113,9 +116,9 @@ const BOUNDS = (() => {
   }
 })()
 
-export default function RationalPHCubicFigure() {
-  const [state, setState] = useState<ConformalPHCubic | null>(START)
-  const [grabbed, setGrabbed] = useState<{ kind: 'point' | 'farin'; index: number } | null>(null)
+export default function RationalPHCurveFigure() {
+  const [state, setState] = useState<ConformalPHCurve | null>(START)
+  const [grabbed, setGrabbed] = useState<{ kind: 'point' | 'farin' | 'radius'; index: number } | null>(null)
   const [stalled, setStalled] = useState(false)
 
   const cps = useMemo(() => (state ? controlPoints(state) : []), [state])
@@ -133,10 +136,25 @@ export default function RationalPHCubicFigure() {
     return out
   }, [state])
 
+  const free = useMemo(() => (state ? freeRadiusIndices(state) : []), [state])
+
+  /** Every sphere with a real radius: the two gripping the ends, and the free middle ones. */
   const rings = useMemo(
-    () => (state ? [1, 2].flatMap((k) => greatCircles(cps[k], rho[k])) : []),
-    [state, cps, rho],
+    () =>
+      state
+        ? cps.flatMap((c, k) =>
+            greatCircles(c, rho[k]).map((ring) => ({ ring, free: free.includes(k) })))
+        : [],
+    [state, cps, rho, free],
   )
+
+  /** One handle per FREE radius, placed on its sphere so it can be dragged in or out. */
+  const radiusHandles = useMemo(
+    () => free.map((k) => ({ index: k, at: { x: cps[k].x + rho[k], y: cps[k].y, z: cps[k].z } })),
+    [free, cps, rho],
+  )
+
+  const shape = useMemo(() => (state ? shapeMeasures(state) : { outOfPlane: 0, curvatureSpread: 0 }), [state])
 
   /** The PH claim, measured on the curve rather than read off h. */
   const speedError = useMemo(() => {
@@ -179,22 +197,24 @@ export default function RationalPHCubicFigure() {
       bounds={BOUNDS}
       base={{ width: 900, height: 430 }}
       notation={[
-        'P(t) = Σ Cₖ Bₖ(t) in R^{4,1}',
+        'P(t) = Σ Cₖ Bₖ(t) in R^{4,1}, n = 5',
         '⟨P,P⟩ ≡ 0 and ⟨P′,P′⟩ = h²',
-        'ρ₁ = ‖P₁−P₀‖, ρ₂ = ‖P₂−P₃‖',
+        'ρ₁ = ‖P₁−P₀‖, ρ₄ = ‖P₄−P₅‖',
       ]}
       readouts={[
         { label: 'on the family', value: defect.toExponential(1), tone: 'ok' as const },
         { label: 'PH: |h/w| vs |p′|', value: speedError.toExponential(1), tone: 'ok' as const },
-        { label: 'dim', value: '11 of 15 — PH costs 4' },
+        { label: 'dim', value: '15 — 9 motions, 6 shape' },
         { label: 'beads off centre', value: offCentre.toFixed(3) },
+        { label: 'out of plane', value: shape.outOfPlane.toFixed(3), tone: 'ok' as const },
+        { label: 'κ spread', value: shape.curvatureSpread.toFixed(3), tone: 'ok' as const },
         { label: 'min W(t)', value: denominatorFloor(state).toFixed(3), tone: 'ok' as const },
         ...(stalled ? [{ label: 'step', value: 'not reached' }] : []),
       ]}
       controls={
         <span className="flex items-center gap-3 flex-wrap">
           <span className="text-slate-400">
-            drag a control point, or slide a bead along its leg
+            drag a control point, slide a bead along its leg, or pull a sphere’s radius handle
           </span>
           <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
             reset
@@ -206,24 +226,29 @@ export default function RationalPHCubicFigure() {
           <b>Nothing was bent to make this one.</b> The control points sit directly in the space where
           Möbius transformations are linear, and <i>no</i> Möbius image of a polynomial PH curve can be
           this curve — the conformal lift doubles the degree, so a bent curve always has{' '}
-          <b>even</b> conformal degree, and degree three is out of reach. Yet nothing
-          five-dimensional is drawn: a conformal vector’s coordinates <i>are</i> weight, centre and
-          radius, so the four centres are the ordinary control points, the two ends have radius{' '}
-          <b>zero</b>, and the two interior radii are <b>determined</b> —{' '}
-          <i>ρ₁ = ‖P₁−P₀‖</i>, <i>ρ₂ = ‖P₂−P₃‖</i>. The spheres <b>grip the endpoints</b>, and being
-          PH is a statement about how they stand to each other and to the chord. The beads on the legs
-          are the <b>weights</b>: three legs, three ratios, so all three at the midpoints would mean
-          polynomial — the rationality is how far off-centre they sit.{' '}
+          <b>even</b> conformal degree. Yet nothing five-dimensional is drawn: a conformal vector’s
+          coordinates <i>are</i> weight, centre and radius, so the six centres are the ordinary
+          control points and the ends have radius <b>zero</b>. The two <b>outer</b> spheres are
+          determined — <i>ρ₁ = ‖P₁−P₀‖</i>, <i>ρ₄ = ‖P₄−P₅‖</i> — so they <b>grip the endpoints</b>;
+          the two <b>middle</b> radii are pinned to nothing and carry their own handles. The beads on
+          the legs are the <b>weights</b>: five legs, five ratios, so all five at the midpoints would
+          mean polynomial — the rationality is how far off-centre they sit.{' '}
           <span className="text-slate-400">
-            An ordinary rational cubic has 15 degrees of freedom and the PH ones have 11, so nothing
-            moves alone: drag a point and the weights answer. Drag the background to rotate.
+            Degree 5 and not 3: four coefficients cannot span enough of R^{'{4,1}'} to leave a sphere,
+            so a degree-3 curve here is a circular arc — with or without the PH condition. Of the 15
+            dimensions, 9 are Möbius motions and 6 change the shape. Drag the background to rotate.
           </span>
         </>
       }
     >
       {/* the spheres, as great circles so they do not bury the curve */}
-      {rings.map((ring, i) => (
-        <Curve3D key={`ring${i}`} points={ring} color={FIG.color.controlPolygon} width={1} />
+      {rings.map(({ ring, free: isFree }, i) => (
+        <Curve3D
+          key={`ring${i}`}
+          points={ring}
+          color={isFree ? FIG.color.derived : FIG.color.controlPolygon}
+          width={isFree ? 1.3 : 1}
+        />
       ))}
 
       <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
@@ -254,8 +279,24 @@ export default function RationalPHCubicFigure() {
         ) : null,
       )}
 
-      {/* the four control points: the ends are the curve's own endpoints, the middle two are
-          the sphere centres */}
+      {/* the FREE radii — the freedom degree 3 does not have */}
+      {radiusHandles.map(({ index, at }) => (
+        <DragPoint3D
+          key={`rad${index}`}
+          position={tri(at)}
+          color={grabbed?.kind === 'radius' && grabbed.index === index ? FIG.color.dataPointDrag : FIG.color.derived}
+          radius={0.032}
+          onDragStart={() => { setGrabbed({ kind: 'radius', index }); setStalled(false) }}
+          onDragEnd={() => setGrabbed(null)}
+          onDrag={([x, y, z]) => {
+            const want = vnorm(vsub({ x, y, z }, cps[index]))
+            const step = dragRadius(state, index, want)
+            if (step.converged) { setState(step.state); setStalled(false) } else setStalled(true)
+          }}
+        />
+      ))}
+
+      {/* the control points: the ends are the curve's own endpoints, the others are sphere centres */}
       {cps.map((p, i) => (
         <DragPoint3D
           key={`cp${i}`}
@@ -263,7 +304,7 @@ export default function RationalPHCubicFigure() {
           color={
             grabbed?.kind === 'point' && grabbed.index === i
               ? FIG.color.dataPointDrag
-              : grabbed !== null && (i === 0 || i === 3)
+              : grabbed !== null && (i === 0 || i === DEGREE)
                 ? FIG.color.pinned
                 : FIG.color.dataPoint
           }
@@ -278,7 +319,7 @@ export default function RationalPHCubicFigure() {
       ))}
 
       {/* the endpoints again, marked so it is clear they are the curve's ends and radius-zero */}
-      {[0, 3].map((i) => (
+      {[0, DEGREE].map((i) => (
         <Point3D key={`end${i}`} position={tri(cps[i])} color={FIG.color.pinned} radius={0.016} />
       ))}
     </Figure3D>
