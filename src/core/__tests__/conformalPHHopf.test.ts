@@ -47,6 +47,7 @@ import {
   hermiteDataOf,
   normalize,
   residual,
+  shapeMeasures,
   unpack,
 } from '../conformalPHCurve'
 import { bernsteinToPower, hodograph, hopfForm } from '../conformalPHHopf'
@@ -282,9 +283,38 @@ describe('the Hopf form', () => {
   }, 300000)
 })
 
-describe('what a degree-6 figure would offer', () => {
-  it('the C¹-Hermite-pinned family has FIVE dimensions at degree 6, not three', () => {
-    const m = membersOf(6, 1)[0]
+// ---------------------------------------------------------------------------
+// WHAT THE EVEN DEGREES ACTUALLY OFFER — the two candidates for a figure.
+//
+//     conformal degree 4:  family 13,  ONE dimension once the C¹ data is pinned
+//     conformal degree 6:  family 17,  FIVE dimensions
+//
+// AND DEGREE 4 IS THE STRONGER SLIDE, for a reason that has nothing to do with dimension counts.
+// The conformal lift DOUBLES the degree, so a Möbius image of a polynomial PH curve of degree d
+// lands at conformal degree 2d. Conformal degree 4 therefore comes from a polynomial PH
+// QUADRATIC — and a PH quadratic is a straight line (‖p′‖ = |at+b| forces p′ = (at+b)·u with u
+// constant). So at conformal degree 4 the bend-a-polynomial construction can only ever produce
+// CIRCLES AND LINES, while the direct construction gives 13 dimensions of genuinely spatial
+// curves. Measured here: curvature spread 0.44…0.84 where a circle is 0, out-of-plane up to 0.09,
+// and no best-fit sphere. That is the whole argument for working in R^{4,1} at the smallest
+// degree where it can be made, and it is sharper than degree 6's "17 against 13".
+// ---------------------------------------------------------------------------
+
+describe('what the even degrees offer', () => {
+  it('degree 4 is not a circle, and not confined to a plane either', () => {
+    const members = membersOf(4, 6).filter((m) => realRoots(m.C.map((c) => c[0])).length === 0)
+    expect(members.length, 'irreducible degree-4 members').toBeGreaterThanOrEqual(4)
+    const shapes = members.map(shapeMeasures)
+    // A circle has curvature spread 0 exactly. Every member is far from that — this is the check
+    // that degree 4 is NOT the degree-3 story one rung up.
+    for (const s of shapes) expect(s.curvatureSpread, 'curvature spread').toBeGreaterThan(0.3)
+    // And at least one member is genuinely out of plane. Individually they can be nearly planar
+    // (measured down to 9e-4), so the claim is about the FAMILY, not about every member.
+    expect(Math.max(...shapes.map((s) => s.outOfPlane)), 'best out-of-plane').toBeGreaterThan(0.03)
+  }, 300000)
+
+  it.each([[4, 1], [6, 5]])('degree %i leaves %i dimensions once the C¹ data is pinned', (n, want) => {
+    const m = membersOf(n, 6).filter((c) => realRoots(c.C.map((x) => x[0])).length === 0)[0]
     const data = hermiteDataOf(m)
     const rows = (s: ConformalPHCurve): number[] => {
       const d = hermiteDataOf(s)
@@ -315,8 +345,10 @@ describe('what a degree-6 figure would offer', () => {
       if (ratio > gap) { gap = ratio; rank = k }
     }
     expect(gap, 'the rank gap must be decisive').toBeGreaterThan(1e5)
-    // Family 17, less 12 for the data, is 5; and one nullspace direction is the (C,h) ↦ (λC,λh)
+    // Family 2n+5, less 12 for the data; and one nullspace direction is the (C,h) ↦ (λC,λh)
     // rescale, which is not a new curve. Degree 5 gave 3 — of a curve that was really a quartic.
-    expect(U - rank - 1).toBe(5)
+    // Degree 4's ONE is the rational analogue of the polynomial cubic's single angle: whether it
+    // CLOSES into a circle is a separate question and is not measured here.
+    expect(U - rank - 1).toBe(want)
   }, 300000)
 })
