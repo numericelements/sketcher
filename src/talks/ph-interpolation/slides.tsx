@@ -41,6 +41,7 @@ import RmErfFigure from './RmErfFigure'
 import RmErfSplineFigure from './RmErfSplineFigure'
 import MobiusFigure from './MobiusFigure'
 import RationalPHCurveFigure from './RationalPHCurveFigure'
+import RationalPHQuarticFigure from './RationalPHQuarticFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import WhenActive from '../framework/slideContext'
 
@@ -566,5 +567,57 @@ export const slides: SlideDefinition[] = [
       'to move it. ' +
       'FREE releases everything but the ends: 9 dimensions, and the Farin beads come back. ' +
       'core/conformalPHCurve, 32 tests.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 13 — degree 4: the smallest genuinely-new rational case, and the frozen polygon
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Freeze the polygon; the family survives</h2>
+        <WhenActive>
+          <RationalPHQuarticFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'DEGREE 4, AND THE PREVIOUS TWO SLIDES ARE QUARTICS TOO — they just do not say so. Nullity is a ' +
+      'POLYNOMIAL identity, |q|^2 = 2 w c_inf, so at any real root of w the numerator vanishes as well ' +
+      'and (t-r) divides q, w and h alike. A real polynomial of ODD degree always has a real root, and ' +
+      'deg w = n. So EVERY degree-5 member is a quartic in a quintic polygon. Measured across degrees ' +
+      '3, 5, 7: exactly ONE real root of w every time, with q vanishing there to 1e-7. Degree 6: none, ' +
+      'five members of five. Degree 4: none in three of five, TWO in the other two — reducible by two ' +
+      'degrees, which is what an even degree allows. This figure guards against it and the readout shows ' +
+      'the count. AND THE DEGREE-3 CIRCLE IS A COROLLARY: a cubic member is (t-r) times a quadratic, a ' +
+      'rational quadratic is a conic, and PH makes it a circle. ' +
+      'WHY THIS IS THE STRONGEST SLIDE FOR THE CONFORMAL MODEL. The lift DOUBLES the degree, so a ' +
+      'Mobius image of a polynomial PH curve of degree d lands at conformal degree 2d. Conformal 4 comes ' +
+      'from a polynomial PH QUADRATIC, and a PH quadratic is a straight LINE: |p′| = |at+b| forces ' +
+      'p′ = (at+b) u with u constant. So at this degree bending a polynomial can produce ONLY circles ' +
+      'and lines, while building directly gives 13 dimensions of spatial curves — measured here at ' +
+      'curvature spread 0.39 and out-of-plane 0.05. That is a QUALITATIVE gap, sharper than degree 6’s ' +
+      '17-against-13, and it lands two degrees earlier. ' +
+      'THE STRICT DIAL IS A WEIGHT DIAL, and that was a surprise. Holding the four outer control points ' +
+      'is 12 conditions on 13, leaving ONE — and it cannot move the middle point. Measured: project each ' +
+      'of the three "push P2 this way" directions onto the nullspace of the defining rows plus the four ' +
+      'pins and all three return the SAME tangent, as a one-dimensional family must, carrying |dP2| = ' +
+      '1e-6 against |d| = 1 while every WEIGHT moves by 0.1 to 0.5. So the entire 3D polygon is frozen — ' +
+      'verified, every point moving by 1e-15 — and a one-parameter family of distinct rational PH curves ' +
+      'still runs through it. The POLYNOMIAL curve through that polygon is the single member with every ' +
+      'bead at its midpoint: that is the sentence to say out loud. ' +
+      'WHERE IT ENDS. The weights run to a degeneration: w_0, w_1 and w_4 all go to zero relative to ' +
+      'w_2, so the beads pin to the ends of their legs. Traced two ways — in the w_0 = 1 chart the other ' +
+      'weights blow up to 3e3; on the unit sphere ||(C,h)|| = 1, where blowing up is impossible by ' +
+      'construction, the path still converges to a boundary instead of passing through, so the ' +
+      'projective escape hatch is closed and the family is an open ARC rather than a circle. The wall is ' +
+      'asymptotic: 16000 continuation steps without arriving, so the slider slows to a stop. ' +
+      'IF ASKED WHY NOT A DRAG ON THE MIDDLE POINT: three failed attempts are in the doc comment of ' +
+      'dragAlongLocus. Prescribing one cursor component makes the count exact, 13 for 13, and an exactly ' +
+      'determined solve has nothing spare to hold membership with — it hit its target to 5e-13 with a ' +
+      'defining residual of 7e-4. That is the forbidden direction, satisfying what is displayed by ' +
+      'abandoning what is enforced. ' +
+      'core/conformalPHHopf (19 tests), conformalPHCurve, conformalPHFamily, conformal.',
   },
 ]

@@ -248,6 +248,8 @@ export function definingJacobian(s: ConformalPHCurve): number[][] {
 // ---------------------------------------------------------------------------
 
 export interface MemberGuards {
+  /** Reject members whose denominator has a real root — see denominatorRealRoots. */
+  readonly irreducible?: boolean
   /** Smallest interior radius, as a fraction of the chord ‖P₀−Pₙ‖. */
   readonly minRadiusRatio?: number
   /** All weights must exceed this fraction of the largest, and share its sign. */
@@ -380,6 +382,9 @@ export function findMember(degree = 5, guards: MemberGuards = {}): ConformalPHCu
     }
     if (span < minSpanRatio * chord) continue
     if (denominatorFloor(s) <= 0) continue
+    // A real root of w means the member is a lower-degree curve wearing this degree's polygon
+    // (the parity theorem). Unavoidable at odd degree, avoidable at even, so it is opt-in.
+    if (guards.irreducible && denominatorRealRoots(s) > 0) continue
     const shape = shapeMeasures(s)
     if (shape.outOfPlane < minOutOfPlane) continue
     if (shape.curvatureSpread < minCurvatureSpread) continue
@@ -1023,6 +1028,96 @@ export function moveToData(
         vnorm(vsub(d.d0, data.d0)), vnorm(vsub(d.d1, data.d1)),
       )
     },
+  }, options.iterations ?? 80)
+}
+
+
+/**
+ * How many real roots the denominator has, found by bracketing sign changes on [−100,100] and
+ * bisecting — all in the Bernstein basis, never through the power basis.
+ *
+ * NONZERO MEANS THE CURVE IS SECRETLY OF LOWER DEGREE. Nullity forces ‖q‖² = 2w·c∞, so at a real
+ * root of w the numerator vanishes too and (t−r) divides q, w and h alike (the parity theorem
+ * below). At odd degree this is unavoidable; at even degree it is a stratum to stay off, which is
+ * what findMember's `irreducible` guard is for.
+ */
+export function denominatorRealRoots(s: ConformalPHCurve): number {
+  const w = s.C.map((c) => c[0])
+  let count = 0
+  for (let k = -2000; k < 2000; k++) {
+    if (scalarAt(w, k / 20) * scalarAt(w, (k + 1) / 20) <= 0) count++
+  }
+  return count
+}
+
+/**
+ * Slide along a family that the pins have cut down to a CURVE, driven by one scalar readout.
+ *
+ * The same predictor–corrector as dragAlongLocus and for the same reason (see its comment): the
+ * pins plus a prescribed readout would be exactly determined, and an exactly determined solve has
+ * nothing spare to hold membership with. So the readout's ambient gradient is projected onto the
+ * nullspace of the constraint Jacobian — that projection IS the family's tangent, since the family
+ * is one-dimensional — the step is scaled to deliver the asked-for change, and the corrector then
+ * cleans up with the pins as its only extra rows.
+ *
+ * Rate-limited: `maxStep` caps how much of the readout one call may deliver, so a slider event that
+ * jumps cannot hand the predictor a leap it lands nowhere useful from.
+ */
+export function slideAlongFamily(
+  from: ConformalPHCurve,
+  options: {
+    pin: readonly number[]
+    readout: (s: ConformalPHCurve) => number
+    target: number
+    maxStep?: number
+    iterations?: number
+  },
+): DragResult {
+  const { pin, readout, target } = options
+  const before = controlPoints(from)
+  const current = readout(from)
+  const still: DragResult = {
+    state: from, converged: true, defect: Math.max(...residual(from).map(Math.abs)),
+    trackingError: Math.abs(target - current),
+  }
+  if (!Number.isFinite(current) || Math.abs(target - current) < 1e-12) return { ...still, trackingError: 0 }
+
+  const U = unknownCount(degreeOf(from))
+  const pinRows = (t: ConformalPHCurve): number[] => {
+    const P = controlPoints(t)
+    return pin.flatMap((i) => [P[i].x - before[i].x, P[i].y - before[i].y, P[i].z - before[i].z])
+  }
+  const x = pack(from)
+  const base = definingJacobian(from)
+  const J = base.map((r) => r.slice())
+  const rowCount = pinRows(from).length
+  for (let e = 0; e < rowCount; e++) J.push(new Array(U).fill(0))
+  const grad = new Array(U).fill(0)
+  const eps = 1e-7
+  for (let c = 0; c < U; c++) {
+    const xp = x.slice(); xp[c] += eps
+    const xm = x.slice(); xm[c] -= eps
+    const sp = unpack(xp), sm = unpack(xm)
+    const rp = pinRows(sp), rm = pinRows(sm)
+    for (let e = 0; e < rowCount; e++) J[base.length + e][c] = (rp[e] - rm[e]) / (2 * eps)
+    grad[c] = (readout(sp) - readout(sm)) / (2 * eps)
+  }
+  let delta: number[]
+  try {
+    const Jg = J.map((row) => row.reduce((acc, v, i) => acc + v * grad[i], 0))
+    const correction = leastSquares(J, Jg, 1e-11)
+    delta = grad.map((v, i) => v - correction[i])
+  } catch { return still }
+
+  const rate = delta.reduce((acc, v, i) => acc + v * grad[i], 0)
+  if (!(Math.abs(rate) > 1e-12 * Math.hypot(...delta))) return still
+  const asked = target - current
+  const limit = (options.maxStep ?? 0.05) * Math.max(Math.abs(current), 1e-3)
+  const step = Math.sign(asked) * Math.min(Math.abs(asked), limit)
+  const predicted = unpack(x.map((v, i) => v + (step / rate) * delta[i]))
+  return solveWith(predicted, {
+    rows: pinRows,
+    track: (t) => Math.abs(readout(t) - target),
   }, options.iterations ?? 80)
 }
 
