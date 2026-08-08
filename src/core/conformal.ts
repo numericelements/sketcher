@@ -1,0 +1,144 @@
+// ============================================================================
+// THE CONFORMAL MODEL OF R³ — where Möbius transformations become LINEAR.
+//
+// The same device as homogeneous coordinates, one level up. Points of R³ are represented
+// as NULL VECTORS in a five-dimensional space carrying a signature-(4,1) inner product,
+// in the basis { o, e₁, e₂, e₃, ∞ }:
+//
+//     P(x) = o + x + ½‖x‖²∞          ⟨A,B⟩ = a·b − (a_o b_∞ + a_∞ b_o)
+//
+// Three facts make it worth the extra coordinate:
+//
+//   1. ⟨P(x), P(y)⟩ = −½‖x − y‖²  —  DISTANCE IS AN INNER PRODUCT. So the maps preserving
+//      the inner product, O(4,1), are exactly the Möbius transformations of R³ ∪ ∞.
+//      Angles survive because inner products do; distances do not, because null vectors
+//      have arbitrary scale.
+//
+//   2. A sphere and a plane are the SAME KIND OF OBJECT — one vector — which is why
+//      Möbius maps interchange them. The sphere of centre c and radius ρ is
+//      S = P(c) − ½ρ²∞, with ⟨S,S⟩ = ρ².
+//
+//   3. INVERSION IS A REFLECTION in that vector, X ↦ X − 2⟨X,S⟩S/⟨S,S⟩ — a constant 5×5
+//      matrix. (That is also why the normalized differential in core/phMobius came out as
+//      a Householder reflection of R³: it is the shadow of this five-dimensional one.)
+//
+// AND THE PROJECTIVE MODEL SITS INSIDE IT. Recovering the point is
+//
+//     x = (a₁, a₂, a₃)/a_o
+//
+// which is plain de-homogenization: a_o is the weight and (a₁,a₂,a₃) the weighted point,
+// exactly as in a rational Bézier. The fifth coordinate is DETERMINED by the null
+// condition and carries no freedom. So there is no conversion to write — the first four
+// conformal coordinates ARE ordinary rational homogeneous coordinates.
+//
+// THE DEGREE LAW. A real rational curve of degree n with homogeneous coordinates (p : p_o)
+// lifts to the POLYNOMIAL null 5-vector
+//
+//     P̃ = ( 2p_o² , 2p_o·p , ‖p‖² )        degree 2n, null identically
+//
+// so the lift DOUBLES the degree, and a Möbius transformation — a constant matrix —
+// preserves it. Projecting therefore gives degree ≤ 2n, which is exactly the 7 → 14
+// doubling measured three independent ways in core/phMobius (via ‖r−c‖², via the generator
+// law, and here).
+//
+// AND IT SAYS WHEN THE DEGREE DOES NOT RISE: a map raises it only if it MOVES ∞.
+// Similarities fix ∞ and stay within the old degree; the inversive transformations move it
+// and double. Measured: translation leaves ∞ exactly fixed, every inversion displaces it.
+// That is the same split the Lie-sphere lab makes when it groups its generators.
+//
+// (The 2D shadow of all this is the familiar "a complex rational curve of degree n is a
+// real rational one of degree 2n". CP¹ IS the conformal model of the plane, so that
+// doubling is this doubling, and the Möbius-invariance of complex rational curves is not a
+// property of complex numbers but of the conformal lift.)
+//
+// ONE CAUTION. The null condition means lifted control points are not free — they lie on a
+// quadric cone, so any direct manipulation would have to project back onto it after every
+// move. This representation is a computational device for linearising Möbius, not a UI.
+// ============================================================================
+import { type Vec3, vnorm, vsub } from './quaternion'
+
+/** A vector of the conformal model, in the basis { o, e₁, e₂, e₃, ∞ }. */
+export type Conformal = readonly [number, number, number, number, number]
+
+/** ⟨A,B⟩ for the signature-(4,1) form. */
+export function innerProduct(a: Conformal, b: Conformal): number {
+  return a[1] * b[1] + a[2] * b[2] + a[3] * b[3] - (a[0] * b[4] + a[4] * b[0])
+}
+
+/** P(x) = o + x + ½‖x‖²∞ — a null vector. */
+export function lift(x: Vec3): Conformal {
+  return [1, x.x, x.y, x.z, 0.5 * (x.x * x.x + x.y * x.y + x.z * x.z)]
+}
+
+/**
+ * The polynomial lift of a RATIONAL point (p : p_o): P̃ = (2p_o², 2p_o·p, ‖p‖²).
+ * Null identically, and of twice the degree — the degree law above.
+ */
+export function liftHomogeneous(p: Vec3, weight: number): Conformal {
+  const n2 = p.x * p.x + p.y * p.y + p.z * p.z
+  return [2 * weight * weight, 2 * weight * p.x, 2 * weight * p.y, 2 * weight * p.z, n2]
+}
+
+/** x = (a₁,a₂,a₃)/a_o — plain de-homogenization. Null at a_o = 0, i.e. the point ∞. */
+export function project(a: Conformal): Vec3 | null {
+  if (a[0] === 0) return null
+  return { x: a[1] / a[0], y: a[2] / a[0], z: a[3] / a[0] }
+}
+
+/** The sphere of centre c and radius ρ: S = P(c) − ½ρ²∞, with ⟨S,S⟩ = ρ². */
+export function sphereVector(centre: Vec3, radius: number): Conformal {
+  return [
+    1, centre.x, centre.y, centre.z,
+    0.5 * (centre.x * centre.x + centre.y * centre.y + centre.z * centre.z - radius * radius),
+  ]
+}
+
+/** Reflection in a vector — and for a sphere vector, that IS inversion in the sphere. */
+export function reflectIn(X: Conformal, S: Conformal): Conformal | null {
+  const denom = innerProduct(S, S)
+  if (denom === 0) return null
+  const k = (2 * innerProduct(X, S)) / denom
+  return [X[0] - k * S[0], X[1] - k * S[1], X[2] - k * S[2], X[3] - k * S[3], X[4] - k * S[4]]
+}
+
+/** Translation as a linear map on conformal vectors — a similarity, so it fixes ∞. */
+export function translate(X: Conformal, t: Vec3): Conformal {
+  const n2 = t.x * t.x + t.y * t.y + t.z * t.z
+  return [
+    X[0],
+    X[1] + X[0] * t.x,
+    X[2] + X[0] * t.y,
+    X[3] + X[0] * t.z,
+    X[4] + X[1] * t.x + X[2] * t.y + X[3] * t.z + 0.5 * n2 * X[0],
+  ]
+}
+
+export const POINT_AT_INFINITY: Conformal = [0, 0, 0, 0, 1]
+
+/**
+ * THE DEGREE CRITERION: how far a map displaces ∞.
+ *
+ * Zero means the map is a similarity and the projected degree is unchanged; nonzero means
+ * it is genuinely inversive and the degree doubles. This is the honest way to ask "will
+ * this transformation raise my degree", and it is one line rather than a degree fit.
+ */
+export function infinityDisplacement(apply: (X: Conformal) => Conformal | null): number {
+  const image = apply(POINT_AT_INFINITY)
+  if (!image) return NaN
+  return Math.max(Math.abs(image[0]), Math.abs(image[1]), Math.abs(image[2]), Math.abs(image[3]))
+}
+
+/** How far from null a vector is, relative to its size — the quadric-cone check. */
+export function nullDefect(a: Conformal): number {
+  const scale = Math.max(...a.map(Math.abs))
+  if (scale === 0) return 0
+  return Math.abs(innerProduct(a, a)) / (scale * scale)
+}
+
+/** Distance recovered from the inner product — the identity that makes the model work. */
+export function distanceFromInnerProduct(a: Conformal, b: Conformal): number {
+  return Math.sqrt(Math.max(0, -2 * innerProduct(a, b)))
+}
+
+/** Convenience for tests and callers: the Euclidean distance, for comparison. */
+export const euclideanDistance = (x: Vec3, y: Vec3): number => vnorm(vsub(x, y))
