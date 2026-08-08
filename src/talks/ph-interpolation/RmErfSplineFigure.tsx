@@ -1,9 +1,9 @@
 // ============================================================================
-// SLIDE 10 — the same frame along a whole spline, and locality MEASURED rather than
+// SLIDE 9 — the same frame along a whole spline, and locality MEASURED rather than
 // promised.
 //
 // Slide 9 put a rotation-minimizing frame on ONE degree-7 Bézier and the editing felt
-// excellent. Slide 8 put exact locality on a C² PH quintic spline and the editing did
+// excellent. The windowed scheme put exact locality on a C² PH quintic spline and the editing did
 // not: three spare parameters moving ten control points, with far control points
 // travelling up to 4.4× further than the one in your hand. So this slide takes slide 9's
 // mechanism and scales it to a spline by dropping the window entirely:
@@ -15,7 +15,7 @@
 // cases 1.68 (n=2), 1.61 (n=3), 2.40 (n=4), 1.52 (n=6), 1.58 (n=8), with the mean at
 // 1.06–1.11 throughout — so the figure reports the number for the size it actually ships
 // rather than a general claim. At the shipped n=2: 15 control points, worst amplification
-// 1.68, mean 1.08, no failures on any of the fifteen. Compare slide 8's hard window at
+// 1.68, mean 1.08, no failures on any of the fifteen. Compare the hard window at
 // W=3: 4.44. Nothing here moves much more than the point you hold, and THAT is what
 // predictable means — proportionality, not locality.
 //
@@ -182,13 +182,13 @@ export default function RmErfSplineFigure() {
       caption={
         <>
           <b>The same untwisting frame, now across a joint — and nothing amplifies.</b>{' '}
-          Slide 8 bought <i>exact</i> locality on a spline and paid for it: far control points
+          A hard window buys <i>exact</i> locality on a spline and pays for it: far control points
           travelled up to <b>4.4×</b> further than the one being dragged. Here there is{' '}
           <b>no window at all</b> — both segments may move, the two end points are held, and minimum
           norm spends what is left. So there is <b>no locality guarantee</b>, and at this size
           scarcely any locality — the change reaches the whole curve. What you get instead is{' '}
           <b>proportionality</b> — measured amplification <b>1.68×</b> worst,{' '}
-          <b>1.08×</b> on average, against slide 8’s 4.4. Nothing moves much more than the point in
+          <b>1.08×</b> on average, against the hard window’s 4.4. Nothing moves much more than the point in
           your hand, which is what makes it feel controllable — the readouts measure both as you
           drag.{' '}
           <span className="text-slate-400">

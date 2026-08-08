@@ -37,7 +37,6 @@ import PinnedEndsFigure from './PinnedEndsFigure'
 import QuinticHermiteFigure from './QuinticHermiteFigure'
 import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
-import LocalEditFigure from './LocalEditFigure'
 import RmErfFigure from './RmErfFigure'
 import RmErfSplineFigure from './RmErfSplineFigure'
 import WhenActive from '../framework/slideContext'
@@ -266,59 +265,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 8 — local editing: the window width is the dial
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Editing one point of a PH spline — and what locality costs</h2>
-        <WhenActive>
-          <LocalEditFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'ONE GESTURE, ONE LESSON: no toggle, no slider. Drag any control point; three segments move, as ' +
-      'little as they can, and C² holds. ' +
-      'THE CONTRAST TO OPEN WITH: an ordinary C² cubic B-spline gives locality for NOTHING — displace ' +
-      'one control point, four spans change, C² maintained. A PH spline does not. ' +
-      'THE PUBLISHED RESULT (Farouki–Giannelli–Sestini, Adv. Comput. Math. 42 (2016) 199–225, the B-form ' +
-      'paper): for a PLANAR C² PH quintic spline the two-segment support CANNOT preserve C². Holding the ' +
-      'neighbours fixed leaves ONE complex unknown against TWO complex equations, so "the continuity ' +
-      'between modified and unmodified segments must be relaxed from C² to C¹." Note this is the deck\'s ' +
-      'own trichotomy: more conditions than dimensions, generically empty, an obstruction — and relaxing ' +
-      'C² makes it square (two quadratics in two complex variables, hence branches). ' +
-      'OUR RESULT: that relaxation is the cost of the WINDOW WIDTH, not of the PH structure. ' +
-      'Widen by one segment and C² returns. Measured, both dimensions: keep C² needs W=3 in space and ' +
-      'W=4 in the plane; relax to C¹ needs W=2 in both, which reproduces the published scheme and is the ' +
-      'check that the model is right. ' +
-      'SO SPACE IS THE CHEAPER PLACE TO EDIT — a NARROWER window than the plane. Per segment the plane ' +
-      'offers 6 unknowns against 4 conditions per joint, space 12 against 6. ' +
-      'AND THEY ARE FEASIBLE DIFFERENTLY: the plane at W=4 is exactly square (24 unknowns, 24 equations) ' +
-      'so finitely many edits and NO slack, while space at W=3 has THREE genuinely shape-changing ' +
-      'parameters once the three per-segment gauges are quotiented out (kernel 6, gauge 3, verified — ' +
-      '|J·g| ~ 1e-10 for each segment). Space gives a family where the plane gives a count: the deck\'s ' +
-      'central move, in editing rather than interpolation. ' +
-      'The three spare parameters are spent by MINIMUM NORM and need no code — a ridge-regularised ' +
-      'Gauss–Newton step on an underdetermined system IS the minimum-norm step. They are also where ' +
-      'curvature-extrema control would live, which is the NEXT slide. ' +
-      'THERE IS NO MAXIMUM DRAG DISTANCE. A single solve attempting the whole displacement diverges past ' +
-      '~3 units — a basin-of-attraction limit, a solver artifact. Dragged incrementally the point travels ' +
-      'past 30 units in every direction tested, >10x the curve\'s extent, σ ≈ 1 (no cusp). The PH ' +
-      'structure does not bound the gesture; only invariants you choose to impose do. ' +
-      'EVERY POINT DRAGS, ends included: a boundary condition exists only to protect a NEIGHBOUR, so a ' +
-      'window reaching the start imposes nothing on its left and the start tangent is free — which is ' +
-      'the point of dragging P₁. The end POINTS are boundary data and move only when they are the ' +
-      'handle, or min-norm drifts P₀ whenever you nudge P₁. ' +
-      'READ THE READOUTS ALOUD: "outside" is the MEASURED displacement of every control point beyond ' +
-      'the window (machine zero — locality proved, not claimed), and "C² defect" the worst r″ mismatch ' +
-      'across all seven joints. ' +
-      'docs/PH_LOCAL_EDITING.md; core/phSpatialSpline, 19 tests.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 9 — a frame that does not twist, and survives editing
+  // 8 — a frame that does not twist, and survives editing
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -375,7 +322,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 10 — the same frame along a whole spline; locality measured, not promised
+  // 9 — the same frame along a whole spline; locality measured, not promised
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -388,8 +335,9 @@ export const slides: SlideDefinition[] = [
       </>
     ),
     notes:
-      'Slide 9 put a rotation-minimizing frame on ONE degree-7 Bézier and the editing felt excellent. ' +
-      'Slide 8 put EXACT locality on a C² PH quintic spline and the editing did not: three spare ' +
+      'The previous slide put a rotation-minimizing frame on ONE degree-7 Bézier and the editing felt ' +
+      'excellent. The WINDOWED alternative — exact locality on a C² PH quintic spline, kept in ' +
+      'docs/PH_LOCAL_EDITING.md and core/phSpatialSpline rather than on a slide — did not: three spare ' +
       'parameters moving ten control points, with far control points travelling up to 4.4x further than ' +
       'the one in your hand. So this slide takes slide 9\'s mechanism to a spline by DROPPING THE ' +
       'WINDOW: 16n+3 unknowns against 11n+3 conditions with n gauges leaves 4n spare, about 0.59 per ' +
@@ -398,7 +346,7 @@ export const slides: SlideDefinition[] = [
       '1.68 (n=2), 1.61 (n=3), 2.40 (n=4), 1.52 (n=6), 1.58 (n=8), mean 1.06–1.11 throughout — so ' +
       'quote the SHIPPED size\'s own number, not a general claim. At the shipped n=2: 15 control ' +
       'points, worst 1.68, mean 1.08, no failures on any of the fifteen, against slide 8\'s 4.44 at ' +
-      'W=3. Nothing moves much more than the point you hold; THAT is what predictable means. ' +
+      'W=3 with a hard window. Nothing moves much more than the point you hold; THAT is what predictable means. ' +
       'FIFTEEN CONTROL POINTS WAS A DELIBERATE CHOICE, after 43 proved to be more handles than anyone ' +
       'can hold in mind — Eric\'s own reading of slide 8, and the reason this figure shrank. ' +
       'AND AT THIS SIZE LOCALITY IS SIMPLY ABSENT — say so plainly rather than hide it. Two segments, ' +
@@ -413,8 +361,9 @@ export const slides: SlideDefinition[] = [
       'length, so arc length is the frame\'s own parameter and the honest sampling for showing twist. ' +
       'It shows: σ varies about 2.4x along a member here, so parameter-uniform stations crowd at the ' +
       'slow end. Slide 9 is spaced the same way. ' +
-      'So the pair of slides is a genuine trade, not a progression: slide 8 has a guarantee and a bad ' +
-      'feel, slide 10 has a good feel and no guarantee. The window width is what you pay with. ' +
+      'So the two approaches are a genuine trade, not a progression: the windowed scheme has a guarantee ' +
+      'and a bad feel, this one has a good feel and no guarantee. The window width is what you pay ' +
+      'with, and the whole table is in docs/PH_LOCAL_EDITING.md. ' +
       'CONSTRUCTION, worth telling if asked, because two attempts failed by MEASUREMENT: (1) continuity ' +
       'lives in the GENERATOR — a C¹ cubic generator spline makes the curve C² for free, so the ' +
       'projection only satisfies the 5n class conditions. Building segment by segment instead, ' +
@@ -424,7 +373,7 @@ export const slides: SlideDefinition[] = [
       'smooth seed, no better than 0.121 across six seed families). The fix is to USE THE SLACK, ~25 ' +
       'spare dimensions at n=6, and climb planarity along the class\'s own tangent space. (3) But ' +
       'climbing planarity drives |A| DOWN toward a cusp — the same small-|A| attraction that made a ' +
-      'geometric drag metric fail on slide 8 — so the ascent stops at a speed floor. ' +
+      'geometric drag metric fail on the windowed spline — so the ascent stops at a speed floor. ' +
       'A BUG WORTH TELLING, because Eric found it by dragging and the readouts were blind to it: the ' +
       'FRAME can jump at a joint while the CURVE stays perfectly C². The joint condition ' +
       'sandwich(A_k[3]) = sandwich(A_{k+1}[0]) is GAUGE-INVARIANT, so it ties the two generators only ' +

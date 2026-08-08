@@ -1,5 +1,15 @@
 // ============================================================================
-// SLIDE 8 — local editing of a C² spatial PH spline. One gesture, one lesson.
+// PARKED — not currently in the deck.
+//
+// This was the windowed local-editing slide. It is kept because the approach is a real
+// alternative and the figure works; it came out because its editing FEEL was poor, which
+// the measurements explain: three spare parameters moving ten control points, and
+// amplification up to 4.4× (far control points travelling further than the one in your
+// hand). The result it demonstrated — that the C²→C¹ relaxation is a consequence of the
+// window WIDTH, not of the PH structure — survives in docs/PH_LOCAL_EDITING.md and in
+// core/phSpatialSpline with 22 tests. Restoring it is one import and one slide entry.
+//
+// local editing of a C² spatial PH spline. One gesture, one lesson.
 //
 // No mode toggle, no slider. Grab any control point and drag it: THREE segments
 // move, as little as they can, and C² holds everywhere. That is the whole figure.

@@ -2,26 +2,26 @@
 // C² SPLINES OF DEGREE-7 RM-ERF SEGMENTS — a rotation-minimizing frame along a
 // whole curve, edited with no locality guarantee and no window.
 //
-// WHY NO WINDOW. Slide 8 buys EXACT locality on a C² PH quintic spline and pays for it
+// WHY NO WINDOW. The windowed scheme (core/phSpatialSpline) buys EXACT locality on a C²
+// PH quintic spline and pays for it
 // in stiffness: the window's C² walls eat the freedom, leaving three spare parameters
-// to move ten control points, and the measured amplification reaches 4.4×. Slide 9's
+// to move ten control points, and the measured amplification reaches 4.4×. A single
 // single Bézier has no locality at all and feels excellent — four spare over six points.
 // The feel tracks that ratio, so this module drops the window entirely and pins only the
-// two END POINTS, exactly as slide 9 does:
+// two END POINTS, as the single-curve module does:
 //
 //     unknowns    16n + 3
 //     conditions  5n (class) + 6(n−1) (C² joints) + 3 + 3 (ends) + 3 (cursor) = 11n + 3
 //     gauge       n  (one per segment; every residual here is gauge-invariant)
 //     spare       4n
 //
-// which is a ratio of about 0.59 spare per movable control point FOR ANY n — essentially
-// slide 9's. (An earlier note of mine warned that RM-ERF on a spline would be too stiff;
+// which is a ratio of about 0.59 spare per movable control point FOR ANY n — essentially the
+// single curve's. (An earlier note of mine warned that RM-ERF on a spline would be too stiff;
 // that count was for a WINDOWED edit, where the window edges cost twelve extra
 // conditions. Without a window the arithmetic is completely different.)
 //
 // So locality here is not promised — it is MEASURED. `reach` reports how many segments
-// actually moved, and the figure ghosts the pre-drag curve so the affected span is
-// visible rather than asserted.
+// actually moved, and the figure shows the amplification and reach live.
 //
 // CONSTRUCTION PUTS THE CONTINUITY IN THE GENERATOR. Make A(t) a C¹ cubic spline and the
 // curve is C² for free, so the projection only has to satisfy the 5n class conditions and
@@ -32,7 +32,7 @@
 // and the fact that climbing out of it drives |A| toward a cusp).
 //
 // A NOTE ON THE B-SPLINE FORM. Degree 7 meeting with C² needs interior knots of
-// multiplicity 5. We work in Bézier-segment form, as slide 8's module does; the knot
+// multiplicity 5. We work in Bézier-segment form, as core/phSpatialSpline does; the knot
 // structure matters for export to a CAD system, not for the mathematics here.
 // ============================================================================
 import { leastSquares } from './linalg'
@@ -375,7 +375,7 @@ function solveDamped(
  *
  * 3. BUT CLIMBING PLANARITY DRIVES |A| DOWN. Unguarded, the ascent reaches planarity
  *    0.525 and drags min σ to 0.075 — the same small-|A| attraction that made a geometric
- *    drag metric fail on slide 8. So the ascent stops when the speed floor is reached.
+ *    drag metric fail on the windowed spline. So the ascent stops at the speed floor.
  *    Measured trade: floor 0.5 → planarity 0.12 (no gain); floor 0.35 → 0.22; floor 0.2
  *    → 0.26. The default sits at the knee.
  *
@@ -521,7 +521,7 @@ const unpack = (x: readonly number[], n: number): SepticSpline => ({
  * Drag one control point of the whole spline. No window: every segment may move, and
  * the minimum-norm step spends the freedom, so the change decays away from the cursor
  * rather than stopping at a wall. The two END POINTS are held — whichever is not the
- * one being dragged — which is what stops the curve sliding bodily (slide 9's lesson).
+ * one being dragged — which is what stops the curve sliding bodily.
  *
  * Warm-started; the class and C² conditions are HARD, never penalties.
  */

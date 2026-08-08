@@ -1,5 +1,5 @@
 // ============================================================================
-// SLIDE 9 — a curve whose natural frame does not twist, and you can edit it.
+// SLIDE 8 — a curve whose natural frame does not twist, and you can edit it.
 //
 // One degree-7 PH curve, always inside the RM-ERF class. Two ways to move it, the same
 // pair as slides 4 and 6:
