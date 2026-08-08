@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest'
 import { type Vec3, vnorm, vsub } from '../quaternion'
 import { controlPoints as septicControlPoints, curveAt, findClassMember } from '../phSpatialSeptic'
+import { controlPoints as cubicControlPoints, speedAt as cubicSpeedAt } from '../phSpatialCubic'
 import { type Sphere, invert } from '../phMobius'
 import {
   type Conformal,
@@ -378,5 +379,125 @@ describe('the pole is the singularity, not a small weight', () => {
     // about the one transformation that actually breaks the curve. It measures the
     // polygon's drawability, not the curve's.
     expect(minAbsWeight(rb) / Math.max(Math.abs(worst), 1e-300)).toBeGreaterThan(1e12)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// THE PH CONDITION, STATED IN THE CONFORMAL MODEL
+//
+// The Hopf/quaternion form says a curve is PH when |A|² is a polynomial. The conformal
+// model has its own version of that statement, and it needs no coordinates, no quaternions
+// and no choice of origin — only the (4,1) metric:
+//
+//     ‖p′‖² = ⟨P′,P′⟩ / w²        w = P₀, the weight
+//
+//     the curve is PH  ⟺  ⟨P′,P′⟩ is a PERFECT SQUARE
+//
+// WHY. Because ⟨P(x),P(y)⟩ = −½‖x−y‖², the polarized product ⟨P(t),P(s)⟩ vanishes to
+// SECOND order on the diagonal — ⟨P,P⟩ ≡ 0 kills the constant term and ⟨P,P′⟩ = ½(⟨P,P⟩)′
+// kills the linear one. Expanding to second order and using ⟨P,P″⟩ = −⟨P′,P′⟩ gives the
+// identity above. So the "speed numerator" of a rational curve is an inner product of the
+// conformal derivative with itself — which is exactly the shape of a PH condition.
+//
+// AND IT MEASURES THE MÖBIUS ROUTE'S LIMIT. For an image of a POLYNOMIAL PH curve,
+// √⟨P′,P′⟩ = ρ²σ — the square root is the SOURCE's σ, of the source's degree, because the
+// bend contributes only to the weight. So the Möbius orbit is confined to the stratum
+// where the root has low degree, while a general null curve of the same degree has a
+// root of higher degree. Working directly with control points in R^{4,1} therefore reaches
+// rational PH curves that no bending of a low-degree polynomial one can produce.
+// ---------------------------------------------------------------------------
+describe('the PH condition in the conformal model', () => {
+  /** A genuine polynomial PH cubic — the control points COMPUTED, not rounded, or it
+   *  is not a PH curve and the whole test is measuring the wrong thing. */
+  const PH_CUBIC = {
+    A0: { u: 1.05, v: 0.22, p: -0.31, q: 0.14 },
+    A1: { u: 0.82, v: -0.44, p: 0.51, q: 0.62 },
+    p0: V(-0.9, -0.3, 0.1),
+  }
+  const CUBIC_CPS = cubicControlPoints(PH_CUBIC)
+  const evalC = (C: readonly number[][], t: number): number[] => {
+    let p = C.map((c) => [...c])
+    while (p.length > 1) {
+      const next: number[][] = []
+      for (let i = 0; i < p.length - 1; i++) next.push(p[i].map((v, k) => (1 - t) * v + t * p[i + 1][k]))
+      p = next
+    }
+    return p[0]
+  }
+  const derivCoeffs = (C: readonly number[][]): number[][] => {
+    const n = C.length - 1
+    return Array.from({ length: n }, (_, k) => C[k + 1].map((v, i) => n * (v - C[k][i])))
+  }
+  const ipn = (a: number[], b: number[]): number =>
+    innerProduct(a as unknown as Conformal, b as unknown as Conformal)
+  const sigmaAt = (t: number): number => cubicSpeedAt(PH_CUBIC, t)
+
+  it('THE IDENTITY ‖p′‖² = ⟨P′,P′⟩/w², on a Möbius image (so w is not constant)', () => {
+    const M = matrixExp5(inversiveBendGenerator(V(0.6, -0.35, 0.25)))
+    const C = conformalLiftBezier(CUBIC_CPS).map((c) => applyMatrix(M, c) as unknown as number[])
+    const D = derivCoeffs(C)
+    const mu = pointMap(M)
+    for (const t of [0.15, 0.4, 0.6, 0.85]) {
+      const P = evalC(C, t)
+      const predicted = ipn(evalC(D, t), evalC(D, t)) / (P[0] * P[0])
+      // measured straight off the image curve, by central difference of μ∘r
+      const h = 1e-5
+      const r = (s: number): Vec3 => {
+        let pts = CUBIC_CPS.map((p) => ({ ...p }))
+        while (pts.length > 1) {
+          const nx: Vec3[] = []
+          for (let i = 0; i < pts.length - 1; i++) {
+            nx.push({ x: pts[i].x * (1 - s) + pts[i + 1].x * s, y: pts[i].y * (1 - s) + pts[i + 1].y * s,
+                      z: pts[i].z * (1 - s) + pts[i + 1].z * s })
+          }
+          pts = nx
+        }
+        return pts[0]
+      }
+      const a = mu(r(t + h)) as Vec3, b = mu(r(t - h)) as Vec3
+      const d = { x: (a.x - b.x) / (2 * h), y: (a.y - b.y) / (2 * h), z: (a.z - b.z) / (2 * h) }
+      const actual = d.x * d.x + d.y * d.y + d.z * d.z
+      expect(Math.abs(predicted - actual) / actual, `t=${t}`).toBeLessThan(1e-8)
+    }
+  })
+
+  it('and for the image of a PH curve the ROOT is the SOURCE\'s σ — the orbit\'s ceiling', () => {
+    // √⟨P′,P′⟩ = ρ²σ, degree 2 here, NOT the degree a general degree-6 null curve allows.
+    // This is the measured reason the direct construction in R^{4,1} is strictly richer.
+    const M = matrixExp5(inversiveBendGenerator(V(0.6, -0.35, 0.25)))
+    const C = conformalLiftBezier(CUBIC_CPS).map((c) => applyMatrix(M, c) as unknown as number[])
+    const D = derivCoeffs(C)
+    const ratios = [0.1, 0.3, 0.5, 0.7, 0.9].map(
+      (t) => Math.sqrt(Math.abs(ipn(evalC(D, t), evalC(D, t)))) / sigmaAt(t),
+    )
+    for (const r of ratios) expect(Math.abs(r - ratios[0])).toBeLessThan(1e-9)
+  })
+
+  it('a NON-PH curve fails it: √⟨P′,P′⟩ is not a polynomial of the available degree', () => {
+    const ORD = [V(-1, 0, 0), V(-0.2, 1.3, 0.4), V(0.7, -0.9, 1.1), V(1.4, 0.5, -0.6)]
+    const D = derivCoeffs(conformalLiftBezier(ORD).map((c) => c as unknown as number[]))
+    const deg = D.length - 1 // 5: the largest degree the root could have
+    const N = 60
+    const ts = Array.from({ length: N }, (_, k) => k / (N - 1))
+    const ys = ts.map((t) => Math.sqrt(Math.abs(ipn(evalC(D, t), evalC(D, t)))))
+    // best degree-`deg` polynomial fit; a perfect square would be matched exactly
+    const A = ts.map((t) => Array.from({ length: deg + 1 }, (_, j) => t ** j))
+    const G = Array.from({ length: deg + 1 }, (_, i) =>
+      [...Array.from({ length: deg + 1 }, (_, j) => A.reduce((s, row) => s + row[i] * row[j], 0)),
+       A.reduce((s, row, r) => s + row[i] * ys[r], 0)])
+    for (let c = 0; c <= deg; c++) {
+      let piv = c
+      for (let r = c + 1; r <= deg; r++) if (Math.abs(G[r][c]) > Math.abs(G[piv][c])) piv = r
+      ;[G[c], G[piv]] = [G[piv], G[c]]
+      for (let r = 0; r <= deg; r++) {
+        if (r === c) continue
+        const f = G[r][c] / G[c][c]
+        for (let k = c; k <= deg + 1; k++) G[r][k] -= f * G[c][k]
+      }
+    }
+    const x = Array.from({ length: deg + 1 }, (_, i) => G[i][deg + 1] / G[i][i])
+    const worst = Math.max(...ts.map((t, r) => Math.abs(ys[r] - x.reduce((s, cj, j) => s + cj * t ** j, 0))))
+    // Measured 1.9e-2 relative — four orders above the PH case's 1e-15.
+    expect(worst / Math.max(...ys)).toBeGreaterThan(1e-3)
   })
 })
