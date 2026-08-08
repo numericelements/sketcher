@@ -39,6 +39,7 @@ import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import LocalEditFigure from './LocalEditFigure'
 import RmErfFigure from './RmErfFigure'
+import RmErfSplineFigure from './RmErfSplineFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -360,5 +361,48 @@ export const slides: SlideDefinition[] = [
       'core/phSpatialSeptic, 25 tests, the first of which is the GATE: impose (14), sample ω₁, require ' +
       'machine zero. If my reading of either equation were wrong that test fails and this figure would ' +
       'never have been drawn.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10 — the same frame along a whole spline; locality measured, not promised
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The frame along a whole spline — and what locality really costs</h2>
+        <WhenActive>
+          <RmErfSplineFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'Slide 9 put a rotation-minimizing frame on ONE degree-7 Bézier and the editing felt excellent. ' +
+      'Slide 8 put EXACT locality on a C² PH quintic spline and the editing did not: three spare ' +
+      'parameters moving ten control points, with far control points travelling up to 4.4x further than ' +
+      'the one in your hand. So this slide takes slide 9\'s mechanism to a spline by DROPPING THE ' +
+      'WINDOW: 16n+3 unknowns against 11n+3 conditions with n gauges leaves 4n spare, about 0.59 per ' +
+      'movable point FOR ANY n — essentially slide 9\'s 0.67. ' +
+      'THE MEASUREMENT IS THE POINT. Amplification 1.52 at n=6 and 1.58 at n=8, mean 1.06 — identical ' +
+      'to slide 8\'s best case (W=5: 1.51, mean 1.06), but at any length and with a frame attached. ' +
+      'Nothing moves much more than the point you hold; THAT is what predictable means. ' +
+      'AND LOCALITY IS NOT ACHIEVED — say so plainly. Reach is n of n: the disturbance spans the whole ' +
+      'curve, decaying roughly LINEARLY to 12–30% at the far end. The honest claim is PROPORTIONALITY, ' +
+      'not locality, and the GHOST of the pre-drag curve lets the room see exactly that instead of ' +
+      'taking a number on trust. ' +
+      'So the pair of slides is a genuine trade, not a progression: slide 8 has a guarantee and a bad ' +
+      'feel, slide 10 has a good feel and no guarantee. The window width is what you pay with. ' +
+      'CONSTRUCTION, worth telling if asked, because two attempts failed by MEASUREMENT: (1) continuity ' +
+      'lives in the GENERATOR — a C¹ cubic generator spline makes the curve C² for free, so the ' +
+      'projection only satisfies the 5n class conditions. Building segment by segment instead, ' +
+      'inheriting C¹/C² and prescribing each span, compounds the speed: |r′| ran 2.46, 1.95, 8.36, ' +
+      '17.54, 72.66 at n=4 and hit 5066 by n=7 before failing. (2) The PLANAR TRAP again — planar ' +
+      'curves are in the class for free, so min-norm projection lands flat (planarity 0.014 from a ' +
+      'smooth seed, no better than 0.121 across six seed families). The fix is to USE THE SLACK, ~25 ' +
+      'spare dimensions at n=6, and climb planarity along the class\'s own tangent space. (3) But ' +
+      'climbing planarity drives |A| DOWN toward a cusp — the same small-|A| attraction that made a ' +
+      'geometric drag metric fail on slide 8 — so the ascent stops at a speed floor. ' +
+      'core/phSpatialSepticSpline, 9 tests; drags run 13–28ms at n=6–8 with class, C² and twist all at ' +
+      'machine zero throughout.',
   },
 ]

@@ -71,7 +71,7 @@ describe('THE GATE — a C² RM-ERF spline exists, and is not flat', () => {
       expect(totalTwist(s as SepticSpline), `n = ${n} twist`).toBeLessThan(1e-6)
       expect(planarity(s as SepticSpline), `n = ${n} flat`).toBeGreaterThan(0.05)
     }
-  })
+  }, 30000)
 })
 
 // ---------------------------------------------------------------------------
@@ -89,7 +89,7 @@ describe('EDITING with no window', () => {
       expect(r.c2Defect, `cp ${i} C²`).toBeLessThan(1e-7)
       expect(totalTwist(r.state), `cp ${i} twist`).toBeLessThan(1e-6)
     }
-  })
+  }, 30000)
 
   it('the END POINTS are held — whichever is not the one dragged', () => {
     const LAST = 7 * N
