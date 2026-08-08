@@ -45,6 +45,8 @@ import {
   type ConformalPHCurve,
   controlPoints,
   curveAt,
+  dragAlongLocus,
+  dragControlPoint,
   definingJacobian,
   hermiteDataOf,
   normalize,
@@ -53,7 +55,7 @@ import {
   unpack,
 } from '../conformalPHCurve'
 import { bernsteinToPower, hodograph, hopfForm } from '../conformalPHHopf'
-import { vnorm, vsub } from '../quaternion'
+import { vadd, vnorm, vsub } from '../quaternion'
 import { leastSquares } from '../linalg'
 
 // ---------------------------------------------------------------------------
@@ -507,4 +509,63 @@ describe('the strict family, counted in curves', () => {
       expect(gap, 'the curve-motion rank gap must be decisive').toBeGreaterThan(1e4)
       expect(rank, `directions that move the curve at degree ${n}`).toBe(moving)
     }, 300000)
+})
+
+// ---------------------------------------------------------------------------
+// THE TWO SLIDE-13 GESTURES, at degree 4.
+//
+// Strict mode holds the four outer control points and leaves the middle one a CURVE to move on,
+// so its drag prescribes one scalar (the component along the drag direction) against 12 pinned
+// coordinates — 13 rows for a 13-dimensional family. Free mode holds only the two ends and
+// prescribes all three cursor coordinates, which leaves 4 spare dimensions.
+// ---------------------------------------------------------------------------
+
+describe('slide 13 gestures', () => {
+  const quartic = (): ConformalPHCurve =>
+    membersOf(4, 6).filter((c) => realRoots(c.C.map((x) => x[0])).length === 0)[0]
+
+  // The gesture Eric asked for — hold the four outer points, move the middle one — turns out to be
+  // IMPOSSIBLE, and that is the interesting finding rather than a bug. The single remaining
+  // dimension is a pure weight direction: the tangent moves every weight by 0.1–0.5 and the middle
+  // point by 1e-6 of the same norm. So the honest strict dial slides the Farin beads.
+  it('strict: the middle point CANNOT move with the four outer points held', () => {
+    const m = quartic()
+    const before = controlPoints(m)
+    const scale = vnorm(vsub(before[4], before[0]))
+    const target = vadd(before[2], { x: 0.05 * scale, y: 0.02 * scale, z: 0.03 * scale })
+    const step = dragAlongLocus(m, 2, target, { pin: [0, 1, 3, 4] })
+    // It reports the full shortfall and leaves the curve exactly as it was — no drift off the
+    // family to please the cursor.
+    expect(vnorm(vsub(controlPoints(step.state)[2], before[2])), 'no motion').toBeLessThan(1e-9)
+    expect(step.trackingError, 'the shortfall is reported').toBeGreaterThan(0.9 * vnorm(vsub(target, before[2])))
+    expect(Math.max(...residual(step.state).map(Math.abs)), 'still a member').toBeLessThan(1e-9)
+  }, 300000)
+
+  it('strict: dragging an outer point holds the other three', () => {
+    const m = quartic()
+    const before = controlPoints(m)
+    const scale = vnorm(vsub(before[4], before[0]))
+    const target = vadd(before[1], { x: 0.02 * scale, y: 0.015 * scale, z: 0.01 * scale })
+    const step = dragControlPoint(m, 1, target, { pin: [0, 1, 3, 4] })
+    expect(step.converged, 'converged').toBe(true)
+    const after = controlPoints(step.state)
+    expect(vnorm(vsub(after[1], target)), 'tracked the cursor').toBeLessThan(1e-6)
+    for (const i of [0, 3, 4]) {
+      expect(vnorm(vsub(after[i], before[i])), `pinned point ${i}`).toBeLessThan(1e-7)
+    }
+  }, 300000)
+
+  it('free: dragging an interior point holds only the two ends', () => {
+    const m = quartic()
+    const before = controlPoints(m)
+    const scale = vnorm(vsub(before[4], before[0]))
+    const target = vadd(before[2], { x: 0.03 * scale, y: -0.02 * scale, z: 0.015 * scale })
+    const step = dragControlPoint(m, 2, target, { pinEnds: true })
+    expect(step.converged, 'converged').toBe(true)
+    const after = controlPoints(step.state)
+    expect(vnorm(vsub(after[2], target)), 'tracked the cursor').toBeLessThan(1e-6)
+    for (const i of [0, 4]) expect(vnorm(vsub(after[i], before[i])), `end ${i}`).toBeLessThan(1e-7)
+    // And P₁ IS allowed to answer here — that is the difference from strict mode.
+    expect(vnorm(vsub(after[1], before[1])), 'P₁ responds in free mode').toBeGreaterThan(0)
+  }, 300000)
 })

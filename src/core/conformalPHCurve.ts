@@ -496,25 +496,127 @@ export function dragControlPoint(
   from: ConformalPHCurve,
   index: number,
   target: Vec3,
-  options: { pinEnds?: boolean; iterations?: number } = {},
+  options: { pinEnds?: boolean; pin?: readonly number[]; iterations?: number } = {},
 ): DragResult {
   const pinEnds = options.pinEnds ?? true
   const before = controlPoints(from)
   const last = degreeOf(from)
+  // `pin` names the control points to hold explicitly, which is what strict mode needs: dragging
+  // one of the four outer points of a quartic while the other three stay put. Without it the
+  // default is the two ends, which is the free-mode gesture.
+  const held = (options.pin ?? (pinEnds ? [0, last] : [])).filter((i) => i !== index)
   return solveWith(from, {
     rows: (s) => {
       const P = controlPoints(s)
       const out = [P[index].x - target.x, P[index].y - target.y, P[index].z - target.z]
-      if (pinEnds) {
-        for (const end of [0, last]) {
-          if (end === index) continue
-          out.push(P[end].x - before[end].x, P[end].y - before[end].y, P[end].z - before[end].z)
-        }
-      }
+      for (const i of held) out.push(P[i].x - before[i].x, P[i].y - before[i].y, P[i].z - before[i].z)
       return out
     },
     track: (s) => vnorm(vsub(controlPoints(s)[index], target)),
   }, options.iterations ?? 60)
+}
+
+/**
+ * Drag control point `index` when the pinned set leaves it only a CURVE to move on — the quartic's
+ * middle point with all four outer points held.
+ *
+ * PREDICTOR ALONG THE TANGENT, THEN CORRECTOR, and the three failed attempts before it are why.
+ * Twelve pinned coordinates plus three cursor coordinates is 15 conditions against a
+ * 13-dimensional family, so the cursor cannot be prescribed outright. Two things that do not work:
+ *
+ *   · Replace the cursor by ONE condition (its component along the drag direction) and the count is
+ *     exact, 13 for 13 — but an exactly determined solve has nothing spare to repair the defining
+ *     rows with. Measured: it met its target row to 5e-13 with the defining residual at 7e-4, which
+ *     is "satisfy what is displayed by abandoning what is enforced". Damping the cursor row turned
+ *     the failure the right way round (the point stops short instead of leaving the family) and
+ *     still left a defect of 1e-4. Not a member either.
+ *
+ *   · Aim the middle point at the cursor and project back with the pins as the only extra rows.
+ *     That converges beautifully — to where it started. A minimum-norm projection returns to the
+ *     NEAREST family point, and an aim direction chosen without regard to the locus is essentially
+ *     orthogonal to it, so the whole predictor is undone. Measured motion: 6e-15.
+ *
+ * What a one-dimensional family needs is its DIRECTION. The wanted ambient motion d (move the
+ * middle conformal point at the cursor, everything else still) is projected onto the nullspace of
+ * the constraint Jacobian by δ = d − J⁺(J d), and leastSquares IS J⁺, so this costs one extra
+ * solve and no new machinery. Stepping along δ stays on the family to first order; the corrector
+ * then cleans up the second order with the twelve pins as its only extra rows — a projection with a
+ * spare dimension, which is the shape of every drag here that behaves.
+ *
+ * Where the locus cannot reach the cursor the point stops closer than asked and `trackingError`
+ * reports the shortfall, rather than the curve being taken off the family to please the mouse.
+ */
+export function dragAlongLocus(
+  from: ConformalPHCurve,
+  index: number,
+  target: Vec3,
+  options: { pin: readonly number[]; iterations?: number; maxStep?: number } = { pin: [] },
+): DragResult {
+  const before = controlPoints(from)
+  const held = options.pin.filter((i) => i !== index)
+  const offset = vsub(target, before[index])
+  const reach = vnorm(offset)
+  const still: DragResult = {
+    state: from, converged: true, defect: Math.max(...residual(from).map(Math.abs)), trackingError: reach,
+  }
+  if (!(reach > 1e-12)) return { ...still, trackingError: 0 }
+
+  const n = degreeOf(from)
+  const U = unknownCount(n)
+  const pinRows = (s: ConformalPHCurve): number[] => {
+    const P = controlPoints(s)
+    return held.flatMap((i) => [P[i].x - before[i].x, P[i].y - before[i].y, P[i].z - before[i].z])
+  }
+  // The constraint Jacobian: defining rows analytically, pin rows by central difference.
+  const x = pack(from)
+  const base = definingJacobian(from)
+  const J = base.map((r) => r.slice())
+  const rowCount = pinRows(from).length
+  for (let e = 0; e < rowCount; e++) J.push(new Array(U).fill(0))
+  const eps = 1e-7
+  for (let c = 0; c < U; c++) {
+    const xp = x.slice(); xp[c] += eps
+    const xm = x.slice(); xm[c] -= eps
+    const rp = pinRows(unpack(xp)), rm = pinRows(unpack(xm))
+    for (let e = 0; e < rowCount; e++) J[base.length + e][c] = (rp[e] - rm[e]) / (2 * eps)
+  }
+
+  const w = from.C[index][0]
+  const dir = vscale(offset, 1 / reach)
+  const wanted = new Array(U).fill(0)
+  wanted[5 * index + 1] = w * dir.x
+  wanted[5 * index + 2] = w * dir.y
+  wanted[5 * index + 3] = w * dir.z
+  let delta: number[]
+  try {
+    const Jd = J.map((row) => row.reduce((acc, v, i) => acc + v * wanted[i], 0))
+    const correction = leastSquares(J, Jd, 1e-11)
+    delta = wanted.map((v, i) => v - correction[i])
+  } catch { return still }
+
+  // How far the middle point actually travels per unit of δ: P = C[1..3]/C[0], so
+  // δP = (δC[1..3] − P·δC[0]) / w.
+  const dw = delta[5 * index]
+  const move: Vec3 = {
+    x: (delta[5 * index + 1] - before[index].x * dw) / w,
+    y: (delta[5 * index + 2] - before[index].y * dw) / w,
+    z: (delta[5 * index + 3] - before[index].z * dw) / w,
+  }
+  // Relative, because "the point cannot move" is a REAL ANSWER here, not a numerical accident:
+  // with the quartic's four outer points pinned the whole one-dimensional family is a weight
+  // direction and the middle point is stationary (measured: ‖δP‖ = 1e-6 against ‖δ‖ = 1). Without
+  // this guard the step scales as travel/rate and asks for a jump of 1e4.
+  const rate = vnorm(move)
+  if (!(rate > 1e-5 * Math.hypot(...delta))) return still
+  const scale = Math.max(...before.map((p, i) => (i === index ? 0 : vnorm(vsub(p, before[index])))), 1e-9)
+  const travel = Math.min(reach, (options.maxStep ?? 0.06) * scale)
+  const s = (travel / rate) * Math.sign(vdot(move, dir) || 1)
+  const predicted = unpack(x.map((v, i) => v + s * delta[i]))
+
+  return solveWith(predicted, {
+    rows: pinRows,
+    track: (t) => vnorm(vsub(controlPoints(t)[index], target)),
+  }, options.iterations ?? 80)
 }
 
 /**
@@ -784,6 +886,18 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 //     the ends of their legs. The curve keeps interpolating P₀ and P₄ throughout, since
 //     p(0) = C₀[1..3]/C₀[0] = P₀ for every w₀ ≠ 0; the wall is only the limit, and it is
 //     asymptotic — 16000 steps and still crawling towards it.
+//
+//   · AND THE ONE DIMENSION IS A WEIGHT DIRECTION: THE MIDDLE POINT DOES NOT MOVE. Measured by
+//     projecting each of the three "push P₂ this way" ambient directions onto the nullspace of the
+//     defining rows plus the four pinned points: all three give the same tangent (as a 1-dimensional
+//     family must), and it carries ‖δP₂‖ = 1e-6 against ‖δ‖ = 1 while every WEIGHT moves by 0.1–0.5.
+//     So with the four outer control points held there is nowhere for the middle point to go — which
+//     is also why the projective walk showed ‖P₂‖ = 0.88 unchanged over 16000 steps, a constancy
+//     first misread as mere boundedness.
+//
+//     That is the sharpest form of the whole point: nail down the ENTIRE 3D control polygon and a
+//     one-parameter family of distinct rational PH curves still runs through it, differing only in
+//     the weights — visible as the Farin beads sliding, and ending where those weights degenerate.
 //
 //   · WHAT IS NOT ESTABLISHED: on two of three members the walker could not take a single step —
 //     the tangent extraction breaks on the pinned Jacobian's two-plateau spectrum — so this is
