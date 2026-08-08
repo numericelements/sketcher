@@ -765,6 +765,17 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 //     denominator's endpoint value, and a positive scale is not compact. That is the difference
 //     between a dial that wraps and a slider with two walls.
 //
+//   · AND THE PROJECTIVE ESCAPE HATCH IS CLOSED, which was the obvious objection: weights running
+//     to infinity is a statement about the w₀ = 1 CHART, and a parabola escaping to infinity does
+//     close up projectively. So the walk was redone on the unit sphere ‖(C,h)‖ = 1, where the whole
+//     system is homogeneous and blowing up is impossible by construction. The path still converges
+//     to a boundary instead of passing through it: w₀, w₁ and w₄ all go to zero together while w₂
+//     takes 0.72 of the norm, the spherical arc length asymptotes near 3.0, and the step size
+//     collapses. Three of the five conformal control points are vanishing — a degeneration of the
+//     polygon, which is a boundary in EVERY chart, not a point at infinity in one of them. The
+//     middle control point stays bounded throughout (‖P₂‖ ≈ 0.88) and w₂ never changes sign, so it
+//     does not pass through ∞ either: its locus is a bounded open arc with two endpoints.
+//
 //   · WHAT IS NOT ESTABLISHED: on two of three members the walker could not take a single step —
 //     the tangent extraction breaks on the pinned Jacobian's two-plateau spectrum — so this is
 //     one traced member plus a mechanism, NOT a theorem. A figure built on it should say

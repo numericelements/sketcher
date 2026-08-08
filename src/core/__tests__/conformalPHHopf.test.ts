@@ -43,6 +43,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   type ConformalPHCurve,
+  controlPoints,
   curveAt,
   definingJacobian,
   hermiteDataOf,
@@ -449,6 +450,37 @@ describe('what the even degrees offer', () => {
 //
 // That is why degree 4 is the honest figure: every dial it offers moves the curve.
 // ---------------------------------------------------------------------------
+
+describe("Eric's strict mode: pin the four outer control points", () => {
+  // Pinning P₀, P₁, P₃, P₄ is 12 conditions, the same COUNT as the C¹ Hermite data but not the
+  // same conditions (the data involves the weights, the points do not). It leaves exactly ONE
+  // dimension, so a slider that holds all four moves the middle control point and nothing else —
+  // which is the figure Eric asked for, and it is possible at degree 4 because of this number.
+  it('leaves exactly one dimension at degree 4', () => {
+    const m = membersOf(4, 6).filter((c) => realRoots(c.C.map((x) => x[0])).length === 0)[0]
+    const want = controlPoints(m)
+    const pinned = [0, 1, 3, 4]
+    const rows = (s: ConformalPHCurve): number[] => {
+      const P = controlPoints(s)
+      return pinned.flatMap((i) => [P[i].x - want[i].x, P[i].y - want[i].y, P[i].z - want[i].z])
+    }
+    const x = [...m.C.flatMap((c) => [...c]), ...m.h]
+    const base = definingJacobian(m)
+    const J = base.map((r) => r.slice())
+    for (let e = 0; e < 12; e++) J.push(new Array(x.length).fill(0))
+    const step = 1e-7
+    for (let c = 0; c < x.length; c++) {
+      const xp = x.slice(); xp[c] += step
+      const xm = x.slice(); xm[c] -= step
+      const rp = rows(unpack(xp)), rm = rows(unpack(xm))
+      for (let e = 0; e < 12; e++) J[base.length + e][c] = (rp[e] - rm[e]) / (2 * step)
+    }
+    const { rank, gap } = rankFromGap(singularValues(J))
+    expect(gap, 'rank gap').toBeGreaterThan(1e5)
+    // rank 27 of 28 rows — the one deficiency is the h-leading-coefficient relation, as always.
+    expect(x.length - rank - 1, 'dimensions left with four points pinned').toBe(1)
+  }, 300000)
+})
 
 describe('the strict family, counted in curves', () => {
   it.each([[4, 2, 1], [5, 4, 2]])(
