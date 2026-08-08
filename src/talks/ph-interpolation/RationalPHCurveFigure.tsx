@@ -46,6 +46,7 @@ import type { Vec3 } from '../../core/quaternion'
 import { vadd, vcross, vnorm, vscale, vsub } from '../../core/quaternion'
 import {
   type ConformalPHCurve,
+  mobiusImage,
   controlPoints,
   curveAt,
   denominatorFloor,
@@ -62,11 +63,19 @@ import {
   shapeMeasures,
   speedAt,
 } from '../../core/conformalPHCurve'
+import { inversiveBendGenerator, matrixExp5 } from '../../core/conformal'
 import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
 const DEGREE = 5
 const START = findMember(DEGREE)
+/** ±2, the range measured on slide 10 — the pole comes in from infinity as it grows. */
+const BEND_RANGE = 2
+const AXES: { key: 'x' | 'y' | 'z'; label: string }[] = [
+  { key: 'x', label: 'inversive bend X' },
+  { key: 'y', label: 'inversive bend Y' },
+  { key: 'z', label: 'inversive bend Z' },
+]
 const CURVE_SAMPLES = 120
 const RING_SAMPLES = 48
 
@@ -117,9 +126,26 @@ const BOUNDS = (() => {
 })()
 
 export default function RationalPHCurveFigure() {
-  const [state, setState] = useState<ConformalPHCurve | null>(START)
+  /**
+   * `base` is the curve; `bend` is a Möbius transformation applied for display. Since the family
+   * is closed under O(4,1) acting linearly on the coefficients, the displayed state is a genuine
+   * member — so edits can be solved in DISPLAY coordinates (what the hand is pointing at) and
+   * pushed back through exp(−G), with no cursor pull-back anywhere.
+   */
+  const [base, setBase] = useState<ConformalPHCurve | null>(START)
+  const [bend, setBend] = useState<Vec3>({ x: 0, y: 0, z: 0 })
   const [grabbed, setGrabbed] = useState<{ kind: 'point' | 'farin' | 'radius'; index: number } | null>(null)
   const [stalled, setStalled] = useState(false)
+
+  const { forward, inverse } = useMemo(() => ({
+    forward: matrixExp5(inversiveBendGenerator(bend)),
+    inverse: matrixExp5(inversiveBendGenerator({ x: -bend.x, y: -bend.y, z: -bend.z })),
+  }), [bend])
+
+  /** What is drawn, and what edits act on. */
+  const state = useMemo(() => (base ? mobiusImage(base, forward) : null), [base, forward])
+  /** Take an edited DISPLAY state back to the base. */
+  const commit = (edited: ConformalPHCurve): void => setBase(mobiusImage(edited, inverse))
 
   const cps = useMemo(() => (state ? controlPoints(state) : []), [state])
   const rho = useMemo(() => (state ? radii(state) : []), [state])
@@ -179,7 +205,8 @@ export default function RationalPHCurveFigure() {
   )
 
   const reset = (): void => {
-    setState(START)
+    setBase(START)
+    setBend({ x: 0, y: 0, z: 0 })
     setGrabbed(null)
     setStalled(false)
   }
@@ -209,13 +236,25 @@ export default function RationalPHCurveFigure() {
         { label: 'out of plane', value: shape.outOfPlane.toFixed(3), tone: 'ok' as const },
         { label: 'κ spread', value: shape.curvatureSpread.toFixed(3), tone: 'ok' as const },
         { label: 'min W(t)', value: denominatorFloor(state).toFixed(3), tone: 'ok' as const },
+        { label: 'h under bend', value: 'unchanged', tone: 'ok' as const },
         ...(stalled ? [{ label: 'step', value: 'not reached' }] : []),
       ]}
       controls={
         <span className="flex items-center gap-3 flex-wrap">
-          <span className="text-slate-400">
-            drag a control point, slide a bead along its leg, or pull a sphere’s radius handle
-          </span>
+          {AXES.map(({ key, label }) => (
+            <label key={key} className="flex items-center gap-1">
+              <span className="text-slate-400">{label}</span>
+              <input
+                type="range"
+                min={-BEND_RANGE}
+                max={BEND_RANGE}
+                step={BEND_RANGE / 80}
+                value={bend[key]}
+                onChange={(e) => setBend((b) => ({ ...b, [key]: Number(e.target.value) }))}
+                className="w-20"
+              />
+            </label>
+          ))}
           <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
             reset
           </button>
@@ -233,6 +272,13 @@ export default function RationalPHCurveFigure() {
           the two <b>middle</b> radii are pinned to nothing and carry their own handles. The beads on
           the legs are the <b>weights</b>: five legs, five ratios, so all five at the midpoints would
           mean polynomial — the rationality is how far off-centre they sit.{' '}
+{' '}
+          And the sliders are the payoff: a Möbius transformation is a <b>constant matrix</b> here, so it
+          acts on each control point <i>independently</i> — <b>the spheres stay spheres, the beads stay
+          Farin beads, the polygon maps one point for one point, and the degree does not move.</b> Bend
+          it and <i>h</i> does not even change: the speed numerator is a Möbius <b>invariant</b>, and only
+          the weight answers. On the previous slide the same transformation turned 8 control points into
+          15.{' '}
           <span className="text-slate-400">
             Degree 5 and not 3: four coefficients cannot span enough of R^{'{4,1}'} to leave a sphere,
             so a degree-3 curve here is a circular arc — with or without the PH condition. Of the 15
@@ -272,14 +318,20 @@ export default function RationalPHCurveFigure() {
               if (len2 === 0) { setStalled(true); return }
               const rel = vsub({ x, y, z }, a)
               const s = (rel.x * leg.x + rel.y * leg.y + rel.z * leg.z) / len2
+              // dragFarin rate-limits the step itself, so a jumpy cursor projection cannot ask
+              // for a huge reshape in one event.
               const step = dragFarin(state, i, s)
-              if (step.converged) { setState(step.state); setStalled(false) } else setStalled(true)
+              if (step.converged) { commit(step.state); setStalled(false) } else setStalled(true)
             }}
           />
         ) : null,
       )}
 
-      {/* the FREE radii — the freedom degree 3 does not have */}
+      {/* the FREE radii — the freedom degree 3 does not have. A SPOKE from the centre, because
+          a lone dot sitting on a sphere reads as another control point, which it is not. */}
+      {radiusHandles.map(({ index, at }) => (
+        <Curve3D key={`spoke${index}`} points={[tri(cps[index]), tri(at)]} color={FIG.color.derived} width={1.4} />
+      ))}
       {radiusHandles.map(({ index, at }) => (
         <DragPoint3D
           key={`rad${index}`}
@@ -291,7 +343,7 @@ export default function RationalPHCurveFigure() {
           onDrag={([x, y, z]) => {
             const want = vnorm(vsub({ x, y, z }, cps[index]))
             const step = dragRadius(state, index, want)
-            if (step.converged) { setState(step.state); setStalled(false) } else setStalled(true)
+            if (step.converged) { commit(step.state); setStalled(false) } else setStalled(true)
           }}
         />
       ))}
@@ -313,7 +365,7 @@ export default function RationalPHCurveFigure() {
           onDragEnd={() => setGrabbed(null)}
           onDrag={([x, y, z]) => {
             const step = dragControlPoint(state, i, { x, y, z })
-            if (step.converged) { setState(step.state); setStalled(false) } else setStalled(true)
+            if (step.converged) { commit(step.state); setStalled(false) } else setStalled(true)
           }}
         />
       ))}

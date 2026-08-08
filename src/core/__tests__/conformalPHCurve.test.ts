@@ -31,7 +31,10 @@ import {
   shapeMeasures,
   dragRadius,
   freeRadiusIndices,
+  mobiusImage,
+  farinVectors,
 } from '../conformalPHCurve'
+import { inversiveBendGenerator, matrixExp5, pointMap, project } from '../conformal'
 
 // Degree 3 is confined to a CIRCLE by the null condition alone, so its guards must not ask
 // for spatiality; degree 5 is the first degree where the family is genuinely spatial.
@@ -295,10 +298,16 @@ describe('degree 5 editing: the Farin beads', () => {
     const s = MEMBER!
     const P = controlPoints(s)
     const before = farinParameters(s)
-    const target = before[2] > 0.5 ? before[2] - 0.1 : before[2] + 0.1
-    const step = dragFarin(s, 2, target)
-    expect(step.converged).toBe(true)
-    expect(step.defect).toBeLessThan(1e-9)
+    // A drag is a SEQUENCE of small warm-started steps, because dragFarin rate-limits each
+    // call to 0.03 — without that the curve appeared to explode when the cursor's projection
+    // onto the leg jumped most of the way along it in one event.
+    const target = before[2] > 0.5 ? before[2] - 0.09 : before[2] + 0.09
+    let step = dragFarin(s, 2, target)
+    for (let k = 0; k < 6; k++) {
+      expect(step.converged, `tick ${k}`).toBe(true)
+      expect(step.defect, `tick ${k}`).toBeLessThan(1e-9)
+      step = dragFarin(step.state, 2, target)
+    }
     expect(Math.abs(farinParameters(step.state)[2] - target)).toBeLessThan(1e-6)
     const chord = vnorm(vsub(P[5], P[0]))
     for (const k of [0, 5]) {
@@ -316,6 +325,72 @@ describe('degree 5 editing: the Farin beads', () => {
     for (const lam of farinParameters(MEMBER!)) {
       expect(lam).toBeGreaterThan(0)
       expect(lam).toBeLessThan(1)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// MÖBIUS COVARIANCE — the whole control structure maps, one point for one point
+//
+// This is what the conformal model was for. On slide 10 a Möbius transformation turned 8
+// control points into 15 and the polygon had to be rebuilt from the lift, because the Hopf
+// representation is affine- but not Möbius-covariant. Here M is a constant matrix acting on
+// each Cₖ independently, and everything drawn survives it.
+// ---------------------------------------------------------------------------
+describe('Möbius covariance of the conformal control structure', () => {
+  const BEND = { x: 0.7, y: -0.4, z: 0.3 }
+  const M = matrixExp5(inversiveBendGenerator(BEND))
+  const IMAGE = mobiusImage(MEMBER!, M)
+
+  it('Fᵢ = project(Cᵢ + Cᵢ₊₁) — the Farin bead is ONE ADDITION in the model', () => {
+    const F = farinPoints(MEMBER!)
+    const V = farinVectors(MEMBER!)
+    for (let i = 0; i < F.length; i++) {
+      expect(vnorm(vsub(project(V[i]) as Vec3, F[i])), `bead ${i}`).toBeLessThan(1e-12)
+    }
+  })
+
+  it('the image is still in the family — and h is UNTOUCHED', () => {
+    // ⟨P′,P′⟩ = h² and M preserves the inner product, so the speed NUMERATOR is a Möbius
+    // invariant. Only the weight changes, and that is the conformal factor.
+    expect(Math.max(...residual(IMAGE).map(Math.abs))).toBeLessThan(1e-11)
+    expect(IMAGE.h).toEqual(MEMBER!.h)
+  })
+
+  it('spheres stay spheres, and the ends stay POINT-spheres', () => {
+    const r = radii(IMAGE)
+    const P = controlPoints(IMAGE)
+    const chord = vnorm(vsub(P[5], P[0]))
+    expect(Math.abs(r[0]) / chord).toBeLessThan(1e-6)
+    expect(Math.abs(r[5]) / chord).toBeLessThan(1e-6)
+    for (const i of [1, 2, 3, 4]) expect(r[i], `sphere ${i} is real`).toBeGreaterThan(0)
+    // and the outer ones still grip their endpoints — the identity is Möbius-invariant too
+    expect(Math.abs(r[1] - vnorm(vsub(P[1], P[0]))) / r[1]).toBeLessThan(1e-7)
+    expect(Math.abs(r[4] - vnorm(vsub(P[4], P[5]))) / r[4]).toBeLessThan(1e-7)
+  })
+
+  it('the beads of the image ARE the images of the beads', () => {
+    const V = farinVectors(IMAGE)
+    const F = farinPoints(IMAGE)
+    for (let i = 0; i < F.length; i++) {
+      expect(vnorm(vsub(project(V[i]) as Vec3, F[i])), `bead ${i}`).toBeLessThan(1e-12)
+    }
+  })
+
+  it('and the image curve is μ∘(the original curve), pointwise', () => {
+    const mu = pointMap(M)
+    for (let k = 1; k < 20; k++) {
+      const a = mu(curveAt(MEMBER!, k / 20) as Vec3) as Vec3
+      const b = curveAt(IMAGE, k / 20) as Vec3
+      expect(vnorm(vsub(a, b)), `t=${k / 20}`).toBeLessThan(1e-12)
+    }
+  })
+
+  it('exp(−G) undoes exp(G), so a slider is reversible', () => {
+    const back = mobiusImage(IMAGE, matrixExp5(inversiveBendGenerator({ x: -BEND.x, y: -BEND.y, z: -BEND.z })))
+    const P = controlPoints(MEMBER!), Q = controlPoints(back)
+    for (let k = 0; k < P.length; k++) {
+      expect(vnorm(vsub(P[k], Q[k])), `point ${k}`).toBeLessThan(1e-9)
     }
   })
 })

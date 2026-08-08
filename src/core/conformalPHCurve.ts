@@ -528,11 +528,23 @@ export function dragFarin(
   from: ConformalPHCurve,
   leg: number,
   s: number,
-  options: { iterations?: number } = {},
+  options: { iterations?: number; maxStep?: number; range?: [number, number] } = {},
 ): DragResult {
   const before = controlPoints(from)
   const last = degreeOf(from)
-  const clamped = Math.min(0.98, Math.max(0.02, s))
+  // TWO limits, both because the first version without them made the curve appear to explode.
+  // A weight RATIO near 0 or 1 is a weight near zero, which sends a control point to infinity
+  // and swells the curve; and a cursor projected onto a leg can jump most of the way along it
+  // in a single event, so an unlimited step asks the solve for a huge reshape at once. The
+  // range keeps the ratio sane and maxStep makes a drag a sequence of small warm-started steps,
+  // which is what the control-point drags already were and why they felt fine.
+  const [lo, hi] = options.range ?? [0.12, 0.88]
+  const maxStep = options.maxStep ?? 0.03
+  const current = farinParameters(from)[leg]
+  const wanted = Math.min(hi, Math.max(lo, s))
+  const clamped = Number.isFinite(current)
+    ? Math.min(current + maxStep, Math.max(current - maxStep, wanted))
+    : wanted
   return solveWith(from, {
     rows: (st) => {
       const w = weights(st)
@@ -585,6 +597,40 @@ export function dragRadius(
 export function freeRadiusIndices(s: ConformalPHCurve): number[] {
   const n = degreeOf(s)
   return Array.from({ length: Math.max(0, n - 3) }, (_, i) => i + 2)
+}
+
+/**
+ * A Möbius transformation of the whole curve — and the reason this representation was worth
+ * the extra coordinate.
+ *
+ * M is a constant 5×5 matrix, so it acts on each conformal control point INDEPENDENTLY:
+ * Cₖ ↦ M Cₖ. Nothing is recomputed and no degree rises. Measured (see the tests):
+ *
+ *   · the image is still in the family, to 5e-13 — with h COMPLETELY UNTOUCHED, because
+ *     ⟨P′,P′⟩ = h² and M preserves the inner product. So the speed NUMERATOR is a Möbius
+ *     invariant, and ‖p′‖ = h/w changes only through the weight, which is the conformal factor;
+ *   · spheres stay spheres and the ends stay point-spheres;
+ *   · the Farin beads map to the Farin beads, since Fᵢ = project(Cᵢ + Cᵢ₊₁) and M is linear;
+ *   · the image curve is μ∘(the original curve), pointwise, to 3e-15.
+ *
+ * Contrast slide 10, where a Möbius map turned 8 control points into 15 and the polygon had to
+ * be rebuilt from the lift: here the control structure maps one for one. In the Hopf/spinor
+ * representation it cannot (core/phMobius), which is what sent this work into the conformal
+ * model in the first place — and it settles the 3D version of Eric's Farin question: Farin
+ * points DO commute with Möbius transformations, once they are read in the right model.
+ */
+export function mobiusImage(s: ConformalPHCurve, m: readonly (readonly number[])[]): ConformalPHCurve {
+  return {
+    C: s.C.map((c) => [0, 1, 2, 3, 4].map((i) =>
+      m[i].reduce((acc, mij, j) => acc + mij * c[j], 0)) as unknown as Conformal),
+    h: [...s.h],
+  }
+}
+
+/** Fᵢ = project(Cᵢ + Cᵢ₊₁) — the Farin bead, as one addition in the conformal model. */
+export function farinVectors(s: ConformalPHCurve): Conformal[] {
+  return Array.from({ length: degreeOf(s) }, (_, i) =>
+    (s.C[i] as unknown as number[]).map((v, k) => v + (s.C[i + 1] as unknown as number[])[k]) as unknown as Conformal)
 }
 
 /** Power of a point with respect to a sphere: ‖x−c‖² − ρ², the quantity the tests pin. */
