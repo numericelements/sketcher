@@ -105,6 +105,8 @@ export default function StrictFreeRationalFigure() {
   const [data, setData] = useState<HermiteData | null>(START ? hermiteDataOf(START) : null)
   const [grabbed, setGrabbed] = useState<string | null>(null)
   const [stalled, setStalled] = useState(false)
+  /** Set when a slider asked for something the family cannot reach — shown, not hidden. */
+  const [atLimit, setAtLimit] = useState(false)
   /**
    * What each slider is ASKING for. The thumb shows this; the readouts show what was
    * achieved. Keeping the two separate is what stops the thumb fighting the cursor, and it is
@@ -140,23 +142,50 @@ export default function StrictFreeRationalFigure() {
     ) / scale
   }, [state, data, mode])
 
+  /** The quantity a coordinate names, so the loop below can tell when it has arrived. */
+  const measureOf = (coordinate: StrictCoordinate) => (s: ConformalPHCurve): number =>
+    coordinate.kind === 'length' ? arcLength(s) : radii(s)[coordinate.index]
+
   /**
-   * Walk toward the requested value in several rate-limited steps. One step per event would
-   * lag the thumb badly; the rate limit is what keeps each solve well conditioned, so the
-   * answer is more steps rather than bigger ones.
+   * Walk toward the requested value in rate-limited steps until it ARRIVES.
+   *
+   * THE BUG THIS REPLACES, reported as "the arc length slider does nothing": the loop used to
+   * stop on `step.trackingError < 1e-6`, but trackingError measures the distance to dragStrict's
+   * own RATE-LIMITED target, which every step reaches by construction. So the loop always broke
+   * after one step and each event moved at most 4%. On a radius that reads as slow; on arc
+   * length, whose 4% is a subtle reshape, it reads as nothing at all. The test now compares the
+   * measured coordinate against the REQUESTED value, which is what "arrived" means.
+   *
+   * The rate limit stays — it is what keeps each solve well conditioned — so the answer is more
+   * steps, not bigger ones.
    */
   const ride = (key: string, coordinate: StrictCoordinate, target: number): void => {
     if (!state || !data) return
     setAsked((a) => ({ ...a, [key]: target }))
+    const measure = measureOf(coordinate)
+    const tolerance = Math.max(1e-9, Math.abs(target) * 1e-5)
     let current = state
     let moved = false
+    let limit = false
+    // Six steps per event, not twenty-four: at ~55ms each for arc length that keeps an event
+    // under a third of a second, and a slider fires many events, so the walk continues.
     for (let k = 0; k < 6; k++) {
+      if (Math.abs(measure(current) - target) <= tolerance) break
       const step = dragStrict(current, coordinate, target, { data })
-      if (!step.converged) break
+      if (!step.converged) { limit = true; break }
+      // No measurable progress means the FAMILY ENDS HERE — a genuine feasibility wall, not a
+      // solver failure. Measured: arc length can be driven up by 35% but stops about 1% short
+      // of a 25% reduction. The thumb can still ask for more, so the wall has to be displayed.
+      if (Math.abs(measure(step.state) - measure(current)) < tolerance * 0.01) {
+        current = step.state
+        moved = true
+        limit = true
+        break
+      }
       current = step.state
       moved = true
-      if (step.trackingError < 1e-6) break
     }
+    setAtLimit(limit)
     if (moved) { setState(current); setStalled(false) } else setStalled(true)
   }
 
@@ -166,6 +195,7 @@ export default function StrictFreeRationalFigure() {
     setAsked({})
     setGrabbed(null)
     setStalled(false)
+    setAtLimit(false)
   }
 
   if (!state || !data) {
@@ -222,7 +252,7 @@ export default function StrictFreeRationalFigure() {
         ...free.map((i) => ({ label: `ρ${i}`, value: rho[i].toFixed(3) })),
         { label: 'arc length', value: length.toFixed(3) },
         { label: 'min W(t)', value: denominatorFloor(state).toFixed(3), tone: 'ok' as const },
-        { label: 'step', value: stalled ? 'not reached' : '—' },
+        { label: 'step', value: stalled ? 'not reached' : atLimit ? 'at the family’s limit' : '—' },
       ]}
       controls={
         <span className="flex items-center gap-3 flex-wrap">

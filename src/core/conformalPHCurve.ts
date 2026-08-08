@@ -712,17 +712,24 @@ export function dragStrict(
   from: ConformalPHCurve,
   coordinate: StrictCoordinate,
   target: number,
-  options: { data?: HermiteData; iterations?: number; maxStepRatio?: number } = {},
+  options: { data?: HermiteData; iterations?: number; maxStepRatio?: number; lengthSamples?: number } = {},
 ): DragResult {
   const data = options.data ?? hermiteDataOf(from)
+  // The arc-length row is the expensive one: solveWith finite-differences the extra rows over
+  // all 35 unknowns every Newton iteration, so the cost is linear in the sample count. 8 points
+  // instead of 24 makes the length slider roughly three times faster; the solve converges to the
+  // root of whichever quadrature it is given, and the spare dimensions absorb the difference.
+  // Measured: 80 Newton iterations ARE needed — at 40 the first step already fails to converge —
+  // so iterations is not the lever, sample count is.
+  const samples = options.lengthSamples ?? 8
   const maxStepRatio = options.maxStepRatio ?? 0.04
-  const current = coordinate.kind === 'length' ? arcLength(from) : radii(from)[coordinate.index]
+  const current = coordinate.kind === 'length' ? arcLength(from, samples) : radii(from)[coordinate.index]
   const limit = Math.abs(current) * maxStepRatio
   const wanted = Number.isFinite(current)
     ? Math.min(current + limit, Math.max(current - limit, target))
     : target
   const measure = (s: ConformalPHCurve): number =>
-    coordinate.kind === 'length' ? arcLength(s) : radii(s)[coordinate.index]
+    coordinate.kind === 'length' ? arcLength(s, samples) : radii(s)[coordinate.index]
   return solveWith(from, {
     rows: (s) => {
       const d = hermiteDataOf(s)
