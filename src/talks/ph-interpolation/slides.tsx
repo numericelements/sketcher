@@ -52,13 +52,15 @@ export const slides: SlideDefinition[] = [
         <div className="subtitle">Solution structure, selection, and interactive motion</div>
         <div className="author">Eric Demers</div>
         <div className="event">Polytechnique Montréal</div>
-        <div className="event">A preliminary version, offered for discussion</div>
-        {/* A dedication, not a venue — hence the italic. It says nothing about a
-            recipient, so it survives being forwarded; the personal note ("I prepared
-            this for you") belongs in the covering email, where it stays warm instead of
-            becoming puzzling to a third reader. */}
-        <div className="event dedication" style={{ marginTop: '2em' }}>
-          For the beautiful city of Florence
+        {/* Italic because this slot is where cs2026 puts the conference and city, and
+            anything else set here reads as a venue without it.
+            The dedication — "For the beautiful city of Florence" — is deliberately held
+            back for the version that is no longer preliminary, and belongs in this same
+            slot when it arrives. A dedication spent on a draft is a dedication wasted.
+            The personal note ("I prepared this for you") stays in the covering email:
+            decks circulate, and it would puzzle a third reader six months on. */}
+        <div className="event note" style={{ marginTop: '2em' }}>
+          A preliminary version, offered for discussion
         </div>
       </>
     ),

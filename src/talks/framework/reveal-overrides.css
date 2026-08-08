@@ -61,12 +61,14 @@
 }
 
 /**
- * A DEDICATION, not a venue. It occupies the slot where cs2026 puts the conference and
- * city, so without the italic a reader parses it as "where this is being given". Applied
- * ALONGSIDE .event rather than replacing it, so the colour and the dark-theme override
- * are inherited and never fall out of step.
+ * The italic aside at the foot of a title slide — the slot where cs2026 puts the
+ * conference and city. Anything set here that is NOT a venue needs the italic, or a
+ * reader parses it as "where this is being given".
+ *
+ * Applied ALONGSIDE .event rather than replacing it, so the colour and the dark-theme
+ * override are inherited and cannot fall out of step.
  */
-.reveal-container .reveal .slides section.title-slide .dedication {
+.reveal-container .reveal .slides section.title-slide .note {
   font-style: italic;
 }
 
