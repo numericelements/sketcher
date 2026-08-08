@@ -51,9 +51,13 @@
 // doubling is this doubling, and the Möbius-invariance of complex rational curves is not a
 // property of complex numbers but of the conformal lift.)
 //
-// ONE CAUTION. The null condition means lifted control points are not free — they lie on a
-// quadric cone, so any direct manipulation would have to project back onto it after every
-// move. This representation is a computational device for linearising Möbius, not a UI.
+// ONE CAUTION, SINCE MEASURED AND SOFTENED. The null condition means lifted control points
+// are not free — they lie on a quadric cone, so direct manipulation must project back onto
+// it after every move. That is a constrained solve, not an obstacle: measured, the degree-n
+// family has dimension 2n+5, which at degree 3 leaves seven spare parameters against four
+// constrained ones, so dragging a conformal control point is comfortably feasible. See
+// `nullCurveResidual` / `phSquareResidual` below and the dimensions pinned in the tests.
+// (An earlier version of this note called the representation "not a UI". Too pessimistic.)
 // ============================================================================
 import { type Vec3, vnorm, vsub } from './quaternion'
 
@@ -398,4 +402,84 @@ export function isometryDefect(m: Mat5): number {
 /** The Möbius point map of a matrix, and its inverse — exp(−G) inverts exp(G). */
 export function pointMap(m: Mat5): (x: Vec3) => Vec3 | null {
   return (x) => project(applyMatrix(m, lift(x)))
+}
+
+// ---------------------------------------------------------------------------
+// RATIONAL PH CURVES BUILT DIRECTLY IN R^{4,1} — no polynomial source, no Möbius image
+//
+// A degree-n curve P(t) = Σ Cₖ Bₖ(t) with Cₖ ∈ R^{4,1} describes a curve of POINTS of R³
+// exactly when it is NULL, ⟨P,P⟩ ≡ 0, and it is PH exactly when ⟨P′,P′⟩ is a perfect
+// square (see the PH-condition block above). Those two conditions are the whole definition,
+// so a family of rational PH curves can be parametrized by its conformal control points
+// directly, with no polynomial curve anywhere in the construction.
+//
+// This matters because the Möbius route cannot reach these. Bending a polynomial curve
+// leaves √⟨P′,P′⟩ equal to the SOURCE's σ, so the orbit sits in a low-degree stratum, and
+// worse, the conformal lift DOUBLES the degree — so a Möbius image always has EVEN
+// conformal degree. Odd degrees are unreachable by bending, and degree 3 is where the
+// smallest genuinely-rational PH curves live.
+//
+// Both residuals are exact Bernstein algebra (no sampling), because the dimension of the
+// family is read off this Jacobian's rank and sampling ⟨P,P⟩ at 2n+1 points is too
+// ill-conditioned to separate rank n from rank n−1. Measured dimensions are pinned in the
+// tests: dim = 2n+5, of which 9 are Möbius motions.
+// ---------------------------------------------------------------------------
+
+const binomial = (n: number, k: number): number => {
+  if (k < 0 || k > n) return 0
+  let c = 1
+  for (let i = 0; i < k; i++) c = (c * (n - i)) / (i + 1)
+  return c
+}
+
+/** η·v, taken from innerProduct so the metric is never written down twice. */
+export function metricApply(v: Conformal): Conformal {
+  const out = [0, 0, 0, 0, 0]
+  for (let k = 0; k < 5; k++) {
+    const e = [0, 0, 0, 0, 0] as unknown as Conformal
+    ;(e as unknown as number[])[k] = 1
+    out[k] = innerProduct(e, v)
+  }
+  return out as unknown as Conformal
+}
+
+/** The Bernstein coefficients of P′, degree n−1. */
+export function derivativeCoefficients(C: readonly Conformal[]): Conformal[] {
+  const n = C.length - 1
+  return Array.from({ length: n }, (_, k) =>
+    (C[k + 1] as unknown as number[]).map((v, i) => n * (v - (C[k] as unknown as number[])[i])) as unknown as Conformal)
+}
+
+/** The 2n+1 Bernstein coefficients of ⟨P,P⟩ — zero exactly when P is a curve of points. */
+export function nullCurveResidual(C: readonly Conformal[]): number[] {
+  const n = C.length - 1
+  return Array.from({ length: 2 * n + 1 }, (_, m) => {
+    let s = 0
+    for (let j = 0; j <= n; j++) {
+      const k = m - j
+      if (k < 0 || k > n) continue
+      s += ((binomial(n, j) * binomial(n, k)) / binomial(2 * n, m)) * innerProduct(C[j], C[k])
+    }
+    return s
+  })
+}
+
+/**
+ * The 2n−1 Bernstein coefficients of ⟨P′,P′⟩ − h², with h given by its own n Bernstein
+ * coefficients (degree n−1). Zero exactly when the curve is PH with parametric speed
+ * ‖p′‖ = h/w.
+ */
+export function phSquareResidual(C: readonly Conformal[], h: readonly number[]): number[] {
+  const n = C.length - 1
+  const D = derivativeCoefficients(C)
+  return Array.from({ length: 2 * n - 1 }, (_, m) => {
+    let acc = 0
+    for (let j = 0; j <= n - 1; j++) {
+      const k = m - j
+      if (k < 0 || k > n - 1) continue
+      const v = (binomial(n - 1, j) * binomial(n - 1, k)) / binomial(2 * n - 2, m)
+      acc += v * (innerProduct(D[j], D[k]) - h[j] * h[k])
+    }
+    return acc
+  })
 }
