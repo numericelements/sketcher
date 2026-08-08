@@ -771,10 +771,19 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 //     system is homogeneous and blowing up is impossible by construction. The path still converges
 //     to a boundary instead of passing through it: w₀, w₁ and w₄ all go to zero together while w₂
 //     takes 0.72 of the norm, the spherical arc length asymptotes near 3.0, and the step size
-//     collapses. Three of the five conformal control points are vanishing — a degeneration of the
-//     polygon, which is a boundary in EVERY chart, not a point at infinity in one of them. The
-//     middle control point stays bounded throughout (‖P₂‖ ≈ 0.88) and w₂ never changes sign, so it
-//     does not pass through ∞ either: its locus is a bounded open arc with two endpoints.
+//     collapses. The middle control point stays bounded throughout (‖P₂‖ ≈ 0.88) and w₂ never
+//     changes sign, so it does not pass through ∞ either: its locus is a bounded open arc.
+//
+//     AND WHAT DEGENERATES IS THE WEIGHTS, NOT THE DRAWN POLYGON — worth saying precisely, because
+//     "three control points collapse" invites the obvious objection that four of them are PINNED.
+//     They are pinned as 3D positions, which are RATIOS: Cₖ = wₖ·(1, Pₖ, ½(‖Pₖ‖²−ρₖ²)), so the
+//     vector can shrink to zero with Pₖ = Cₖ[1..3]/Cₖ[0] fixed the whole way. At the four outer
+//     points the radii are forced by the polygon already (ρ₀ = ρ₄ = 0, ρ₁ = ‖P₁−P₀‖,
+//     ρ₃ = ‖P₃−P₄‖), so what is free there is EXACTLY their weights — and it is those going to
+//     zero relative to w₂. On screen the four points do not move at all; the FARIN BEADS run to
+//     the ends of their legs. The curve keeps interpolating P₀ and P₄ throughout, since
+//     p(0) = C₀[1..3]/C₀[0] = P₀ for every w₀ ≠ 0; the wall is only the limit, and it is
+//     asymptotic — 16000 steps and still crawling towards it.
 //
 //   · WHAT IS NOT ESTABLISHED: on two of three members the walker could not take a single step —
 //     the tangent extraction breaks on the pinned Jacobian's two-plateau spectrum — so this is
