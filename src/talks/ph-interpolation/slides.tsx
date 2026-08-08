@@ -570,13 +570,13 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 13 — degree 4: the smallest genuinely-new rational case, and the frozen polygon
+  // 13 — degree 4: the smallest genuinely-new rational case, and rigidity + the gauge
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Freeze the polygon; the family survives</h2>
+        <h2>Four points fix the quartic</h2>
         <WhenActive>
           <RationalPHQuarticFigure />
         </WhenActive>
@@ -599,25 +599,36 @@ export const slides: SlideDefinition[] = [
       'and lines, while building directly gives 13 dimensions of spatial curves — measured here at ' +
       'curvature spread 0.39 and out-of-plane 0.05. That is a QUALITATIVE gap, sharper than degree 6’s ' +
       '17-against-13, and it lands two degrees earlier. ' +
-      'THE STRICT DIAL IS A WEIGHT DIAL, and that was a surprise. Holding the four outer control points ' +
-      'is 12 conditions on 13, leaving ONE — and it cannot move the middle point. Measured: project each ' +
-      'of the three "push P2 this way" directions onto the nullspace of the defining rows plus the four ' +
-      'pins and all three return the SAME tangent, as a one-dimensional family must, carrying |dP2| = ' +
-      '1e-6 against |d| = 1 while every WEIGHT moves by 0.1 to 0.5. So the entire 3D polygon is frozen — ' +
-      'verified, every point moving by 1e-15 — and a one-parameter family of distinct rational PH curves ' +
-      'still runs through it. The POLYNOMIAL curve through that polygon is the single member with every ' +
-      'bead at its midpoint: that is the sentence to say out loud. ' +
-      'WHERE IT ENDS. The weights run to a degeneration: w_0, w_1 and w_4 all go to zero relative to ' +
-      'w_2, so the beads pin to the ends of their legs. Traced two ways — in the w_0 = 1 chart the other ' +
-      'weights blow up to 3e3; on the unit sphere ||(C,h)|| = 1, where blowing up is impossible by ' +
-      'construction, the path still converges to a boundary instead of passing through, so the ' +
-      'projective escape hatch is closed and the family is an open ARC rather than a circle. The wall is ' +
-      'asymptotic: 16000 continuation steps without arriving, so the slider slows to a stop. ' +
-      'IF ASKED WHY NOT A DRAG ON THE MIDDLE POINT: three failed attempts are in the doc comment of ' +
-      'dragAlongLocus. Prescribing one cursor component makes the count exact, 13 for 13, and an exactly ' +
-      'determined solve has nothing spare to hold membership with — it hit its target to 5e-13 with a ' +
-      'defining residual of 7e-4. That is the forbidden direction, satisfying what is displayed by ' +
-      'abandoning what is enforced. ' +
+      'THE DIAL IS THE PARAMETER GAUGE, AND SAY SO OUT LOUD — it is the best beat on the slide. Holding ' +
+      'the four outer points is 12 conditions on 13, leaving ONE, and that one does not change the ' +
+      'curve. Turn the dial and every weight moves, all four beads slide, the readouts all change, and ' +
+      'the drawn curve sits still. Measured: the weight ratios w_k/w_k(0) come out 1, 3.4218, 11.7090, ' +
+      '40.0665, 137.1015 — a SINGLE lambda = 3.4218 recovered to four decimals from all four — and the ' +
+      'image is unchanged to 2.6e-3 of the extent, which is the sampling resolution. w_k -> lambda^k w_k ' +
+      'is the classical rational-Bezier reparametrisation; the Mobius map t -> lambda t/(1+(lambda-1)t) ' +
+      'preserves rational PH because the chain rule multiplies |p′| by a rational scalar. ' +
+      'THIS FIGURE TAUGHT US THAT, and Eric read it off the screen before the algebra did: "the dial ' +
+      'does not change the shape of the curve, it just moves the Farin points." An earlier version of ' +
+      'the slide claimed the frozen polygon carried a family of DISTINCT curves. It does not. If asked ' +
+      'how it was missed: uniform-in-t samples move by 0.56 of the extent under the dial, because the ' +
+      'points slide ALONG the curve — parametrisation motion misread as shape motion. ' +
+      'AND IT IS FORCED, NOT AN ACCIDENT OF THE SEED. lambda^k changes only weights; every control ' +
+      'point, as a projective point, stays put. So the gauge lies in the nullspace of any constraint of ' +
+      'the form "control point k is HERE" — structurally, before any computation. Pin four, pin all ' +
+      'five: it survives. ' +
+      'SO THE STATEMENT IS RIGIDITY, and it is stronger than the family it replaced. 13 = 1 gauge + 12 ' +
+      'geometric. Twelve pinned coordinates can only bite on the 12 geometric directions, and the ' +
+      'measured dimension is 1, so they bite on ALL of them: the geometric quotient is cut to dimension ' +
+      'ZERO. Four control points DETERMINE the degree-4 rational PH shape. ' +
+      'THE CONSEQUENCE FOR THE EARLIER SLIDES, if someone counts along: every dimension quoted from ' +
+      'pinning control-point POSITIONS carries this spurious +1, so slides 11 and 12 are one lower ' +
+      'geometrically than their readouts say. Pinning the HERMITE DATA instead does fix lambda, since ' +
+      'p′(0) = n(w_1/w_0)(P1-P0) scales by lambda — and the dimension left there is genuine shape, ' +
+      'measured at curve motion 6.9e-4 per unit against control-point motion 1.3e-2. ' +
+      'WHERE THE DIAL ENDS. The weights run to a degeneration, w_0, w_1 and w_4 going to zero relative ' +
+      'to w_2, which in the gauge reading is just lambda running off to its limit. The wall is ' +
+      'asymptotic: 16000 continuation steps without arriving, so the slider slows to a stop rather than ' +
+      'snapping. ' +
       'core/conformalPHHopf (19 tests), conformalPHCurve, conformalPHFamily, conformal.',
   },
 ]
