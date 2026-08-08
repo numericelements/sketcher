@@ -322,8 +322,10 @@ export default function RationalPHQuarticFigure() {
             <span className="text-slate-400">
               Degree 4 and not 5: nullity forces ‖q‖² = 2w·c∞, so at a real root of w the numerator
               vanishes too and the curve is secretly of lower degree — and an odd-degree w always has a
-              real root. The readout shows this member has none. Switch to <b>free</b> to drag any point
-              with only the ends held. Drag the background to rotate.
+              real root. The readout shows this member has none. The <b>grey</b> middle point is not a
+              handle here — the four outer pins spend all twelve conditions, so nothing is left to move
+              it with. Switch to <b>free</b> to drag any point with only the ends held. Drag the
+              background to rotate.
             </span>
           </>
         ) : (
@@ -369,17 +371,19 @@ export default function RationalPHQuarticFigure() {
       )}
 
       {/*
-        THE CONTROL POINTS, ALL ONE COLOUR, and that is deliberate rather than an oversight. Earlier
-        versions recoloured them — grey for the middle one, grey for all of them while a drag was in
-        progress — and the flicker read as though the mathematics were changing state. It is not: in
-        strict mode every one of the five is held, and under the dial none of them moves at all. A
-        uniform blue polygon that visibly stays put is the whole point of the slide. In strict mode
-        the middle point is not a handle (holding the outer four already uses all twelve conditions,
-        so there is nothing left to move it with), so it is rendered as a plain mark.
+        THE CONTROL POINTS. Colour carries exactly one distinction here — can the mouse move this? —
+        and it is STATIC, which is the part that matters. An earlier version recoloured points during
+        interaction (grey for all five the moment any drag began) and the flicker read as though the
+        mathematics were changing state. It is not. So: the four blue ones are handles and stay blue
+        while you drag them; the middle one is grey in strict mode because it is genuinely not
+        draggable — holding the outer four already spends all twelve conditions, leaving nothing to
+        move it with — and it is a plain mark rather than a dead handle. Grey is the deck's existing
+        "same family, not yours to move" (figureStyle: derived); the beads are the same grey at a
+        third the radius, so the two do not read as the same kind of thing.
       */}
       {cps.map((p, i) =>
         strict && i === 2 ? (
-          <Point3D key={`cp${i}`} position={tri(p)} color={FIG.color.dataPoint} radius={0.045} />
+          <Point3D key={`cp${i}`} position={tri(p)} color={FIG.color.derived} radius={0.038} />
         ) : (
           <DragPoint3D
             key={`cp${i}`}
