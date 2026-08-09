@@ -83,6 +83,35 @@
 //    variety is 2n+5 dimensional while its linearisation admits one extra direction that leaves it
 //    at second order. Any corrector that least-squares through this Jacobian is working with a
 //    structurally rank-deficient matrix — the first place to look when a continuation stalls.
+//
+// 7. BENDING THE CUBIC FIBERS DOES NOT FILL THE FAMILY: 3 MODULI OF THE 5. The cubics come in closed
+//    fibers (5), their Möbius images are rational, so the bent fibers span more than the polynomial
+//    family did — but not everything. The tangent space to the Möbius ORBIT of the lifted cubics,
+//    built from an explicit parametrisation and so free of the degenerate row of (6):
+//
+//        11 polynomial parameters (A₀, A₁, p₀), of rank 10 — the missing one is A ↦ A·e^{iθ},
+//           which leaves A i Ā alone, measured at 0.0e+0 motion
+//      + 12 gauge directions
+//      − 7 overlap                    =  15, against the family's 17
+//
+//    and the overlap being exactly 7 identifies it: translation 3 + rotation 3 + dilation 1, the
+//    Möbius maps that keep a polynomial polynomial. Modulo the gauge: 15 − 12 = 3 against 5. So
+//    CODIMENSION 2 — two of the five shape directions are reachable by no polynomial cubic, bent or
+//    not. The same 2 falls out determinantally: bendability (2) is the rank drop of a 6×5 matrix, and
+//    the rank ≤ 4 locus of an m×n matrix has codimension (m−r)(n−r) = 2·1. Two independent
+//    derivations, one a tangent-space count and one classical.
+//
+//    Cross-check downstairs, with no conformal model at all: PH cubics are 10-dimensional (they
+//    interpolate any p₀, d₀, p₃ with a 1-parameter fiber, 9 + 1) and the similarity group is 7, so
+//    their shapes number 10 − 7 = 3. Möbius adds no shapes because the moduli are already a Möbius
+//    quotient — bending buys REPRESENTATIONS, not shapes.
+//
+//    THE FIBER SURVIVES BENDING AS A FIBER, and loses its degeneracy. Push the 181-member fiber
+//    through a transversion — the only part of the Möbius group that bends lines into circles: every
+//    image is still a member (3.8e-15), none is polynomial any more (least bead offset 2.7e-2), the
+//    loop still CLOSES (end gap 0.02 median steps), but the arc length now SPREADS by 1.2e-2 where it
+//    was zero. So in the rational family arc length does select among the fiber, and the ellipse's
+//    "arc length cannot choose for you" is a polynomial-only fact.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -90,8 +119,10 @@ import {
   bivectorGenerator,
   conformalLiftBezier,
   innerProduct,
+  inversiveBendGenerator,
+  matrixExp5,
 } from '../conformal'
-import { type Quat } from '../quaternion'
+import { type Quat, type Vec3, gaugeRotate } from '../quaternion'
 import { controlPoints as phControlPoints, squareWeights, type SpatialPHCurve } from '../phSpatialFreeDragN'
 import {
   type ConformalPHCurve,
@@ -111,6 +142,7 @@ import {
   speedAt,
   hermiteDataOf,
   lambdaForFirstBead,
+  mobiusImage,
   pack,
   reparametrise,
   unpack,
@@ -786,6 +818,153 @@ describe('the space of conformal PH curves', () => {
     expect(before.beads, 'the lift starts exactly on the stratum').toBeLessThan(1e-12)
     expect(Math.abs(before.bend.nullDefect), 'and reads as bendable, exactly').toBeLessThan(1e-12)
     expect(departed, 'at least one dial walks off into the rational family').toBeGreaterThan(0)
+  }, 120_000)
+
+  it('bending the cubic fibers gives 3 of the 5 moduli, never all 5', () => {
+    // Eric's question, exactly. The polynomial PH cubics come in CLOSED fibers. Möbius images of them
+    // are rational degree-6 members, so the bent fibers span more than the polynomial family did. Is
+    // that the WHOLE degree-6 rational family, or only part of it?
+    //
+    // Dimension settles it, and it needs no solver. Build the tangent space to the Möbius ORBIT of the
+    // lifted cubics at one of its points -- 11 polynomial parameters (A0, A1, p0) plus the 12 gauge
+    // directions -- and read its rank in the 41-dimensional coefficient space. Below the family's own
+    // 17 means the bent cubics are a proper subvariety, and the shortfall is what bending cannot reach.
+    const liftAt = (A: readonly Quat[], p0: Vec3): ConformalPHCurve => {
+      const cps = phControlPoints({ A, p0 } as SpatialPHCurve)
+      const C = conformalLiftBezier(cps)
+      return { C, h: elevate(speedPolynomial(A), C.length - 2) }
+    }
+    const P0: Vec3 = { x: 0.2, y: -0.1, z: 0.35 }
+    const asQ = (v: readonly number[]): Quat => ({ u: v[0], v: v[1], p: v[2], q: v[3] })
+    const memberOf = (v: readonly number[]): ConformalPHCurve =>
+      liftAt([asQ(v.slice(0, 4)), asQ(v.slice(4, 8))], { x: v[8], y: v[9], z: v[10] })
+    const theta = [
+      CUBIC[0].u, CUBIC[0].v, CUBIC[0].p, CUBIC[0].q,
+      CUBIC[1].u, CUBIC[1].v, CUBIC[1].p, CUBIC[1].q,
+      P0.x, P0.y, P0.z,
+    ]
+    const base = memberOf(theta)
+
+    const unit = (v: readonly number[]): number[] => {
+      const m = Math.hypot(...v) || 1
+      return v.map((x) => x / m)
+    }
+    // Directions as COLUMNS: the Jacobi SVD orthogonalises columns, so it wants rows >= cols, and here
+    // there are 41 coefficients against at most 23 directions.
+    const spanRank = (dirs: readonly (readonly number[])[]): number => {
+      const cols = dirs.map(unit)
+      const m = Array.from({ length: cols[0].length }, (_, i) => cols.map((c) => c[i]))
+      return rankFromGap(singularValues(m), m.length).rank
+    }
+
+    const step = 1e-6
+    const poly: number[][] = theta.map((_, j) => {
+      const up = pack(memberOf(theta.map((v, i) => (i === j ? v + step : v))))
+      const dn = pack(memberOf(theta.map((v, i) => (i === j ? v - step : v))))
+      return up.map((v, i) => (v - dn[i]) / (2 * step))
+    })
+    const gauge = gaugeDirections(base)
+
+    const polyRank = spanRank(poly)
+    const orbitRank = spanRank([...poly, ...gauge])
+    const gaugeRank = spanRank(gauge)
+    const overlap = polyRank + gaugeRank - orbitRank
+
+    // The 11th polynomial parameter is not a shape: A -> A·e^(i theta) leaves A i Abar alone, so the
+    // parametrisation has a one-dimensional kernel. Measure it rather than asserting it.
+    const circle = pack(
+      liftAt([gaugeRotate(CUBIC[0], 1e-6), gaugeRotate(CUBIC[1], 1e-6)], P0),
+    )
+    const b = pack(base)
+    const circleMotion = Math.hypot(...circle.map((v, i) => v - b[i])) / Math.hypot(...b)
+
+    // The family's own dimension, read at a GENERIC member -- not here. The polynomial stratum is
+    // singular (the defining Jacobian drops from 23 to 21), so its tangent cone there is too big to
+    // use as the ambient count.
+    //
+    // The Jacobian rank is 23 of 24 and 41 - 23 = 18, one MORE than 2n+5 = 17. That last one is not a
+    // real direction: the top PH condition reads n²⟨Aₙ,Aₙ⟩ = h_top², nullity has already forced the
+    // left side to zero, so what survives is h_top² = 0 -- a genuine condition whose GRADIENT vanishes
+    // because it is a double root. The linearisation cannot see it; the variety obeys it. Hence -1, and
+    // h_top is measured below rather than assumed.
+    const generic = sexticSeed()
+    const Jg = definingJacobian(generic).map(unit)
+    const jRankGeneric = rankFromGap(singularValues(Jg), Jg.length).rank
+    const hPower = bernsteinToPower(generic.h as number[])
+    const hTop = Math.abs(hPower[hPower.length - 1]) / Math.max(...hPower.map(Math.abs))
+    const familyDim = pack(generic).length - jRankGeneric - 1
+
+    console.log(
+      `Möbius orbit of the lifted cubics, at one of its points:\n` +
+        `    polynomial parameters      11 given, rank ${polyRank}` +
+          `   (the missing one is A -> A e^{i t}: motion ${circleMotion.toExponential(1)})\n` +
+        `    gauge directions           rank ${gaugeRank} of 12\n` +
+        `    ORBIT tangent              rank ${orbitRank} of 41 coefficients\n` +
+        `    overlap                    ${polyRank} + ${gaugeRank} - ${orbitRank} = ${overlap}` +
+          `   (translation 3 + rotation 3 + dilation 1: the Möbius maps that keep a polynomial polynomial)\n` +
+        `    the family itself          41 - ${jRankGeneric} - 1 = ${familyDim} at a generic member` +
+          `   [2n+5 = 17; the -1 is the gradient-free row, h_top = ${hTop.toExponential(1)}]\n` +
+        `    MODULI: bent cubics ${orbitRank} - ${gaugeRank} = ${orbitRank - gaugeRank}` +
+          `   vs the family's ${familyDim} - ${gaugeRank} = ${familyDim - gaugeRank}` +
+          `   -> CODIMENSION ${familyDim - orbitRank}`,
+    )
+
+    // The same codimension, from the other side: bendability is the rank drop of a 6x5 matrix, and the
+    // rank <= 4 locus of an m x n matrix has codimension (m-r)(n-r) = 2. So the two derivations of
+    // "codimension 2" are independent -- one a tangent-space count, one determinantal.
+    const bentBend = bendability(base)
+    const genericBend = bendability(generic)
+
+    // And the fibers themselves: does a CLOSED fiber stay closed after a genuine bend? Take the
+    // transversion, the only piece of the Möbius group that bends lines into circles, so the image is
+    // certainly not a similarity copy.
+    const mu = matrixExp5(inversiveBendGenerator({ x: 0.4, y: -0.25, z: 0.15 }))
+    const p0f = { x: 0, y: 0, z: 0 }
+    const p1f = { x: 0.6, y: 0.25, z: 0.1 }
+    const p3f = { x: 1.7, y: 0.4, z: 0.55 }
+    const fiber = spatialCubicFiber(p0f, p1f, p3f, { samples: 220, step: 0.05 })
+    const bent = fiber.map((f) => {
+      const cps = cubicControlPoints(f.curve)
+      const lifted = { C: conformalLiftBezier(cps), h: elevate(speedPolynomial([f.curve.A0, f.curve.A1]), 5) }
+      return mobiusImage(lifted, mu)
+    })
+    const bentResidual = Math.max(...bent.map(relResidual))
+    const bentBeads = Math.min(...bent.map((c) => Math.max(...farinParameters(c).map((v) => Math.abs(v - 0.5)))))
+    const X = bent.map(pack)
+    const gaps: number[] = []
+    for (let i = 1; i < X.length; i++) gaps.push(Math.hypot(...X[i].map((v, j) => v - X[i - 1][j])))
+    const median = [...gaps].sort((x, y) => x - y)[Math.floor(gaps.length / 2)]
+    const endGap = Math.hypot(...X[X.length - 1].map((v, j) => v - X[0][j]))
+    const L = bent.map((c) => arcLength(c, 512))
+    const bentSpread = (Math.max(...L) - Math.min(...L)) / Math.max(...L)
+
+    console.log(
+      `    bendable at the lift       kernel ${bentBend.kernelDim}, ⟨S,S⟩ = ${bentBend.nullDefect.toExponential(1)}\n` +
+        `    bendable at the seed       kernel ${genericBend.kernelDim}` +
+          `   (so a generic member is NOT any polynomial curve bent)\n` +
+        `  the fiber after a transversion (${fiber.length} members):\n` +
+        `    still members              residual <= ${bentResidual.toExponential(1)}\n` +
+        `    no longer polynomial       least bead offset ${bentBeads.toExponential(1)}\n` +
+        `    still a CLOSED loop        end gap ${(endGap / median).toFixed(2)} median steps\n` +
+        `    arc length along it        spread ${bentSpread.toExponential(1)}` +
+          `   (it was 0 before the bend: the degeneracy is GONE)`,
+    )
+
+    expect(circleMotion, 'A -> A e^{i t} is not a shape direction').toBeLessThan(1e-9)
+    expect(polyRank, 'so 11 polynomial parameters carry 10 directions').toBe(10)
+    expect(gaugeRank, 'the gauge group is 12-dimensional').toBe(12)
+    expect(overlap, 'the similarities are the overlap: 7 of them').toBe(7)
+    expect(orbitRank, 'the bent cubics are 15-dimensional in the coefficient space').toBe(15)
+    expect(hTop, 'deg h = n-2, so the top PH row has a vanishing gradient').toBeLessThan(1e-12)
+    expect(familyDim, 'against the family 2n+5 = 17').toBe(17)
+    expect(orbitRank - gaugeRank, 'MODULI of bent cubics: 3').toBe(3)
+    expect(familyDim - orbitRank, 'a proper subvariety, of codimension 2').toBe(2)
+    expect(Math.abs(bentBend.nullDefect), 'the lift is bendable, exactly').toBeLessThan(1e-12)
+    expect(genericBend.kernelDim, 'a generic member is not bendable at all').toBe(0)
+    expect(bentResidual, 'a bent fiber is still made of members').toBeLessThan(1e-12)
+    expect(bentBeads, 'and none of them is polynomial any more').toBeGreaterThan(1e-3)
+    expect(endGap / median, 'the bent fiber still closes').toBeLessThan(2.5)
+    expect(bentSpread, 'but arc length now VARIES along it').toBeGreaterThan(1e-3)
   }, 120_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
