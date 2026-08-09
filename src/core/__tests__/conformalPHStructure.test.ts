@@ -59,8 +59,13 @@ import { type Quat } from '../quaternion'
 import { controlPoints as phControlPoints, squareWeights, type SpatialPHCurve } from '../phSpatialFreeDragN'
 import {
   type ConformalPHCurve,
+  type StrictCoordinate,
+  arcLength,
   controlPoints,
   definingJacobian,
+  denominatorRealRoots,
+  dragStrict,
+  shapeMeasures,
   degreeOf,
   curveAt,
   farinParameters,
@@ -77,6 +82,7 @@ import {
   weights,
 } from '../conformalPHCurve'
 import { bernsteinToPower } from '../conformalPHHopf'
+import { sexticSeed } from '../conformalPHSeeds'
 
 // --- little linear algebra -------------------------------------------------
 /**
@@ -380,6 +386,60 @@ describe('the space of conformal PH curves', () => {
       )
     }
   }, 180_000)
+
+  it('the cached degree-6 seed is a member, and its five dials ride', () => {
+    const seed = sexticSeed()
+    expect(degreeOf(seed), 'degree').toBe(6)
+    expect(relResidual(seed), 'the cached seed is on the family').toBeLessThan(1e-12)
+    expect(denominatorRealRoots(seed), 'genuinely sextic, not a lower-degree curve').toBe(0)
+    const guards = shapeMeasures(seed)
+    expect(guards.outOfPlane, 'still spatial').toBeGreaterThan(0.05)
+    expect(guards.curvatureSpread, 'still curvature-varying').toBeGreaterThan(0.35)
+
+    // The five dials the figure offers: the free radii plus each half's arc length.
+    const dials: StrictCoordinate[] = [
+      ...freeRadiusIndices(seed).map((index) => ({ kind: 'radius', index }) as StrictCoordinate),
+      { kind: 'length', from: 0, to: 0.5 },
+      { kind: 'length', from: 0.5, to: 1 },
+    ]
+    expect(dials.length, 'five dials for five moduli').toBe(5)
+
+    const data = hermiteDataOf(seed)
+    const value = (c: ConformalPHCurve, d: StrictCoordinate): number =>
+      d.kind === 'radius' ? radii(c)[d.index] : arcLength(c, 8, d.from ?? 0, d.to ?? 1)
+    for (const d of dials) {
+      const start = value(seed, d)
+      let cur = seed
+      for (let k = 0; k < 8; k++) {
+        const step = dragStrict(cur, d, start * 1.25, { data, lengthSamples: 8 })
+        if (!step.converged) break
+        cur = step.state
+      }
+      const after = hermiteDataOf(cur)
+      const dataMove = Math.max(
+        Math.hypot(after.p0.x - data.p0.x, after.p0.y - data.p0.y, after.p0.z - data.p0.z),
+        Math.hypot(after.p1.x - data.p1.x, after.p1.y - data.p1.y, after.p1.z - data.p1.z),
+        Math.hypot(after.d0.x - data.d0.x, after.d0.y - data.d0.y, after.d0.z - data.d0.z),
+        Math.hypot(after.d1.x - data.d1.x, after.d1.y - data.d1.y, after.d1.z - data.d1.z),
+      )
+      const shapeMove = Math.max(
+        ...Array.from({ length: 41 }, (_, k) => {
+          const a = curveAt(cur, k / 40)!, b = curveAt(seed, k / 40)!
+          return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)
+        }),
+      )
+      const label = d.kind === 'radius' ? `rho_${d.index}` : `L(${d.from},${d.to})`
+      console.log(
+        `${label.padEnd(10)} ${start.toFixed(3)} -> ${value(cur, d).toFixed(3)}` +
+          ` (asked ${(start * 1.25).toFixed(3)})   curve moved ${shapeMove.toExponential(1)}` +
+          `   Hermite data held to ${dataMove.toExponential(1)}   residual ${relResidual(cur).toExponential(1)}`,
+      )
+      expect(value(cur, d) / start, `${label} moved`).toBeGreaterThan(1.05)
+      expect(dataMove, `${label} holds the data`).toBeLessThan(1e-6)
+      expect(relResidual(cur), `${label} stays on the family`).toBeLessThan(1e-10)
+      expect(shapeMove, `${label} changes the shape`).toBeGreaterThan(1e-3)
+    }
+  }, 120_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {

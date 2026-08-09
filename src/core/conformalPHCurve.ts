@@ -941,9 +941,10 @@ export function hermiteDataOf(s: ConformalPHCurve): HermiteData {
  * finite-difference Jacobian and h/w is smooth; the solve converges to the root of THIS
  * discretisation, which is why the spare dimensions matter (see the block comment).
  */
-export function arcLength(s: ConformalPHCurve, samples = 24): number {
+export function arcLength(s: ConformalPHCurve, samples = 24, from = 0, to = 1): number {
   let acc = 0
-  for (let k = 0; k < samples; k++) acc += Math.abs(speedAt(s, (k + 0.5) / samples)) / samples
+  const span = to - from
+  for (let k = 0; k < samples; k++) acc += (Math.abs(speedAt(s, from + ((k + 0.5) / samples) * span)) * span) / samples
   return acc
 }
 
@@ -953,10 +954,20 @@ export function strictCoordinates(s: ConformalPHCurve): { radii: number[]; lengt
   return { radii: freeRadiusIndices(s).map((i) => r[i]), length: arcLength(s) }
 }
 
-/** Which coordinate a strict-mode slider is prescribing. */
+/**
+ * Which coordinate a strict-mode slider is prescribing.
+ *
+ * `length` covers a PARAMETER SUBINTERVAL, defaulting to the whole curve. The subinterval form is
+ * what makes a degree-6 slide possible: the free radii plus the total length number free.length + 1,
+ * which is 2n−7 exactly at degree 5 by luck and one SHORT at degree 6, where the Hermite slice has
+ * five dimensions and only four such dials exist. Splitting the length in two supplies the fifth,
+ * and it is a legitimate coordinate rather than a gauge artefact because the Hermite data pins the
+ * parametrisation — d₀ = n(w₁/w₀)(P₁−P₀) fixes λ, so "arc length from 0 to ½" means something.
+ * Measured to pin 5 of the 5 slice directions (conformalPHStructure.test.ts).
+ */
 export type StrictCoordinate =
   | { readonly kind: 'radius'; readonly index: number }
-  | { readonly kind: 'length' }
+  | { readonly kind: 'length'; readonly from?: number; readonly to?: number }
 
 /**
  * Move along the strict family by prescribing ONE coordinate, with the C¹ Hermite data held.
@@ -979,13 +990,16 @@ export function dragStrict(
   // so iterations is not the lever, sample count is.
   const samples = options.lengthSamples ?? 8
   const maxStepRatio = options.maxStepRatio ?? 0.04
-  const current = coordinate.kind === 'length' ? arcLength(from, samples) : radii(from)[coordinate.index]
+  const spanOf = (c: StrictCoordinate): [number, number] =>
+    c.kind === 'length' ? [c.from ?? 0, c.to ?? 1] : [0, 1]
+  const [lo, hi] = spanOf(coordinate)
+  const current = coordinate.kind === 'length' ? arcLength(from, samples, lo, hi) : radii(from)[coordinate.index]
   const limit = Math.abs(current) * maxStepRatio
   const wanted = Number.isFinite(current)
     ? Math.min(current + limit, Math.max(current - limit, target))
     : target
   const measure = (s: ConformalPHCurve): number =>
-    coordinate.kind === 'length' ? arcLength(s, samples) : radii(s)[coordinate.index]
+    coordinate.kind === 'length' ? arcLength(s, samples, lo, hi) : radii(s)[coordinate.index]
   return solveWith(from, {
     rows: (s) => {
       const d = hermiteDataOf(s)

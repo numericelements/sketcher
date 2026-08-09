@@ -42,6 +42,7 @@ import RmErfSplineFigure from './RmErfSplineFigure'
 import MobiusFigure from './MobiusFigure'
 import RationalPHCurveFigure from './RationalPHCurveFigure'
 import RationalPHQuarticFigure from './RationalPHQuarticFigure'
+import RationalPHSexticFigure from './RationalPHSexticFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import WhenActive from '../framework/slideContext'
 
@@ -630,5 +631,28 @@ export const slides: SlideDefinition[] = [
       'asymptotic: 16000 continuation steps without arriving, so the slider slows to a stop rather than ' +
       'snapping. ' +
       'core/conformalPHHopf (19 tests), conformalPHCurve, conformalPHFamily, conformal.',
+  },
+// ---------------------------------------------------------------------------
+  // 14 — degree 6: the five moduli, one dial each
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Five moduli, five dials</h2>
+        <WhenActive>
+          <RationalPHSexticFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'DEGREE 6, AND FIVE IS A MEASURED NUMBER. The family is 2n+5 = 17 dimensional and twelve of those directions change nothing geometric: TEN for O(4,1) acting linearly on R^{4,1}, ONE for the projective scale of the homogeneous representative, ONE for the w_k -> lambda^k w_k reparametrisation that slide 13 is about. All twelve are verified inside the tangent space to 1.8e-12. So the curves modulo Mobius AND reparametrisation number 2n-7: one at degree 4, three at degree 5, FIVE here, thirteen at degree 10. '
+      + 'AND THE COUNT IS NOT ABSTRACT, which is the point of the slide. Pinning the C1 Hermite data at both ends is exactly a SLICE through the gauge: twelve rows added to the defining Jacobian leave nullity 2, 4, 6 at degrees 4, 5, 6, and minus the one structurally spurious direction that is 1, 3, 5 = 2n-7, with gaps 4.7e9, 3.2e5, 8.4e9. So what strict mode lets you move IS the moduli, one slider each. This also retro-explains slide 12, whose notes already record freedom 3 measured at degree 5 -- that was 2n-7 all along. '
+      + 'THE FIFTH DIAL TOOK A MEASUREMENT TO FIND. The free radii plus the total arc length number free+1, which is 3+1 = 4 here -- one short, where degree 5 got 2+1 = 3 by luck. Splitting the arc length into its two halves supplies the fifth, and it is a real coordinate rather than a gauge artefact because the Hermite data pins the parametrisation: d0 = n(w1/w0)(P1-P0) fixes lambda, so length from 0 to 1/2 means something. Measured: rho_2, rho_3, rho_4, L1, L2 pin 5 of the 5 slice directions. Radii 1 and 5 are NOT dials because the data already fixes them, each being the distance to its near endpoint. '
+      + 'WHAT BENDING REACHES AT THIS DEGREE, and it is the sharper version of the old 17-against-13. The null lift of a polynomial curve is (1, p, half |p|^2), so the infinity coordinate is |p|^2 and degree d lands at conformal degree exactly 2d -- exactly, because the o-coordinate is the constant 1 so the five components share no common factor. O(4,1) acts LINEARLY and invertibly, so conformal degree is a Mobius invariant and bending cannot lower it either. Hence conformal 6 carries the polynomial PH CUBICS, and a polynomial PH QUINTIC needs conformal degree 10 -- Eric asked exactly this and the answer is 10, not 6. Measured: the lifted cubic is a degree-6 member to 4.1e-16, the lifted quintic a degree-10 member to 3.4e-16, both with every weight exactly 1. '
+      + 'AND A GENERIC MEMBER HERE IS NOT EVEN A BENT CUBIC. p is a Mobius image of a polynomial iff some NULL S has <P,S> constant -- S is the point sent to infinity, and constant means the curve never reaches it. Constant in Bernstein form means S is orthogonal to every difference C_i - C_i+1, so the test is: does the orthogonal complement of the differences contain a null vector? At degree 6 that complement is measured ZERO-dimensional -- there is no candidate to test. At degree 4 there was one and it read <S,S> = 2.0e-3. The control experiment: the lifted polynomials give exactly 0. '
+      + 'IF ASKED WHY THE SLIDERS DRIFT: they are genuinely coupled by the defining conditions, so moving one moves the others readings. The handles show what was ASKED, the readouts show what is MEASURED; showing the measured value on the handle makes it jump under the pointer. '
+      + 'THE MEMBER IS CACHED, not solved at load -- findMember takes 19 s at this degree. The test asserts its residual is machine zero, so it is a computed member pinned as data. '
+      + 'core/conformalPHStructure.test.ts (4 tests), conformalPHCurve, conformal.',
   },
 ]
