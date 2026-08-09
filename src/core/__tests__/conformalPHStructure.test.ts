@@ -670,6 +670,121 @@ describe('the space of conformal PH curves', () => {
     expect(dBent, 'bending cannot change it -- O(4,1) acts linearly').toBe(dCubic)
   }, 120_000)
 
+
+  it('DEPARTING the polynomial stratum: lift a cubic, then navigate the rational space', () => {
+    // The lift is an ENTRY POINT, not a destination. Start at a curve the audience knows -- a
+    // polynomial PH cubic -- and ask whether the five dials can walk OFF the polynomial stratum into
+    // the genuinely rational family. The stratum is where the Jacobian is rank 21 of 24 instead of
+    // 23, so this departure starts from the worst-conditioned point there is.
+    const A: Quat[] = [
+      { u: 1, v: 0.3, p: 0.1, q: 0 },
+      { u: 0.8, v: 0, p: 0.25, q: 0.4 },
+    ]
+    const start = liftPolynomialPH(A)
+    const unit = (row: readonly number[]): number[] => {
+      const m = Math.hypot(...row) || 1
+      return row.map((v) => v / m)
+    }
+    const jRank = (c: ConformalPHCurve): number => {
+      const J = definingJacobian(c).map(unit)
+      return rankFromGap(singularValues(J), J.length).rank
+    }
+    /** Two odometers for "how far off the polynomial stratum are we". */
+    const offStratum = (c: ConformalPHCurve) => {
+      const w = weights(c)
+      return {
+        // polynomial <=> every weight equal <=> every Farin bead at the midpoint
+        beads: Math.max(...farinParameters(c).map((v) => Math.abs(v - 0.5))),
+        weightSpread: Math.max(...w) / Math.min(...w) - 1,
+        bend: bendability(c),
+      }
+    }
+
+    const before = offStratum(start)
+    console.log(
+      `  at the lifted cubic: beads off centre ${before.beads.toExponential(1)},` +
+        ` weight spread ${before.weightSpread.toExponential(1)},` +
+        ` bend kernel ${before.bend.kernelDim} with <S,S> = ${before.bend.nullDefect.toExponential(1)},` +
+        ` J rank ${jRank(start)} of 24`,
+    )
+
+    const data = hermiteDataOf(start)
+    const dials: StrictCoordinate[] = [
+      ...freeRadiusIndices(start).map((index) => ({ kind: 'radius', index }) as StrictCoordinate),
+      { kind: 'length', from: 0, to: 0.5 },
+      { kind: 'length', from: 0.5, to: 1 },
+    ]
+    const value = (c: ConformalPHCurve, d: StrictCoordinate): number =>
+      d.kind === 'radius' ? radii(c)[d.index] : arcLength(c, 8, d.from ?? 0, d.to ?? 1)
+
+    let departed = 0
+    for (const d of dials) {
+      const from0 = value(start, d)
+      let cur = start
+      let passes = 0
+      for (let k = 0; k < 12; k++) {
+        const step = dragStrict(cur, d, from0 * 1.35, { data, lengthSamples: 8 })
+        if (!step.converged) break
+        cur = step.state
+        passes++
+      }
+      const after = offStratum(cur)
+      const label = d.kind === 'radius' ? `rho_${d.index}` : `L(${d.from},${d.to})`
+      const left = after.beads > 1e-6
+      if (left) departed++
+      console.log(
+        `  ${label.padEnd(10)} ${passes} passes, ${from0.toFixed(3)} -> ${value(cur, d).toFixed(3)}` +
+          `   beads off centre ${after.beads.toExponential(1)}` +
+          `   weight spread ${after.weightSpread.toExponential(1)}` +
+          `   bend kernel ${after.bend.kernelDim}` +
+          `   J rank ${jRank(cur)}` +
+          `   residual ${relResidual(cur).toExponential(1)}` +
+          `   ${left ? '<- OFF the stratum' : '<- still polynomial'}`,
+      )
+      if (left) {
+        expect(relResidual(cur), `${label} stays on the family`).toBeLessThan(1e-10)
+      }
+    }
+
+    // Are the stuck dials genuinely blocked, or blocked only AT the singularity? Nudge off the
+    // stratum with the one dial that works, then try them again from there.
+    let nudged = start
+    {
+      const d = dials[1]
+      const goal = value(start, d) * 1.05
+      for (let k = 0; k < 6; k++) {
+        const step = dragStrict(nudged, d, goal, { data, lengthSamples: 8 })
+        if (!step.converged) break
+        nudged = step.state
+      }
+    }
+    console.log(
+      `  after a 5% nudge off the stratum (beads ${offStratum(nudged).beads.toExponential(1)},` +
+        ` J rank ${jRank(nudged)}):`,
+    )
+    const nudgedData = hermiteDataOf(nudged)
+    for (const d of dials) {
+      const from0 = value(nudged, d)
+      let cur = nudged
+      let passes = 0
+      for (let k = 0; k < 12; k++) {
+        const step = dragStrict(cur, d, from0 * 1.35, { data: nudgedData, lengthSamples: 8 })
+        if (!step.converged) break
+        cur = step.state
+        passes++
+      }
+      const label = d.kind === 'radius' ? `rho_${d.index}` : `L(${d.from},${d.to})`
+      console.log(
+        `    ${label.padEnd(10)} ${passes} passes, ${from0.toFixed(3)} -> ${value(cur, d).toFixed(3)}` +
+          `   ${passes > 0 ? 'moves' : 'STILL stuck'}`,
+      )
+    }
+
+    expect(before.beads, 'the lift starts exactly on the stratum').toBeLessThan(1e-12)
+    expect(Math.abs(before.bend.nullDefect), 'and reads as bendable, exactly').toBeLessThan(1e-12)
+    expect(departed, 'at least one dial walks off into the rational family').toBeGreaterThan(0)
+  }, 120_000)
+
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
       const s = findMember(n, {
