@@ -132,17 +132,39 @@
 //    Riding the one dial that moves here takes it away: ρ₃ at +3% sends rank(D) from 4 to 5 with defect
 //    2.2e-3. No point in space straightens the curve any more. THAT is what a new direction looks like.
 //
-//    BUT THE FIVE DIALS CANNOT NAME THE TWO NEW DIRECTIONS, because the dial CHART is singular exactly
-//    on the stratum. Two measurements of the same defect: four of the five dials do not budge at all
-//    here (the stratum is the singularity of (5)); and the 3-dimensional bendable stratum has only a
-//    2-DIMENSIONAL image in dial space — the dial-rate matrix reads rank 2, third singular value 4.8e-10
-//    against 2.2e-1 and 8.7e-2, and 100× the differencing step moves that 4×, so it is the
-//    construction's noise floor and not a resolved quantity. All three directions genuinely move the
-//    curve (speeds 1.8e-3, 2.9e-2, 5.5e-2), so this is the chart degenerating, not a missing direction.
-//    Consequence for the figures: near a lifted cubic these dials are not coordinates. Show the
-//    straightening centre and its defect — an invariant — rather than trying to label dials "3 old + 2
-//    new". (The bendable directions themselves come out with NO solver and NO defining Jacobian:
-//    (orbit tangent, 15 explicit directions) ∩ (12 Hermite rows) = 3.)
+//    The bendable directions come out with NO solver and NO defining Jacobian: (orbit tangent, 15
+//    explicit directions) ∩ (12 Hermite rows) = 3. Their image in dial space is only 2-dimensional
+//    (dial-rate matrix rank 2, third singular value 4.8e-10 against 2.2e-1 and 8.7e-2), and that is
+//    EXACTLY RIGHT rather than a degenerate chart — see (9).
+//
+// 9. THE PROJECTIVE SCALE HIDES IN THE HERMITE SLICE, so every "how many knobs" count taken there is one
+//    too high. C ↦ cC, h ↦ ch changes NOTHING observable: not a curve point, not a radius (ρ = √⟨C,C⟩/w
+//    scales top and bottom alike), not a speed (h/w likewise), and not the Hermite data (curve points
+//    and a ratio of weights). Yet it is tangent to the family, because every defining condition is
+//    quadratic and the constraint set is therefore a CONE. Measured at a bent cubic: the scale direction
+//    lies inside the orbit tangent to 1.000000 and inside the 3-dimensional bendable kernel to
+//    1.000000, while the Hermite data responds 2.1e-10 and the five dials respond at most 4.9e-10.
+//
+//    So read every slice count as (directions) = 1 + (shapes):
+//
+//        bendable stratum in the slice     3 directions = scale + 2 SHAPES   -> dial rank 2, correct
+//        the whole Hermite slice           5 directions = scale + 4 SHAPES   -> FIVE dials on FOUR knobs
+//
+//    The 2n−7 of (4) is the MODULI count — curves modulo the 11 gauge motions that act on curves at all
+//    — and it is right. What is wrong is reading the Hermite slice's 2n−7 directions as 2n−7 shapes:
+//    pinning the 12 Hermite values fixes 11 gauge motions AND imposes one genuine shape condition, so
+//    the slice sees a codimension-1 subset of the moduli. Codimension 2 for the bent cubics survives
+//    either way (5 vs 3 in the moduli, 4 vs 2 in the slice).
+//
+//    The degree-4 cross-check is the convincing one. There the slice has 2 directions, hence ONE shape
+//    minus... no: raw nullity 2, minus the spurious row of (6), leaves 1 direction, which IS the scale —
+//    so ZERO shapes. And that is exactly what slide 13 shows: with the four points pinned, nothing can
+//    move, the middle control point is inert, and the only dial the figure can honestly offer is the
+//    reparametrisation gauge. The old reading ("2n−7 = 1, so one knob at degree 4") predicted a shape
+//    knob that the figure does not have.
+//
+//    Note this is NOT the cause of the four stalled dials in (8). That is the variety's singularity at
+//    the polynomial stratum, rank 21 against 23 — a different defect at the same place.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -458,7 +480,11 @@ describe('the space of conformal PH curves', () => {
         `degree ${n}: ${withPins.length} rows (${J.length} defining + 12 Hermite), rank ${rank}` +
           ` (gap ${gap.toExponential(1)}) -> nullity ${raw}\n` +
           `    minus the one spurious direction (h_top squared): ${raw - 1}   [2n-7 = ${2 * n - 7}]\n` +
-          `    free radii ${free.length} (indices ${free.join(',')}) + arc length = ${free.length + 1} coordinates`,
+          `    of which ONE is the projective scale, which changes nothing observable (finding 9),\n` +
+          `        so SHAPES with the Hermite data pinned = ${raw - 2}` +
+          `   ${n === 4 ? '<- zero: slide 13 has nothing to move, and does not' : ''}\n` +
+          `    free radii ${free.length} (indices ${free.join(',')}) + arc length = ${free.length + 1} dials` +
+          `   ${free.length + 1 > raw - 2 ? `<- ${free.length + 1} dials on ${raw - 2} knobs: they are DEPENDENT` : ''}`,
       )
       expect(raw - 1, `degree ${n} Hermite slice`).toBe(2 * n - 7)
 
@@ -488,10 +514,16 @@ describe('the space of conformal PH curves', () => {
       // how many independent directions along the slice they actually see.
       const together = [...withPins, ...dialRows.map(scaleRow)]
       const jointRank = rankFromGap(singularValues(together), together.length).rank
+      // They pin raw−1 of the raw nullspace directions at every degree, and the one they NEVER pin is
+      // the projective scale — they are all built from ρ = √⟨C,C⟩/w and h/w, both scale-invariant
+      // (finding 9). Since one of the ones they DO pin is the spurious h_top direction of (6), the
+      // shapes they actually resolve number raw−2, and that is the honest dial count.
       console.log(
         `    dials: ${base.length} candidates (${free.length} radii + 2 half-lengths) ->` +
-          ` they pin ${jointRank - rank} of the ${raw - 1} slice directions`,
+          ` they pin ${jointRank - rank} of the ${raw} nullspace directions;` +
+          ` never the projective scale, so ${raw - 2} SHAPES resolved`,
       )
+      expect(jointRank - rank, 'the dials pin everything except the projective scale').toBe(raw - 1)
     }
   }, 180_000)
 
@@ -1162,6 +1194,38 @@ describe('the space of conformal PH curves', () => {
     )
     const kernel = independent([...spanH, ...axes]).slice(spanH.length)
 
+    // IS ONE OF THE THREE THE PROJECTIVE SCALE? C ↦ cC, h ↦ ch changes no curve point, no radius
+    // (ρ = √⟨C,C⟩ / w scales top and bottom alike) and no speed (h/w likewise) -- and the Hermite data
+    // is built from curve points and a RATIO of weights, so it is blind to the scale too. Meanwhile the
+    // constraint set is a CONE (every condition is quadratic), so the scaling direction is tangent to
+    // it. Conclusion if it lands in the kernel: the stratum holds 2 SHAPES, not 3, and the dial rank of
+    // 2 is the honest dimension rather than a degenerate chart.
+    const scaleInQ = (() => {
+      const nrm = Math.hypot(...x0)
+      return Q.map((q) => q.reduce((a, v, i) => a + v * x0[i], 0) / nrm)
+    })()
+    const scaleInOrbit = Math.hypot(...scaleInQ)
+    const scaleInKernel = Math.hypot(
+      ...kernel.map((k) => k.reduce((a, v, j) => a + v * scaleInQ[j], 0)),
+    ) / (scaleInOrbit || 1)
+    const stS = 1e-6
+    const upS = unpack(x0.map((v) => v * (1 + stS)))
+    const dnS = unpack(x0.map((v) => v * (1 - stS)))
+    const dialToScale = dials.map((d) => (value(upS, d) - value(dnS, d)) / (2 * stS * value(s0, d)))
+    const hRef = Math.max(...twelve(s0).map(Math.abs))
+    const hermiteToScale =
+      Math.max(...twelve(upS).map((v, i) => Math.abs(v - twelve(dnS)[i]))) / (2 * stS * hRef)
+
+    console.log(
+      `  the PROJECTIVE SCALE, C -> cC:\n` +
+        `    inside the orbit tangent   ${scaleInOrbit.toFixed(6)} of 1\n` +
+        `    inside the 3-dim kernel    ${scaleInKernel.toFixed(6)} of 1\n` +
+        `    Hermite data responds      ${hermiteToScale.toExponential(1)}\n` +
+        `    the five dials respond     ${dialToScale.map((v) => v.toExponential(1)).join(' ')}\n` +
+        `    -> it is IN the slice and invisible to everything shown, so the slice holds one fewer` +
+          ` SHAPE than it holds directions`,
+    )
+
     // Read those directions in DIAL coordinates: what relative change in each dial do they make?
     const toCoeff = (k: readonly number[]): number[] =>
       Array.from({ length: x0.length }, (_, i) => k.reduce((a, kc, j) => a + kc * Q[j][i], 0))
@@ -1228,9 +1292,10 @@ describe('the space of conformal PH curves', () => {
           `   curve speed ${sh.vel.toExponential(1)}`,
       )
     }
-    // NOT "the new directions": the stratum's image in dial space is 2-dimensional while the stratum is
-    // 3, so the dial chart is DEGENERATE here and its complement mixes "leaves the stratum" with "the
-    // dials cannot express it at all". Printed as the measurement it is, and no more.
+    // The stratum's 3 directions are 1 projective scale + 2 shapes, so its dial image being 2-dimensional
+    // is EXACTLY RIGHT, and these three complementary dial motions are three genuine shape requests that
+    // leave the stratum. (An earlier reading of this called the dial chart degenerate. It is not; the
+    // missing dimension was the scale, which changes nothing at all.)
     for (const [k, v] of unreachable.entries()) {
       console.log(
         `    outside the stratum's dial image ${k + 1}   ` +
@@ -1269,8 +1334,11 @@ describe('the space of conformal PH curves', () => {
       Math.min(...kernel.map((k) => shapeOf(k).vel)),
       'every one of the three genuinely moves the curve',
     ).toBeGreaterThan(1e-4)
-    expect(rRank.rank, 'but the five dials see only 2 of the 3: the dial CHART is singular here').toBe(2)
-    expect(unreachable.length, 'so its dial image has a 3-dimensional complement, not 2').toBe(3)
+    expect(scaleInKernel, 'the projective scale is one of the three, entirely').toBeCloseTo(1, 6)
+    expect(hermiteToScale, 'the Hermite data cannot see it').toBeLessThan(1e-8)
+    expect(Math.max(...dialToScale.map(Math.abs)), 'and neither can any dial').toBeLessThan(1e-8)
+    expect(rRank.rank, 'so the stratum is 2 SHAPES, and the dials see exactly 2').toBe(2)
+    expect(unreachable.length, 'leaving 3 dial motions that leave the stratum').toBe(3)
   }, 180_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
