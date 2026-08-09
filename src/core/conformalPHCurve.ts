@@ -1051,6 +1051,65 @@ export function denominatorRealRoots(s: ConformalPHCurve): number {
 }
 
 /**
+ * THE PARAMETER GAUGE, in closed form: wₖ ↦ λᵏwₖ, which is a Möbius reparametrisation of the
+ * SAME curve — t ↦ λt/(1−t+λt) — and not a change of shape.
+ *
+ * In Bernstein form Σ λᵏCₖBₖⁿ(t) = ψ(t)ⁿ·P(u) with ψ = 1−t+λt and u = λt/ψ. The factor ψⁿ is a
+ * projective scale, so the point curve is untouched: same set of points, traversed differently.
+ * The classical rational-Bézier parameter gauge, and the reason it hides here is that it moves only
+ * the WEIGHTS — every control point, as a projective point, stays exactly where it is. Hence it lies
+ * in the nullspace of any "control point k is HERE" constraint, structurally, and pinning positions
+ * can never remove it (measured: conformalPHHopf.test.ts).
+ *
+ * h transforms too, and the derivation is the reason h's stored degree is one higher than its true
+ * one. Since ⟨P,P⟩ ≡ 0 gives ⟨P,P′⟩ ≡ 0 as well, the cross terms in ⟨P̃′,P̃′⟩ drop and
+ *
+ *     ⟨P̃′,P̃′⟩ = λ²ψ^{2n−4}·h(u)²,   so   h̃ = λ·ψ^{n−2}·h(u).
+ *
+ * ψ^{n−2}h(u) is a polynomial only if ψ divides ψ^{n−1}h(u), and evaluating at ψ = 0 shows that
+ * happens exactly when deg h ≤ n−2. On the family it always does: the top PH condition reads
+ * n²⟨Aₙ,Aₙ⟩ = (h's leading coefficient)², and nullity has already forced ⟨Aₙ,Aₙ⟩ = 0. So h lives in
+ * the degree-(n−2) basis, where the gauge is simply gⱼ ↦ λ^{j+1}gⱼ; we reduce, scale, and elevate
+ * back into the n coefficients the state carries.
+ *
+ * Exact, so it needs no solver and cannot stall — which is why the strict dial uses it rather than
+ * slideAlongFamily. It also cannot leave the family: `residual` is preserved to roundoff.
+ */
+export function reparametrise(s: ConformalPHCurve, lambda: number): ConformalPHCurve {
+  const n = degreeOf(s)
+  if (!(lambda > 0) || !Number.isFinite(lambda) || n < 2) return s
+
+  // h from the degree-(n−1) basis it is stored in down to the degree-(n−2) basis it belongs to.
+  const g: number[] = []
+  for (let j = 0; j <= n - 2; j++) {
+    const a = j / (n - 1)
+    g.push(j === 0 ? s.h[0] : (s.h[j] - a * g[j - 1]) / (1 - a))
+  }
+  const scaled = g.map((v, j) => Math.pow(lambda, j + 1) * v)
+
+  return {
+    C: s.C.map((c, k) => c.map((v) => Math.pow(lambda, k) * v) as unknown as Conformal),
+    h: Array.from({ length: n }, (_, j) => {
+      const a = j / (n - 1)
+      return (j > 0 ? a * scaled[j - 1] : 0) + (j <= n - 2 ? (1 - a) * scaled[j] : 0)
+    }),
+  }
+}
+
+/**
+ * The λ that puts the first Farin bead at `target`. Inverting w₁λ/(w₀ + w₁λ) = τ is one line, so
+ * the dial is exact in both directions and has no reachability question: every τ in (0,1) with the
+ * same sign pattern as w₀, w₁ is hit on the nose.
+ */
+export function lambdaForFirstBead(s: ConformalPHCurve, target: number): number | null {
+  const w = weights(s)
+  const denom = (1 - target) * w[1]
+  if (denom === 0) return null
+  const lambda = (target * w[0]) / denom
+  return lambda > 0 && Number.isFinite(lambda) ? lambda : null
+}
+
+/**
  * Slide along a family that the pins have cut down to a CURVE, driven by one scalar readout.
  *
  * The same predictor–corrector as dragAlongLocus and for the same reason (see its comment): the

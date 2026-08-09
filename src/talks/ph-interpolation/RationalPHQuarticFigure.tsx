@@ -52,9 +52,10 @@ import {
   farinParameters,
   farinPoints,
   findMember,
+  lambdaForFirstBead,
   measuredSpeed,
+  reparametrise,
   residual,
-  slideAlongFamily,
   speedAt,
   weights,
 } from '../../core/conformalPHCurve'
@@ -166,7 +167,6 @@ export default function RationalPHQuarticFigure() {
   const [mode, setMode] = useState<Mode>('strict')
   const [grabbed, setGrabbed] = useState<{ kind: 'point' | 'farin'; index: number } | null>(null)
   const [stalled, setStalled] = useState(false)
-  const [atLimit, setAtLimit] = useState(false)
   /** What the slider was last asked for, so its handle never chases the measured value. */
   const [asked, setAsked] = useState<number>(START ? dialOf(START) : 0.5)
 
@@ -190,37 +190,34 @@ export default function RationalPHQuarticFigure() {
   const drift = useMemo(() => (state ? imageDrift(state) : NaN), [state])
   const gauge = useMemo(() => (state ? gaugeReading(state) : { lambda: NaN, fit: NaN }), [state])
 
-  /** Ride the dial towards `target`; slideAlongFamily rate-limits, so this takes several passes. */
+  /**
+   * The dial, in CLOSED FORM. It used to be a predictor–corrector continuation along the pinned
+   * family — up to six `slideAlongFamily` passes per slider event — and it stalled: Eric got "step
+   * not reached", and long rides reported an asymptotic wall that no number of steps arrived at.
+   * Both were artefacts of the continuation, not features of the family. Now that the one dimension
+   * is identified as wₖ ↦ λᵏwₖ, the whole thing is two lines of algebra: λ = τw₀/((1−τ)w₁) puts the
+   * first bead exactly at τ, and `reparametrise` applies it. No solver, no iteration, no stall, and
+   * every τ in (0,1) is reachable because λ runs over all of (0,∞) — so there is no wall either.
+   */
   const ride = (target: number): void => {
     if (!state) return
     setAsked(target)
-    let current = state
-    let moved = false
-    let limit = false
-    for (let k = 0; k < 6; k++) {
-      if (Math.abs(dialOf(current) - target) < 1e-6) break
-      const step = slideAlongFamily(current, { pin: OUTER, readout: dialOf, target })
-      if (!step.converged) { limit = true; break }
-      if (Math.abs(dialOf(step.state) - dialOf(current)) < 1e-9) { limit = true; break }
-      current = step.state
-      moved = true
-    }
-    setAtLimit(limit)
-    if (moved) { setState(current); setStalled(false) } else setStalled(true)
+    const lambda = lambdaForFirstBead(state, target)
+    if (lambda === null) { setStalled(true); return }
+    setState(reparametrise(state, lambda))
+    setStalled(false)
   }
 
   const reset = (): void => {
     setState(START)
     setGrabbed(null)
     setStalled(false)
-    setAtLimit(false)
     setAsked(START ? dialOf(START) : 0.5)
   }
 
   const toMode = (next: Mode) => (): void => {
     setMode(next)
     setStalled(false)
-    setAtLimit(false)
   }
 
   if (!state) {
@@ -261,7 +258,7 @@ export default function RationalPHQuarticFigure() {
           // the slider under the pointer even now that the two have separate rows. The pad
           // character is a NON-BREAKING space, because HTML collapses runs of ordinary ones and
           // padding with those would silently do nothing.
-          value: (atLimit ? 'at the family’s limit' : stalled ? 'not reached' : '—').padEnd(21, ' '),
+          value: (stalled ? 'not reached' : '—').padEnd(21, ' '),
         },
       ]}
       controls={
@@ -324,7 +321,8 @@ export default function RationalPHQuarticFigure() {
               vanishes too and the curve is secretly of lower degree — and an odd-degree w always has a
               real root. The readout shows this member has none. The <b>grey</b> middle point is not a
               handle here — the four outer pins spend all twelve conditions, so nothing is left to move
-              it with. Switch to <b>free</b> to drag any point with only the ends held. Drag the
+              it with. The dial is exact rather than a continuation, so every value is reachable and it
+              cannot stall. Switch to <b>free</b> to drag any point with only the ends held. Drag the
               background to rotate.
             </span>
           </>
