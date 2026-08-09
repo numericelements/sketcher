@@ -44,6 +44,7 @@ import RationalPHCurveFigure from './RationalPHCurveFigure'
 import RationalPHQuarticFigure from './RationalPHQuarticFigure'
 import RationalPHSexticFigure from './RationalPHSexticFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
+import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -572,6 +573,55 @@ export const slides: SlideDefinition[] = [
 
   // ---------------------------------------------------------------------------
   // 13 — degree 4: the smallest genuinely-new rational case, and rigidity + the gauge
+  // ---------------------------------------------------------------------------
+  // the plane first — Mobius costs nothing, and the Farin beads leave their edges
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>In the plane, Mobius is a linear map</h2>
+        <ComplexRationalPHFigure />
+      </>
+    ),
+    notes:
+      'THE 2D CASE FIRST, because this is where the argument is actually clean -- Eric\'s sequencing, and '
+      + 'he was right to ask for it. Write the plane curve as z = P/Q with P, Q complex cubics. Then a '
+      + 'Mobius transformation z -> (az+b)/(cz+d) is EXACTLY the linear map (P,Q) -> (aP+bQ, cP+dQ) on the '
+      + 'pair. The PH condition is that the Wronskian M = P\u2032Q - PQ\u2032 is a perfect square, and the '
+      + 'Wronskian is alternating bilinear, so M -> (ad-bc)M. Every complex number has a square root, so a '
+      + 'square stays a square: PH IS MOBIUS-INVARIANT, in one line. In R\u00b3 the same fact needed the '
+      + 'whole O(4,1) apparatus. '
+      + 'AND THE LIFT IS FREE. The conformal lift of z = P/Q is (Q\u0304Q, PQ\u0304, PP\u0304/2), which is '
+      + 'null identically -- no condition to impose, since ||q||\u00b2 - 2wc = (PP\u0304)(QQ\u0304) - '
+      + '2(QQ\u0304)(PP\u0304/2) = 0. The denominator w = QQ\u0304 is automatically positive of degree 6 '
+      + 'with no real roots, which is the irreducibility the 3D algebra has to work for. '
+      + 'WHY 2D IS EASIER, precisely: the isotropic cone of C\u00b2 FACTORS, q\u2081\u00b2+q\u2082\u00b2 = '
+      + '(q\u2081+iq\u2082)(q\u2081-iq\u2082), so nullity at each root of w is a DISCRETE choice (q vanishes '
+      + 'at z or at z\u0304) rather than a continuous condition. Consequence worth stating out loud: every '
+      + 'irreducible degree-6 real rational plane curve IS a degree-3 complex rational one, the 8 branches '
+      + 'being the 8 spectral factorisations of w. In C\u00b3 the cone is irreducible and you need the '
+      + 'spinor map instead. '
+      + 'THE FIGURE draws inversion in the circle about S: mu(z) = S + R\u00b2/(z-S), so P = S(z-S) + R\u00b2 '
+      + 'and Q = z-S, giving M = -R\u00b2A\u00b2 = (iRA)\u00b2. A perfect square with NOTHING TO SOLVE -- '
+      + 'control points map pointwise and the complex weights are w_k = P_k - S. So this figure cannot '
+      + 'stall, which is the whole reason to build on closed forms: the degree-6 sliders stall because they '
+      + 'need a solver at a singular point, and this one has no solver at all. '
+      + 'THE FARIN BEADS ARE THE POINT. With real weights a Farin point sits ON its edge. These weights are '
+      + 'COMPLEX and q_k = S + 2R\u00b2/(w_k + w_{k+1}) leaves the edge -- that departure IS the freedom a '
+      + 'complex-rational curve has over a real-weighted one, made visible. Push S far away and mu becomes '
+      + 'nearly a similarity, the weights nearly agree, and the beads settle back onto the midpoints: the '
+      + 'polynomial curve wearing a bigger coat. '
+      + 'S IS THE STRAIGHTENING CENTRE -- the same object the R\u00b3 work reached from the other end (invert '
+      + 'about it and the rational curve becomes polynomial again), except here you can put your finger on '
+      + 'it. That is the handle for the 3D slides that follow. '
+      + 'NOT GUARDED: S landing on the curve, where Q vanishes and the image runs through infinity. The '
+      + 'min|Q| readout goes amber and the curve visibly escapes, which is more honest than a clamp and is '
+      + 'the same pole the (w,q) algebra says an irreducible member never has on the real line. '
+      + 'The ||z\u2032|| = h/w readout is MEASURED by central difference against the predicted '
+      + 'R\u00b2|A|\u00b2/|Q|\u00b2, not asserted from the algebra.',
+  },
+
   // ---------------------------------------------------------------------------
   {
     type: 'content',
