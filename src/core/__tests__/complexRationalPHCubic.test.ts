@@ -19,12 +19,26 @@
 //     M − A² = 0        M = P′Q − PQ′   (degree 4: the t⁵ terms cancel)
 //
 // square, five by five, every equation quadratic — so Bézout bounds it at 2⁵ = 32 and the
-// real count has to be measured. IT IS TWO — measured, and stable across three unrelated
-// polygons, across 1500/3000/6000 Newton starts and across three seeds, with every root PH
-// to 1e-10 and pole-free. So the Bézout bound is loose by a factor of 16 and this system is
-// nothing like generic. I had expected MORE than two and said so; the assertion that it was
-// not 2 is what caught me. The consequence for the figure is the good one: the interaction is
-// slide 4's exactly — two branches, draw the other one grey, click to switch.
+// real count has to be measured. IT IS TWO ALGEBRAICALLY, ONE GEOMETRICALLY.
+//
+// Two roots — stable across three unrelated polygons, across 1500/3000/6000 Newton starts and
+// across three seeds, with every root PH to 1e-10 and pole-free. So Bézout is loose by 16 and
+// this system is nothing like generic. (I predicted MORE than two and wrote the assertion that
+// way; it failed, which is how the prediction got corrected instead of shipped.)
+//
+// BUT ONE OF THE TWO IS REDUCIBLE, and Eric found it by watching the figure: moving Z₂ moved
+// the selected curve and left the other branch dead still. A curve that does not move while
+// its weights do can only mean the degree-3 representation has SLACK, and for z = P/Q that
+// means P and Q share a factor. Measured: branch B's P vanishes at TWO of Q's three roots
+// (1.2e-16 and 8.0e-16), so they share a QUADRATIC factor and z = P/Q collapses to degree ONE
+// — a Möbius image of a line, i.e. a circular arc, which is trivially a rational PH curve. The
+// cubic representations of one such arc form a 4-real-parameter family, which is exactly the
+// insensitivity on screen: moving Z₂ spends 2 of those 4 and the curve does not care.
+//
+// So the genuine count of IRREDUCIBLE complex-rational PH cubics over a polygon and a bead is
+// ONE. The second solution is the degenerate stratum the 3D work calls reducible, met here in
+// its smallest form. Consequence for the figure: the grey curve is not a peer of the dark one
+// and should not be drawn as though it were — it is always a circle.
 //
 // Carrying A as an unknown rather than eliminating it is deliberate: the eliminated form needs 8m₁m₄² − 4m₂m₃m₄ + m₃³ = 0 and
 // 64m₀m₄³ − (4m₄m₂ − m₃²)² = 0, which are degree 6 and 8 and introduce spurious m₄ = 0
@@ -36,6 +50,11 @@
 import { describe, it, expect } from 'vitest'
 import { type Complex, cadd, cdiv, cmul, cnorm, csub } from '../complex'
 import * as core from '../complexRationalPHCubic'
+import { rootsOf } from '../conformalPHHopf'
+
+/** A complex polynomial evaluated at a COMPLEX argument — Horner. */
+const evalAt = (p: readonly Complex[], z: Complex): Complex =>
+  p.reduceRight((acc, c) => cadd(cmul(acc, z), c), C(0))
 
 const C = (re: number, im = 0): Complex => ({ re, im })
 const cneg = (a: Complex): Complex => ({ re: -a.re, im: -a.im })
@@ -255,9 +274,9 @@ describe('complex-rational PH cubics over a fixed polygon and Farin point', () =
     }
     console.log(`  counts across polygons: ${counts.join(', ')}`)
     expect(new Set(counts).size, 'the count does not depend on which polygon').toBe(1)
-    // TWO, the same as the polynomial cubic — not the "more than two" I predicted. Worth
-    // stating as an equality so a future change to the algebra has to argue with it.
-    expect(counts[0], 'and it is TWO, exactly as in the polynomial case').toBe(2)
+    // TWO ALGEBRAIC roots — but see the reducibility test below: only ONE is irreducible, so
+    // this equality is about the algebra, not about how many curves the figure should draw.
+    expect(counts[0], 'two algebraic solutions (one of them reducible)').toBe(2)
   }, 300_000)
 
   it('the count does not depend on how hard we look', () => {
@@ -320,4 +339,81 @@ describe('the core module the figure drives', () => {
     expect(b.residual, 'B still exact').toBeLessThan(1e-12)
     expect(apart, 'and they never collapsed onto each other').toBeGreaterThan(1e-3)
   })
+})
+
+// ---------------------------------------------------------------------------
+// Eric watched the figure and reported that moving Z₂ moves the selected curve but
+// leaves the OTHER branch apparently still, while moving Z₁ or Z₃ moves both. Is that
+// real, or is the figure failing to re-track? Measure the sensitivity of each branch to
+// each control point and let the table say.
+// ---------------------------------------------------------------------------
+describe('how each branch responds to each control point', () => {
+  const Z: Complex[] = [C(-1.9, -0.6), C(-1.2, 1.0), C(0.4, 1.1), C(1.1, -0.6)]
+  const Q0 = C(-1.55, 0.2)
+
+  it('measures the sensitivity of BOTH branches to each Zₖ', () => {
+    const both = core.solveFromFarin(Z, 0, Q0)
+    expect(both.length).toBe(2)
+    const sample = (c: core.ComplexRationalPHCubic): Complex[] =>
+      Array.from({ length: 21 }, (_, i) => core.curveAt(c, i / 20) ?? C(0))
+    const base = both.map(sample)
+    const D = 0.06
+
+    const rows: string[] = []
+    for (let k = 0; k < 4; k++) {
+      const moved = Z.map((z, i) => (i === k ? C(z.re + D, z.im) : z))
+      const cells = both.map((b, j) => {
+        const next = core.trackFromFarin(moved, 0, Q0, b)
+        if (!next) return 'LOST'
+        const s = sample(next)
+        const move = Math.max(...s.map((p, i) => cnorm(csub(p, base[j][i]))))
+        const dw = Math.max(...next.w.map((wv, i) => cnorm(csub(wv, b.w[i]))))
+        return `curve ${move.toFixed(4)} / w ${dw.toFixed(4)}`
+      })
+      rows.push(`    Z${k} moved ${D}:   A: ${cells[0]}      B: ${cells[1]}`)
+    }
+    console.log(`sensitivity of each branch to each control point:\n${rows.join('\n')}`)
+    console.log(
+      `    branch weights   A: ` + both[0].w.map((w) => `${w.re.toFixed(2)}${w.im < 0 ? '' : '+'}${w.im.toFixed(2)}i`).join(' ') +
+      `\n                     B: ` + both[1].w.map((w) => `${w.re.toFixed(2)}${w.im < 0 ? '' : '+'}${w.im.toFixed(2)}i`).join(' '),
+    )
+
+    // Neither branch may be insensitive to a control point it genuinely depends on, and
+    // neither may be LOST for a step this small. Whichever way the table falls, it is a
+    // fact about the family or a fact about the tracker, and the message says which.
+    for (let k = 0; k < 4; k++) {
+      const moved = Z.map((z, i) => (i === k ? C(z.re + D, z.im) : z))
+      for (const [j, b] of both.entries()) {
+        const next = core.trackFromFarin(moved, 0, Q0, b)
+        expect(next, `Z${k}, branch ${j}: tracking must not lose the branch`).not.toBeNull()
+      }
+    }
+  }, 120_000)
+
+  it('and the explanation: one branch is REDUCIBLE', () => {
+    // A curve unchanged while its weights move can only mean the degree-3 representation has
+    // slack, and for z = P/Q that means P and Q SHARE A FACTOR. Then z is really a degree-2
+    // rational curve wearing a cubic coat, and the family of cubic representations of it is
+    // positive-dimensional — which is exactly the insensitivity Eric saw.
+    const Z: Complex[] = [C(-1.9, -0.6), C(-1.2, 1.0), C(0.4, 1.1), C(1.1, -0.6)]
+    const both = core.solveFromFarin(Z, 0, C(-1.55, 0.2))
+    for (const [j, b] of both.entries()) {
+      const P = core.toPower(b.Z.map((z, k) => cmul(b.w[k], z)))
+      const Q = core.toPower(b.w)
+      const qRoots = rootsOf(Q)
+      const scaleP = Math.max(...P.map(cnorm))
+      const hits = qRoots.map((r) => cnorm(evalAt(P, r)) / scaleP)
+      console.log(
+        `    branch ${'AB'[j]}: |P| at Q's roots = ${hits.map((h) => h.toExponential(1)).join('  ')}` +
+          `   ${Math.min(...hits) < 1e-8 ? '<- COMMON FACTOR: reducible' : '<- irreducible'}`,
+      )
+    }
+    const reducible = both.filter((b) => {
+      const P = core.toPower(b.Z.map((z, k) => cmul(b.w[k], z)))
+      const scaleP = Math.max(...P.map(cnorm))
+      return rootsOf(core.toPower(b.w)).some((r) => cnorm(evalAt(P, r)) / scaleP < 1e-8)
+    })
+    console.log(`    so ${reducible.length} of ${both.length} is reducible: the GENUINE count is ${both.length - reducible.length}`)
+    expect(reducible.length, 'exactly one of the two is a lower-degree curve in disguise').toBe(1)
+  }, 120_000)
 })
