@@ -479,7 +479,10 @@ describe('the space of conformal PH curves', () => {
       expect(value(cur, d) / start, `${label} moved`).toBeGreaterThan(1.05)
       expect(dataMove, `${label} holds the data`).toBeLessThan(1e-6)
       expect(relResidual(cur), `${label} stays on the family`).toBeLessThan(1e-10)
-      expect(shapeMove, `${label} changes the shape`).toBeGreaterThan(1e-3)
+      // NOTE: this is the SAME-PARAMETER distance, which a reparametrisation also makes large. It is
+      // kept as a cheap smoke test only; that none of the five dials is a gauge direction is
+      // established by the IMAGE distance in conformalPHDialsAreShape.test.ts.
+      expect(shapeMove, `${label} moves same-parameter points`).toBeGreaterThan(1e-3)
     }
   }, 120_000)
 
