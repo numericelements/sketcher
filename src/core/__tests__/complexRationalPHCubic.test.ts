@@ -35,6 +35,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { type Complex, cadd, cdiv, cmul, cnorm, csub } from '../complex'
+import * as core from '../complexRationalPHCubic'
 
 const C = (re: number, im = 0): Complex => ({ re, im })
 const cneg = (a: Complex): Complex => ({ re: -a.re, im: -a.im })
@@ -266,4 +267,57 @@ describe('complex-rational PH cubics over a fixed polygon and Farin point', () =
     console.log(`  by start count ${runs.join(', ')};  by seed ${seeds.join(', ')}`)
     expect(new Set([...runs.slice(1), ...seeds]).size, 'saturated: more starts find no more roots').toBe(1)
   }, 300_000)
+})
+
+// ---------------------------------------------------------------------------
+// The core module, against the same count — the figure depends on these three.
+// ---------------------------------------------------------------------------
+describe('the core module the figure drives', () => {
+  const Z: Complex[] = [C(-1.9, -0.6), C(-1.2, 1.0), C(0.4, 1.1), C(1.1, -0.6)]
+  const Q0 = C(-1.55, 0.2)
+
+  it('solveFromFarin finds BOTH branches on the figure\'s starting data', () => {
+    const both = core.solveFromFarin(Z, 0, Q0)
+    console.log(
+      `  branches ${both.length}, residuals ` +
+        both.map((b) => b.residual.toExponential(1)).join(' ') +
+        `, min|Q| ` + both.map((b) => core.denominatorFloor(b).toFixed(3)).join(' '),
+    )
+    expect(both.length, 'two, as measured above').toBe(2)
+    expect(Math.max(...both.map((b) => b.residual)), 'both solved to machine zero').toBeLessThan(1e-12)
+    expect(Math.min(...both.map((b) => core.denominatorFloor(b))), 'both pole-free').toBeGreaterThan(0.01)
+  })
+
+  it('the prescribed bead comes back as the handle bead — the chart round-trips', () => {
+    for (const handle of [0, 1, 2] as const) {
+      const both = core.solveFromFarin(Z, handle, Q0)
+      expect(both.length, `handle ${handle}: two branches`).toBe(2)
+      for (const b of both) {
+        const q = core.farinPoints(b)[handle]
+        expect(q, `handle ${handle}: the bead exists`).not.toBeNull()
+        expect(cnorm(csub(q as Complex, Q0)), `handle ${handle}: it IS the one prescribed`).toBeLessThan(1e-9)
+      }
+    }
+  })
+
+  it('trackFromFarin follows a branch instead of re-deciding it', () => {
+    const both = core.solveFromFarin(Z, 0, Q0)
+    // Walk the bead a long way in small steps; the branch must stay the branch, which is
+    // what makes the drag continuous rather than snapping between the two curves.
+    let a = both[0], b = both[1]
+    for (let i = 1; i <= 40; i++) {
+      const q = C(Q0.re + 0.008 * i, Q0.im + 0.004 * i)
+      const na = core.trackFromFarin(Z, 0, q, a)
+      const nb = core.trackFromFarin(Z, 0, q, b)
+      expect(na, `step ${i}: branch A survives`).not.toBeNull()
+      expect(nb, `step ${i}: branch B survives`).not.toBeNull()
+      a = na as core.ComplexRationalPHCubic
+      b = nb as core.ComplexRationalPHCubic
+    }
+    const apart = Math.max(...a.w.map((wv, i) => cnorm(csub(wv, b.w[i]))))
+    console.log(`  after 40 steps the two branches are ${apart.toExponential(1)} apart in w`)
+    expect(a.residual, 'A still exact').toBeLessThan(1e-12)
+    expect(b.residual, 'B still exact').toBeLessThan(1e-12)
+    expect(apart, 'and they never collapsed onto each other').toBeGreaterThan(1e-3)
+  })
 })

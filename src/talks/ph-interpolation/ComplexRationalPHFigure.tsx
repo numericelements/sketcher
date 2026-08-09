@@ -1,187 +1,194 @@
 // ============================================================================
-// THE PLANE FIRST — a complex-rational PH cubic, and why Möbius costs nothing.
+// THE PLANE FIRST — the complex-rational PH cubic, manipulated directly.
 //
-// Slide 4's machinery, plus one draggable point. The whole argument in 2D is two
-// lines, and both are visible on screen:
+// The chart is the natural one: a complex-rational cubic IS its four control points plus
+// its three Farin points, 8 + 6 = 14 real numbers, bijective because each edge's Farin
+// point hands back that edge's weight ratio. PH costs 4, so the family is 10-dimensional
+// and exactly FIVE of the seven points can be prescribed:
 //
-//   z = P/Q with P, Q complex cubics. Möbius acts LINEARLY on the pair:
+//     the four control points   free — NO condition falls on them        8
+//     one Farin point          the handle                               2
+//     the other two            DETERMINED, in exactly two ways          —
 //
-//       z ↦ (az+b)/(cz+d)      is      (P, Q) ↦ (aP + bQ, cP + dQ)
+// Square, and it covers the whole family: the polygon is unconstrained and the handle
+// sweeps the entire fibre above it. That is what the earlier version of this figure could
+// not claim — it drew a polynomial cubic and a Möbius image of it, which is 9 of the 10.
 //
-//   and the PH condition is that the WRONSKIAN M = P′Q − PQ′ is a perfect square.
-//   The Wronskian is alternating bilinear, so M ↦ (ad − bc)·M — and every complex
-//   number has a square root, so (√det·A)² is still a perfect square. PH survives
-//   Möbius, proved in one line. In R³ the same fact needed the whole O(4,1) model.
+// TWO BRANCHES, MEASURED (complexRationalPHCubic.test.ts): Bézout allows 32, the truth is
+// 2 — the same count as the polynomial cubic, which is why this figure can borrow slide 4's
+// interaction wholesale. The one you are not on is grey and clickable.
 //
-// THE MAP DRAWN HERE is inversion in the circle of radius R about S:
+// THE POLYGON IS DRAWN AS CIRCULAR ARCS, through (Zₖ, qₖ, Zₖ₊₁), and that is not decoration.
+// Möbius maps send lines to circles, so a straight-edge polygon is not Möbius-covariant
+// while an arc polygon is — and the Farin point is exactly the Möbius image of the straight
+// edge's MIDPOINT, so the arc through the three is exactly the image of the edge. Eric saw
+// this before the algebra did.
 //
-//       μ(z) = S + R²/(z − S)        P = S(z − S) + R²,   Q = z − S
-//
-// so M = −R²·z′ = −R²A² = (iRA)², a perfect square with NO condition to impose and
-// NOTHING TO SOLVE. Control points map pointwise, Zₖ = μ(Pₖ), and the COMPLEX
-// weights come out as wₖ = Pₖ − S. That is the whole construction: closed form, so
-// this figure cannot stall — the failure mode that dogged the degree-6 sliders.
-//
-// WHY THE FARIN POINTS ARE THE POINT. With real weights a Farin point sits ON its
-// polygon edge. These weights are COMPLEX, and
-//
-//       qₖ = (wₖZₖ + wₖ₊₁Zₖ₊₁)/(wₖ + wₖ₊₁) = S + 2R²/(wₖ + wₖ₊₁)
-//
-// leaves the edge. That departure IS the extra freedom a complex-rational curve has
-// over a real-weighted one, made visible: drag S and watch the beads swing off the
-// chords. When S is far away μ is nearly a similarity, the weights nearly agree, and
-// the beads settle back onto the midpoints — the polynomial curve, wearing a coat.
-//
-// AND S IS THE STRAIGHTENING CENTRE, the same object the R³ work arrived at from the
-// other end: invert about it and the rational curve becomes polynomial again. Here
-// you can put your finger on it.
-//
-// The one thing to avoid is S landing ON the curve, where Q vanishes: the image runs
-// through infinity. That is not guarded away — the min|Q| readout goes red and the
-// curve visibly escapes, which is more honest than a clamp and is the same pole the
-// (w, q) algebra says an irreducible member never has on the real line.
+// NOT DRAWN any more: the polynomial curve it could have come from. Most of these curves
+// did not come from one — that is the whole point of the slide.
 // ============================================================================
-import { useState } from 'react'
-import { type Complex, cadd, cdiv, cnorm, csub } from '../../core/complex'
-import { phCubicFromP1, curveAt, type PHCubicSolution } from '../../core/phCubic'
+import { useMemo, useState } from 'react'
+import { type Complex, cnorm } from '../../core/complex'
+import {
+  type ComplexRationalPHCubic,
+  type FarinHandle,
+  curveAt,
+  denominatorFloor,
+  farinPoints,
+  solveFromFarin,
+  speedAt,
+  trackFromFarin,
+} from '../../core/complexRationalPHCubic'
 import FigureFrame from '../framework/FigureFrame'
-import { FIG, curveStroke, ControlPolygon, DataPoint, PinnedPoint } from '../framework/figureStyle'
+import { FIG, curveStroke, DataPoint, DerivedPoint } from '../framework/figureStyle'
 import type { Viewport } from '../framework/useViewport'
 
-const P0: Complex = { re: -1.9, im: -0.6 }
-const P3: Complex = { re: 1.1, im: -0.6 }
-const START_P1: Complex = { re: -1.2, im: 1.0 }
-const START_S: Complex = { re: 0.15, im: 1.85 }
-const R = 1.5
+const START_Z: Complex[] = [
+  { re: -1.9, im: -0.6 },
+  { re: -1.2, im: 1.0 },
+  { re: 0.4, im: 1.1 },
+  { re: 1.1, im: -0.6 },
+]
+const START_FARIN: Complex = { re: -1.55, im: 0.2 }
 
-const WORLD = { x0: -3.4, x1: 3.4, y0: -2.0, y1: 3.0 }
+const WORLD = { x0: -3.0, x1: 2.6, y0: -1.6, y1: 2.0 }
 const BASE = { width: 900, height: 420 }
 
-/** μ(z) = S + R²/(z − S) — inversion in the circle of radius R about S. */
-const mu = (z: Complex, s: Complex): Complex =>
-  cadd(s, cdiv({ re: R * R, im: 0 }, csub(z, s)))
-
-const pathOf = (vp: Viewport, at: (t: number) => Complex, n = 240): string => {
+const pathOf = (vp: Viewport, at: (t: number) => Complex | null, n = 240): string => {
   let d = ''
   let broke = true
   for (let i = 0; i <= n; i++) {
     const p = at(i / n)
-    // A pole sends the image off to infinity; lift the pen rather than draw a
-    // spurious straight line across the frame.
-    if (!Number.isFinite(p.re) || !Number.isFinite(p.im) || cnorm(p) > 1e4) { broke = true; continue }
+    if (!p || !Number.isFinite(p.re) || !Number.isFinite(p.im) || cnorm(p) > 1e4) { broke = true; continue }
     const s = vp.toScreen({ x: p.re, y: p.im })
-    d += `${broke ? 'M' : 'L'} ${s.x.toFixed(4)} ${s.y.toFixed(4)} `
+    d += `${broke ? 'M' : 'L'} ${s.x.toFixed(3)} ${s.y.toFixed(3)} `
     broke = false
   }
   return d
 }
 
-/** Pick the branch whose r is nearest a reference — continuous tracking, as on slide 4. */
-function nearestBranch(sols: PHCubicSolution[], toR: Complex | null): number {
-  if (!toR || sols.length === 0) return 0
-  let best = 0
-  let bestD = Infinity
-  sols.forEach((s, i) => {
-    const d = cnorm(csub(s.r, toR))
-    if (d < bestD) { bestD = d; best = i }
-  })
-  return best
+/**
+ * The circular arc through three points, sampled. Sampling rather than an SVG `A` command on
+ * purpose: the flag arithmetic for large-arc and sweep is easy to get subtly wrong, and a
+ * near-collinear triple has to degrade to a straight line, which sampling does for free.
+ */
+function arcPath(vp: Viewport, p0: Complex, p1: Complex, p2: Complex): string {
+  const ax = p1.re - p0.re, ay = p1.im - p0.im
+  const bx = p2.re - p0.re, by = p2.im - p0.im
+  const cross = ax * by - ay * bx
+  const la = ax * ax + ay * ay, lb = bx * bx + by * by
+  const straight = (): string => {
+    const a = vp.toScreen({ x: p0.re, y: p0.im })
+    const b = vp.toScreen({ x: p2.re, y: p2.im })
+    return `M ${a.x.toFixed(3)} ${a.y.toFixed(3)} L ${b.x.toFixed(3)} ${b.y.toFixed(3)}`
+  }
+  if (Math.abs(cross) < 1e-9 * Math.max(la, lb, 1e-12)) return straight()
+  const ox = p0.re + (by * la - ay * lb) / (2 * cross)
+  const oy = p0.im + (ax * lb - bx * la) / (2 * cross)
+  const r = Math.hypot(p0.re - ox, p0.im - oy)
+  if (!Number.isFinite(r) || r > 1e5) return straight()
+  const ang = (p: Complex): number => Math.atan2(p.im - oy, p.re - ox)
+  const t0 = ang(p0)
+  // Unwrap so the sweep passes THROUGH p1 on its way to p2 — the arc the Farin point selects.
+  const unwrap = (a: number, ref: number, dir: number): number => {
+    let x = a
+    while (dir > 0 && x < ref) x += 2 * Math.PI
+    while (dir < 0 && x > ref) x -= 2 * Math.PI
+    return x
+  }
+  const dir = cross > 0 ? 1 : -1
+  const t1 = unwrap(ang(p1), t0, dir)
+  const t2 = unwrap(ang(p2), t1, dir)
+  let d = ''
+  const n = 48
+  for (let i = 0; i <= n; i++) {
+    const th = t0 + ((t2 - t0) * i) / n
+    const s = vp.toScreen({ x: ox + r * Math.cos(th), y: oy + r * Math.sin(th) })
+    d += `${i ? 'L' : 'M'} ${s.x.toFixed(3)} ${s.y.toFixed(3)} `
+  }
+  return d
 }
 
 export default function ComplexRationalPHFigure() {
-  const [handle, setHandle] = useState(START_P1)
-  const [centre, setCentre] = useState(START_S)
-  const [branchR, setBranchR] = useState<Complex | null>(null)
-  /** 'p1' = the underlying cubic's shape, 's' = the inversion centre. */
-  const [dragging, setDragging] = useState<'p1' | 's' | null>(null)
-
-  const solutions = phCubicFromP1(P0, P3, handle)
-  const sel = solutions[nearestBranch(solutions, branchR)]
-
-  const polyAt = (t: number): Complex =>
-    sel ? curveAt(sel.generator, sel.p0, t) : { re: 0, im: 0 }
-  const imageAt = (t: number): Complex => mu(polyAt(t), centre)
-
-  const cps = sel?.controlPoints ?? []
-  /** The COMPLEX weights of the image: wₖ = Pₖ − S. */
-  const weights = cps.map((p) => csub(p, centre))
-  const imageCps = cps.map((p) => mu(p, centre))
-  /** qₖ = S + 2R²/(wₖ + wₖ₊₁) — off the edge exactly when the weights differ in phase. */
-  const farin = weights.slice(0, -1).map((w, k) =>
-    cadd(centre, cdiv({ re: 2 * R * R, im: 0 }, cadd(w, weights[k + 1]))),
+  const [Z, setZ] = useState<Complex[]>(START_Z)
+  const [handle, setHandle] = useState<FarinHandle>(0)
+  const [farin, setFarin] = useState<Complex>(START_FARIN)
+  /** Both branches. Index 0 is the one you are looking at. */
+  const [branches, setBranches] = useState<ComplexRationalPHCubic[]>(() =>
+    solveFromFarin(START_Z, 0, START_FARIN),
   )
+  const [drag, setDrag] = useState<{ kind: 'cp'; i: number } | { kind: 'farin' } | null>(null)
 
-  // --- the honest checks -------------------------------------------------------
-  // |μ(z)′| must be h/w with h = |A|² of degree 2 and w = QQ̄ of degree 6. Measure the
-  // speed by central difference and compare against R²·|A|²/|Q|², which is what the
-  // algebra predicts. Reported, not assumed.
-  let phDefect = 0
-  let minQ = Infinity
-  if (sel) {
-    const eps = 1e-5
-    for (let i = 1; i < 24; i++) {
-      const t = i / 24
-      const q = cnorm(csub(polyAt(t), centre))
-      minQ = Math.min(minQ, q)
-      const measured = cnorm(csub(imageAt(t + eps), imageAt(t - eps))) / (2 * eps)
-      const predicted = (R * R * cnorm(csub(polyAt(t + eps), polyAt(t - eps))) / (2 * eps)) / (q * q)
-      phDefect = Math.max(phDefect, Math.abs(measured - predicted) / Math.max(predicted, 1e-300))
+  const sel = branches[0] ?? null
+  const other = branches[1] ?? null
+  const beads = useMemo(() => (sel ? farinPoints(sel) : []), [sel])
+
+  /** Re-solve by TRACKING both branches from where they were — continuity, not re-deciding. */
+  const advance = (nextZ: Complex[], nextFarin: Complex, h: FarinHandle) => {
+    const tracked = branches.map((b) => trackFromFarin(nextZ, h, nextFarin, b))
+    if (tracked[0]) {
+      setBranches(tracked.filter((b): b is ComplexRationalPHCubic => b !== null))
+      return
     }
+    // Lost the branch (a fold, or the data moved too far in one frame): fall back to a
+    // fresh solve rather than freezing on a stale curve.
+    const fresh = solveFromFarin(nextZ, h, nextFarin, 600)
+    if (fresh.length > 0) setBranches(fresh)
   }
-  const wMags = weights.map(cnorm)
-  const spread = Math.max(...wMags) / Math.max(Math.min(...wMags), 1e-300)
-  /** How far the beads have left their chords, relative to the polygon's size. */
-  const extent = Math.max(...imageCps.map((p, i) => (i ? cnorm(csub(p, imageCps[i - 1])) : 0)), 1e-9)
-  const offEdge = Math.max(
-    ...farin.map((q, k) => {
-      const a = imageCps[k], b = imageCps[k + 1]
-      const ab = csub(b, a), aq = csub(q, a)
-      const L = cnorm(ab) || 1
-      return Math.abs((ab.re * aq.im - ab.im * aq.re) / L) / extent
-    }),
-    0,
-  )
 
   const onMove = (vp: Viewport) => (e: React.PointerEvent) => {
-    if (!dragging) return
+    if (!drag) return
     const w = vp.toWorld(e)
     const target: Complex = { re: w.x, im: w.y }
-    if (dragging === 's') { setCentre(target); return }
-    const sols = phCubicFromP1(P0, P3, target)
-    if (sols.length > 0) setBranchR(sols[nearestBranch(sols, branchR)].r)
-    setHandle(target)
+    if (drag.kind === 'farin') {
+      setFarin(target)
+      advance(Z, target, handle)
+    } else {
+      const nextZ = Z.map((z, i) => (i === drag.i ? target : z))
+      setZ(nextZ)
+      advance(nextZ, farin, handle)
+    }
   }
 
-  const grab = (what: 'p1' | 's') => (e: React.PointerEvent) => {
-    e.stopPropagation()
-    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
-    setDragging(what)
+  /** Take hold of a derived bead instead. The curve does not change; only your grip. */
+  const swapTo = (k: FarinHandle) => {
+    const q = beads[k]
+    if (!q) return
+    setHandle(k)
+    setFarin(q)
   }
 
   const reset = () => {
-    setHandle(START_P1)
-    setCentre(START_S)
-    setBranchR(null)
+    setZ(START_Z)
+    setHandle(0)
+    setFarin(START_FARIN)
+    setBranches(solveFromFarin(START_Z, 0, START_FARIN))
   }
+
+  const floor = sel ? denominatorFloor(sel) : 0
+  const speeds = sel ? [0.1, 0.3, 0.5, 0.7, 0.9].map((t) => speedAt(sel, t)) : []
 
   return (
     <FigureFrame
       world={WORLD}
       base={BASE}
       notation={[
-        '(P, Q) ↦ (aP + bQ, cP + dQ)',
-        'M = P′Q − PQ′ ↦ (ad − bc)·M',
-        'a square stays a square ⇒ PH',
+        'M = P′Q − PQ′ = A²',
+        '‖z′‖ = |A|²/|Q|²',
+        '4 points + 1 bead ⇒ 2 curves',
       ]}
       readouts={[
-        { label: 'weight spread', value: spread.toFixed(3) },
-        { label: 'beads off edge', value: offEdge.toFixed(3) },
+        { label: 'branches', value: String(branches.length) },
+        { label: 'M − A²', value: sel ? sel.residual.toExponential(1) : '—', tone: 'ok' as const },
         {
           label: 'min |Q|',
-          value: Number.isFinite(minQ) ? minQ.toFixed(3) : '—',
-          tone: minQ < 0.2 ? ('warn' as const) : ('plain' as const),
+          value: sel ? floor.toFixed(3) : '—',
+          tone: floor < 0.05 ? ('warn' as const) : ('plain' as const),
         },
-        { label: '‖z′‖ = h/w', value: phDefect.toExponential(1), tone: 'ok' as const },
+        {
+          label: '‖z′‖ range',
+          value: speeds.length ? `${Math.min(...speeds).toFixed(2)}–${Math.max(...speeds).toFixed(2)}` : '—',
+        },
       ]}
       controls={
         <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
@@ -190,92 +197,117 @@ export default function ComplexRationalPHFigure() {
       }
       caption={
         <>
-          <b>The plane, first.</b> The grey curve is a polynomial PH cubic — slide 4's. Invert it about{' '}
-          <b>S</b> and you get a <i>complex-rational</i> cubic that is still exactly PH, because Möbius acts
-          linearly on the pair (P, Q) and the Wronskian only picks up a determinant. Nothing is solved here:
-          the control points map pointwise and the complex weights are wₖ = Pₖ − S.{' '}
+          <b>The plane, first.</b> A complex-rational cubic <i>is</i> its four control points and its three
+          Farin beads — and the beads carry complex weights, so they sit off their edges. Every polygon
+          admits PH weights, so all four points are free; then one bead is yours and the other two are
+          determined, in exactly <b>two</b> ways. The arcs are the honest control structure: Möbius sends
+          lines to circles, and each bead is the image of its edge's midpoint.{' '}
           <span className="text-slate-400">
-            Drag S to bend; drag P₁ to reshape the cubic underneath. The beads are the Farin points — with
-            complex weights they leave their edges, and that departure is the freedom you gain.
+            Drag anything solid; click a hollow bead to hold it instead; click the grey curve for the other
+            branch.
           </span>
         </>
       }
     >
       {(vp) => (
-        <g onPointerMove={onMove(vp)} onPointerUp={() => setDragging(null)}>
+        <g onPointerMove={onMove(vp)} onPointerUp={() => setDrag(null)}>
           <rect x={-1e4} y={-1e4} width={2e4} height={2e4} fill="transparent" />
 
-          {/* the circle of inversion — the picture of what S is doing */}
-          <circle
-            cx={vp.toScreen({ x: centre.re, y: centre.im }).x}
-            cy={vp.toScreen({ x: centre.re, y: centre.im }).y}
-            r={Math.abs(vp.toScreen({ x: centre.re + R, y: centre.im }).x - vp.toScreen({ x: centre.re, y: centre.im }).x)}
-            fill="none"
-            stroke={FIG.color.border}
-            strokeWidth={vp.px(1.5)}
-            strokeDasharray={`${vp.px(5)} ${vp.px(5)}`}
-          />
+          {/* the branch you are not on — grey, thin, clickable */}
+          {other && (
+            <g>
+              <path d={pathOf(vp, (t) => curveAt(other, t))} {...curveStroke(vp, false)} />
+              <path
+                d={pathOf(vp, (t) => curveAt(other, t))}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={vp.px(FIG.size.curveHit)}
+                style={{ cursor: 'pointer' }}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  setBranches([other, sel].filter((b): b is ComplexRationalPHCubic => b !== null))
+                }}
+              />
+            </g>
+          )}
 
           {sel && (
             <>
-              {/* the polynomial cubic it came from, muted */}
-              <path d={pathOf(vp, polyAt)} {...curveStroke(vp, false)} />
-              <ControlPolygon vp={vp} cps={cps} />
-
-              {/* the image: still PH, now rational */}
-              <ControlPolygon vp={vp} cps={imageCps} />
-              <path d={pathOf(vp, imageAt)} {...curveStroke(vp, true)} />
-
-              {/* Farin beads, with a hair line to the chord they have left */}
-              {farin.map((q, k) => {
-                const a = vp.toScreen({ x: imageCps[k].re, y: imageCps[k].im })
-                const b = vp.toScreen({ x: imageCps[k + 1].re, y: imageCps[k + 1].im })
-                const s = vp.toScreen({ x: q.re, y: q.im })
-                if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) return null
+              {/* the arc polygon: each arc passes through its bead */}
+              {[0, 1, 2].map((k) => {
+                const q = beads[k]
                 return (
-                  <g key={k}>
-                    <line
-                      x1={(a.x + b.x) / 2} y1={(a.y + b.y) / 2} x2={s.x} y2={s.y}
-                      stroke={FIG.color.derived}
-                      strokeWidth={vp.px(1)}
-                      strokeDasharray={`${vp.px(3)} ${vp.px(3)}`}
-                    />
-                    <circle cx={s.x} cy={s.y} r={vp.px(FIG.size.point * 0.42)} fill={FIG.color.derived} />
+                  <path
+                    key={k}
+                    d={q ? arcPath(vp, Z[k], q, Z[k + 1]) : ''}
+                    fill="none"
+                    stroke={FIG.color.controlPolygon}
+                    strokeWidth={vp.px(FIG.size.polygon)}
+                  />
+                )
+              })}
+
+              <path d={pathOf(vp, (t) => curveAt(sel, t))} {...curveStroke(vp, true)} />
+
+              {/* the two derived beads — hollow, and pressing one takes hold of it */}
+              {[0, 1, 2].map((k) => {
+                const q = beads[k]
+                if (!q || k === handle) return null
+                const s = vp.toScreen({ x: q.re, y: q.im })
+                return (
+                  <g
+                    key={`d${k}`}
+                    onPointerDown={(e) => {
+                      e.stopPropagation()
+                      ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+                      swapTo(k as FarinHandle)
+                      setDrag({ kind: 'farin' })
+                    }}
+                    style={{ cursor: 'grab' }}
+                  >
+                    <circle cx={s.x} cy={s.y} r={vp.px(FIG.size.hit)} fill="transparent" />
+                    <DerivedPoint vp={vp} p={q} label={`q${'₀₁₂'[k]}`} />
                   </g>
                 )
               })}
 
-              {imageCps.map((p, i) =>
-                Number.isFinite(p.re) && Number.isFinite(p.im) ? (
-                  <PinnedPoint key={`i${i}`} vp={vp} p={p} label={`Z${'₀₁₂₃'[i]}`} />
-                ) : null,
+              {Z.map((p, i) => (
+                <DataPoint
+                  key={i}
+                  vp={vp}
+                  p={p}
+                  label={`Z${'₀₁₂₃'[i]}`}
+                  dragging={drag?.kind === 'cp' && drag.i === i}
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+                    setDrag({ kind: 'cp', i })
+                  }}
+                />
+              ))}
+
+              {beads[handle] && (
+                <DataPoint
+                  vp={vp}
+                  p={beads[handle] as Complex}
+                  label={`q${'₀₁₂'[handle]}`}
+                  dragging={drag?.kind === 'farin'}
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+                    setDrag({ kind: 'farin' })
+                  }}
+                />
               )}
-              <PinnedPoint vp={vp} p={cps[0]} label="P₀" />
-              <PinnedPoint vp={vp} p={cps[3]} label="P₃" />
-              <DataPoint
-                vp={vp}
-                p={cps[1]}
-                label="P₁"
-                dragging={dragging === 'p1'}
-                onPointerDown={grab('p1')}
-              />
             </>
           )}
 
-          <DataPoint
-            vp={vp}
-            p={centre}
-            label="S"
-            dragging={dragging === 's'}
-            onPointerDown={grab('s')}
-          />
-
-          {solutions.length === 0 && (
+          {!sel && (
             <text
               x={vp.base.width / 2} y={vp.base.height / 2}
               textAnchor="middle" fontSize={vp.px(FIG.size.label)} fill={FIG.color.label}
             >
-              no PH cubic for this P₁ — move it
+              no PH weights for this bead — move it
             </text>
           )}
         </g>
