@@ -165,6 +165,36 @@
 //
 //    Note this is NOT the cause of the four stalled dials in (8). That is the variety's singularity at
 //    the polynomial stratum, rank 21 against 23 — a different defect at the same place.
+//
+// 10. TOWARD A CLOSED FORM — the reduction, and exactly where it stops. Writing P = (w, q, ‖q‖²/2w):
+//
+//     (a) w has NO REAL ROOTS, for an irreducible member. A real root forces ‖q‖² = 0 there, hence
+//         q = 0 there — ‖q‖² is a sum of REAL squares — hence a common factor. So w is a product of
+//         three definite quadratics, w = ∏(t−z_j)(t−z̄_j). Measured on the seed: smallest |Im z| = 1.3e-2.
+//         (This is what denominatorRealRoots guards, seen from the algebra.)
+//
+//     (b) NULLITY ⟺ q(z_j) IS ISOTROPIC IN C³, i.e. q₁²+q₂²+q₃² = 0 at each root — because P is a
+//         polynomial 5-vector only if w | ‖q‖², and w's roots are exactly the z_j. Measured on the seed:
+//         2.8e-11 or better at all six roots. This is the useful form, because the isotropic cone of C³
+//         is exactly the image of the SPINOR map (a²−b², i(a²+b²), −2ab) — so the nullity half of the
+//         family has a closed-form parametrisation: choose three roots, a spinor at each, and
+//         interpolate the real q of degree 6 (18 real conditions on 21 coefficients, the leftover 3
+//         being q ↦ q + w·u, i.e. TRANSLATION). Count: 6 (roots) + 1 (scale) + 12 (spinors) + 3
+//         (translation) = 22, which is the null-curve family's dimension.
+//
+//     (c) PH ⟺ ‖N‖ = h·w where N = q′w − qw′, and a vector polynomial with polynomial norm is exactly
+//         the HOPF form N = A i A* with A a quaternion polynomial of degree 5. Measured on the seed via
+//         `hodograph`: ‖N‖ = h·w to 4.6e-14. The extraction is already implemented (`hopfForm`).
+//
+//     WHERE IT STOPS: the two halves do not compose freely. Going forward from (c) — pick A and w with
+//     w | |A|², set p′ = A i A*/w² — the curve is PH by construction but generally NOT RATIONAL: p′ has
+//     double poles at the roots of w, and unless the residue of the simple-pole part vanishes at each
+//     root the integral picks up logarithms. The condition is N′(z_j)·g(z_j) = 2N(z_j)·g′(z_j) with
+//     g = w/(t−z_j), i.e. N′(z_j) parallel to N(z_j) with a prescribed ratio. A tempting shortcut,
+//     A = D·E with w = |D|² and h = |E|² (degrees 3 and 2, and the norm is multiplicative so PH is
+//     free), does NOT satisfy it: D·(E i E*)·D* is not divisible by w, since at a root z the quaternion
+//     D(z) is null rather than zero. So the closed form is NOT in hand; what is in hand is the nullity
+//     half of it, plus the exact statement of the one remaining condition.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -205,7 +235,7 @@ import {
   residual,
   weights,
 } from '../conformalPHCurve'
-import { bernsteinToPower } from '../conformalPHHopf'
+import { bernsteinToPower, hodograph, rootsOf } from '../conformalPHHopf'
 import { sexticSeed } from '../conformalPHSeeds'
 import {
   controlPoints as cubicControlPoints,
@@ -1340,6 +1370,58 @@ describe('the space of conformal PH curves', () => {
     expect(rRank.rank, 'so the stratum is 2 SHAPES, and the dials see exactly 2').toBe(2)
     expect(unreachable.length, 'leaving 3 dial motions that leave the stratum').toBe(3)
   }, 180_000)
+
+  it('the algebra a closed form would have to satisfy: q is ISOTROPIC at every root of w', () => {
+    // Toward a closed formula for the family. P = (w, q, ‖q‖²/2w) is a POLYNOMIAL 5-vector only if
+    // w divides ‖q‖². And w can have no real root: a real root would force ‖q‖² = 0 there, hence
+    // q = 0 there (a sum of REAL squares), hence a common factor and a reducible curve. So
+    //
+    //     w = ∏ (t − z_j)(t − z̄_j),   three conjugate pairs, no real roots
+    //     w | ‖q‖²   ⟺   q(z_j)² summed over the three components = 0 IN C³
+    //
+    // The second line is the whole nullity condition, and it is a statement about ISOTROPIC vectors in
+    // C³ — which are exactly the image of the spinor map (a²−b², i(a²+b²), −2ab). That is what makes a
+    // closed form conceivable: choose the roots, choose a spinor at each, interpolate q.
+    const s = sexticSeed()
+    const hod = hodograph(s)
+    const asC = (p: readonly number[]): { re: number; im: number }[] => p.map((v) => ({ re: v, im: 0 }))
+    const roots = rootsOf(asC(hod.w))
+    const cmulL = (a: { re: number; im: number }, b: { re: number; im: number }) =>
+      ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
+    const evalC = (p: readonly number[], z: { re: number; im: number }) => {
+      let acc = { re: 0, im: 0 }
+      for (let k = p.length - 1; k >= 0; k--) acc = { re: cmulL(acc, z).re + p[k], im: cmulL(acc, z).im }
+      return acc
+    }
+
+    const imParts = roots.map((z) => Math.abs(z.im))
+    const isotropy = roots.map((z) => {
+      const v = hod.q.map((qi) => evalC(qi, z))
+      const sum = v.reduce((acc, c) => {
+        const sq = cmulL(c, c)
+        return { re: acc.re + sq.re, im: acc.im + sq.im }
+      }, { re: 0, im: 0 })
+      const scale = Math.max(...v.map((c) => c.re * c.re + c.im * c.im))
+      return Math.hypot(sum.re, sum.im) / Math.max(scale, 1e-300)
+    })
+
+    console.log(
+      `the degree-6 seed, in the (w, q) algebra:\n` +
+        `    roots of w                 ` +
+          roots.map((z) => `${z.re.toFixed(3)}${z.im >= 0 ? '+' : '−'}${Math.abs(z.im).toFixed(3)}i`).join('  ') + `\n` +
+        `    smallest |Im|              ${Math.min(...imParts).toExponential(1)}` +
+          `   (no real roots, so w is a product of three definite quadratics)\n` +
+        `    ISOTROPY of q there        ` + isotropy.map((v) => v.toExponential(1)).join('  ') + `\n` +
+        `                               (q1²+q2²+q3² = 0 in C³ at each root: the nullity condition, exactly)\n` +
+        `    ‖N‖ = h·w as polynomials   ${hod.squareDefect.toExponential(1)}` +
+          `   (so N has POLYNOMIAL norm, hence Hopf form N = A i A*)`,
+    )
+
+    expect(roots.length, 'w is degree 6').toBe(6)
+    expect(Math.min(...imParts), 'and has no real roots').toBeGreaterThan(1e-3)
+    expect(Math.max(...isotropy), 'q is isotropic at every root of w').toBeLessThan(1e-9)
+    expect(hod.squareDefect, 'and N has polynomial norm h·w').toBeLessThan(1e-9)
+  }, 60_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
