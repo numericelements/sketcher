@@ -290,6 +290,47 @@
 //     1.5e-6, and that floor drowns the splitting — 0 survive at a 3.3e-6 noise level, cliff 1.0. Bigger
 //     λ is worse, not better (λ = 3 gives orthogonality defects of 6e-3), since λᵏ spreads the
 //     coefficients. The lower-degree parametrisation is the WELL-CONDITIONED one; work at it.
+//
+// 14. CORRECTION — THE FAMILY IS 2n+6, NOT 2n+5, AND THERE IS NO SPURIOUS DIRECTION. This revises (4),
+//     (6), (9), (12) and (13). The measured numbers were always right; the interpretation was not.
+//
+//     Count it from (w, q), where every step is explicit. w real of degree n and q of degree n in R³ is
+//     4(n+1) = 28 parameters. Nullity is w | ‖q‖², i.e. ‖q(z_j)‖² = 0 at the n/2 upper-half roots — one
+//     COMPLEX equation each, so n = 6 real conditions, leaving 22. That 22 checks against the conformal
+//     side exactly: C alone is 35 numbers and ⟨P,P⟩ ≡ 0 is 2n+1 = 13 equations, 35 − 13 = 22.
+//
+//     Now PH. Given nullity, ⟨P′,P′⟩ has degree 2n−4, not 2n−2: nullity's top two coefficients are
+//     ⟨Aₙ,Aₙ⟩ = 0 and ⟨Aₙ,Aₙ₋₁⟩ = 0, and ⟨P′,P′⟩'s top two are n² and 2n(n−1) times those. So it has 9
+//     coefficients, and requiring it to be a perfect square h² with deg h = n−2 = 4 (five coefficients,
+//     h ↦ h² being 2:1) is 9 − 5 = 4 conditions — after which h is DETERMINED up to sign. Hence
+//
+//         dim = 22 − 4 = 18 = 2n + 6        and     moduli = 18 − 12 = 6 = 2n − 6
+//
+//     WHY THE OLD READING WENT WRONG. The Jacobian's rank defect (23 of 24) is real, but it is a
+//     REDUNDANT EQUATION, not a non-reduced variety. The top PH row is n²⟨Aₙ,Aₙ⟩ − h_top², whose
+//     gradient is n² times the top nullity row's gradient plus −2h_top = 0 — a dependent ROW, costing one
+//     row and zero dimensions. (The NEXT row down is independent and is what forces h_top = 0.) So
+//     41 − 23 = 18 is the variety's dimension, and subtracting "one spurious direction" to reach 2n+5 was
+//     the error. The degree-4 numbers say the same: 29 − 15 = 14 = 2·4+6.
+//
+//     WHAT THIS CHANGES, and every one of these needs its pinning test rewritten before it is trusted:
+//
+//         family                 18, not 17
+//         moduli                 6, not 5
+//         Hermite slice          6 directions = 1 projective scale + 5 SHAPES, not 4
+//         the five dials         five dials on FIVE knobs — the original design was RIGHT, and (9)'s
+//                                "five dials on four knobs" was a consequence of the same error
+//         degree 4               2 directions = scale + 1 shape, not 0 — so (9)'s "slide 13 has nothing
+//                                to move, and does not" was a misreading: slide 13 pins the CONTROL
+//                                POINT, which is not the same as pinning the one radius dial
+//         bent cubics            15 of 18, so CODIMENSION 3 — THREE new directions, not two. The slice
+//                                reading agrees and always did: 2 shapes on the stratum against 5 in the
+//                                slice is codimension 3.
+//
+//     The spinor construction's count (7 + 12 + 3 − 5 = 17) is therefore one SHORT, which means a
+//     condition I counted is not really a condition, or a parameter is missing. That is the next thing to
+//     settle, and until it is, (12)'s arithmetic should not be quoted as confirmation of anything.
+// ============================================================================
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
