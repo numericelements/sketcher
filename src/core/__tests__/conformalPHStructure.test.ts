@@ -271,24 +271,25 @@
 //     "independent find" and got the seed's digits back to the last place. Independence has to come from
 //     MOVING — a drag, or a gauge transformation — not from re-running the search.
 //
-//     THE BENT CUBIC FAILS, in two different ways, and both are informative:
+//     THE BENT CUBIC NEEDED A FIX TO conformalPHHopf, and the fix is that deg u must be READ, not
+//     assumed. Raw, a bent cubic has deg h = 2 rather than the generic n−2 = 4: mobiusImage carries h
+//     through untouched, and a lifted cubic's h = |A|² with A LINEAR has degree 2. So U = uu* has degree
+//     8, u has degree 4, and hopfForm — which imposed degree n−1 = 5 — declined a perfectly good member
+//     outright (deg U read 8 of 10, leading coefficient −2.2e-17, while ‖N‖ = h·w held to 1.2e-13: the
+//     member was fine, the EXTRACTION assumed generic degree). hopfForm now reads deg U off U with the
+//     machine-precision zero level, requires it EVEN since U is a norm, and reports `degreeGap`.
 //
-//     (a) RAW, it has deg h = 2 rather than the generic n−2 = 4. mobiusImage carries h through
-//         untouched, and a lifted cubic's h = |A|² with A LINEAR has degree 2. So U = uu* has degree 8,
-//         u has degree 4, and hopfForm — which requires degree n−1 = 5 — declines outright. Measured:
-//         deg U 8 of 10, leading coefficient −2.2e-17, while ‖N‖ = h·w still holds to 1.2e-13. The
-//         member is perfectly good; it is the EXTRACTION that assumes generic degree.
+//     With that, the raw bent cubic runs the whole chain at machine precision and MORE decisively than
+//     the generic members: deg π 8 = 4+4, sandwich 4.4e-11, the no-log condition 9.6e-10, the ν closed
+//     form 7.1e-13, orthogonality ~1e-10, and 70 subsets of which 2 survive at 1.1e-10 against a third
+//     at 6.3e-1 — a cliff of 5.6e+9, with T = 1.939, u's roots to 6.5e-12 and the scale to 2.3e-11. So
+//     (11) AND (12) are verified on the bent-cubic stratum too.
 //
-//     (b) REPARAMETRISED to restore deg h = 4 (h̃ = λψ^{n−2}h(u) has degree 2+2 = 4, same shape, same
-//         stratum), the extraction is accurate only to 1.5e-6, and that floor drowns the splitting: 0
-//         survive at a 3.3e-6 noise level and the cliff collapses to 1.0. Bigger λ is worse, not better
-//         — λ = 3 gives orthogonality defects of 6e-3 — because λᵏ spreads the coefficients.
-//
-//     WHAT THIS MEANS FOR SCOPE. (11) verifies on the bent cubic: the no-log condition reads 1.2e-9 and
-//     the ν closed form 1.0e-12 there. (12), the forced splitting, is UNVERIFIED on that stratum. And
-//     the bent cubics are exactly where a figure built on "the space you already understand" would live,
-//     so this is not an academic gap. The fix is a Hopf extraction that does not assume deg u = n−1 —
-//     it should read the degree off U rather than impose it — and that is the next piece of work.
+//     THE TRAP TO AVOID: do not reparametrise the degeneracy away. Restoring deg h = 4 by
+//     h̃ = λψ^{n−2}h(u) keeps the shape and the stratum but leaves the extraction accurate only to
+//     1.5e-6, and that floor drowns the splitting — 0 survive at a 3.3e-6 noise level, cliff 1.0. Bigger
+//     λ is worse, not better (λ = 3 gives orthogonality defects of 6e-3), since λᵏ spreads the
+//     coefficients. The lower-degree parametrisation is the WELL-CONDITIONED one; work at it.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -2048,8 +2049,8 @@ describe('the space of conformal PH curves', () => {
     // Findings 11 (the no-log condition and its ν closed form) are asserted everywhere, and they hold.
     const specimens: [string, ConformalPHCurve | null, boolean][] = [
       ['cached seed', seed, true],
-      ['bent cubic, RAW (deg h = 2)', bent, false],
-      ['bent cubic, reparametrised', reparametrise(bent, 1.4), false],
+      ['bent cubic, RAW (deg h = 2, deg u = 4)', bent, true],
+      ['bent cubic, reparametrised (deg h = 4, ill-conditioned)', reparametrise(bent, 1.4), false],
       ['seed dragged 30% along rho_3', dragged, true],
       ['seed under Möbius + reparametrisation', gauged, true],
     ]
@@ -2073,6 +2074,7 @@ describe('the space of conformal PH curves', () => {
             ` scale ${c.scaleDefect.toExponential(1)}`,
       )
       expect(c.wDeg, `${name}: w has degree n`).toBe(6)
+      expect(c.dPi, `${name}: deg π = deg u + deg v`).toBe(c.du + c.dv)
       expect(c.pairs, `${name}: three conjugate pairs`).toBe(3)
       expect(c.minIm, `${name}: no real roots of w`).toBeGreaterThan(1e-4)
       expect(c.remainder, `${name}: the no-log condition holds on uv`).toBeLessThan(1e-7)

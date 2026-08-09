@@ -19,9 +19,18 @@
 // U and V are non-negative real polynomials, and extracting u from U is a SUM OF TWO SQUARES
 // factorisation: take the 2(n−1) roots of U, keep one from each conjugate pair, and u is their
 // monic product times √lead(U). Which one to keep is not free — u divides G, so a kept root must
-// be a root of G — and rather than decide that with a tolerance we simply try ALL 2^(n−1)
+// be a root of G — and rather than decide that with a tolerance we simply try ALL 2^(deg u)
 // selections (16 at degree 5) and keep the one whose reconstruction is best. v then comes from
 // the exact division v = G/u.
+//
+// deg u IS READ OFF U, NOT ASSUMED TO BE n−1. It was assumed once, and that was wrong: hodograph()
+// fixes the degree of N, not of U, and U = uu* has degree 2·deg u, which falls short whenever h
+// does. A Möbius image of a polynomial PH cubic is the case that matters — mobiusImage carries h
+// through untouched, and a cubic's h = |A|² with A LINEAR has degree 2 rather than the generic
+// n−2 = 4 — so its U has degree 8 with a leading coefficient of −2.2e-17, and assuming 10 rejected
+// a perfectly good member outright. The degree now comes from the only lawful threshold, the
+// machine-precision zero level σ·ε·dim, and `degreeGap` reports how decisive the reading was so a
+// marginal case is visible rather than smoothed. It must come out EVEN, U being a norm.
 //
 // AND THE ANSWER IS VERIFIED, INDEPENDENTLY OF THE ALGEBRA ABOVE. The returned defects come
 // from multiplying the quaternion polynomial out — A i A* coefficient by coefficient against N,
@@ -224,8 +233,16 @@ export interface HopfForm {
   readonly normDefect: number
   /** The remainder of G/u, relative. Exact division in exact arithmetic. */
   readonly divisionDefect: number
-  /** best defect ÷ second-best over the 2^{n−1} root selections. Large means the pairing is decisive. */
+  /** best defect ÷ second-best over the 2^{deg u} root selections. Large means the pairing is decisive. */
   readonly selectionGap: number
+  /**
+   * deg u, READ off U rather than assumed to be n−1 — U = uu*, so it is half of U's degree. It drops
+   * below n−1 exactly when h does below n−2, which is what a Möbius image of a polynomial PH curve in
+   * its natural parametrisation does.
+   */
+  readonly uDegree: number
+  /** |lead(U)| ÷ the coefficient above it. Large means the degree reading was decisive. */
+  readonly degreeGap: number
 }
 
 /** A i A* as three power-basis polynomials, by multiplying the quaternion polynomial out. */
@@ -300,12 +317,29 @@ export function hopfForm(s: ConformalPHCurve): HopfForm | null {
   }))
   const scaleG = Math.max(cpmax(G), 1e-300)
 
-  // deg U = 2(n−1) exactly — hodograph() has already imposed it — so u has degree n−1 and there
-  // are n−1 conjugate pairs to choose from. lead(U) = |lead(u)|² must be positive; if it is not,
-  // this curve's U is degenerate and the caller should see a null rather than a rescued guess.
-  const lead = U[U.length - 1]
+  // deg U is READ, not imposed. It was imposed at 2(n−1) once, on the reasoning that hodograph() had
+  // already fixed the degree — but that is the degree of N, not of U. U = uu*, so deg U = 2·deg u, and
+  // deg u can fall below n−1: a Möbius image of a polynomial PH cubic carries h through untouched, and
+  // a cubic's h = |A|² with A LINEAR has degree 2 instead of the generic n−2 = 4. Its U then has degree
+  // 8 with a leading coefficient of −2.2e-17, and imposing 10 rejected a perfectly good member.
+  //
+  // Discovering the degree needs a threshold, and the only lawful one separates a machine-precision
+  // zero from a nonzero value: σ·ε·dim. Nothing is trimmed silently — degreeGap reports how decisive
+  // the reading was, so a marginal case is visible to the caller instead of being smoothed over. And
+  // deg U must come out EVEN, since U is a norm; an odd reading means U is not uu* and the extraction
+  // does not apply.
+  const scaleU = pmax(U)
+  if (!(scaleU > 0) || !Number.isFinite(scaleU)) return null
+  const zeroLevel = scaleU * 2.2e-16 * U.length
+  let uDoubled = -1
+  for (let k = U.length - 1; k >= 0; k--) if (Math.abs(U[k]) > zeroLevel) { uDoubled = k; break }
+  if (uDoubled < 2 || uDoubled % 2 !== 0) return null
+  const degreeGap = Math.abs(U[uDoubled]) /
+    Math.max(uDoubled + 1 < U.length ? Math.abs(U[uDoubled + 1]) : 0, zeroLevel)
+
+  const lead = U[uDoubled]
   if (!(lead > 0)) return null
-  const pairs = conjugatePairs(rootsOf(U.map((v) => ({ re: v, im: 0 }))))
+  const pairs = conjugatePairs(rootsOf(U.slice(0, uDoubled + 1).map((v) => ({ re: v, im: 0 }))))
   const scale = Math.sqrt(lead)
 
   let best: HopfForm | null = null
@@ -326,7 +360,10 @@ export function hopfForm(s: ConformalPHCurve): HopfForm | null {
     const score = Math.max(sandwichDefect, normDefect, divisionDefect)
     if (best === null || score < Math.max(best.sandwichDefect, best.normDefect, best.divisionDefect)) {
       runnerUp = best === null ? Infinity : Math.max(best.sandwichDefect, best.normDefect, best.divisionDefect)
-      best = { A, u, v, w: hd.w, sandwichDefect, normDefect, divisionDefect, selectionGap: 0 }
+      best = {
+        A, u, v, w: hd.w, sandwichDefect, normDefect, divisionDefect,
+        selectionGap: 0, uDegree: uDoubled / 2, degreeGap,
+      }
     } else if (score < runnerUp) runnerUp = score
   }
   if (best === null) return null
