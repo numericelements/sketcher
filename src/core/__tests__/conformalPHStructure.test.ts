@@ -38,7 +38,25 @@
 //
 //        2n + 5 − 12  =  2n − 7        1 at degree 4, 5 at degree 6, 13 at degree 10.
 //
-// 5. A RANK DEFECT THE SOLVERS SHOULD KNOW ABOUT. The constraint Jacobian has nullity 2n+6, one MORE
+// 5. THE POLYNOMIAL CUBIC FIBER SURVIVES THE LIFT, EXACTLY — AND LIES ON A SINGULARITY. Spatial PH
+//    cubics sharing p₀, the first leg and the far endpoint form a CLOSED ELLIPSE on which the arc
+//    length is constant, so arc length cannot select among them (phSpatialCubic, slide 6). Lift all
+//    181 traced members: every one is a conformal degree-6 member to 1.4e-15, and the loop CLOSES in
+//    the 41-dimensional coefficient space — end gap 0.02 of a median step. The lift is canonical, so
+//    that closure is literal and not up to a gauge. Arc length is still constant: the spread reads
+//    2.9e-6 at 512 quadrature points and 1.8e-4 at 64, a factor of 64 for an 8-fold refinement, which
+//    is midpoint quadrature's 1/n² — the spread is the quadrature, and the values agree with
+//    fiberArcLength's closed form. So the degeneracy is not an artefact of the polynomial setting;
+//    it is a property of those curves that the richer representation does not disturb.
+//
+//    BUT THE STRATUM IS SINGULAR. At a lifted polynomial the defining Jacobian has rank 21 of 24,
+//    where a generic degree-6 member gives 23 of 24 — two extra deficiencies beyond the structural
+//    one. So the polynomial locus is not a smooth slice of the rational family, and a dimension read
+//    off the linearisation there is the LINEARISATION's count, not the family's: with p₀, p_end and d₀
+//    held it offers 10 directions, and only the claim "the fiber is 1 of them" is safe. Any solver
+//    walking near the equal-weights locus is walking near a singularity.
+//
+// 6. A RANK DEFECT THE SOLVERS SHOULD KNOW ABOUT. The constraint Jacobian has nullity 2n+6, one MORE
 //    than the family's dimension, at every member and always in the same direction. The reason: the
 //    top PH condition is n²⟨Aₙ,Aₙ⟩ = (h's leading coefficient)², and nullity has already forced
 //    ⟨Aₙ,Aₙ⟩ = 0, so it reads h_top² = 0 — a SQUARED equation, whose gradient vanishes on its own
@@ -83,6 +101,12 @@ import {
 } from '../conformalPHCurve'
 import { bernsteinToPower } from '../conformalPHHopf'
 import { sexticSeed } from '../conformalPHSeeds'
+import {
+  controlPoints as cubicControlPoints,
+  fiberArcLength,
+  fiberTraceIsClosed,
+  spatialCubicFiber,
+} from '../phSpatialCubic'
 
 // --- little linear algebra -------------------------------------------------
 /**
@@ -439,6 +463,104 @@ describe('the space of conformal PH curves', () => {
       expect(relResidual(cur), `${label} stays on the family`).toBeLessThan(1e-10)
       expect(shapeMove, `${label} changes the shape`).toBeGreaterThan(1e-3)
     }
+  }, 120_000)
+
+
+  it('the cubic fiber survives the lift, and the rational family breaks its degeneracy', () => {
+    // The classical structure: spatial PH cubics sharing p0, the first leg (hence A0) and the far
+    // endpoint form a CLOSED ELLIPSE, on which the arc length is CONSTANT -- so arc length cannot
+    // select among them. Does any of that survive inside the conformal degree-6 family?
+    const p0 = { x: 0, y: 0, z: 0 }
+    const p1 = { x: 0.6, y: 0.25, z: 0.1 }
+    const p3 = { x: 1.7, y: 0.4, z: 0.55 }
+    const fiber = spatialCubicFiber(p0, p1, p3, { samples: 220, step: 0.05 })
+    expect(fiber.length, 'the fiber traced').toBeGreaterThan(40)
+    const closedDownstairs = fiberTraceIsClosed(fiber)
+    const predictedLength = fiberArcLength(p0, p1, p3)
+
+    // Lift every member. h = |A|^2 elevated, exactly as for any polynomial PH curve.
+    const lifted = fiber.map((f) => {
+      const cps = cubicControlPoints(f.curve)
+      const C = conformalLiftBezier(cps)
+      return { C, h: elevate(speedPolynomial([f.curve.A0, f.curve.A1]), C.length - 2) }
+    })
+    const worstResidual = Math.max(...lifted.map(relResidual))
+    const degrees = new Set(lifted.map(degreeOf))
+    // Arc length at TWO sample counts, because the interesting claim is that the spread is zero and
+    // a single count cannot show that: 64 points read 1.8e-4 and 512 read 2.9e-6, a factor of 64 for
+    // an 8-fold refinement, which is exactly midpoint quadrature's 1/n². The spread is the
+    // quadrature, not the curve. Compared against fiberArcLength's closed form, which is exact.
+    const lengths = lifted.map((m) => arcLength(m, 512))
+    const coarse = lifted.map((m) => arcLength(m, 64))
+    const spreadOf = (v: number[]): number => (Math.max(...v) - Math.min(...v)) / Math.max(...v)
+    const quadratureRatio = spreadOf(coarse) / spreadOf(lengths)
+    const lengthSpread = spreadOf(lengths)
+
+    // Does the LIFTED loop close, in the 41-dimensional coefficient space rather than in the drawn
+    // P2? The lift is canonical -- (1, p, half|p|^2), no representative to choose -- so closure is
+    // literal, not up to a gauge.
+    const X = lifted.map(pack)
+    const gaps: number[] = []
+    for (let i = 1; i < X.length; i++) gaps.push(Math.hypot(...X[i].map((v, j) => v - X[i - 1][j])))
+    const median = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)]
+    const endGap = Math.hypot(...X[X.length - 1].map((v, j) => v - X[0][j]))
+
+    // How thin is it? The fiber holds NINE of the twelve Hermite conditions -- p0, the far endpoint,
+    // and d0 -- leaving d1 free. Count what the rational family offers under the same nine.
+    const mid = lifted[Math.floor(lifted.length / 2)]
+    const x = pack(mid)
+    const step = 1e-6
+    const nine = (c: ConformalPHCurve): number[] => {
+      const d = hermiteDataOf(c)
+      return [d.p0.x, d.p0.y, d.p0.z, d.p1.x, d.p1.y, d.p1.z, d.d0.x, d.d0.y, d.d0.z]
+    }
+    const rows: number[][] = Array.from({ length: 9 }, () => new Array(x.length).fill(0))
+    for (let j = 0; j < x.length; j++) {
+      const up = nine(unpack(x.map((v, i) => (i === j ? v + step : v))))
+      const dn = nine(unpack(x.map((v, i) => (i === j ? v - step : v))))
+      for (let r = 0; r < 9; r++) rows[r][j] = (up[r] - dn[r]) / (2 * step)
+    }
+    const unit = (row: number[]): number[] => {
+      const m = Math.hypot(...row) || 1
+      return row.map((v) => v / m)
+    }
+    // Is the lifted polynomial a SMOOTH point of the family, or does the bendable stratum sit on a
+    // singularity? Read the defining Jacobian's rank here and compare with the 23 of 24 that a
+    // generic degree-6 member gives.
+    const Jhere = definingJacobian(mid).map(unit)
+    const rankAlone = rankFromGap(singularValues(Jhere), Jhere.length).rank
+    const withNine = [...Jhere, ...rows.map(unit)]
+    const rank = rankFromGap(singularValues(withNine), withNine.length).rank
+    const available = x.length - rank - 1 // minus the one structurally spurious direction
+
+    console.log(
+      `the cubic fiber, lifted:\n` +
+        `    ${fiber.length} members, closed downstairs ${closedDownstairs}\n` +
+        `    every lift is a conformal member       residual <= ${worstResidual.toExponential(1)}\n` +
+        `    conformal degree                       ${[...degrees].join(',')}\n` +
+        `    ARC LENGTH along the fiber             spread ${lengthSpread.toExponential(1)} at 512 pts,` +
+          ` ${spreadOf(coarse).toExponential(1)} at 64 -- ratio ${quadratureRatio.toFixed(0)}, i.e. the` +
+          ` QUADRATURE\n` +
+        `                                           closed form ${predictedLength?.toFixed(6)},` +
+          ` measured ${lengths[0].toFixed(6)}\n` +
+        `    the LIFTED loop closes                 end gap ${(endGap / median).toFixed(2)} median steps\n` +
+        `    defining Jacobian rank HERE            ${rankAlone} of ${Jhere.length}` +
+          `   (a generic degree-6 member gives 23 of 24)\n` +
+        `    with p0, p_end and d0 held, the linearisation offers ${available} directions,\n` +
+        `        of which the polynomial fiber is 1`,
+    )
+
+    expect(worstResidual, 'every lift is on the family').toBeLessThan(1e-12)
+    expect(degrees.size, 'all at degree 6').toBe(1)
+    expect([...degrees][0], 'degree 6').toBe(6)
+    const vsClosedForm = Math.max(...lengths.map((L) => Math.abs(L - (predictedLength ?? 0)))) /
+      Math.max(...lengths)
+    expect(vsClosedForm, 'every lift has the arc length the closed form predicts').toBeLessThan(1e-5)
+    expect(quadratureRatio, 'the spread is the quadrature: it falls like 1/n^2').toBeGreaterThan(32)
+    expect(lengthSpread, 'so the true spread is zero').toBeLessThan(1e-5)
+    expect(rankAlone, 'the polynomial stratum is SINGULAR in the rational family').toBeLessThan(23)
+    if (closedDownstairs) expect(endGap / median, 'the lifted loop closes too').toBeLessThan(2.5)
+    expect(available, 'the fiber sits inside a much larger rational family').toBeGreaterThan(1)
   }, 120_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
