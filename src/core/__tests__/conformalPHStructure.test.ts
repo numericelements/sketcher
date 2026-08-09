@@ -65,9 +65,14 @@ import {
   curveAt,
   farinParameters,
   findMember,
+  freeRadiusIndices,
+  radii,
+  speedAt,
+  hermiteDataOf,
   lambdaForFirstBead,
   pack,
   reparametrise,
+  unpack,
   residual,
   weights,
 } from '../conformalPHCurve'
@@ -300,6 +305,81 @@ describe('the space of conformal PH curves', () => {
       expect(degreeOf(s), `${name} lifts to 2d`).toBe(2 * d)
     }
   }, 60_000)
+
+  it('pinning the C1 Hermite data is a gauge slice: what is left is 2n-7', () => {
+    for (const n of [4, 5, 6]) {
+      const s = findMember(n, {
+        irreducible: true,
+        minOutOfPlane: 0.03,
+        minCurvatureSpread: 0.3,
+        minRadiusRatio: 0.05,
+        minWeightRatio: 0.15,
+        minSpanRatio: 0.3,
+      })
+      if (!s) { console.log(`degree ${n}: no member`); continue }
+      const x = pack(s)
+      const flat = (d: ReturnType<typeof hermiteDataOf>): number[] => [
+        d.p0.x, d.p0.y, d.p0.z, d.p1.x, d.p1.y, d.p1.z,
+        d.d0.x, d.d0.y, d.d0.z, d.d1.x, d.d1.y, d.d1.z,
+      ]
+      // The 12 Hermite rows, finite-differenced: they are ratios of the unknowns, not linear in them.
+      const step = 1e-6
+      const hermiteRows: number[][] = Array.from({ length: 12 }, () => new Array(x.length).fill(0))
+      for (let j = 0; j < x.length; j++) {
+        const up = flat(hermiteDataOf(unpack(x.map((v, i) => (i === j ? v + step : v)))))
+        const dn = flat(hermiteDataOf(unpack(x.map((v, i) => (i === j ? v - step : v)))))
+        for (let r = 0; r < 12; r++) hermiteRows[r][j] = (up[r] - dn[r]) / (2 * step)
+      }
+      const scaleRow = (row: number[]): number[] => {
+        const m = Math.hypot(...row) || 1
+        return row.map((v) => v / m)
+      }
+      const J = definingJacobian(s).map(scaleRow)
+      const withPins = [...J, ...hermiteRows.map(scaleRow)]
+      const sv = singularValues(withPins)
+      const { rank, gap } = rankFromGap(sv, withPins.length)
+      const raw = x.length - rank
+      const free = freeRadiusIndices(s)
+      console.log(
+        `degree ${n}: ${withPins.length} rows (${J.length} defining + 12 Hermite), rank ${rank}` +
+          ` (gap ${gap.toExponential(1)}) -> nullity ${raw}\n` +
+          `    minus the one spurious direction (h_top squared): ${raw - 1}   [2n-7 = ${2 * n - 7}]\n` +
+          `    free radii ${free.length} (indices ${free.join(',')}) + arc length = ${free.length + 1} coordinates`,
+      )
+      expect(raw - 1, `degree ${n} Hermite slice`).toBe(2 * n - 7)
+
+      // Are the candidate DIALS actual coordinates on that slice? The free radii plus the arc
+      // length of each half. Total length alone gives only free.length + 1, which is one short at
+      // degree 6 — splitting the length in two is the cheapest honest fifth dial, and it is legal
+      // because the Hermite data pins the parametrisation (d0 = n(w1/w0)(P1-P0) fixes lambda), so
+      // arc length over a parameter subinterval is well defined.
+      const dials = (c: ConformalPHCurve): number[] => {
+        const r = radii(c)
+        const half = (a: number, b: number): number => {
+          let acc = 0
+          for (let k = 0; k < 24; k++) acc += Math.abs(speedAt(c, a + ((k + 0.5) / 24) * (b - a))) * (b - a) / 24
+          return acc
+        }
+        return [...free.map((i) => r[i]), half(0, 0.5), half(0.5, 1)]
+      }
+      const base = dials(s)
+      const dialRows = base.map((_, r) =>
+        x.map((_v, j) => {
+          const up = dials(unpack(x.map((v, i) => (i === j ? v + step : v))))
+          const dn = dials(unpack(x.map((v, i) => (i === j ? v - step : v))))
+          return (up[r] - dn[r]) / (2 * step)
+        }),
+      )
+      // Restrict to the slice: rank of the dial gradients TOGETHER with the constraint rows tells
+      // how many independent directions along the slice they actually see.
+      const together = [...withPins, ...dialRows.map(scaleRow)]
+      const jointRank = rankFromGap(singularValues(together), together.length).rank
+      console.log(
+        `    dials: ${base.length} candidates (${free.length} radii + 2 half-lengths) ->` +
+          ` they pin ${jointRank - rank} of the ${raw - 1} slice directions`,
+      )
+    }
+  }, 180_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
