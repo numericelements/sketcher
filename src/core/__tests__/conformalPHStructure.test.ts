@@ -193,8 +193,41 @@
 //     g = w/(t−z_j), i.e. N′(z_j) parallel to N(z_j) with a prescribed ratio. A tempting shortcut,
 //     A = D·E with w = |D|² and h = |E|² (degrees 3 and 2, and the norm is multiplicative so PH is
 //     free), does NOT satisfy it: D·(E i E*)·D* is not divisible by w, since at a root z the quaternion
-//     D(z) is null rather than zero. So the closed form is NOT in hand; what is in hand is the nullity
-//     half of it, plus the exact statement of the one remaining condition.
+//     D(z) is null rather than zero. So attack it from the SPINOR side instead — (11).
+//
+// 11. THE SPINOR SIDE SOLVES THE NO-LOG CONDITION IN CLOSED FORM. Write A = u + vj and read N = A i A*
+//     in the NULL basis of the complexified form: X = N_j + iN_k = c·uv, Y = c̄·u*v*, Z = uu* − vv*,
+//     where * is COEFFICIENT conjugation (so u*(t) = conj(u(t)) for real t, but not for complex t).
+//     Then ‖N‖² = Z² + XY, and the residue condition N′(z) = (w″/w′)(z)·N(z) splits into
+//
+//         (uv)′/(uv) = w″/w′ at z ,    (u*v*)′/(u*v*) = w″/w′ at z ,    plus the Z component
+//
+//     of which the Z component is IMPLIED — writing the logarithmic derivatives as α+β = μ and
+//     α*+β* = μ, the Z equation reduces to their sum, (α+α*)+(β+β*) = 2μ. And the second is the
+//     coefficient conjugate of the first with w real, hence automatic. So the whole thing lands on the
+//     PRODUCT π = uv:
+//
+//         w | π′w′ − πw″            THE no-log condition, on uv alone
+//         π = w′ν − wν′             its closed form, ν complex of degree ≤ n−1 = 5, entirely FREE
+//
+//     The second line is exact rather than modular: putting π = wμ + w′ν gives π′w′ − πw″ ≡ w′²(μ + ν′)
+//     mod w, and deg(μ + ν′) ≤ 4 < 6 = deg w forces μ = −ν′. Its solution space is 6 complex dimensional
+//     out of 11, one MORE than 6 root conditions would leave — the dependency is the residue theorem,
+//     N/w² decaying like t⁻² so its residues sum to zero. Measured on the seed: remainder 4.3e-13 for
+//     the condition, and 1.2e-12 for ν of degree 5 reproducing π.
+//
+//     WHAT REMAINS IS w | uu* + vv*, six real conditions, and it has a geometric form. Per conjugate
+//     pair, Λ(z) = 0 says the spinor values at z and z̄ are HERMITIAN-ORTHOGONAL in C²; dividing through
+//     by v it says the spinor RATIO f = u/v satisfies f(z)·f*(z) = −1, i.e. the direction [u:v] at z̄ is
+//     the ANTIPODE of the one at z on CP¹. Since [u:v] is the curve's tangent indicatrix, this is the
+//     curve's reality condition read at the complex roots of its own denominator. Measured on the seed:
+//     3.7e-10, 3.9e-11, 4.8e-11 for the three pairs.
+//
+//     THE COUNT CLOSES: w (7, three conjugate root pairs and a scale) + ν (12) + the scale split of
+//     π = u·v (2, of which 1 is the gauge A ↦ Ae^{iθ}, so 1) − 6 (the orthogonality) + 3 (translation,
+//     the constant of integration) = 17, which is the variety's dimension. So the construction is
+//     complete except for step three: factor a GIVEN π of degree 10 into u·v of degree 5 each such that
+//     the three antipodal conditions hold. Two of the four steps are closed-form; that one is not yet.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -235,7 +268,7 @@ import {
   residual,
   weights,
 } from '../conformalPHCurve'
-import { bernsteinToPower, hodograph, rootsOf } from '../conformalPHHopf'
+import { bernsteinToPower, hodograph, hopfForm, rootsOf } from '../conformalPHHopf'
 import { sexticSeed } from '../conformalPHSeeds'
 import {
   controlPoints as cubicControlPoints,
@@ -1421,6 +1454,166 @@ describe('the space of conformal PH curves', () => {
     expect(Math.min(...imParts), 'and has no real roots').toBeGreaterThan(1e-3)
     expect(Math.max(...isotropy), 'q is isotropic at every root of w').toBeLessThan(1e-9)
     expect(hod.squareDefect, 'and N has polynomial norm h·w').toBeLessThan(1e-9)
+  }, 60_000)
+
+  it('the SPINOR side: the no-log condition is uv = w′ν − wν′, ν free', () => {
+    // The residue condition at a simple root z of w reads N′(z) = (w″/w′)(z)·N(z). Write A = u + vj and
+    // read N = A i A* in the NULL basis X = N_j + i N_k = c·uv, Y = c̄·u*v*, Z = uu* − vv*, where * is
+    // coefficient conjugation. Then ‖N‖² = Z² + XY, and the three components of the condition become
+    //
+    //     (uv)′/(uv) = w″/w′ at z ,   (u*v*)′/(u*v*) = w″/w′ at z ,   and the Z component
+    //
+    // where the Z component is IMPLIED by the other two: substituting the logarithmic derivatives
+    // α+β = μ and α*+β* = μ into it gives (α+α*) + (β+β*) = 2μ, which is their sum. And the second is
+    // the coefficient conjugate of the first, with w real, so it is automatic too. Everything therefore
+    // collapses onto the PRODUCT π = uv:
+    //
+    //     w | π′w′ − πw″                                                             (the condition)
+    //     π = w′ν − wν′ , ν complex of degree ≤ 5, FREE                              (its closed form)
+    //
+    // The second line is exact: putting π = wμ + w′ν gives π′w′ − πw″ ≡ w′²(μ + ν′) mod w, and since
+    // deg(μ + ν′) ≤ 4 < 6 = deg w the divisibility forces μ = −ν′, not merely μ ≡ −ν′. The solution
+    // space is 6 complex dimensional out of 11, one MORE than the 6 root conditions would allow — the
+    // dependency is the residue theorem, N/w² decaying like t⁻² so its residues sum to zero.
+    const s = sexticSeed()
+    const hf = hopfForm(s)
+    expect(hf, 'the seed has a Hopf form').not.toBeNull()
+    if (!hf) return
+    const w = hf.w
+    type Cx = { re: number; im: number }
+    const cm = (a: Cx, b: Cx): Cx => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
+    const cpmul = (a: readonly Cx[], b: readonly Cx[]): Cx[] => {
+      const out: Cx[] = Array.from({ length: a.length + b.length - 1 }, () => ({ re: 0, im: 0 }))
+      for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) {
+        const t = cm(a[i], b[j])
+        out[i + j] = { re: out[i + j].re + t.re, im: out[i + j].im + t.im }
+      }
+      return out
+    }
+    const cpderiv = (a: readonly Cx[]): Cx[] =>
+      a.slice(1).map((c, k) => ({ re: c.re * (k + 1), im: c.im * (k + 1) }))
+    const real = (p: readonly number[]): Cx[] => p.map((v) => ({ re: v, im: 0 }))
+    const cpsub = (a: readonly Cx[], b: readonly Cx[]): Cx[] =>
+      Array.from({ length: Math.max(a.length, b.length) }, (_, k) => ({
+        re: (a[k]?.re ?? 0) - (b[k]?.re ?? 0), im: (a[k]?.im ?? 0) - (b[k]?.im ?? 0),
+      }))
+    const cpmax = (a: readonly Cx[]): number => Math.max(...a.map((c) => Math.hypot(c.re, c.im)), 0)
+    const dpoly = (p: readonly number[]): number[] => p.slice(1).map((v, k) => v * (k + 1))
+
+    const pi = cpmul(hf.u, hf.v)
+    const wp = dpoly(w), wpp = dpoly(wp)
+
+    // (1) THE CONDITION: divide π′w′ − πw″ by w and read the remainder.
+    const R = cpsub(cpmul(cpderiv(pi), real(wp)), cpmul(pi, real(wpp)))
+    const rem = R.map((c) => ({ ...c }))
+    for (let k = rem.length - 1; k >= w.length - 1; k--) {
+      const f = { re: rem[k].re / w[w.length - 1], im: rem[k].im / w[w.length - 1] }
+      for (let j = 0; j < w.length; j++) {
+        const t = cm(f, { re: w[j], im: 0 })
+        rem[k - (w.length - 1) + j] = {
+          re: rem[k - (w.length - 1) + j].re - t.re,
+          im: rem[k - (w.length - 1) + j].im - t.im,
+        }
+      }
+    }
+    const remainder = cpmax(rem.slice(0, w.length - 1)) / Math.max(cpmax(R), 1e-300)
+
+    // (2) ITS CLOSED FORM: recover ν of degree ≤ 5 from π = w′ν − wν′, by least squares over the 11
+    // coefficient equations, and report how well it reproduces π.
+    const basis: Cx[][] = Array.from({ length: 6 }, (_, j) => {
+      const e = Array.from({ length: 6 }, (_, k) => ({ re: k === j ? 1 : 0, im: 0 }))
+      return cpsub(cpmul(real(wp), e), cpmul(real(w), cpderiv(e)))
+    })
+    const rows = Math.max(...basis.map((b) => b.length), pi.length)
+    const M: number[][] = [], rhs: number[] = []
+    for (let r = 0; r < rows; r++) {
+      M.push(basis.map((b) => b[r]?.re ?? 0)); rhs.push(pi[r]?.re ?? 0)
+      M.push(basis.map((b) => b[r]?.im ?? 0)); rhs.push(pi[r]?.im ?? 0)
+    }
+    // ν is complex, so each basis column splits into a real and an imaginary multiplier.
+    const cols: number[][] = []
+    for (let j = 0; j < 6; j++) {
+      cols.push(M.map((row) => row[j]))
+      cols.push(M.map((_row, r) => (r % 2 === 0 ? -M[r + 1][j] : M[r - 1][j])))
+    }
+    const G = cols.map((a) => cols.map((b) => a.reduce((acc, v, i) => acc + v * b[i], 0)))
+    const gb = cols.map((a) => a.reduce((acc, v, i) => acc + v * rhs[i], 0))
+    for (let i = 0; i < 12; i++) {
+      let piv = i
+      for (let r = i + 1; r < 12; r++) if (Math.abs(G[r][i]) > Math.abs(G[piv][i])) piv = r
+      ;[G[i], G[piv]] = [G[piv], G[i]]; [gb[i], gb[piv]] = [gb[piv], gb[i]]
+      for (let r = i + 1; r < 12; r++) {
+        const f = G[r][i] / G[i][i]
+        for (let c2 = i; c2 < 12; c2++) G[r][c2] -= f * G[i][c2]
+        gb[r] -= f * gb[i]
+      }
+    }
+    const x = new Array(12).fill(0)
+    for (let i = 11; i >= 0; i--) {
+      let acc = gb[i]
+      for (let c2 = i + 1; c2 < 12; c2++) acc -= G[i][c2] * x[c2]
+      x[i] = acc / G[i][i]
+    }
+    const nu: Cx[] = Array.from({ length: 6 }, (_, j) => ({ re: x[2 * j], im: x[2 * j + 1] }))
+    const rebuilt = cpsub(cpmul(real(wp), nu), cpmul(real(w), cpderiv(nu)))
+    const nuDefect = cpmax(cpsub(rebuilt, pi)) / Math.max(cpmax(pi), 1e-300)
+
+    // (3) WHAT IS LEFT: w | uu* + vv*. Per conjugate pair of roots this says the spinor at z and at z̄
+    // are HERMITIAN-ORTHOGONAL in C²: u(z)·conj(u(z̄)) + v(z)·conj(v(z̄)) = 0.
+    const roots = rootsOf(real(w))
+    const evalC = (p: readonly Cx[], z: Cx): Cx => {
+      let acc: Cx = { re: 0, im: 0 }
+      for (let k = p.length - 1; k >= 0; k--) {
+        const t = cm(acc, z)
+        acc = { re: t.re + p[k].re, im: t.im + p[k].im }
+      }
+      return acc
+    }
+    const used = new Set<number>()
+    const ortho: number[] = []
+    for (let a = 0; a < roots.length; a++) {
+      if (used.has(a)) continue
+      let best = -1, bestD = Infinity
+      for (let b = 0; b < roots.length; b++) {
+        if (b === a || used.has(b)) continue
+        const d = Math.hypot(roots[a].re - roots[b].re, roots[a].im + roots[b].im)
+        if (d < bestD) { bestD = d; best = b }
+      }
+      if (best < 0) continue
+      used.add(a); used.add(best)
+      const z = roots[a], zb = roots[best]
+      const U1 = evalC(hf.u, z), U2 = evalC(hf.u, zb)
+      const V1 = evalC(hf.v, z), V2 = evalC(hf.v, zb)
+      const ip = {
+        re: U1.re * U2.re + U1.im * U2.im + V1.re * V2.re + V1.im * V2.im,
+        im: U1.im * U2.re - U1.re * U2.im + V1.im * V2.re - V1.re * V2.im,
+      }
+      const scale = Math.max(
+        Math.hypot(U1.re, U1.im) * Math.hypot(U2.re, U2.im),
+        Math.hypot(V1.re, V1.im) * Math.hypot(V2.re, V2.im),
+      )
+      ortho.push(Math.hypot(ip.re, ip.im) / Math.max(scale, 1e-300))
+    }
+
+    console.log(
+      `the spinor side, on the degree-6 seed:\n` +
+        `    Hopf form recovered        sandwich ${hf.sandwichDefect.toExponential(1)},` +
+          ` norm ${hf.normDefect.toExponential(1)}, selection gap ${hf.selectionGap.toExponential(1)}\n` +
+        `    w | π′w′ − πw″             remainder ${remainder.toExponential(1)}` +
+          `   <- THE no-log condition, on the product π = uv alone\n` +
+        `    π = w′ν − wν′              defect ${nuDefect.toExponential(1)}` +
+          `   <- and ν of degree 5 recovers it, so the condition is SOLVED\n` +
+        `    ν                          ` +
+          nu.map((c) => `${c.re.toFixed(3)}${c.im >= 0 ? '+' : '−'}${Math.abs(c.im).toFixed(3)}i`).join(' ') + `\n` +
+        `    ⟨s(z), s(z̄)⟩ per pair      ` + ortho.map((v) => v.toExponential(1)).join('  ') +
+          `   <- what REMAINS: w | uu* + vv*, i.e. Hermitian orthogonality`,
+    )
+
+    expect(hf.sandwichDefect, 'the Hopf extraction is exact').toBeLessThan(1e-8)
+    expect(remainder, 'the no-log condition holds on the product uv').toBeLessThan(1e-8)
+    expect(nuDefect, 'and uv = w′ν − wν′ reproduces it exactly').toBeLessThan(1e-8)
+    expect(ortho.length, 'three conjugate pairs').toBe(3)
+    expect(Math.max(...ortho), 'the spinor is Hermitian-orthogonal across each pair').toBeLessThan(1e-8)
   }, 60_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
