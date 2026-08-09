@@ -49,6 +49,24 @@
 //    fiberArcLength's closed form. So the degeneracy is not an artefact of the polynomial setting;
 //    it is a property of those curves that the richer representation does not disturb.
 //
+//    WHAT THE EXTRA DEFICIENCIES ARE, as far as measurement takes it. residual(s) is [2n+1 nullity
+//    coefficients, 2n-1 PH coefficients], so a dependency among the rows is a pair of polynomial
+//    functionals and its block tells you which identity is degenerating. Measured, on unit-normalised
+//    rows: a generic degree-6 member has ONE dependency and it is MIXED — 0.950 of its weight in the
+//    nullity block, 0.313 in the PH block, heaviest on the MIDDLE nullity rows N6, N7, N8. (Not the
+//    top PH row, which is what an earlier guess in this file's history claimed; that guess was wrong
+//    about which rows, though right that the h_top² structure makes the variety's dimension one below
+//    the linearisation's.) At a lifted polynomial there are THREE, and they are almost purely nullity
+//    — 0.999 against 0.04 — so what collapses is the NULLITY identity, not the PH one.
+//
+//    AND THE COUNT FOLLOWS THE POLYNOMIAL DEGREE: a lifted polynomial of degree d has exactly d
+//    dependencies, so d−1 extra. Measured 3 for the cubic at conformal 6 and 5 for the quintic at
+//    conformal 10. Bending the same cubic by a Möbius transform gives the identical count, as it must
+//    since O(4,1) acts linearly — so this is intrinsic to being a bent polynomial and not an accident
+//    of one curve. The algebraic identity that produces d−1 relations is NOT yet in hand: the obvious
+//    candidate, that differentiating ⟨P,P⟩ ≡ 0 twice makes ⟨P′,P′⟩ + ⟨P,P″⟩ a derivative of the
+//    nullity residual, explains a relation between the blocks but not a count that grows with d.
+//
 //    BUT THE STRATUM IS SINGULAR. At a lifted polynomial the defining Jacobian has rank 21 of 24,
 //    where a generic degree-6 member gives 23 of 24 — two extra deficiencies beyond the structural
 //    one. So the polynomial locus is not a smooth slice of the rational family, and a dimension read
@@ -561,6 +579,95 @@ describe('the space of conformal PH curves', () => {
     expect(rankAlone, 'the polynomial stratum is SINGULAR in the rational family').toBeLessThan(23)
     if (closedDownstairs) expect(endGap / median, 'the lifted loop closes too').toBeLessThan(2.5)
     expect(available, 'the fiber sits inside a much larger rational family').toBeGreaterThan(1)
+  }, 120_000)
+
+
+  it('what the extra deficiencies at a polynomial member ARE', () => {
+    // residual(s) is [nullity coefficients, PH coefficients]: 2n+1 rows for <P,P> = 0 (degree 2n)
+    // then 2n-1 for <P',P'> - h^2 = 0 (degree 2n-2). So a DEPENDENCY among the rows is a pair of
+    // polynomial functionals, and which block it lives in says what it means. Rows are unit-normalised
+    // first, so the weights below are comparable rather than dominated by row scale.
+    const unit = (row: readonly number[]): number[] => {
+      const m = Math.hypot(...row) || 1
+      return row.map((v) => v / m)
+    }
+    const transpose = (a: readonly (readonly number[])[]): number[][] =>
+      a[0].map((_, j) => a.map((r) => r[j]))
+
+    const report = (name: string, s: ConformalPHCurve): number => {
+      const n = degreeOf(s)
+      const nullityRows = 2 * n + 1
+      const J = definingJacobian(s).map(unit)
+      // Left null vectors of J = right null vectors of J-transpose: the dependencies among the ROWS.
+      const { sv, V } = svd(transpose(J))
+      const { rank } = rankFromGap(sv, J[0].length)
+      const deficiency = J.length - rank
+      const lines: string[] = []
+      for (let d = 0; d < deficiency; d++) {
+        const lam = V[V.length - 1 - d]
+        const nrm = Math.hypot(...lam) || 1
+        const w = lam.map((v) => Math.abs(v) / nrm)
+        const inNullity = Math.hypot(...w.slice(0, nullityRows))
+        const inPH = Math.hypot(...w.slice(nullityRows))
+        const top = w
+          .map((v, i) => ({ v, i }))
+          .sort((a, b) => b.v - a.v)
+          .slice(0, 3)
+          .map(({ v, i }) =>
+            `${i < nullityRows ? `N${i}` : `PH${i - nullityRows}`}:${v.toFixed(3)}`,
+          )
+          .join(' ')
+        lines.push(
+          `      dep ${d + 1}: nullity block ${inNullity.toFixed(3)}, PH block ${inPH.toFixed(3)}` +
+            `   heaviest ${top}`,
+        )
+      }
+      console.log(`  ${name}: ${J.length} rows, rank ${rank}, ${deficiency} dependencies\n` + lines.join('\n'))
+      return deficiency
+    }
+
+    const generic6 = sexticSeed()
+    const A_CUBIC: Quat[] = [
+      { u: 1, v: 0.3, p: 0.1, q: 0 },
+      { u: 0.8, v: 0, p: 0.25, q: 0.4 },
+    ]
+    const A_QUINTIC: Quat[] = [
+      { u: 1, v: 0.3, p: 0.1, q: 0 },
+      { u: 0.8, v: 0, p: 0, q: 0.2 },
+      { u: 1.1, v: 0.2, p: -0.4, q: 0 },
+    ]
+
+    const dGeneric = report('generic degree-6 member', generic6)
+    const dCubic = report('lifted polynomial cubic (conformal 6)', liftPolynomialPH(A_CUBIC))
+    const dQuintic = report('lifted polynomial quintic (conformal 10)', liftPolynomialPH(A_QUINTIC))
+
+    // Is it BEING POLYNOMIAL, or an accident of this one curve? Bend it: O(4,1) acts linearly, so a
+    // Mobius image must have the identical rank -- and a member NEAR the stratum must recover 1.
+    const bend = bivectorGenerator([0, 1, 0, 0, 0], [0, 0, 0, 0, 1])
+    const expBend = (m: readonly (readonly number[])[], k: number): number[][] => {
+      let acc: number[][] = [[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1]]
+      let term: number[][] = acc.map((r) => [...r])
+      for (let i = 1; i <= 12; i++) {
+        term = term.map((r) => m.map((_c, j) => r.reduce((a, v, q) => a + v * m[q][j], 0) * (k / i)))
+        acc = acc.map((r, a) => r.map((v, b) => v + term[a][b]))
+      }
+      return acc
+    }
+    const M = expBend(bend, 0.35)
+    const cubic = liftPolynomialPH(A_CUBIC)
+    const bent: ConformalPHCurve = {
+      C: cubic.C.map((c) => M.map((row) => row.reduce((a, v, i) => a + v * c[i], 0)) as unknown as Conformal),
+      h: cubic.h,
+    }
+    const dBent = report('the SAME cubic, bent by a Mobius transform', bent)
+
+    // The pattern: a lifted polynomial of degree d has exactly d dependencies where a generic member
+    // has 1 -- so d-1 EXTRA, which is 2 for the cubic at conformal 6 and 4 for the quintic at
+    // conformal 10. Checked at two degrees; the algebraic identity behind it is not yet in hand.
+    expect(dGeneric, 'a generic member has exactly one dependency').toBe(1)
+    expect(dCubic, 'a lifted CUBIC has d = 3').toBe(3)
+    expect(dQuintic, 'a lifted QUINTIC has d = 5').toBe(5)
+    expect(dBent, 'bending cannot change it -- O(4,1) acts linearly').toBe(dCubic)
   }, 120_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
