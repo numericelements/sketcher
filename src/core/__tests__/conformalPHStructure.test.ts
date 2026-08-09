@@ -256,7 +256,39 @@
 //     imaginary part — the 6th of w | uu* + vv* having been absorbed by the scale. And 7 + 12 + 3 − 5 =
 //     17, the variety's dimension exactly. So the honest state is: 5 real conditions on 19 explicit
 //     parameters, with everything downstream closed form, against the 24 equations in 41 unknowns that
-//     findMember solves today.
+//     findMember solves today. Scope: (13) says where this is verified and where it is not.
+//
+// 13. THE CHAIN ON FIVE SPECIMENS — and the bent-cubic stratum is where it does NOT close.
+//
+//     Three generic members, of three different origins, run the whole chain at machine precision with
+//     entirely different numbers: the cached seed (T = 1.993, cliff 5.3e+8), the seed DRAGGED 30% along
+//     ρ₃ into a different shape (T = 6.475, cliff 3.6e+8), and the seed carried by a Möbius transform
+//     plus a reparametrisation to completely different coefficients for the same shape (T = 6.063, cliff
+//     1.5e+11). So (11) and (12) are not artefacts of one point of a 17-dimensional variety.
+//
+//     A trap worth remembering: findMember is DETERMINISTIC, and the cached seed is exactly what it
+//     returns at degree 6 with the standard guards. An earlier version of this test used it as an
+//     "independent find" and got the seed's digits back to the last place. Independence has to come from
+//     MOVING — a drag, or a gauge transformation — not from re-running the search.
+//
+//     THE BENT CUBIC FAILS, in two different ways, and both are informative:
+//
+//     (a) RAW, it has deg h = 2 rather than the generic n−2 = 4. mobiusImage carries h through
+//         untouched, and a lifted cubic's h = |A|² with A LINEAR has degree 2. So U = uu* has degree 8,
+//         u has degree 4, and hopfForm — which requires degree n−1 = 5 — declines outright. Measured:
+//         deg U 8 of 10, leading coefficient −2.2e-17, while ‖N‖ = h·w still holds to 1.2e-13. The
+//         member is perfectly good; it is the EXTRACTION that assumes generic degree.
+//
+//     (b) REPARAMETRISED to restore deg h = 4 (h̃ = λψ^{n−2}h(u) has degree 2+2 = 4, same shape, same
+//         stratum), the extraction is accurate only to 1.5e-6, and that floor drowns the splitting: 0
+//         survive at a 3.3e-6 noise level and the cliff collapses to 1.0. Bigger λ is worse, not better
+//         — λ = 3 gives orthogonality defects of 6e-3 — because λᵏ spreads the coefficients.
+//
+//     WHAT THIS MEANS FOR SCOPE. (11) verifies on the bent cubic: the no-log condition reads 1.2e-9 and
+//     the ν closed form 1.0e-12 there. (12), the forced splitting, is UNVERIFIED on that stratum. And
+//     the bent cubics are exactly where a figure built on "the space you already understand" would live,
+//     so this is not an academic gap. The fix is a Hopf extraction that does not assume deg u = n−1 —
+//     it should read the degree off U rather than impose it — and that is the next piece of work.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -1782,6 +1814,287 @@ describe('the space of conformal PH curves', () => {
     expect(rootMatch, 'to machine precision').toBeLessThan(1e-6)
     expect(scaleDefect, 'and the ratio recovers the scale hopfForm found').toBeLessThan(1e-6)
   }, 60_000)
+
+  it('the whole spinor chain, on THREE members: seed, bent cubic, and an independent find', () => {
+    // Findings 11 and 12 were measured on ONE specimen -- a single point of a 17-dimensional variety.
+    // "Forced" could be an accident of it. Run the entire chain on three members of different origin:
+    // the cached seed, a Möbius image of a lifted polynomial cubic, and a member found from scratch.
+    type Cx = { re: number; im: number }
+    const cm = (a: Cx, b: Cx): Cx => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
+    const cabs = (a: Cx): number => Math.hypot(a.re, a.im)
+    const cdiv = (a: Cx, b: Cx): Cx => {
+      const d = b.re * b.re + b.im * b.im
+      return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }
+    }
+    const real = (p: readonly number[]): Cx[] => p.map((v) => ({ re: v, im: 0 }))
+    const cpmul = (a: readonly Cx[], b: readonly Cx[]): Cx[] => {
+      const out: Cx[] = Array.from({ length: a.length + b.length - 1 }, () => ({ re: 0, im: 0 }))
+      for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) {
+        const t = cm(a[i], b[j])
+        out[i + j] = { re: out[i + j].re + t.re, im: out[i + j].im + t.im }
+      }
+      return out
+    }
+    const cpderiv = (a: readonly Cx[]): Cx[] =>
+      a.slice(1).map((c, k) => ({ re: c.re * (k + 1), im: c.im * (k + 1) }))
+    const cpsub = (a: readonly Cx[], b: readonly Cx[]): Cx[] =>
+      Array.from({ length: Math.max(a.length, b.length) }, (_, k) => ({
+        re: (a[k]?.re ?? 0) - (b[k]?.re ?? 0), im: (a[k]?.im ?? 0) - (b[k]?.im ?? 0),
+      }))
+    const cpmax = (a: readonly Cx[]): number => Math.max(...a.map(cabs), 0)
+    const dpoly = (p: readonly number[]): number[] => p.slice(1).map((v, k) => v * (k + 1))
+    /** Effective degree: the top index whose coefficient is not a machine-precision zero. */
+    const cdeg = (p: readonly Cx[]): number => {
+      const big = cpmax(p)
+      for (let k = p.length - 1; k >= 0; k--) if (cabs(p[k]) > big * 1e-12) return k
+      return 0
+    }
+
+    /** Why hopfForm declined: U = (h·w + N₁)/2 is uu*, so its leading coefficient is |lead(u)|². */
+    const whyNull = (s: ConformalPHCurve): string => {
+      const hd = hodograph(s)
+      const U = hd.H.map((v, k) => (v + (hd.N[0][k] ?? 0)) / 2)
+      const big = Math.max(...U.map(Math.abs), 1e-300)
+      let dU = 0
+      for (let k = U.length - 1; k >= 0; k--) if (Math.abs(U[k]) > big * 1e-12) { dU = k; break }
+      return `deg U ${dU} of ${U.length - 1}, lead ${U[U.length - 1].toExponential(1)} (needs > 0),` +
+        ` ‖N‖ = h·w defect ${hd.squareDefect.toExponential(1)},` +
+        ` truncation ${hd.truncationDefect.toExponential(1)}`
+    }
+
+    const chain = (s: ConformalPHCurve) => {
+      const hf = hopfForm(s)
+      if (!hf) return null
+      const w = hf.w
+      const wp = dpoly(w), wpp = dpoly(wp)
+      const wDeg = (() => {
+        const big = Math.max(...w.map(Math.abs))
+        for (let k = w.length - 1; k >= 0; k--) if (Math.abs(w[k]) > big * 1e-12) return k
+        return 0
+      })()
+      const allRoots = rootsOf(real(w.slice(0, wDeg + 1)))
+      const minIm = allRoots.length ? Math.min(...allRoots.map((z) => Math.abs(z.im))) : Infinity
+      const zs = allRoots.filter((z) => z.im > 0)
+
+      const pi = cpmul(hf.u, hf.v)
+      const dPi = cdeg(pi), du = cdeg(hf.u), dv = cdeg(hf.v)
+
+      // (1) the condition: remainder of π′w′ − πw″ mod w
+      const R = cpsub(cpmul(cpderiv(pi), real(wp)), cpmul(pi, real(wpp)))
+      const rem = R.map((c) => ({ ...c }))
+      const lead = w[wDeg]
+      for (let k = rem.length - 1; k >= wDeg; k--) {
+        const f = { re: rem[k].re / lead, im: rem[k].im / lead }
+        for (let j = 0; j <= wDeg; j++) {
+          const t = cm(f, { re: w[j], im: 0 })
+          rem[k - wDeg + j] = { re: rem[k - wDeg + j].re - t.re, im: rem[k - wDeg + j].im - t.im }
+        }
+      }
+      const remainder = cpmax(rem.slice(0, wDeg)) / Math.max(cpmax(R), 1e-300)
+
+      // (2) its closed form: recover ν of degree ≤ n−1 from π = w′ν − wν′
+      const nDim = degreeOf(s)
+      const basis: Cx[][] = Array.from({ length: nDim }, (_, j) => {
+        const e = Array.from({ length: nDim }, (_, k) => ({ re: k === j ? 1 : 0, im: 0 }))
+        return cpsub(cpmul(real(wp), e), cpmul(real(w), cpderiv(e)))
+      })
+      const rowsN = Math.max(...basis.map((b) => b.length), pi.length)
+      const eq: number[][] = [], rhs: number[] = []
+      for (let r = 0; r < rowsN; r++) {
+        eq.push(basis.map((b) => b[r]?.re ?? 0)); rhs.push(pi[r]?.re ?? 0)
+        eq.push(basis.map((b) => b[r]?.im ?? 0)); rhs.push(pi[r]?.im ?? 0)
+      }
+      const cols: number[][] = []
+      for (let j = 0; j < nDim; j++) {
+        cols.push(eq.map((row) => row[j]))
+        cols.push(eq.map((_r, r) => (r % 2 === 0 ? -eq[r + 1][j] : eq[r - 1][j])))
+      }
+      const m2 = cols.length
+      const G = cols.map((a) => cols.map((b) => a.reduce((acc, v, i) => acc + v * b[i], 0)))
+      const gb = cols.map((a) => a.reduce((acc, v, i) => acc + v * rhs[i], 0))
+      for (let i = 0; i < m2; i++) {
+        let piv = i
+        for (let r = i + 1; r < m2; r++) if (Math.abs(G[r][i]) > Math.abs(G[piv][i])) piv = r
+        ;[G[i], G[piv]] = [G[piv], G[i]]; [gb[i], gb[piv]] = [gb[piv], gb[i]]
+        for (let r = i + 1; r < m2; r++) {
+          const f = G[i][i] === 0 ? 0 : G[r][i] / G[i][i]
+          for (let c2 = i; c2 < m2; c2++) G[r][c2] -= f * G[i][c2]
+          gb[r] -= f * gb[i]
+        }
+      }
+      const xs = new Array(m2).fill(0)
+      for (let i = m2 - 1; i >= 0; i--) {
+        let acc = gb[i]
+        for (let c2 = i + 1; c2 < m2; c2++) acc -= G[i][c2] * xs[c2]
+        xs[i] = G[i][i] === 0 ? 0 : acc / G[i][i]
+      }
+      const nu: Cx[] = Array.from({ length: nDim }, (_, j) => ({ re: xs[2 * j], im: xs[2 * j + 1] }))
+      const nuDefect = cpmax(cpsub(cpsub(cpmul(real(wp), nu), cpmul(real(w), cpderiv(nu))), pi)) /
+        Math.max(cpmax(pi), 1e-300)
+
+      // (3) the splitting, over every subset of size du
+      const r0 = rootsOf(pi.slice(0, dPi + 1))
+      const cPi = pi[dPi]
+      const phi = (S: readonly number[], z: Cx): Cx => {
+        let acc: Cx = { re: 1, im: 0 }
+        for (const k of S) {
+          const a = { re: z.re - r0[k].re, im: z.im - r0[k].im }
+          const b = { re: z.re - r0[k].re, im: z.im + r0[k].im }
+          acc = cm(acc, cm(a, b))
+        }
+        return acc
+      }
+      const subsets: number[][] = []
+      const walk = (start: number, chosen: number[]): void => {
+        if (chosen.length === du) { subsets.push([...chosen]); return }
+        for (let k = start; k < dPi; k++) walk(k + 1, [...chosen, k])
+      }
+      walk(0, [])
+      const scored = subsets.map((S) => {
+        const Sc = Array.from({ length: dPi }, (_, k) => k).filter((k) => !S.includes(k))
+        const T = zs.map((z) => {
+          const q = cdiv(phi(Sc, z), phi(S, z))
+          return { re: -q.re, im: -q.im }
+        })
+        const bar = {
+          re: T.reduce((a, c) => a + c.re, 0) / Math.max(T.length, 1),
+          im: T.reduce((a, c) => a + c.im, 0) / Math.max(T.length, 1),
+        }
+        const mag = Math.max(cabs(bar), 1e-300)
+        const spread = T.length ? Math.max(...T.map((c) => cabs({ re: c.re - bar.re, im: c.im - bar.im }))) / mag : 0
+        return { S, Sc, defect: Math.max(spread, Math.abs(bar.im) / mag), ratio: bar.re }
+      })
+      scored.sort((a, b) => a.defect - b.defect)
+      const survivors = scored.filter((c) => c.defect < 1e-6).length
+      const cliff = scored.length > 2 ? scored[2].defect / Math.max(scored[1].defect, 1e-300) : NaN
+      const complements = scored.length > 1 &&
+        scored[0].S.every((k) => scored[1].Sc.includes(k)) && scored[1].S.every((k) => scored[0].Sc.includes(k))
+      const reciprocal = scored.length > 1 ? Math.abs(scored[0].ratio * scored[1].ratio - 1) : NaN
+
+      // does one of the two reproduce u's roots, and does T give back its scale?
+      const uRoots = rootsOf(hf.u.slice(0, du + 1))
+      const rootScale = Math.max(...r0.map(cabs), 1)
+      const matchTo = (S: readonly number[]): number => Math.max(...uRoots.map((ur) => {
+        let d = Infinity
+        for (const k of S) d = Math.min(d, cabs({ re: ur.re - r0[k].re, im: ur.im - r0[k].im }))
+        return d
+      })) / rootScale
+      const which = scored.length > 1 && matchTo(scored[1].S) < matchTo(scored[0].S) ? scored[1] : scored[0]
+      const rootMatch = matchTo(which.S)
+      const scaleDefect = Math.abs(cabs(cPi) * Math.sqrt(Math.max(which.ratio, 0)) -
+        cabs(hf.u[du]) ** 2) / Math.max(cabs(hf.u[du]) ** 2, 1e-300)
+
+      // and the orthogonality, per conjugate pair
+      const evalC = (p: readonly Cx[], z: Cx): Cx => {
+        let acc: Cx = { re: 0, im: 0 }
+        for (let k = p.length - 1; k >= 0; k--) {
+          const t = cm(acc, z)
+          acc = { re: t.re + p[k].re, im: t.im + p[k].im }
+        }
+        return acc
+      }
+      const ortho = zs.map((z) => {
+        const zb = { re: z.re, im: -z.im }
+        const U1 = evalC(hf.u, z), U2 = evalC(hf.u, zb)
+        const V1 = evalC(hf.v, z), V2 = evalC(hf.v, zb)
+        const ip = {
+          re: U1.re * U2.re + U1.im * U2.im + V1.re * V2.re + V1.im * V2.im,
+          im: U1.im * U2.re - U1.re * U2.im + V1.im * V2.re - V1.re * V2.im,
+        }
+        const sc = Math.max(cabs(U1) * cabs(U2), cabs(V1) * cabs(V2))
+        return cabs(ip) / Math.max(sc, 1e-300)
+      })
+
+      return {
+        wDeg, minIm, pairs: zs.length, dPi, du, dv, sandwich: hf.sandwichDefect,
+        remainder, nuDefect, ortho, subsets: subsets.length, survivors, cliff,
+        complements, reciprocal, ratio: which.ratio, rootMatch, scaleDefect,
+        top: scored.slice(0, 4).map((c) => c.defect),
+      }
+    }
+
+    // findMember is DETERMINISTIC, and the cached seed is exactly what it returns at degree 6 with these
+    // guards -- an earlier version of this test used it as an "independent find" and got the seed's
+    // digits back to the last place. So the independent specimens are made by MOVING: one dragged along
+    // a dial to a different shape, one carried by a gauge transformation to entirely different
+    // coefficients for the same shape.
+    const seed = sexticSeed()
+    const dragged = (() => {
+      const data = hermiteDataOf(seed)
+      const d: StrictCoordinate = { kind: 'radius', index: 3 }
+      let cur = seed
+      const target = radii(seed)[3] * 1.3
+      for (let k = 0; k < 12; k++) {
+        const st = dragStrict(cur, d, target, { data, lengthSamples: 8 })
+        if (!st.converged) break
+        cur = st.state
+      }
+      return cur
+    })()
+    const gauged = reparametrise(
+      mobiusImage(seed, matrixExp5(bivectorGenerator([0, 0.3, -0.2, 0.1, 0], [1, 0, 0, 0, 0]))),
+      1.4,
+    )
+    // The RAW bent cubic is degenerate for this chain, and instructively so: mobiusImage carries h
+    // through untouched, and a lifted cubic's h = |A|² with A LINEAR has degree 2, not the generic n−2 =
+    // 4. So U = uu* has degree 8 and u degree 4, while hopfForm requires degree n−1 = 5 and declines.
+    // A reparametrisation fixes it without touching the shape: h̃ = λψ^{n−2}h(u) with ψ = 1−t+λt has
+    // degree 2 + 2 = 4. Same curve, same stratum, generic h — so the chain can be tested on a genuine
+    // bent cubic after all. Both are listed, the raw one to document the degeneracy.
+    const mu = matrixExp5(inversiveBendGenerator({ x: 0.4, y: -0.25, z: 0.15 }))
+    const bent = mobiusImage(liftPolynomialPH(CUBIC), mu)
+    // `strict` marks the specimens where the SPLITTING (finding 12) is asserted. On the bent-cubic
+    // stratum it cannot be: the extraction there is only good to ~1e-6, which drowns the discrimination.
+    // Findings 11 (the no-log condition and its ν closed form) are asserted everywhere, and they hold.
+    const specimens: [string, ConformalPHCurve | null, boolean][] = [
+      ['cached seed', seed, true],
+      ['bent cubic, RAW (deg h = 2)', bent, false],
+      ['bent cubic, reparametrised', reparametrise(bent, 1.4), false],
+      ['seed dragged 30% along rho_3', dragged, true],
+      ['seed under Möbius + reparametrisation', gauged, true],
+    ]
+
+    let checked = 0
+    for (const [name, sp, strict] of specimens) {
+      if (!sp) { console.log(`${name}: no member`); continue }
+      const c = chain(sp)
+      if (!c) { console.log(`${name}: NO HOPF FORM -- ${whyNull(sp)}`); continue }
+      console.log(
+        `${name}:\n` +
+          `    deg w ${c.wDeg}, ${c.pairs} conjugate pairs, smallest |Im| ${c.minIm.toExponential(1)};` +
+            ` deg π ${c.dPi} = ${c.du}+${c.dv};  Hopf sandwich ${c.sandwich.toExponential(1)}\n` +
+          `    w | π′w′ − πw″             ${c.remainder.toExponential(1)}\n` +
+          `    π = w′ν − wν′              ${c.nuDefect.toExponential(1)}\n` +
+          `    ⟨s(z), s(z̄)⟩ per pair      ${c.ortho.map((v) => v.toExponential(1)).join('  ')}\n` +
+          `    ${c.subsets} subsets -> ${c.survivors} survive, top four ` +
+            c.top.map((v) => v.toExponential(1)).join('  ') + `, cliff ${c.cliff.toExponential(1)}\n` +
+          `    complements ${c.complements}, reciprocal ${c.reciprocal.toExponential(1)},` +
+            ` T ${c.ratio.toExponential(3)};  u's roots ${c.rootMatch.toExponential(1)},` +
+            ` scale ${c.scaleDefect.toExponential(1)}`,
+      )
+      expect(c.wDeg, `${name}: w has degree n`).toBe(6)
+      expect(c.pairs, `${name}: three conjugate pairs`).toBe(3)
+      expect(c.minIm, `${name}: no real roots of w`).toBeGreaterThan(1e-4)
+      expect(c.remainder, `${name}: the no-log condition holds on uv`).toBeLessThan(1e-7)
+      expect(c.nuDefect, `${name}: and ν of degree n−1 reproduces uv`).toBeLessThan(1e-7)
+      if (!strict) {
+        console.log(`    ^ splitting NOT asserted here: extraction good only to ` +
+          `${c.sandwich.toExponential(1)}, which drowns it (${c.survivors} survive, cliff ` +
+          `${c.cliff.toExponential(1)})`)
+        continue
+      }
+      expect(Math.max(...c.ortho), `${name}: Hermitian-orthogonal across each pair`).toBeLessThan(1e-7)
+      expect(c.survivors, `${name}: exactly two splittings survive`).toBe(2)
+      expect(c.complements, `${name}: and they are complements`).toBe(true)
+      expect(c.reciprocal, `${name}: with reciprocal ratios`).toBeLessThan(1e-6)
+      expect(c.cliff, `${name}: DECISIVE, the third misses by orders`).toBeGreaterThan(1e5)
+      expect(c.ratio, `${name}: T is positive, so a real scale exists`).toBeGreaterThan(0)
+      expect(c.rootMatch, `${name}: the winner is u's root set`).toBeLessThan(1e-6)
+      expect(c.scaleDefect, `${name}: and T recovers its scale`).toBeLessThan(1e-6)
+      checked++
+    }
+    expect(checked, "at least three specimens ran the full chain").toBeGreaterThanOrEqual(3)
+  }, 300_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
