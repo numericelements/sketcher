@@ -97,9 +97,16 @@
 //    and the overlap being exactly 7 identifies it: translation 3 + rotation 3 + dilation 1, the
 //    Möbius maps that keep a polynomial polynomial. Modulo the gauge: 15 − 12 = 3 against 5. So
 //    CODIMENSION 2 — two of the five shape directions are reachable by no polynomial cubic, bent or
-//    not. The same 2 falls out determinantally: bendability (2) is the rank drop of a 6×5 matrix, and
-//    the rank ≤ 4 locus of an m×n matrix has codimension (m−r)(n−r) = 2·1. Two independent
-//    derivations, one a tangent-space count and one classical.
+//    not.
+//
+//    A determinantal count AGREES but does not confirm it. Bendability (2) is the rank drop of a 6×5
+//    matrix, and the rank ≤ 4 locus of an m×n matrix has codimension (m−r)(n−r) = 2·1. That is the
+//    codimension for an UNSTRUCTURED family of 6×5 matrices; here D(s) is the tightly structured image
+//    of a 17-dimensional variety, so the pullback could perfectly well be codimension 1 with the
+//    nullity of S supplying the second condition. Treat it as a heuristic that lands on the same
+//    number, not as a second proof — the tangent count above is the measurement. (An attempt to settle
+//    it by riding dials off the stratum failed for the reason in (8), and an early version of that test
+//    read a rank of 2 that was four identical "did not move" columns divided by a clamp.)
 //
 //    Cross-check downstairs, with no conformal model at all: PH cubics are 10-dimensional (they
 //    interpolate any p₀, d₀, p₃ with a 1-parameter fiber, 9 + 1) and the similarity group is 7, so
@@ -112,6 +119,30 @@
 //    loop still CLOSES (end gap 0.02 median steps), but the arc length now SPREADS by 1.2e-2 where it
 //    was zero. So in the rational family arc length does select among the fiber, and the ellipse's
 //    "arc length cannot choose for you" is a polynomial-only fact.
+//
+// 8. THE STRAIGHTENING CENTRE — the invariant that the two new directions destroy, and the one drawable
+//    object in all of this. S null means S is a POINT, and ⟨P,S⟩ ≡ const then says every inversion
+//    centred at S carries the curve to a POLYNOMIAL one: an inversion about S sends S to infinity, and
+//    ⟨P,∞⟩ = −w(t), so constant weight. Measured on a bent cubic (transversion of scale 0.4 on the
+//    lift, chosen as the strongest bend that keeps the weights of one sign — otherwise w(t) = 0 puts a
+//    pole on the curve and every arc length on it is NaN): the centre is at (3.2653, −2.0408, 1.2245),
+//    and inverting about it gives weight ratio 1.000000000000, beads off centre 6.2e-15, residual
+//    8.4e-17. So the centre is real, exact, and finite — it can be drawn as a dot.
+//
+//    Riding the one dial that moves here takes it away: ρ₃ at +3% sends rank(D) from 4 to 5 with defect
+//    2.2e-3. No point in space straightens the curve any more. THAT is what a new direction looks like.
+//
+//    BUT THE FIVE DIALS CANNOT NAME THE TWO NEW DIRECTIONS, because the dial CHART is singular exactly
+//    on the stratum. Two measurements of the same defect: four of the five dials do not budge at all
+//    here (the stratum is the singularity of (5)); and the 3-dimensional bendable stratum has only a
+//    2-DIMENSIONAL image in dial space — the dial-rate matrix reads rank 2, third singular value 4.8e-10
+//    against 2.2e-1 and 8.7e-2, and 100× the differencing step moves that 4×, so it is the
+//    construction's noise floor and not a resolved quantity. All three directions genuinely move the
+//    curve (speeds 1.8e-3, 2.9e-2, 5.5e-2), so this is the chart degenerating, not a missing direction.
+//    Consequence for the figures: near a lifted cubic these dials are not coordinates. Show the
+//    straightening centre and its defect — an invariant — rather than trying to label dials "3 old + 2
+//    new". (The bendable directions themselves come out with NO solver and NO defining Jacobian:
+//    (orbit tangent, 15 explicit directions) ∩ (12 Hermite rows) = 3.)
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -121,6 +152,9 @@ import {
   innerProduct,
   inversiveBendGenerator,
   matrixExp5,
+  project,
+  reflectionMatrix,
+  sphereVector,
 } from '../conformal'
 import { type Quat, type Vec3, gaugeRotate } from '../quaternion'
 import { controlPoints as phControlPoints, squareWeights, type SpatialPHCurve } from '../phSpatialFreeDragN'
@@ -966,6 +1000,278 @@ describe('the space of conformal PH curves', () => {
     expect(endGap / median, 'the bent fiber still closes').toBeLessThan(2.5)
     expect(bentSpread, 'but arc length now VARIES along it').toBeGreaterThan(1e-3)
   }, 120_000)
+
+  it('the two new directions: what breaks is the STRAIGHTENING CENTRE', () => {
+    // What do the two extra moduli look like? The thing that dies is a single geometric object. A
+    // member is a bent polynomial iff some S has ⟨P(t),S⟩ ≡ const with S NULL. Null means S is a POINT,
+    // and ⟨P,S⟩ ≡ const then says every inversion centred at S sends the curve to a polynomial one --
+    // because an inversion about S sends S to infinity, and ⟨P,∞⟩ = −w(t), so constant weight.
+    //
+    // So S is a STRAIGHTENING CENTRE: stand there, invert, and the rational curve becomes polynomial.
+    // Two independent things can take it away, and that is the codimension 2. This measures which.
+    const bendM = (s: ConformalPHCurve): number[][] =>
+      Array.from({ length: degreeOf(s) }, (_, i) =>
+        METRIC_ROW(s.C[i].map((v, k) => v - s.C[i + 1][k]) as unknown as Conformal))
+
+    /** The special vector, and the two ways it can fail: no vector at all, or a vector that is a SPHERE. */
+    const special = (s: ConformalPHCurve) => {
+      const D = bendM(s)
+      const { sv, V } = svd(D)
+      const S = V[V.length - 1] as unknown as Conformal
+      return {
+        rank: rankFromGap(sv, D.length).rank,
+        defect: sv[sv.length - 1] / sv[0], // 0 = a special vector EXISTS
+        nullity: innerProduct(S, S), //       0 = it is a POINT, non-zero = a genuine SPHERE
+        S,
+        D,
+        sv,
+      }
+    }
+
+    // A BENT cubic, not the lifted one: the lift puts the centre at infinity, where it cannot be drawn.
+    // The bend must not push a POLE onto the curve -- w(t) = 0 somewhere in [0,1] sends the curve
+    // through infinity and every arc length on it is meaningless (this cost a NaN before the guard went
+    // in). Weights of one sign is the sufficient test, by the convex hull. Take the strongest bend that
+    // passes, so the centre lands as close in as it honestly can.
+    const lift0 = liftPolynomialPH(CUBIC)
+    const oneSign = (c: ConformalPHCurve): boolean => {
+      const w = weights(c)
+      return w.every((v) => v > 0) || w.every((v) => v < 0)
+    }
+    let mu = matrixExp5(inversiveBendGenerator({ x: 0, y: 0, z: 0 }))
+    let s0 = lift0
+    let bendScale = 0
+    for (const c of [0.4, 0.3, 0.22, 0.16, 0.11, 0.07, 0.045]) {
+      const m = matrixExp5(inversiveBendGenerator({ x: c, y: -0.625 * c, z: 0.375 * c }))
+      const cand = mobiusImage(lift0, m)
+      if (oneSign(cand) && denominatorRealRoots(cand) === 0) { mu = m; s0 = cand; bendScale = c; break }
+    }
+    const at0 = special(s0)
+    const centre = project(at0.S)
+
+    // Does standing there actually straighten it? Invert about the centre and read the weights.
+    let weightRatio = NaN, straightResidual = NaN, beadOffset = NaN
+    const inv = centre ? reflectionMatrix(sphereVector(centre, 1)) : null
+    if (inv) {
+      const straight = mobiusImage(s0, inv)
+      const w = weights(straight).map(Math.abs)
+      weightRatio = Math.max(...w) / Math.min(...w)
+      straightResidual = relResidual(straight)
+      beadOffset = Math.max(...farinParameters(straight).map((v) => Math.abs(v - 0.5)))
+    }
+
+    console.log(
+      `a BENT cubic (transversion of scale ${bendScale} applied to the lift):\n` +
+        `    weights                    ${weights(s0).map((v) => v.toFixed(3)).join(' ')}  (one sign: no pole)\n` +
+        `    special vector exists      rank ${at0.rank} of 5, defect ${at0.defect.toExponential(1)}\n` +
+        `    and it is a POINT          ⟨S,S⟩ = ${at0.nullity.toExponential(1)}\n` +
+        `    the straightening centre   (${centre?.x.toFixed(4)}, ${centre?.y.toFixed(4)}, ${centre?.z.toFixed(4)})\n` +
+        `    inverting about it gives   weight ratio ${weightRatio.toFixed(12)},` +
+          ` beads off centre ${beadOffset.toExponential(1)}, residual ${straightResidual.toExponential(1)}\n` +
+        `                               -> a POLYNOMIAL curve, so the centre is real`,
+    )
+
+    // Now ride each of the five dials off the stratum and watch the centre.
+    const data = hermiteDataOf(s0)
+    const dials: StrictCoordinate[] = [
+      ...freeRadiusIndices(s0).map((index) => ({ kind: 'radius', index }) as StrictCoordinate),
+      { kind: 'length', from: 0, to: 0.5 },
+      { kind: 'length', from: 0.5, to: 1 },
+    ]
+    const label = (d: StrictCoordinate): string =>
+      d.kind === 'radius' ? `rho_${d.index}` : `L(${d.from},${d.to})`
+    const value = (c: ConformalPHCurve, d: StrictCoordinate): number =>
+      d.kind === 'radius' ? radii(c)[d.index] : arcLength(c, 8, d.from ?? 0, d.to ?? 1)
+    const ride = (from: ConformalPHCurve, d: StrictCoordinate, target: number): ConformalPHCurve => {
+      let cur = from
+      for (let k = 0; k < 10; k++) {
+        const step = dragStrict(cur, d, target, { data, lengthSamples: 8 })
+        if (!step.converged) break
+        cur = step.state
+      }
+      return cur
+    }
+
+    // WHICH dial combinations keep the centre? Not by riding dials -- four of the five are STUCK here,
+    // because the polynomial stratum IS the singularity (finding 5), and an earlier version of this
+    // test read a rank of 2 that was nothing but four identical "did not move" columns divided by a
+    // clamp. So do it with no solver at all: the bendable directions inside the slice are exactly
+    //
+    //     (tangent to the Möbius orbit, 15 explicit directions)  ∩  (Hermite data held, 12 rows)
+    //
+    // and 15 − 12 = 3 of them, in a computation that touches neither the defining Jacobian nor a drag.
+    const orbit: number[][] = []
+    {
+      const theta = [
+        CUBIC[0].u, CUBIC[0].v, CUBIC[0].p, CUBIC[0].q,
+        CUBIC[1].u, CUBIC[1].v, CUBIC[1].p, CUBIC[1].q, 0, 0, 0,
+      ]
+      const asQ = (v: readonly number[]): Quat => ({ u: v[0], v: v[1], p: v[2], q: v[3] })
+      const bentOf = (v: readonly number[]): ConformalPHCurve => {
+        const cps = phControlPoints({
+          A: [asQ(v.slice(0, 4)), asQ(v.slice(4, 8))],
+          p0: { x: v[8], y: v[9], z: v[10] },
+        } as SpatialPHCurve)
+        const C = conformalLiftBezier(cps)
+        return mobiusImage({ C, h: elevate(speedPolynomial([asQ(v.slice(0, 4)), asQ(v.slice(4, 8))]), C.length - 2) }, mu)
+      }
+      const st = 1e-6
+      for (let j = 0; j < theta.length; j++) {
+        const up = pack(bentOf(theta.map((v, i) => (i === j ? v + st : v))))
+        const dn = pack(bentOf(theta.map((v, i) => (i === j ? v - st : v))))
+        orbit.push(up.map((v, i) => (v - dn[i]) / (2 * st)))
+      }
+      orbit.push(...gaugeDirections(s0))
+    }
+
+    /** Gram-Schmidt, keeping only what is genuinely new -- the count is asserted, never assumed. */
+    const independent = (vs: readonly (readonly number[])[], rel = 1e-8): number[][] => {
+      const big = Math.max(...vs.map((v) => Math.hypot(...v)))
+      const out: number[][] = []
+      for (const v0 of vs) {
+        let v = [...v0]
+        for (const q of out) {
+          const dp = q.reduce((a, x, i) => a + x * v[i], 0)
+          v = v.map((x, i) => x - dp * q[i])
+        }
+        const nrm = Math.hypot(...v)
+        if (nrm > big * rel) out.push(v.map((x) => x / nrm))
+      }
+      return out
+    }
+    const Q = independent(orbit)
+
+    // The Hermite map, in the orbit's own 15 coordinates.
+    const x0 = pack(s0)
+    const twelve = (c: ConformalPHCurve): number[] => {
+      const d = hermiteDataOf(c)
+      return [d.p0, d.p1, d.d0, d.d1].flatMap((v) => [v.x, v.y, v.z])
+    }
+    const st2 = 1e-6
+    const H = Array.from({ length: 12 }, () => new Array(Q.length).fill(0))
+    for (let j = 0; j < Q.length; j++) {
+      const up = twelve(unpack(x0.map((v, i) => v + st2 * Q[j][i])))
+      const dn = twelve(unpack(x0.map((v, i) => v - st2 * Q[j][i])))
+      for (let r = 0; r < 12; r++) H[r][j] = (up[r] - dn[r]) / (2 * st2)
+    }
+    // Kernel of H = what is left of the orbit once the Hermite data is pinned: complete the 12 rows to
+    // a basis of R^15 and keep the completion.
+    const spanH = independent(H)
+    const axes: number[][] = Array.from({ length: Q.length }, (_, i) =>
+      Array.from({ length: Q.length }, (_, j) => (i === j ? 1 : 0)),
+    )
+    const kernel = independent([...spanH, ...axes]).slice(spanH.length)
+
+    // Read those directions in DIAL coordinates: what relative change in each dial do they make?
+    const toCoeff = (k: readonly number[]): number[] =>
+      Array.from({ length: x0.length }, (_, i) => k.reduce((a, kc, j) => a + kc * Q[j][i], 0))
+    const ratesAt = (st3: number): number[][] =>
+      kernel.map((k) => {
+        const dir = toCoeff(k)
+        const up = unpack(x0.map((v, i) => v + st3 * dir[i]))
+        const dn = unpack(x0.map((v, i) => v - st3 * dir[i]))
+        return dials.map((d) => (value(up, d) - value(dn, d)) / (2 * st3 * value(s0, d)))
+      })
+    const dialRates = ratesAt(1e-6)
+    // Rank of the 5x3 matrix of dial rates: how much of the 3-dimensional bendable stratum the five
+    // dials can actually SEE. (The annihilator has to come from a Gram-Schmidt completion, not from
+    // this SVD's V -- V is 3x3 here, and reading a 4th and 5th entry off it gave NaN.)
+    const R = Array.from({ length: 5 }, (_, i) => dialRates.map((r) => r[i]))
+    const rRank = rankFromGap(singularValues(R), 5)
+    const dialAxes: number[][] = Array.from({ length: 5 }, (_, i) =>
+      Array.from({ length: 5 }, (_, j) => (i === j ? 1 : 0)),
+    )
+    // The floor here is 1e-7 relative, not the usual 1e-8: the step scan above puts this construction's
+    // noise at 5e-10 relative, and the two real rates are at 1 and 0.4, so 1e-7 separates a
+    // machine-precision zero from a nonzero value with nine orders of room on both sides.
+    const seenByDials = independent(dialRates, 1e-7)
+    const unreachable = independent([...seenByDials, ...dialAxes]).slice(seenByDials.length)
+
+    // Does each of the three genuinely MOVE the curve? (Asking instead how much of the direction lies
+    // in the 12-dimensional gauge span is meaningless: a generic vector in 15 dimensions already has
+    // projection sqrt(12/15) = 0.89 onto any 12-dimensional subspace. Transversality to the gauge is
+    // the Hermite-slice theorem's business, and it is pinned in its own test.)
+    const shapeOf = (k: readonly number[]) => {
+      const dir = toCoeff(k)
+      const st3 = 1e-6
+      const up = unpack(x0.map((v, i) => v + st3 * dir[i]))
+      const dn = unpack(x0.map((v, i) => v - st3 * dir[i]))
+      let vel = 0
+      for (let i = 0; i <= 20; i++) {
+        const t = i / 20
+        const a = curveAt(up, t), b = curveAt(dn, t)
+        if (a && b) vel = Math.max(vel, Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) / (2 * st3))
+      }
+      return { vel }
+    }
+
+    console.log(
+      `  the bendable directions inside the slice, with no solver:\n` +
+        `    orbit tangent              ${Q.length} of ${orbit.length} given\n` +
+        `    Hermite rows on it         ${spanH.length} of 12\n` +
+        `    what survives              ${kernel.length}   [15 - 12 = 3]\n` +
+        `    seen in DIAL coordinates   rank ${rRank.rank} (gap ${rRank.gap.toExponential(1)});` +
+          ` singular values ${singularValues(R).map((v) => v.toExponential(1)).join(' ')}\n` +
+        `    the third one, by step     ` +
+          [1e-4, 1e-5, 1e-6].map((h) => {
+            const s = singularValues(Array.from({ length: 5 }, (_, i) => ratesAt(h).map((r) => r[i])))
+            return `h=${h.toExponential(0)}: ${s[2].toExponential(1)}`
+          }).join('   ') +
+          `\n                               (100x the step moves it 4x, so it is the construction's NOISE` +
+          ` FLOOR -- not a resolved quantity -- and it sits 9 orders under the two real ones)`,
+    )
+    for (const [k, kv] of kernel.entries()) {
+      const sh = shapeOf(kv)
+      console.log(
+        `    bendable direction ${k + 1}       dial rates ` +
+          dialRates[k].map((v) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(4)).join(' ') +
+          `   curve speed ${sh.vel.toExponential(1)}`,
+      )
+    }
+    // NOT "the new directions": the stratum's image in dial space is 2-dimensional while the stratum is
+    // 3, so the dial chart is DEGENERATE here and its complement mixes "leaves the stratum" with "the
+    // dials cannot express it at all". Printed as the measurement it is, and no more.
+    for (const [k, v] of unreachable.entries()) {
+      console.log(
+        `    outside the stratum's dial image ${k + 1}   ` +
+          dials.map((d, i) => `${label(d)} ${v[i] >= 0 ? '+' : '−'}${Math.abs(v[i]).toFixed(3)}`).join('  '),
+      )
+    }
+
+    // And the one dial that does ride here: does it leave the stratum, and HOW does the centre die?
+    console.log(`  riding each dial 3% with the Hermite data held (4 of 5 stall at the singularity):`)
+    for (const d of dials) {
+      const from0 = value(s0, d)
+      const cur = ride(s0, d, from0 * 1.03)
+      const got = (value(cur, d) - from0) / from0
+      const now = special(cur)
+      console.log(
+        `    ${label(d).padEnd(10)} moved ${(got * 100).toFixed(1)}%` +
+          `   rank ${now.rank}   defect ${now.defect.toExponential(1)}` +
+          `   ⟨S,S⟩ ${now.nullity.toExponential(1)}` +
+          `   residual ${relResidual(cur).toExponential(1)}` +
+          `   ${got > 1e-6 ? (now.rank === 5 ? '<- CENTRE GONE' : '<- centre survives') : '<- stalled'}`,
+      )
+    }
+
+    expect(bendScale, 'a genuine bend, not the identity').toBeGreaterThan(0)
+    expect(oneSign(s0), 'and no pole on the curve, so arc length means something').toBe(true)
+    expect(at0.rank, 'a bent cubic has a special vector').toBe(4)
+    expect(Math.abs(at0.nullity), 'and it is a point, exactly').toBeLessThan(1e-12)
+    expect(centre, 'the centre is finite, so it can be drawn').not.toBeNull()
+    expect(weightRatio, 'inverting about it straightens the curve into a polynomial').toBeCloseTo(1, 9)
+    expect(beadOffset, 'every Farin bead back at the midpoint').toBeLessThan(1e-9)
+    expect(straightResidual, 'and it is still a member').toBeLessThan(1e-12)
+    expect(Q.length, 'the orbit tangent is 15-dimensional here too').toBe(15)
+    expect(spanH.length, 'the 12 Hermite rows are independent on it').toBe(12)
+    expect(kernel.length, 'so 3 bendable directions survive in the slice').toBe(3)
+    expect(
+      Math.min(...kernel.map((k) => shapeOf(k).vel)),
+      'every one of the three genuinely moves the curve',
+    ).toBeGreaterThan(1e-4)
+    expect(rRank.rank, 'but the five dials see only 2 of the 3: the dial CHART is singular here').toBe(2)
+    expect(unreachable.length, 'so its dial image has a 3-dimensional complement, not 2').toBe(3)
+  }, 180_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
