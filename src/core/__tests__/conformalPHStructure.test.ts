@@ -227,7 +227,36 @@
 //     π = u·v (2, of which 1 is the gauge A ↦ Ae^{iθ}, so 1) − 6 (the orthogonality) + 3 (translation,
 //     the constant of integration) = 17, which is the variety's dimension. So the construction is
 //     complete except for step three: factor a GIVEN π of degree 10 into u·v of degree 5 each such that
-//     the three antipodal conditions hold. Two of the four steps are closed-form; that one is not yet.
+//     the three antipodal conditions hold — and (12) settles that too.
+//
+// 12. THE ANTIPODAL CONDITIONS FORCE THE SPLITTING, and hand back the scale. Writing
+//     u = c_u ∏_S (t − r_k) over a 5-element subset S of π's ten roots, coefficient conjugation gives
+//     u*(t) = conj(c_u) ∏_S (t − r̄_k), so u(z)u*(z) = |c_u|²Φ_S(z) with Φ_S(z) = ∏_S (z−r_k)(z−r̄_k).
+//     The condition Λ(z_j) = 0 then reads |c_u|²Φ_S(z_j) + |c_v|²Φ_{Sᶜ}(z_j) = 0, in which the scale
+//     enters ONLY through the ratio:
+//
+//         T_j = −Φ_{Sᶜ}(z_j)/Φ_S(z_j)   must be the SAME POSITIVE REAL for j = 1,2,3
+//
+//     Measured on the seed, over all C(10,5) = 252 subsets: defects 2.6e-10, 2.6e-10, then 1.4e-1 —
+//     TWO survive and the third misses by a factor of 5.3e+8. The two are COMPLEMENTS (verified) with
+//     reciprocal ratios (1.1e-16), because T_j(Sᶜ) = 1/T_j(S) identically. That second solution is the
+//     u ↔ v swap, which fixes X = uv and flips Z = uu* − vv*, i.e. it REFLECTS the curve in the plane
+//     N_i = 0 — an element of O(3) ⊂ Möbius, hence gauge. So the splitting is forced up to a mirror
+//     image. The winner's five roots are exactly u's, to 1.3e-13, and |c_u|² = |c_π|·√T recovers the
+//     scale hopfForm found to 5.6e-11 — the ratio hands back the magnitude for free, the phase being the
+//     A ↦ Ae^{iθ} gauge.
+//
+//     SO THE CONSTRUCTION IS: (i) choose w, real of degree 6 with three conjugate root pairs, 7; (ii)
+//     choose ν complex of degree ≤ 5, 12, and set π = w′ν − wν′; (iii) split π's roots — FORCED, with
+//     the scale determined; (iv) q = ∫ N/w² by partial fractions, which has no log part by construction,
+//     plus the constant of integration, 3. Every step is closed form.
+//
+//     WHAT IS STILL NOT FREE: for a generic (w, ν) no splitting passes step (iii). "T equal across the
+//     three pairs and real" is 5 real conditions — 4 for the two complex equalities and 1 for the
+//     imaginary part — the 6th of w | uu* + vv* having been absorbed by the scale. And 7 + 12 + 3 − 5 =
+//     17, the variety's dimension exactly. So the honest state is: 5 real conditions on 19 explicit
+//     parameters, with everything downstream closed form, against the 24 equations in 41 unknowns that
+//     findMember solves today.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -1614,6 +1643,144 @@ describe('the space of conformal PH curves', () => {
     expect(nuDefect, 'and uv = w′ν − wν′ reproduces it exactly').toBeLessThan(1e-8)
     expect(ortho.length, 'three conjugate pairs').toBe(3)
     expect(Math.max(...ortho), 'the spinor is Hermitian-orthogonal across each pair').toBeLessThan(1e-8)
+  }, 60_000)
+
+  it('the antipodal conditions FORCE the splitting: 252 candidates, one survives', () => {
+    // The last open step. π = uv is given (finding 11); u and v are degree 5 each, so the factorisation
+    // is a choice of 5 of π's 10 roots plus a complex scale. Writing u = c_u ∏_S (t − r_k), coefficient
+    // conjugation gives u*(t) = conj(c_u) ∏_S (t − r̄_k), so
+    //
+    //     u(z)u*(z) = |c_u|² Φ_S(z)    with   Φ_S(z) = ∏_{k∈S} (z − r_k)(z − r̄_k)
+    //
+    // and the condition Λ(z_j) = 0 reads |c_u|²Φ_S(z_j) + |c_v|²Φ_{Sᶜ}(z_j) = 0. The scale enters only
+    // through the RATIO |c_u|²/|c_v|², so with one unknown against three complex equations:
+    //
+    //     T_j = −Φ_{Sᶜ}(z_j)/Φ_S(z_j)   must be the SAME POSITIVE REAL for j = 1,2,3
+    //
+    // Five real conditions on a discrete choice. If the antipodal structure picks the splitting, exactly
+    // one of the 252 subsets satisfies them and the rest miss by a mile.
+    const s = sexticSeed()
+    const hf = hopfForm(s)
+    expect(hf, 'the seed has a Hopf form').not.toBeNull()
+    if (!hf) return
+    type Cx = { re: number; im: number }
+    const cm = (a: Cx, b: Cx): Cx => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
+    const cabs = (a: Cx): number => Math.hypot(a.re, a.im)
+    const cdiv = (a: Cx, b: Cx): Cx => {
+      const d = b.re * b.re + b.im * b.im
+      return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }
+    }
+    const real = (p: readonly number[]): Cx[] => p.map((v) => ({ re: v, im: 0 }))
+    const cpmul = (a: readonly Cx[], b: readonly Cx[]): Cx[] => {
+      const out: Cx[] = Array.from({ length: a.length + b.length - 1 }, () => ({ re: 0, im: 0 }))
+      for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) {
+        const t = cm(a[i], b[j])
+        out[i + j] = { re: out[i + j].re + t.re, im: out[i + j].im + t.im }
+      }
+      return out
+    }
+
+    const pi = cpmul(hf.u, hf.v)
+    const r = rootsOf(pi) // the 10 roots of the product
+    const cPi = pi[pi.length - 1]
+    const wRoots = rootsOf(real(hf.w)).filter((z) => z.im > 0)
+
+    const phi = (S: readonly number[], z: Cx): Cx => {
+      let acc: Cx = { re: 1, im: 0 }
+      for (const k of S) {
+        const a = { re: z.re - r[k].re, im: z.im - r[k].im }
+        const b = { re: z.re - r[k].re, im: z.im + r[k].im } // z − conj(r_k)
+        acc = cm(acc, cm(a, b))
+      }
+      return acc
+    }
+
+    // All 252 five-element subsets of the ten roots.
+    const subsets: number[][] = []
+    const walk = (start: number, chosen: number[]): void => {
+      if (chosen.length === 5) { subsets.push([...chosen]); return }
+      for (let k = start; k < 10; k++) walk(k + 1, [...chosen, k])
+    }
+    walk(0, [])
+
+    const scored = subsets.map((S) => {
+      const Sc = Array.from({ length: 10 }, (_, k) => k).filter((k) => !S.includes(k))
+      const T = wRoots.map((z) => {
+        const num = phi(Sc, z), den = phi(S, z)
+        const q = cdiv(num, den)
+        return { re: -q.re, im: -q.im }
+      })
+      const bar = {
+        re: T.reduce((a, c) => a + c.re, 0) / T.length,
+        im: T.reduce((a, c) => a + c.im, 0) / T.length,
+      }
+      const mag = Math.max(cabs(bar), 1e-300)
+      const spread = Math.max(...T.map((c) => cabs({ re: c.re - bar.re, im: c.im - bar.im }))) / mag
+      const imag = Math.abs(bar.im) / mag
+      return { S, Sc, defect: Math.max(spread, imag), positive: bar.re > 0, ratio: bar.re }
+    })
+    scored.sort((a, b) => a.defect - b.defect)
+    // TWO survive, not one, and they are COMPLEMENTS: if S works with ratio T then Sᶜ works with 1/T,
+    // since T_j(Sᶜ) = 1/T_j(S) identically. That second solution is the u ↔ v swap, which leaves
+    // X = uv alone and flips Z = uu* − vv*, i.e. it REFLECTS the curve in the plane N_i = 0 — an element
+    // of O(3) ⊂ Möbius, hence gauge. So the splitting is forced up to a mirror image.
+    const [first, second] = scored
+    const third = scored[2]
+    const areComplements =
+      first.S.every((k) => second.Sc.includes(k)) && second.S.every((k) => first.Sc.includes(k))
+    const reciprocal = Math.abs(first.ratio * second.ratio - 1)
+
+    // Which of the two is the seed's own u? Match roots against each, and take the better.
+    const uRoots = rootsOf(hf.u)
+    const rootScale = Math.max(...r.map(cabs), 1)
+    const matchTo = (S: readonly number[]) => {
+      const m = uRoots.map((ur) => {
+        let bestK = -1, bestD = Infinity
+        for (const k of S) {
+          const d = cabs({ re: ur.re - r[k].re, im: ur.im - r[k].im })
+          if (d < bestD) { bestD = d; bestK = k }
+        }
+        return { bestK, bestD }
+      })
+      return { worst: Math.max(...m.map((x) => x.bestD)) / rootScale, distinct: new Set(m.map((x) => x.bestK)).size }
+    }
+    const mFirst = matchTo(first.S), mSecond = matchTo(second.S)
+    const isU = mFirst.worst <= mSecond.worst ? first : second
+    const best = isU
+    const rootMatch = Math.min(mFirst.worst, mSecond.worst)
+    const distinct = (mFirst.worst <= mSecond.worst ? mFirst : mSecond).distinct
+
+    // And the scale: |c_u|² = |c_π|·sqrt(T), against the leading coefficient hopfForm actually produced.
+    const predicted = cabs(cPi) * Math.sqrt(Math.max(best.ratio, 0))
+    const actual = cabs(hf.u[hf.u.length - 1]) ** 2
+    const scaleDefect = Math.abs(predicted - actual) / Math.max(actual, 1e-300)
+
+    console.log(
+      `forcing the splitting of π (degree 10) into u·v:\n` +
+        `    candidates                 ${subsets.length} five-element subsets\n` +
+        `    defects, sorted            ` +
+          scored.slice(0, 5).map((c) => c.defect.toExponential(1)).join('  ') + `\n` +
+        `    TWO survive, then a cliff  ${first.defect.toExponential(1)} and ${second.defect.toExponential(1)},` +
+          ` third ${third.defect.toExponential(1)}` +
+          ` -> a factor of ${(third.defect / Math.max(second.defect, 1e-300)).toExponential(1)}\n` +
+        `    and they are COMPLEMENTS   ${areComplements}, ratios reciprocal to ${reciprocal.toExponential(1)}` +
+          `   (the u <-> v swap: it flips Z = uu* − vv* and fixes X = uv, so it REFLECTS the curve — gauge)\n` +
+        `    T = |c_u|²/|c_v|²          ${best.ratio.toExponential(3)}` +
+          `   ${best.positive ? '(positive, so a real scale exists)' : '(NEGATIVE -- not realisable)'}\n` +
+        `    the winner's roots ARE u's mismatch ${rootMatch.toExponential(1)},` +
+          ` ${distinct} of 5 distinct\n` +
+        `    and the scale agrees       |c_u|² predicted ${predicted.toExponential(4)}` +
+          ` vs actual ${actual.toExponential(4)}, defect ${scaleDefect.toExponential(1)}`,
+    )
+
+    expect(second.defect, 'TWO splittings satisfy the antipodal conditions').toBeLessThan(1e-6)
+    expect(areComplements, 'and they are complements of each other').toBe(true)
+    expect(reciprocal, 'with reciprocal ratios, as T_j(Sᶜ) = 1/T_j(S) demands').toBeLessThan(1e-6)
+    expect(third.defect / second.defect, 'the choice is DECISIVE: only those two').toBeGreaterThan(1e6)
+    expect(best.positive, 'the ratio is positive, so a real scale exists').toBe(true)
+    expect(distinct, "one of the two is exactly u's root set").toBe(5)
+    expect(rootMatch, 'to machine precision').toBeLessThan(1e-6)
+    expect(scaleDefect, 'and the ratio recovers the scale hopfForm found').toBeLessThan(1e-6)
   }, 60_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
