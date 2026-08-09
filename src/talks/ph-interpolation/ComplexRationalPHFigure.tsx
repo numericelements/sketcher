@@ -14,9 +14,14 @@
 // sweeps the entire fibre above it. That is what the earlier version of this figure could
 // not claim — it drew a polynomial cubic and a Möbius image of it, which is 9 of the 10.
 //
-// TWO BRANCHES, MEASURED (complexRationalPHCubic.test.ts): Bézout allows 32, the truth is
-// 2 — the same count as the polynomial cubic, which is why this figure can borrow slide 4's
-// interaction wholesale. The one you are not on is grey and clickable.
+// ONE CURVE, and that took measuring. Bézout allows 32 roots, the algebra gives 2 — but Eric
+// watched an earlier version of this figure and saw that dragging Z₂ left the second branch
+// dead still. A curve that will not move while its weights do has SLACK in its
+// representation, and for z = P/Q that means P and Q share a factor: measured, the second
+// root's P vanishes at TWO of Q's three roots, so it collapses to degree ONE — a circular
+// arc, trivially PH, whose cubic representations form a 4-parameter family. So the genuine
+// count is ONE, the polygon and one bead DETERMINE the curve, and the second root is filtered
+// out in the core rather than drawn as a peer of the first.
 //
 // THE POLYGON IS DRAWN AS CIRCULAR ARCS, through (Zₖ, qₖ, Zₖ₊₁), and that is not decoration.
 // Möbius maps send lines to circles, so a straight-edge polygon is not Möbius-covariant
@@ -35,7 +40,8 @@ import {
   curveAt,
   denominatorFloor,
   farinPoints,
-  solveFromFarin,
+  reducibility,
+  solveIrreducibleFromFarin,
   speedAt,
   trackFromFarin,
 } from '../../core/complexRationalPHCubic'
@@ -113,27 +119,20 @@ export default function ComplexRationalPHFigure() {
   const [Z, setZ] = useState<Complex[]>(START_Z)
   const [handle, setHandle] = useState<FarinHandle>(0)
   const [farin, setFarin] = useState<Complex>(START_FARIN)
-  /** Both branches. Index 0 is the one you are looking at. */
-  const [branches, setBranches] = useState<ComplexRationalPHCubic[]>(() =>
-    solveFromFarin(START_Z, 0, START_FARIN),
+  const [sel, setSel] = useState<ComplexRationalPHCubic | null>(() =>
+    solveIrreducibleFromFarin(START_Z, 0, START_FARIN),
   )
   const [drag, setDrag] = useState<{ kind: 'cp'; i: number } | { kind: 'farin' } | null>(null)
 
-  const sel = branches[0] ?? null
-  const other = branches[1] ?? null
   const beads = useMemo(() => (sel ? farinPoints(sel) : []), [sel])
 
-  /** Re-solve by TRACKING both branches from where they were — continuity, not re-deciding. */
+  /** Follow the curve from where it was — continuity, not re-deciding it each frame. */
   const advance = (nextZ: Complex[], nextFarin: Complex, h: FarinHandle) => {
-    const tracked = branches.map((b) => trackFromFarin(nextZ, h, nextFarin, b))
-    if (tracked[0]) {
-      setBranches(tracked.filter((b): b is ComplexRationalPHCubic => b !== null))
-      return
-    }
-    // Lost the branch (a fold, or the data moved too far in one frame): fall back to a
-    // fresh solve rather than freezing on a stale curve.
-    const fresh = solveFromFarin(nextZ, h, nextFarin, 600)
-    if (fresh.length > 0) setBranches(fresh)
+    const tracked = sel ? trackFromFarin(nextZ, h, nextFarin, sel) : null
+    if (tracked) { setSel(tracked); return }
+    // Lost it (a fold, or the data jumped): re-solve rather than freeze on a stale curve.
+    const fresh = solveIrreducibleFromFarin(nextZ, h, nextFarin, 800)
+    if (fresh) setSel(fresh)
   }
 
   const onMove = (vp: Viewport) => (e: React.PointerEvent) => {
@@ -162,7 +161,7 @@ export default function ComplexRationalPHFigure() {
     setZ(START_Z)
     setHandle(0)
     setFarin(START_FARIN)
-    setBranches(solveFromFarin(START_Z, 0, START_FARIN))
+    setSel(solveIrreducibleFromFarin(START_Z, 0, START_FARIN))
   }
 
   const floor = sel ? denominatorFloor(sel) : 0
@@ -175,11 +174,15 @@ export default function ComplexRationalPHFigure() {
       notation={[
         'M = P′Q − PQ′ = A²',
         '‖z′‖ = |A|²/|Q|²',
-        '4 points + 1 bead ⇒ 2 curves',
+        '4 points + 1 bead ⇒ ONE curve',
       ]}
       readouts={[
-        { label: 'branches', value: String(branches.length) },
         { label: 'M − A²', value: sel ? sel.residual.toExponential(1) : '—', tone: 'ok' as const },
+        {
+          label: 'P, Q coprime',
+          value: sel ? reducibility(sel).toExponential(1) : '—',
+          tone: 'ok' as const,
+        },
         {
           label: 'min |Q|',
           value: sel ? floor.toFixed(3) : '—',
@@ -200,11 +203,11 @@ export default function ComplexRationalPHFigure() {
           <b>The plane, first.</b> A complex-rational cubic <i>is</i> its four control points and its three
           Farin beads — and the beads carry complex weights, so they sit off their edges. Every polygon
           admits PH weights, so all four points are free; then one bead is yours and the other two are
-          determined, in exactly <b>two</b> ways. The arcs are the honest control structure: Möbius sends
-          lines to circles, and each bead is the image of its edge's midpoint.{' '}
+          determined — and the polygon plus that one bead <i>determine the curve</i>. The arcs are the honest
+          control structure: Möbius sends lines to circles, and each bead is the image of its edge's
+          midpoint.{' '}
           <span className="text-slate-400">
-            Drag anything solid; click a hollow bead to hold it instead; click the grey curve for the other
-            branch.
+            Drag anything solid; click a hollow bead to hold it instead.
           </span>
         </>
       }
@@ -212,24 +215,6 @@ export default function ComplexRationalPHFigure() {
       {(vp) => (
         <g onPointerMove={onMove(vp)} onPointerUp={() => setDrag(null)}>
           <rect x={-1e4} y={-1e4} width={2e4} height={2e4} fill="transparent" />
-
-          {/* the branch you are not on — grey, thin, clickable */}
-          {other && (
-            <g>
-              <path d={pathOf(vp, (t) => curveAt(other, t))} {...curveStroke(vp, false)} />
-              <path
-                d={pathOf(vp, (t) => curveAt(other, t))}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={vp.px(FIG.size.curveHit)}
-                style={{ cursor: 'pointer' }}
-                onPointerDown={(e) => {
-                  e.stopPropagation()
-                  setBranches([other, sel].filter((b): b is ComplexRationalPHCubic => b !== null))
-                }}
-              />
-            </g>
-          )}
 
           {sel && (
             <>

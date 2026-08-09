@@ -30,6 +30,7 @@
 // is the one that was actually driven to zero.
 // ============================================================================
 import { type Complex, cadd, cdiv, cmul, cnorm, csub } from './complex'
+import { rootsOf } from './conformalPHHopf'
 
 const C = (re: number, im = 0): Complex => ({ re, im })
 const cneg = (a: Complex): Complex => ({ re: -a.re, im: -a.im })
@@ -110,6 +111,27 @@ export function denominatorFloor(c: ComplexRationalPHCubic, samples = 200): numb
   let lo = Infinity
   for (let i = 0; i <= samples; i++) lo = Math.min(lo, cnorm(evalPoly(Q, i / samples)))
   return lo / Math.max(...c.w.map(cnorm))
+}
+
+/** A complex polynomial at a COMPLEX argument — Horner. */
+const evalAt = (p: readonly Complex[], z: Complex): Complex =>
+  p.reduceRight((acc, c) => cadd(cmul(acc, z), c), C(0))
+
+/**
+ * min over Q's roots of |P|, relative. ZERO means P and Q share a factor, so z = P/Q is a
+ * LOWER-degree curve wearing a cubic coat — and then the cubic representations of it form a
+ * positive-dimensional family, which is a curve that does not move when you drag a control
+ * point. Eric found exactly that on screen before this function existed: over a polygon and
+ * a bead there are two algebraic solutions, and one of them has P and Q sharing a QUADRATIC
+ * factor, collapsing to degree one — a circular arc, trivially PH. So the count of genuine
+ * cubics is ONE, and callers that want curves rather than roots must filter on this.
+ */
+export function reducibility(c: ComplexRationalPHCubic): number {
+  const P = toPower(c.Z.map((z, k) => cmul(c.w[k], z)))
+  const roots = rootsOf(toPower(c.w))
+  if (roots.length === 0) return 0
+  const scale = Math.max(...P.map(cnorm))
+  return Math.min(...roots.map((r) => cnorm(evalAt(P, r)))) / Math.max(scale, 1e-300)
 }
 
 // --- the solve ----------------------------------------------------------------
@@ -249,6 +271,18 @@ export function trackFromFarin(
   const cand = build(Z, handle, ratio, r)
   if (Math.max(...cand.A.map(cnorm)) < 1e-9) return null
   return cand
+}
+
+/**
+ * The one IRREDUCIBLE solution — what a figure should draw. The reducible root is a circular
+ * arc in disguise and is not a peer of this one, so it is filtered out here rather than
+ * offered as a second branch.
+ */
+export function solveIrreducibleFromFarin(
+  Z: readonly Complex[], handle: FarinHandle, farin: Complex, starts = 3000, seed = 12345,
+): ComplexRationalPHCubic | null {
+  const all = solveFromFarin(Z, handle, farin, starts, seed)
+  return all.find((c) => reducibility(c) > 1e-8) ?? null
 }
 
 // There is deliberately NO withHandle(): swapping which bead you hold changes nothing about

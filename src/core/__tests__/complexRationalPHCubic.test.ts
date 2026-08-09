@@ -390,6 +390,26 @@ describe('how each branch responds to each control point', () => {
     }
   }, 120_000)
 
+  it('solveIrreducibleFromFarin returns the genuine one, for every handle', () => {
+    // What the figure now calls. It must never hand back the circular arc.
+    //
+    // The same bead POSITION is reused for all three handles, which is a strange thing to ask
+    // of edges 1 and 2 — that point sits near edge 0 — so their coprimality reads 2.5e-3 and
+    // 6.2e-3 against handle 0's 1.2. Still five orders above the 1e-8 filter, so these are
+    // genuine cubics, but the small numbers are the odd request and not a near-degeneracy of
+    // the family. A figure moves the bead WITH the handle when swapping, so it never asks this.
+    const Z: Complex[] = [C(-1.9, -0.6), C(-1.2, 1.0), C(0.4, 1.1), C(1.1, -0.6)]
+    for (const handle of [0, 1, 2] as const) {
+      const c = core.solveIrreducibleFromFarin(Z, handle, C(-1.55, 0.2))
+      expect(c, `handle ${handle}: one exists`).not.toBeNull()
+      const got = c as core.ComplexRationalPHCubic
+      const red = core.reducibility(got)
+      console.log(`    handle ${handle}: coprime ${red.toExponential(1)}, residual ${got.residual.toExponential(1)}`)
+      expect(red, `handle ${handle}: P and Q are coprime`).toBeGreaterThan(1e-3)
+      expect(got.residual, `handle ${handle}: still exact`).toBeLessThan(1e-12)
+    }
+  }, 120_000)
+
   it('and the explanation: one branch is REDUCIBLE', () => {
     // A curve unchanged while its weights move can only mean the degree-3 representation has
     // slack, and for z = P/Q that means P and Q SHARE A FACTOR. Then z is really a degree-2
