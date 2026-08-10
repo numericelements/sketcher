@@ -30,13 +30,13 @@
 //    member tried, including the lifted PH cubic: PH cubics are NOT planar here, which is why no
 //    Tschirnhausen claim is made.
 //
-// 4. THE MODULI COUNT. The gauge group is 12-dimensional: 10 for O(4,1), one for the projective
+// 4. THE MODULI COUNT (numbers corrected in 14: read 2n+6 and 2n-6). The gauge group is 12-dimensional: 10 for O(4,1), one for the projective
 //    scale, one for the wₖ ↦ λᵏwₖ reparametrisation. All 12 are verified to lie in the tangent space
 //    to 1.8e-12 (the reparametrisation direction is differenced from the exact closed-form map;
 //    writing δh by hand left it 1.2e-3 out, since h is stored one degree above its true one). With
 //    the family 2n+5 dimensional, the curves modulo Möbius AND reparametrisation number
 //
-//        2n + 5 − 12  =  2n − 7        1 at degree 4, 5 at degree 6, 13 at degree 10.
+//        2n + 6 − 12  =  2n − 6        2 at degree 4, 6 at degree 6, 14 at degree 10.
 //
 // 5. THE POLYNOMIAL CUBIC FIBER SURVIVES THE LIFT, EXACTLY — AND LIES ON A SINGULARITY. Spatial PH
 //    cubics sharing p₀, the first leg and the far endpoint form a CLOSED ELLIPSE on which the arc
@@ -79,9 +79,10 @@
 //    top PH condition is n²⟨Aₙ,Aₙ⟩ = (h's leading coefficient)², and nullity has already forced
 //    ⟨Aₙ,Aₙ⟩ = 0, so it reads h_top² = 0 — a SQUARED equation, whose gradient vanishes on its own
 //    zero set. Measured: h's leading power-basis coefficient is 6e-14 of its largest, and the
-//    Jacobian rank is 15 of 16 rows at degree 4, 23 of 24 at degree 6, with a 3.7e+9 gap. So the
-//    variety is 2n+5 dimensional while its linearisation admits one extra direction that leaves it
-//    at second order. Any corrector that least-squares through this Jacobian is working with a
+//    Jacobian rank is 15 of 16 rows at degree 4, 23 of 24 at degree 6, with a 3.7e+9 gap.
+//    CORRECTED IN 14: that defect is a redundant EQUATION, not a non-reduced variety. The row is n²
+//    times the top nullity row plus a term whose gradient vanishes, so it is DEPENDENT and costs one
+//    row and zero dimensions. The variety is 2n+6 = 41 - 23, exactly what the linearisation says. Any corrector that least-squares through this Jacobian is working with a
 //    structurally rank-deficient matrix — the first place to look when a continuation stalls.
 //
 // 7. BENDING THE CUBIC FIBERS DOES NOT FILL THE FAMILY: 3 MODULI OF THE 5. The cubics come in closed
@@ -148,7 +149,8 @@
 //    So read every slice count as (directions) = 1 + (shapes):
 //
 //        bendable stratum in the slice     3 directions = scale + 2 SHAPES   -> dial rank 2, correct
-//        the whole Hermite slice           5 directions = scale + 4 SHAPES   -> FIVE dials on FOUR knobs
+//        the whole Hermite slice           6 directions = scale + 5 SHAPES   -> five dials on FIVE knobs
+//                                          (5 and 4 here before 14; the slice count needed no -1)
 //
 //    The 2n−7 of (4) is the MODULI count — curves modulo the 11 gauge motions that act on curves at all
 //    — and it is right. What is wrong is reading the Hermite slice's 2n−7 directions as 2n−7 shapes:
@@ -645,12 +647,12 @@ describe('the space of conformal PH curves', () => {
       console.log(
         `degree ${n}: ${withPins.length} rows (${J.length} defining + 12 Hermite), rank ${rank}` +
           ` (gap ${gap.toExponential(1)}) -> nullity ${raw}\n` +
-          `    minus the one spurious direction (h_top squared): ${raw - 1}   [2n-7 = ${2 * n - 7}]\n` +
-          `    of which ONE is the projective scale, which changes nothing observable (finding 9),\n` +
-          `        so SHAPES with the Hermite data pinned = ${raw - 2}` +
-          `   ${n === 4 ? '<- zero: slide 13 has nothing to move, and does not' : ''}\n` +
-          `    free radii ${free.length} (indices ${free.join(',')}) + arc length = ${free.length + 1} dials` +
-          `   ${free.length + 1 > raw - 2 ? `<- ${free.length + 1} dials on ${raw - 2} knobs: they are DEPENDENT` : ''}`,
+          `    [2n-6 = ${2 * n - 6}]  -- nothing subtracted: the rank defect is a redundant ROW (14)\n` +
+          `    ONE of them is the projective scale, which changes nothing observable (finding 9),\n` +
+          `        so SHAPES with the Hermite data pinned = ${raw - 1}   [2n-7 = ${2 * n - 7}]` +
+          `   ${n === 4 ? '<- ONE, and it is a radius; slide 13 pins the CONTROL POINT, not that dial' : ''}\n` +
+          `    free radii ${free.length} (indices ${free.join(',')}) + 2 half-lengths = ${free.length + 2} dials` +
+          `   ${free.length + 2 === raw - 1 ? '<- exactly as many dials as knobs' : `<- ${free.length + 2} dials on ${raw - 1} knobs`}`,
       )
       expect(raw - 1, `degree ${n} Hermite slice`).toBe(2 * n - 7)
 
@@ -682,12 +684,12 @@ describe('the space of conformal PH curves', () => {
       const jointRank = rankFromGap(singularValues(together), together.length).rank
       // They pin raw−1 of the raw nullspace directions at every degree, and the one they NEVER pin is
       // the projective scale — they are all built from ρ = √⟨C,C⟩/w and h/w, both scale-invariant
-      // (finding 9). Since one of the ones they DO pin is the spurious h_top direction of (6), the
-      // shapes they actually resolve number raw−2, and that is the honest dial count.
+      // (finding 9). The slice is 1 scale + (raw−1) SHAPES and there is no spurious direction to
+      // discount (14), so the raw−1 they pin ARE the shapes: the dials resolve the slice completely.
       console.log(
         `    dials: ${base.length} candidates (${free.length} radii + 2 half-lengths) ->` +
           ` they pin ${jointRank - rank} of the ${raw} nullspace directions;` +
-          ` never the projective scale, so ${raw - 2} SHAPES resolved`,
+          ` never the projective scale, so all ${raw - 1} SHAPES resolved`,
       )
       expect(jointRank - rank, 'the dials pin everything except the projective scale').toBe(raw - 1)
     }
@@ -1052,7 +1054,7 @@ describe('the space of conformal PH curves', () => {
     expect(departed, 'at least one dial walks off into the rational family').toBeGreaterThan(0)
   }, 120_000)
 
-  it('bending the cubic fibers gives 3 of the 5 moduli, never all 5', () => {
+  it('bending the cubic fibers gives 3 of the 6 moduli, never all 6', () => {
     // Eric's question, exactly. The polynomial PH cubics come in CLOSED fibers. Möbius images of them
     // are rational degree-6 members, so the bent fibers span more than the polynomial family did. Is
     // that the WHOLE degree-6 rational family, or only part of it?
@@ -1114,17 +1116,18 @@ describe('the space of conformal PH curves', () => {
     // singular (the defining Jacobian drops from 23 to 21), so its tangent cone there is too big to
     // use as the ambient count.
     //
-    // The Jacobian rank is 23 of 24 and 41 - 23 = 18, one MORE than 2n+5 = 17. That last one is not a
-    // real direction: the top PH condition reads n²⟨Aₙ,Aₙ⟩ = h_top², nullity has already forced the
-    // left side to zero, so what survives is h_top² = 0 -- a genuine condition whose GRADIENT vanishes
-    // because it is a double root. The linearisation cannot see it; the variety obeys it. Hence -1, and
-    // h_top is measured below rather than assumed.
+    // The Jacobian rank is 23 of 24, so 41 - 23 = 18 = 2n+6, and NOTHING is subtracted. The rank defect
+    // is a REDUNDANT EQUATION, not a non-reduced variety: the top PH row is n²⟨Aₙ,Aₙ⟩ - h_top², whose
+    // gradient is n² times the top nullity row's gradient plus -2h_top = 0. Dependent, so it costs one
+    // ROW and zero dimensions. (An earlier version subtracted 1 here to reach 2n+5, which was the error
+    // corrected in finding 14.) h_top is still measured below, because it is what makes the NEXT row
+    // down the one that forces deg h = n-2.
     const generic = sexticSeed()
     const Jg = definingJacobian(generic).map(unit)
     const jRankGeneric = rankFromGap(singularValues(Jg), Jg.length).rank
     const hPower = bernsteinToPower(generic.h as number[])
     const hTop = Math.abs(hPower[hPower.length - 1]) / Math.max(...hPower.map(Math.abs))
-    const familyDim = pack(generic).length - jRankGeneric - 1
+    const familyDim = pack(generic).length - jRankGeneric
 
     console.log(
       `Möbius orbit of the lifted cubics, at one of its points:\n` +
@@ -1134,8 +1137,8 @@ describe('the space of conformal PH curves', () => {
         `    ORBIT tangent              rank ${orbitRank} of 41 coefficients\n` +
         `    overlap                    ${polyRank} + ${gaugeRank} - ${orbitRank} = ${overlap}` +
           `   (translation 3 + rotation 3 + dilation 1: the Möbius maps that keep a polynomial polynomial)\n` +
-        `    the family itself          41 - ${jRankGeneric} - 1 = ${familyDim} at a generic member` +
-          `   [2n+5 = 17; the -1 is the gradient-free row, h_top = ${hTop.toExponential(1)}]\n` +
+        `    the family itself          41 - ${jRankGeneric} = ${familyDim} at a generic member` +
+          `   [2n+6 = 18; the defect is a redundant ROW, h_top = ${hTop.toExponential(1)}]\n` +
         `    MODULI: bent cubics ${orbitRank} - ${gaugeRank} = ${orbitRank - gaugeRank}` +
           `   vs the family's ${familyDim} - ${gaugeRank} = ${familyDim - gaugeRank}` +
           `   -> CODIMENSION ${familyDim - orbitRank}`,
@@ -1187,10 +1190,10 @@ describe('the space of conformal PH curves', () => {
     expect(gaugeRank, 'the gauge group is 12-dimensional').toBe(12)
     expect(overlap, 'the similarities are the overlap: 7 of them').toBe(7)
     expect(orbitRank, 'the bent cubics are 15-dimensional in the coefficient space').toBe(15)
-    expect(hTop, 'deg h = n-2, so the top PH row has a vanishing gradient').toBeLessThan(1e-12)
-    expect(familyDim, 'against the family 2n+5 = 17').toBe(17)
+    expect(hTop, 'deg h = n-2, which is what the second PH row from the top forces').toBeLessThan(1e-12)
+    expect(familyDim, 'against the family 2n+6 = 18').toBe(18)
     expect(orbitRank - gaugeRank, 'MODULI of bent cubics: 3').toBe(3)
-    expect(familyDim - orbitRank, 'a proper subvariety, of codimension 2').toBe(2)
+    expect(familyDim - orbitRank, 'a proper subvariety, of codimension 3').toBe(3)
     expect(Math.abs(bentBend.nullDefect), 'the lift is bendable, exactly').toBeLessThan(1e-12)
     expect(genericBend.kernelDim, 'a generic member is not bendable at all').toBe(0)
     expect(bentResidual, 'a bent fiber is still made of members').toBeLessThan(1e-12)
@@ -2179,9 +2182,9 @@ describe('the space of conformal PH curves', () => {
         `    h: leading power coefficient / largest = ${hTop.toExponential(1)}` +
           `   (deg h = n-2, not n-1 -> the top PH row has a VANISHING gradient)\n` +
         `degree ${n}: unknowns ${pack(s).length}, J rank ${tangent.rank} (gap ${tangent.gap.toExponential(1)})` +
-          ` -> tangent dim ${dim}   [2n+5 = ${2 * n + 5}]\n` +
+          ` -> tangent dim ${dim}   [2n+6 = ${2 * n + 6}]\n` +
           `    gauge+Möbius rank  ${gr.rank} of 12 (gap ${gr.gap.toExponential(1)}), all inside the tangent to ${inTangent.toExponential(1)}\n` +
-          `    MODULI up to Möbius and reparametrisation: ${dim} - ${gr.rank} = ${dim - gr.rank}   [2n-7 = ${2 * n - 7}]\n` +
+          `    MODULI up to Möbius and reparametrisation: ${dim} - ${gr.rank} = ${dim - gr.rank}   [2n-6 = ${2 * n - 6}]\n` +
           `    carrier rank       ${c.rank} of 5 (gap ${c.gap.toExponential(1)})\n` +
           `    bendable?          kernel dim ${bend.kernelDim}, ⟨S,S⟩ = ${bend.nullDefect.toExponential(1)}`,
       )
