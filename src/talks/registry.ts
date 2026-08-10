@@ -9,6 +9,7 @@
 import type { TalkDefinition } from './framework/types'
 import { slides as cs2026Slides } from './cs2026/slides'
 import { slides as phInterpolationSlides } from './ph-interpolation/slides'
+import { slides as hodographLightConeSlides } from './hodograph-light-cone/slides'
 
 export const talks: TalkDefinition[] = [
   {
@@ -23,6 +24,12 @@ export const talks: TalkDefinition[] = [
     title: 'Pythagorean–Hodograph Curves and Their Rational Frames',
     subtitle: 'Solution structure, selection, and interactive motion',
     slides: phInterpolationSlides,
+  },
+  {
+    slug: 'hodograph-light-cone',
+    title: 'The Hodograph Lies on the Light Cone',
+    subtitle: 'Speed as a coordinate — the theory behind the figures',
+    slides: hodographLightConeSlides,
   },
 ]
 
