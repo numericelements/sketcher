@@ -597,9 +597,9 @@ export const slides: SlideDefinition[] = [
   // and it is where the talk stops being a reframing: ONE principle accounts for the shape of every
   // solution family in the field, and both extremes of it are measured in this repository.
   //
-  // III-a is here: the principle, and the two measured ends. III-b is the TORUS, held back on purpose
-  // -- the dimension count 12 - 9 - 1 = 2 is solid but naming its two circles is a derivation still
-  // owed, and writing the slide before the derivation is how a confident paragraph ends up over a gap.
+  // III-a: the principle, and the two measured ends. III-b: the TORUS -- held back until the derivation
+  // was actually done, because writing the slide first is how a confident paragraph ends up over a gap.
+  // It is done now (core/__tests__/spatialQuinticTorus.test.ts): THREE Hopf fibers, one diagonal gauge.
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
@@ -824,8 +824,120 @@ export const slides: SlideDefinition[] = [
       + 'Compact gauge means a continuum with no distinguished member, so a choice rule is mandatory -- and '
       + 'if your functional is gauge-constant, as arc length is on the spatial cubic fiber, it will select '
       + 'nothing and you will not be able to tell from the residuals. '
-      + 'STILL OWED, and the one thing this act does not yet contain: WHICH two circles the quintic torus '
-      + 'is. The count 12 - 9 - 1 = 2 is solid; naming the factors is a derivation, not a recollection. '
-      + 'That is III-b, deliberately not written yet.',
+      + 'THE NEXT TWO SLIDES NAME THE CIRCLES. The count 12 - 9 - 1 = 2 was never the hard part; saying '
+      + 'WHICH two circles is, and the answer turns out to be three Hopf fibers with the gauge acting '
+      + 'diagonally on them.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 17 — III-b: the third circle, by completing the square
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The third circle</h2>
+        <p>
+          Spatial PH quintic Hermite. Two of the circles are immediate — the Hopf fibers over the end
+          tangents:
+        </p>
+        <Math display>
+          {'\\mathcal{A}_0 i \\bar{\\mathcal{A}}_0 = \\mathbf{d}_0 \\Rightarrow \\mathcal{A}_0 = \\mathcal{A}_0^{*} e^{i\\varphi_0}, \\qquad \\mathcal{A}_2 i \\bar{\\mathcal{A}}_2 = \\mathbf{d}_1 \\Rightarrow \\mathcal{A}_2 = \\mathcal{A}_2^{*} e^{i\\varphi_2}'}
+        </Math>
+        <p>
+          The displacement looks like a mess — quadratic in <Math>{'\\mathcal{A}_1'}</Math>, with cross
+          terms. Integrate over the Bernstein basis,{' '}
+          <Math>{'\\int_0^1 B_i^2 B_j^2 = \\binom{2}{i}\\binom{2}{j} / \\bigl(5\\binom{4}{i+j}\\bigr)'}</Math>:
+        </p>
+        <Math display>
+          {'5\\Delta\\mathbf{p} = \\mathbf{d}_0 + \\mathbf{d}_1 + \\tfrac{2}{3}\\mathcal{A}_1 i \\bar{\\mathcal{A}}_1 + \\tfrac12\\bigl(\\mathcal{A}_1 i \\bar{S} + S i \\bar{\\mathcal{A}}_1\\bigr) + \\tfrac16\\bigl(\\mathcal{A}_0 i \\bar{\\mathcal{A}}_2 + \\mathcal{A}_2 i \\bar{\\mathcal{A}}_0\\bigr)'}
+        </Math>
+        <p>
+          with <Math>{'S = \\mathcal{A}_0 + \\mathcal{A}_2'}</Math>. Now <strong>complete the
+          square</strong>: put <Math>{'Y = \\mathcal{A}_1 + \\tfrac34 S'}</Math> and the cross term is
+          absorbed —
+        </p>
+        <Math display>
+          {'Y i \\bar{Y} = T, \\qquad T = \\tfrac32 V + \\tfrac{9}{16} S i \\bar{S}, \\qquad V = 5\\Delta\\mathbf{p} - \\mathbf{d}_0 - \\mathbf{d}_1 - \\tfrac16\\bigl(\\mathcal{A}_0 i \\bar{\\mathcal{A}}_2 + \\mathcal{A}_2 i \\bar{\\mathcal{A}}_0\\bigr)'}
+        </Math>
+        <p>
+          <strong>One more Hopf equation.</strong> So{' '}
+          <Math>{'\\mathcal{A}_1'}</Math>&apos;s freedom is the fiber over <Math>{'T'}</Math> —{' '}
+          <Math>{'Y = Y^{*} e^{i\\psi}'}</Math>, a <em>third</em> circle.
+        </p>
+      </>
+    ),
+    notes:
+      'COMPLETING THE SQUARE IS THE WHOLE TRICK and it is worth doing on the board if anyone wants it. '
+      + 'The cross term is (1/2)(A_1 i S-bar + S i A_1-bar), and (Y)(i)(Y-bar) with Y = A_1 + lambda S '
+      + 'expands to A_1 i A_1-bar + lambda(A_1 i S-bar + S i A_1-bar) + lambda^2 S i S-bar. Matching '
+      + 'against the 2/3 and 1/2 gives lambda = 3/4, and the leftover lambda^2 term is what moves to the '
+      + 'right-hand side as the 9/16. Nothing subtler than that. '
+      + 'NOT CLAIMED AS NEW. That this family is two-parameter and indexed by angles is classical -- '
+      + 'Farouki and co-authors -- and a manipulation of this kind is very likely how it was first '
+      + 'obtained. What is offered here is the FORM Act III needs: three Hopf fibers and one diagonal '
+      + 'gauge, so the torus is explained rather than observed. '
+      + 'THE PAYOFF IS THAT THERE IS NO SOLVER. Three angles in, an interpolant out, in closed form. '
+      + 'Measured in spatialQuinticTorus.test.ts: 216 members from a 6x6x6 grid of angle triples, end '
+      + 'tangents hit to 2.9e-16 and the displacement to 8.6e-16, with nothing iterated. The Bernstein '
+      + 'integral is itself checked against quadrature (3.6e-8 at 4000 midpoints) so the load-bearing '
+      + 'coefficients are not a mis-remembered formula. '
+      + 'THE ONE FAILURE MODE, stated rather than hidden: T = 0 leaves the third fiber with nothing to '
+      + 'invert. A sweep of the displacement did not find a zero (smallest |T| was 5.4), so the honest '
+      + 'claim is "nonzero at the data used", not "never zero".',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 18 — III-b: three circles, one gauge, a torus
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Three circles, one gauge, a torus</h2>
+        <p>
+          So the family is parametrised in <strong>closed form</strong> by three angles — and the gauge
+          is the <strong>diagonal</strong>. Under <Math>{'\\mathcal{A} \\mapsto \\mathcal{A}e^{i\\theta}'}</Math>,
+          the factor commutes with <Math>{'i'}</Math>, so <Math>{'\\mathbf{d}_0'}</Math>,{' '}
+          <Math>{'\\mathbf{d}_1'}</Math> and the polarisation are all fixed — hence{' '}
+          <Math>{'T'}</Math> is fixed, and <Math>{'Y \\mapsto Y e^{i\\theta}'}</Math>,{' '}
+          <Math>{'\\mathcal{A}_1 \\mapsto \\mathcal{A}_1 e^{i\\theta}'}</Math>. All three angles
+          shift together and nothing changes:
+        </p>
+        <Math display>
+          {'\\text{the family} \\;=\\; (S^1)^3 / S^1_{\\text{diagonal}} \\;\\cong\\; T^2'}
+        </Math>
+        <p style={{ marginTop: '0.6em' }}>Measured, with no solver anywhere:</p>
+        <Math display>
+          {'\\text{216 members from } 6^3 \\text{ triples: } \\mathbf{d} \\text{ to } 2.9\\!\\times\\!10^{-16},\\; \\Delta\\mathbf{p} \\text{ to } 8.6\\!\\times\\!10^{-16}'}
+        </Math>
+        <p>
+          The diagonal shift leaves the hodograph fixed to <Math>{'2.8\\times10^{-15}'}</Math>; each
+          remaining circle closes at <Math>{'2\\pi'}</Math> to <Math>{'3.3\\times10^{-16}'}</Math>; and
+          the two tangent directions span a genuine 2-plane —{' '}
+          <Math>{'\\sin\\angle = 0.228'}</Math>, so it is a <strong>surface</strong>, not a curve.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>
+          <strong>The compact circle appeared twice. That is the whole reason it is a torus.</strong>
+        </p>
+      </>
+    ),
+    notes:
+      'THIS CLOSES ACT III, so land the last line and let it sit. Act III-a claimed the SHAPE of a '
+      + 'solution family is inherited from the group the free parameter lives in. Here the group is S^1 '
+      + 'and it appears three times against one diagonal gauge, so the family is T^2 -- the principle '
+      + 'instantiated rather than merely illustrated. '
+      + 'WHY sin(angle) = 0.228 AND NOT SOMETHING NEAR 1: the two tangent directions are independent but '
+      + 'far from orthogonal, which is expected -- there is no reason for a natural angle coordinate to be '
+      + 'orthogonal to another one. What matters is that it is bounded away from zero, since zero would '
+      + 'mean the two circles trace the SAME loop and the family would be a circle, not a surface. '
+      + 'IF ASKED WHETHER IT IS EXACTLY T^2 rather than some other surface: what is measured is that both '
+      + 'parameters are 2pi-periodic and their tangent directions are independent, which gives a closed '
+      + 'surface swept doubly periodically. The third circle T depends on the first two, so strictly this '
+      + 'is a circle bundle over T^2 quotiented by the diagonal; that it is the TRIVIAL bundle -- hence '
+      + 'exactly T^2 and not, say, a Klein bottle -- is not proved here. Say "a torus" and be ready to '
+      + 'concede "a doubly periodic closed surface" if pressed. '
+      + 'AND THE HONEST LIMIT: T = 0 would break the parametrisation. Not found in a sweep, not proved '
+      + 'impossible.',
   },
 ]
