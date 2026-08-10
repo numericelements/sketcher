@@ -346,10 +346,11 @@ import {
   reflectionMatrix,
   sphereVector,
 } from '../conformal'
-import { type Quat, type Vec3, gaugeRotate } from '../quaternion'
+import { type Quat, type Vec3, gaugeRotate, vnorm, vsub } from '../quaternion'
 import { controlPoints as phControlPoints, squareWeights, type SpatialPHCurve } from '../phSpatialFreeDragN'
 import {
   type ConformalPHCurve,
+  dragControlPoint,
   type StrictCoordinate,
   arcLength,
   controlPoints,
@@ -2214,6 +2215,61 @@ describe('the space of conformal PH curves', () => {
     expect(cpRank.rank, 'leaving 16 reachable polygon directions of 21').toBe(16)
     expect(21 - cpRank.rank, 'a seven-point polygon is over-determined by FIVE').toBe(5)
   }, 120_000)
+
+  it('does dragging a CONTROL POINT stall near the bent cubics?', () => {
+    // Free mode is unobstructed on paper: grabbing one control point is 3 conditions against a
+    // 17-dimensional family, 14 spare. But the polynomial stratum is SINGULAR there (rank 21 against
+    // 23, finding 5), and that is exactly where an audience drags, since a bent cubic is the shape
+    // they recognise. So walk one control point along a straight line from two different starts and
+    // watch the tracking error, the residual, and the distance from the stratum together.
+    //
+    // "Beads off centre" is the odometer: a member is polynomial iff every Farin bead sits at ½.
+    //
+    // The percentage reads 108 and that is not overshoot: `asked` is the step in x while the path is
+    // (asked, 0.4·asked, 0), whose length is asked·sqrt(1.16) = 1.077·asked. 108% IS perfect tracking.
+    // The number that says so independently is trackingError, which is 0.0 at every step.
+    const runs: [string, ConformalPHCurve][] = [
+      ['generic (the seed)', sexticSeed()],
+      ['ON the stratum (bent cubic)', mobiusImage(liftPolynomialPH(CUBIC), matrixExp5(inversiveBendGenerator({ x: 0.4, y: -0.25, z: 0.15 })))],
+    ]
+    const beadsOff = (c: ConformalPHCurve): number =>
+      Math.max(...farinParameters(c).map((v) => Math.abs(v - 0.5)))
+
+    for (const [name, start] of runs) {
+      const INDEX = 3
+      const p0 = controlPoints(start)[INDEX]
+      const span = Math.max(...controlPoints(start).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)))
+      const step = span * 0.08
+      let cur = start
+      let asked = 0
+      const log: string[] = []
+      let stalledAt = -1
+      for (let k = 1; k <= 12; k++) {
+        asked = step * k
+        const target = { x: p0.x + asked, y: p0.y + 0.4 * asked, z: p0.z }
+        const r = dragControlPoint(cur, INDEX, target, { pinEnds: true, iterations: 60 })
+        if (!r.converged) { stalledAt = k; break }
+        cur = r.state
+        const got = vnorm(vsub(controlPoints(cur)[INDEX], p0))
+        if (k % 3 === 0) {
+          log.push(
+            `      step ${k}: asked ${asked.toFixed(3)}, got ${got.toFixed(3)}` +
+              ` (${((got / asked) * 100).toFixed(0)}%)  track ${r.trackingError.toExponential(1)}` +
+              `  residual ${relResidual(cur).toExponential(1)}  beads ${beadsOff(cur).toExponential(1)}`,
+          )
+        }
+      }
+      const got = vnorm(vsub(controlPoints(cur)[INDEX], p0))
+      console.log(
+        `${name}:  beads at start ${beadsOff(start).toExponential(1)}\n` +
+          log.join('\n') +
+          `\n      FINAL: travelled ${got.toFixed(3)} of ${asked.toFixed(3)} asked` +
+          ` = ${((got / Math.max(asked, 1e-12)) * 100).toFixed(0)}%` +
+          `   ${stalledAt > 0 ? `<- STALLED at step ${stalledAt}` : '<- ran the whole path'}`,
+      )
+      expect(relResidual(cur), `${name}: never leaves the family`).toBeLessThan(1e-9)
+    }
+  }, 300_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
