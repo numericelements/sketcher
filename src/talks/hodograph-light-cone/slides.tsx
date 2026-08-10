@@ -588,4 +588,244 @@ export const slides: SlideDefinition[] = [
       + 'DO NOT PREVIEW IT. The table on this slide is the question; a listener who works out the answer '
       + 'themselves during the break is worth more than one who was told.',
   },
+
+  // ===========================================================================
+  // ACT III — WHAT THE GAUGE DECIDES
+  //
+  // Act II ended on a question: the plane gives finitely many answers, space gives a circle, an
+  // ellipse, a torus, and neither the data nor the degree explains the difference. This act answers it,
+  // and it is where the talk stops being a reframing: ONE principle accounts for the shape of every
+  // solution family in the field, and both extremes of it are measured in this repository.
+  //
+  // III-a is here: the principle, and the two measured ends. III-b is the TORUS, held back on purpose
+  // -- the dimension count 12 - 9 - 1 = 2 is solid but naming its two circles is a derivation still
+  // owed, and writing the slide before the derivation is how a confident paragraph ends up over a gap.
+  // ===========================================================================
+
+  // ---------------------------------------------------------------------------
+  // 13 — the principle: the ambiguity is a group
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The ambiguity is a group</h2>
+        <p>
+          Ask what is lost by <em>forgetting the spinor and keeping the curve</em>. The answer is a group,
+          and Act II already named two of them:
+        </p>
+        <Math display>{'w^2 = v^2 \\iff v = \\pm w \\qquad\\qquad \\mathcal{A}\\,i\\,\\bar{\\mathcal{A}} = \\mathcal{B}\\,i\\,\\bar{\\mathcal{B}} \\iff \\mathcal{B} = \\mathcal{A}\\,e^{i\\theta}'}</Math>
+        <table style={{ margin: '1em auto 0', borderCollapse: 'collapse', fontSize: '0.9em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.3em 1.2em', textAlign: 'left' }}>representation</th>
+              <th style={{ padding: '0.3em 1.2em', textAlign: 'left' }}>gauge</th>
+              <th style={{ padding: '0.3em 1.2em', textAlign: 'left' }} />
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1.2em' }}>plane, <Math>{"\\mathbf{c}' = w^2"}</Math></td>
+              <td style={{ padding: '0.3em 1.2em' }}><Math>{'\\mathbb{Z}/2'}</Math></td>
+              <td style={{ padding: '0.3em 1.2em', opacity: 0.65 }}>discrete — Act II's <em>sign</em></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1.2em' }}>space, <Math>{'\\mathbf{c}\' = \\mathcal{A}i\\bar{\\mathcal{A}}'}</Math></td>
+              <td style={{ padding: '0.3em 1.2em' }}><Math>{'S^1'}</Math></td>
+              <td style={{ padding: '0.3em 1.2em', opacity: 0.65 }}>compact, connected — the <em>Hopf phase</em></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1.2em' }}>conformal, <Math>{'C \\in \\mathbb{R}^{4,1}'}</Math></td>
+              <td style={{ padding: '0.3em 1.2em' }}><Math>{'\\mathbb{R}^* \\times \\mathbb{R}^*'}</Math></td>
+              <td style={{ padding: '0.3em 1.2em', opacity: 0.65 }}>
+                <strong>non-compact</strong> — scale, and <Math>{'w_k \\mapsto \\lambda^k w_k'}</Math>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '1.2em' }}>
+          <strong>Dimension</strong> of a solution family = (spinor solutions) − (gauge). And its{' '}
+          <strong>shape</strong> is inherited from the group the free parameter lives in.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS SLIDE PAYS OUT ACT II\'S CLIFFHANGER, so deliver the first equation slowly: the SIGN from the '
+      + 'reducible cone IS the Z/2, and the SPINOR PHASE from the irreducible one IS the S^1. Same fact, '
+      + 'read as a group. '
+      + 'THE Z/2 IS EXACT: w^2 = v^2 gives (w-v)(w+v) = 0 in C[t], a domain, so v = plus or minus w. The '
+      + 'S^1 is the Hopf fiber, and the gauge must be a CONSTANT phase rather than a function of t, or '
+      + 'polynomiality is lost -- which is why it contributes exactly ONE dimension to every count in this '
+      + 'act. '
+      + 'THE CONFORMAL ROW IS THE REPRESENTATION GAUGE ONLY, and the distinction matters: O(4,1) is an '
+      + 'AMBIENT SYMMETRY that moves the curve, while the projective scale and the reparametrisation move '
+      + 'the representative and leave the curve alone. Measured: 12 gauge directions in the tangent space '
+      + 'to 1.8e-12, of which 10 are Mobius and 2 are these. '
+      + 'BE PRECISE ABOUT THE SECOND SENTENCE. The dimension claim is arithmetic and safe. The SHAPE claim '
+      + 'is an OBSERVATION supported by the two measured cases on the next slides, not a theorem -- what '
+      + 'you see is the quotient S/G, not the fiber, and the closed direction happens to be the compact '
+      + 'one. Say "inherited from" and not "equal to", and do not oversell it.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 14 — compact: the fiber closes, and arc length cannot choose
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Compact: the family closes</h2>
+        <p>
+          Spatial PH cubics through <Math>{'p_0'}</Math>, a first leg, and a far endpoint. Count:{' '}
+          <Math>{'8 - 6 - 1 = 1'}</Math>, and the parameter you travel is the Hopf phase — which is a{' '}
+          <em>circle</em>. So the family is a <strong>closed loop</strong>, and it is:
+        </p>
+        <Math display>
+          {'\\text{181 members traced} \\qquad \\text{end gap } 0.02 \\text{ of a median step}'}
+        </Math>
+        <p style={{ marginTop: '0.8em' }}>
+          And <strong>arc length is constant along it</strong> — spread <Math>{'2.9\\times10^{-6}'}</Math>{' '}
+          at 512 quadrature points, <Math>{'1.8\\times10^{-4}'}</Math> at 64. A factor of 64 for an
+          8-fold refinement: that is midpoint quadrature's <Math>{'1/n^2'}</Math>. <em>The spread is the
+          quadrature.</em> The true value is constant.
+        </p>
+        <p style={{ marginTop: '1em' }}>
+          <strong>So arc length cannot choose for you.</strong> A functional constant on the family
+          selects nothing — the choice rule is not a convenience, it is forced by the gauge being
+          positive-dimensional.
+        </p>
+      </>
+    ),
+    notes:
+      'THE QUADRATURE ARGUMENT IS THE POINT OF THE SLIDE and it is worth saying out loud, because it is '
+      + 'how you tell a REAL degeneracy from a numerical one. If arc length were only nearly constant, '
+      + 'refining the quadrature would leave the spread alone. It falls as 1/n^2 -- 64x for 8x -- so the '
+      + 'spread IS the integration error and the underlying function is exactly constant. The closed form '
+      + 'in phSpatialCubic fiberArcLength agrees. '
+      + 'AND IT SURVIVES THE LIFT: push all 181 members through the null lift and every one is a conformal '
+      + 'degree-6 member to 1.4e-15, with the loop still closing in the 41-dimensional coefficient space. '
+      + 'The lift is canonical, so that closure is literal and not up to a gauge. The degeneracy is a '
+      + 'property of those curves, not of the polynomial setting. '
+      + 'BUT IT IS A POLYNOMIAL-ONLY FACT ABOUT ARC LENGTH, and this is the sharpest thing on the slide if '
+      + 'someone pushes: bend the fiber by a transversion -- the only part of the Mobius group that turns '
+      + 'lines into circles -- and every image is still a member (3.8e-15), none is polynomial any more '
+      + '(least bead offset 2.7e-2), the loop still closes (0.02 median steps), but arc length now SPREADS '
+      + 'by 1.2e-2. So in the RATIONAL family arc length does select among the fiber. "Arc length cannot '
+      + 'choose for you" is true of the polynomial cubics and false of their Mobius images. '
+      + 'THIS IS ALSO WHERE THE OTHER DECK\'S SPINE MEETS THIS ONE: fewer conditions than dimensions means '
+      + 'a positive-dimensional fiber means you need a CHOICE RULE. The gauge is why.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 15 — non-compact: the family runs off
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Non-compact: the family runs off</h2>
+        <p>
+          Now the conformal sextic, with <strong>five of its seven control points held</strong>. Count:
+          fifteen coordinates prescribed against sixteen reachable, so again <strong>one</strong>{' '}
+          dimension — but the free parameter now lives in <Math>{'\\mathbb{R}^*'}</Math>, not{' '}
+          <Math>{'S^1'}</Math>.
+        </p>
+        <p>It does not close. Measured, by walking it with two different step budgets:</p>
+        <Math display>
+          {'\\text{backward } 0.19 \\text{ on a budget of } 1.74, \\quad 0.19 \\text{ on } 4.34 \\qquad \\text{— a WALL}'}
+        </Math>
+        <Math display>
+          {'\\text{forward } 1.61 \\text{ on } 1.74, \\quad 3.06 \\text{ on } 4.34 \\qquad \\text{— NOT a wall}'}
+        </Math>
+        <p>
+          The backward end is a <strong>weight degeneration</strong> — the weights run to{' '}
+          <Math>{'(1,\\, 4.1,\\, 11.7,\\, 20.9,\\, 142.9,\\, 95.5,\\, 43.5)'}</Math>, which projectively is{' '}
+          <Math>{'w_0 \\to 0'}</Math>. Forward, it simply keeps going.
+        </p>
+        <p style={{ marginTop: '0.8em', opacity: 0.75 }}>
+          Along the way a sphere radius passes <strong>through zero and goes negative</strong> —{' '}
+          <Math>{'\\langle C, C\\rangle < 0'}</Math>, an imaginary sphere — with the residual at{' '}
+          <Math>{'1.9\\times10^{-15}'}</Math> throughout. A point-sphere is a coordinate event, not a
+          boundary.
+        </p>
+      </>
+    ),
+    notes:
+      'THE TWO-BUDGET TRICK IS THE METHOD, and it is worth naming because it is how you distinguish a real '
+      + 'boundary from your own step limit. Walk the family twice with different budgets: an end that does '
+      + 'not move is a WALL, an end that grows with the budget was never an end at all. Measured 0.19 both '
+      + 'times backward, and 1.61 versus 3.06 forward. An earlier version of the slide claimed the forward '
+      + 'end was a boundary; it was the step cap, and this is how that was caught. '
+      + 'WHAT THE WALL IS: the weights degenerating, w_0 -> 0 projectively, which is the same asymptotic '
+      + 'wall the reparametrisation dial runs into in the other deck -- met from a different direction. '
+      + 'Non-compact gauge, so the family runs to a degeneration instead of returning. '
+      + 'AND A CORRECTION WORTH OWNING IF ASKED: rho_2 crossing zero was first read as a point-sphere '
+      + 'BOUNDARY. It is not. The curve passes straight through with a machine-zero residual and the '
+      + 'sphere through that conformal point simply stops being real. What the walk DOES refuse is a '
+      + 'denominator with a real root, since that is a curve with a pole. '
+      + 'IF ASKED WHY 16 AND NOT 18: the family is 18-dimensional but two of its directions move NO '
+      + 'control point -- the projective scale and the reparametrisation, exactly the non-compact gauge on '
+      + 'slide 13. So the reachable polygons are 16-dimensional and a seven-point polygon is '
+      + 'over-determined by FIVE. Measured rank 16.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 16 — the principle, restated with both ends in hand
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>What the gauge decides</h2>
+        <table style={{ margin: '0 auto', borderCollapse: 'collapse', fontSize: '0.88em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.35em 1.1em', textAlign: 'left' }}>gauge</th>
+              <th style={{ padding: '0.35em 1.1em', textAlign: 'left' }}>the family is</th>
+              <th style={{ padding: '0.35em 1.1em', textAlign: 'left' }}>and you get</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.35em 1.1em' }}><Math>{'\\mathbb{Z}/2'}</Math> — discrete</td>
+              <td style={{ padding: '0.35em 1.1em' }}>zero-dimensional</td>
+              <td style={{ padding: '0.35em 1.1em' }}>finitely many curves; <em>pick one</em></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.35em 1.1em' }}><Math>{'S^1'}</Math> — compact</td>
+              <td style={{ padding: '0.35em 1.1em' }}>a <strong>closed</strong> loop</td>
+              <td style={{ padding: '0.35em 1.1em' }}>a choice rule, and no escape from it</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.35em 1.1em' }}><Math>{'\\mathbb{R}^*'}</Math> — non-compact</td>
+              <td style={{ padding: '0.35em 1.1em' }}>an <strong>open</strong> road</td>
+              <td style={{ padding: '0.35em 1.1em' }}>a wall at one end, a degeneration</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '1.3em' }}>
+          Not the data. Not the degree. <strong>The group you divided by.</strong>
+        </p>
+        <p style={{ opacity: 0.65, marginTop: '0.8em' }}>
+          And when the compact circle appears <em>twice</em>, the family is a surface.
+        </p>
+      </>
+    ),
+    notes:
+      'THE LAST LINE IS THE SETUP FOR THE TORUS and should be said lightly, almost as an aside -- two '
+      + 'circles, so a 2-torus, and that is the spatial quintic Hermite family. Do not develop it here. '
+      + 'HOLD THE LINE ON WHAT IS PROVED. The DIMENSION column is arithmetic. The SHAPE column is an '
+      + 'observation with two measured instances, and honest phrasing is "inherited from" rather than '
+      + '"determined by" -- what is seen is the quotient, and the closed direction happens to be the '
+      + 'compact one. If someone in the room can turn it into a theorem, that is a good outcome for the '
+      + 'talk, and the phrasing should invite that rather than pre-empt it. '
+      + 'THE PRACTICAL PAYOFF, if a CAGD audience wants one: this predicts WHEN you need a fairness '
+      + 'functional and when you merely need to enumerate. Discrete gauge means enumerate and compare. '
+      + 'Compact gauge means a continuum with no distinguished member, so a choice rule is mandatory -- and '
+      + 'if your functional is gauge-constant, as arc length is on the spatial cubic fiber, it will select '
+      + 'nothing and you will not be able to tell from the residuals. '
+      + 'STILL OWED, and the one thing this act does not yet contain: WHICH two circles the quintic torus '
+      + 'is. The count 12 - 9 - 1 = 2 is solid; naming the factors is a derivation, not a recollection. '
+      + 'That is III-b, deliberately not written yet.',
+  },
 ]
