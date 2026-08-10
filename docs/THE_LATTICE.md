@@ -1,8 +1,15 @@
-# The Lattice of PH Families — one page
+# The Lattice of PH Families — a map of known territory, with two cells marked
 
 The families we work with are not a list, they are a lattice, and the lattice has a mechanism.
 This page is the skeleton of the theory document: **the table, with every cell tagged.** It is
 deliberately one page. The theory gets written from it, not before it.
+
+**What this page is NOT.** It is not a discovery map. Eric's correction, and it is the right one:
+*"It is like we are rewriting Farouki's book."* The complex representation of planar PH curves, the
+quaternion/Hopf form for spatial PH, rational PH curves, their offsets — all of that is in the book
+or the surrounding literature. An earlier draft tagged those `[LIT]` and still *read* as though the
+table were new. It is a map, and most of the territory has been walked. What is plausibly ours is
+narrow and stated in §0.
 
 **The discipline.** Every cell carries exactly one of:
 
@@ -15,6 +22,22 @@ deliberately one page. The theory gets written from it, not before it.
 
 Nothing else is allowed. A cell with no tag is a cell someone wanted to be true.
 **The `[LIT]` rows are the reading list**; they are from memory and none of them is verified.
+
+---
+
+## 0. What is actually ours
+
+Everything else on this page is somebody else's, or open. Three things are not:
+
+1. **PH-ness as an O(4,1)-invariant condition**, with the control structure mapping one-for-one under
+   Möbius — control *spheres* and Farin beads both. This is the cell where Farouki's machinery does
+   not already answer the question, because the quaternion form does **not** commute with Möbius
+   (`core/phMobius`), which is what sent the work into the conformal model in the first place.
+   `[MEAS]`
+2. **The counts**: family 2n+6, moduli 2n−6, and bent polynomials a *proper* codimension-3
+   subvariety of the conformal family. `[MEAS]` (`conformalPHStructure.test.ts`)
+3. **The editing side** — the sliding mechanism, curvature-extrema control under a drag. Not in the
+   book at all, and the reason this repository exists (`CLAUDE.md`).
 
 ---
 
@@ -49,7 +72,8 @@ statement over different Clifford algebras.
 | Euclidean plane | ℝ² | ℂ | plane curve | hodograph = A² | `[LIT]` Farouki |
 | Euclidean space | ℝ³ | Spin(3) = ℍ₁ | space curve | hodograph = A i Ā (Hopf) | `[LIT]` Choi–Han–Farouki |
 | planar MAT / Minkowski | ℝ²·¹ | Spin(2,1) = SL(2,ℝ) | medial axis transform | MOS condition | `[LIT]` Kosinka–Jüttler |
-| **Möbius plane** = spatial MAT | **ℝ³·¹** | **Spin(3,1) = SL(2,ℂ)** | plane curve / MAT | our M = A², their MOS | `[MEAS]` + `[OPEN]` — see Q1 |
+| **Möbius plane** | **ℝ³·¹** | **Spin(3,1) = SL(2,ℂ)** | plane curve, on the cone | our M = A² | `[MEAS]` |
+| spatial MAT | ℝ³·¹ | same group, same form | sphere family, off the cone | MOS condition | `[LIT]` — and see §2.5 |
 | Laguerre | ℝ³·² | Spin(3,2) = Sp(4,ℝ) | oriented-sphere family | rational offsets | `[LIT]` Pottmann |
 | **Möbius space** | **ℝ⁴·¹** | **Spin(4,1) = Sp(1,1)** | space curve | **⟨P,P⟩ ≡ 0, ⟨P′,P′⟩ = h²** | `[MEAS]` — our cell |
 | Lie sphere | ℝ⁴·² | Spin(4,2) = SU(2,2) | **canal surface** | ? | `[OPEN]` |
@@ -64,6 +88,55 @@ having in the front of the mind:
 - **A curve in the Lie quadric IS a one-parameter family of spheres**, hence a canal surface; a
   curve in the Klein quadric IS a family of lines, hence a ruled surface. The two `[OPEN]` rows are
   not exotic — they are the surface theory that the curve theory becomes. `[LIT]` Cecil
+
+### 2.5 The real axis is not the group — it is WHICH QUADRIC
+
+Two rows of the table share the form ℝ³˙¹ exactly, so the group cannot be what separates them. One
+condition does, and it is the structural one:
+
+> **On the null quadric → the vector is a POINT, so the curve is a curve.**
+> **Off it → the vector is a SPHERE, so the curve is a sphere FAMILY, and what you see is its
+> envelope.**
+
+- Our conformal PH curves satisfy ⟨P,P⟩ ≡ 0. They *are* curves in the plane or in space, lifted.
+- MOS curves have **no** nullity condition. The vector is a circle, the curve is a circle family, and
+  the boundary of the domain is its envelope. Hence *the medial axis*.
+
+So conformal PH and MOS are **not the same family** — that answers Q1 as first posed, and Eric's
+circle reading is what settles it. What they share is the *machinery*: both are "PH in a
+Minkowski-signature form", same spinor factorisation, same square condition, so the interpolation
+theory transfers even though the varieties do not. `[MEAS]` for our side, `[LIT]` for theirs.
+
+And this axis is exactly the Möbius-vs-Lie-sphere distinction, which means the canal-surface and
+ruled-surface rows need no new machinery to be placed — only a different quadric.
+
+**A consequence already visible on screen.** In our conformal model the control points are literally
+spheres: `radii()` returns √⟨C,C⟩/w, and the degree-6 seed measures
+`[0, 0.81, 0.67, 1.51, 0.62, 0.62, 0]` — the two ends are **null** (they are points, the curve's
+endpoints) and the five interior ones are **honest spheres of those radii**. So the control polygon
+is *already* a sphere family living off the cone, and ρ₂ going negative along slide 16's road is that
+sphere becoming **imaginary** (⟨C,C⟩ < 0). `[MEAS]`
+Well-posed and drawable, and not yet asked: **what do the control spheres envelope, and how does that
+envelope relate to the curve?** `[OPEN]`
+
+### 2.6 Contact order is the other axis, and it has a third rung
+
+Eric's distinction — a circle through 2 points of the boundary versus 3 points of the curve — is the
+right organising idea, and there is a rung above both:
+
+| contact | the circle family | what it produces |
+|---|---|---|
+| 2 points | bitangent, maximal inscribed | **medial axis** → MOS curves |
+| 3 points | osculating | **evolute**, centres of curvature |
+| **4 points** | osculating at a critical point | **a vertex — a curvature extremum** |
+
+**Why the fourth rung matters here more than anywhere else.** Möbius maps take circles to circles and
+preserve contact order. The osculating circle is pinned by 3-point contact, so it maps to the image
+curve's osculating circle; a point of 4-point contact therefore maps to a point of 4-point contact.
+If that holds, **the curvature-extrema count is already a conformal invariant** — which would
+retro-justify the whole O(4,1) apparatus and answer Q3 below at a stroke. `[LIT]` — unverified, the
+classical route is the Möbius-invariant form of the four-vertex theorem, and this is the **first thing
+to check in the literature review.**
 
 ### The degree doubling is one phenomenon, not three
 
@@ -84,11 +157,16 @@ come out odd.
 
 Each is answerable, and each sharpens or kills a claim.
 
-**Q1. Are our 2D complex-rational PH cubics the same objects as MOS curves?** `[OPEN]`
-The conformal model of the plane is ℝ³·¹ — *the same quadratic form* as the spatial medial axis
-transform. Same group, same signature. Either these are two readings of one family, or the square
-conditions genuinely differ. This is the highest-value question on the page: if it is the same
-family, a literature exists for our cell; if not, the difference is a theorem.
+**Q1 — ANSWERED, and not by us.** *Are our complex-rational PH curves the same objects as MOS
+curves?* **No.** They share the form ℝ³˙¹ but not the locus: ours lie ON the null quadric, MOS curves
+are free of it. See §2.5. What transfers is the machinery, not the family. The follow-up worth asking
+instead: **what IS the nullity condition in the medial-axis reading?** ⟨P,P⟩ = 0 there says every
+medial sphere passes through a fixed point, which after an inversion at that point makes them all
+*planes*. `[OPEN]` — speculative, one inversion away from being checkable.
+
+**Q1′. Is the vertex count Möbius-invariant?** `[LIT]`, and now the first thing to read.
+See §2.6. If yes, the quantity this whole application controls is a conformal invariant and the
+conformal model is not a convenience but the right home for it.
 
 **Q2. Is conformal PH ⊊ rational PH?** `[OPEN]`
 Möbius images of polynomial PH curves are rational PH, so conformal PH ⊆ rational PH. Is the
@@ -100,7 +178,8 @@ Measurable: compare dimensions at fixed degree against the known rational PH cou
 Curvature extrema are Euclidean. Conformal geometry has conformal arc length and conformal
 curvature; Lie sphere has its own. `CLAUDE.md` already says the three laws quantify over *any*
 scalar invariant — so the Möbius-invariant count is a numerator away. Whether it agrees with the
-Euclidean count is not known and should not be guessed.
+Euclidean count is not known and should not be guessed. **Q1′ may collapse this question entirely:**
+if vertices are Möbius-invariant, the Euclidean count we already display *is* the conformal one.
 
 ---
 
@@ -128,9 +207,13 @@ Euclidean count is not known and should not be guessed.
 
 ## 5. The risk, named
 
-The failure mode of this document is **a beautiful taxonomy with no theorems in it.** The tags are
-the defence. If a third of the cells come back `[OPEN]` that is not a weakness — it is the research
-programme, stated honestly, which is what the page is for.
+The failure mode of this document is **a beautiful taxonomy with no theorems in it.** The second
+failure mode, caught on the first draft, is worse and quieter: **presenting known material as
+discovery.** Farouki's book already holds the complex form, the quaternion form, and much of the
+rational theory. The tags are the defence against both. If a third of the cells come back `[OPEN]`
+that is not a weakness — it is the research programme, stated honestly, which is what the page is for.
+If a third come back `[LIT]`, that is not a weakness either; it is the reading, and it is cheaper than
+rederiving.
 
 The unusual strength available here: this repository can cite a *measured* number with a pinning
 test for most dimension claims. A theory paper that says "we verified the 12-dimensional gauge lies
