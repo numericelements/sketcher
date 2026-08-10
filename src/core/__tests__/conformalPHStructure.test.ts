@@ -2142,6 +2142,79 @@ describe('the space of conformal PH curves', () => {
     expect(checked, "at least three specimens ran the full chain").toBeGreaterThanOrEqual(3)
   }, 300_000)
 
+  it('a seven-point polygon is OVER-DETERMINED: control points cannot be free in R3', () => {
+    // The 2D slide rests on a fact that does NOT carry over: there, the four control points are 8
+    // coordinates against a 10-dimensional family, so every polygon admits PH weights and all four
+    // points are free handles. In R³ the same count reads 7 points = 21 coordinates against a family
+    // of 18 members (17 curves, finding 14). If that is right, a generic seven-point polygon admits
+    // NO member at all, and any figure offering all seven as free handles is offering something the
+    // variety cannot deliver.
+    //
+    // Measure it as a rank, at a member we already have. Read the control points as a map from the
+    // 41 coefficients to R²¹, restrict its differential to the family's 18-dimensional tangent, and
+    // the rank IS the dimension of the set of achievable polygons near this one. Codimension 21−rank
+    // is how over-determined a polygon is.
+    const s = sexticSeed()
+    const x0 = pack(s)
+    const unit = (row: readonly number[]): number[] => {
+      const m = Math.hypot(...row) || 1
+      return row.map((v) => v / m)
+    }
+    const J = definingJacobian(s).map(unit)
+    const { sv, V } = svd(J)
+    const jRank = rankFromGap(sv, J.length).rank
+    const tangent = V.slice(jRank) // 41 − 23 = 18 directions
+    const flatCps = (c: ConformalPHCurve): number[] => controlPoints(c).flatMap((p) => [p.x, p.y, p.z])
+    const st = 1e-6
+    const cols = tangent.map((d) => {
+      const up = flatCps(unpack(x0.map((v, i) => v + st * d[i])))
+      const dn = flatCps(unpack(x0.map((v, i) => v - st * d[i])))
+      return up.map((v, i) => (v - dn[i]) / (2 * st))
+    })
+    // 21 rows, 18 columns — the Jacobi sweep wants rows ≥ cols.
+    const Mat = Array.from({ length: 21 }, (_, i) => cols.map((c) => c[i] ?? 0))
+    const cpSv = singularValues(Mat)
+    const cpRank = rankFromGap(cpSv, 21)
+
+    // The projective scale must contribute NOTHING, since project(cC) = project(C): a control point
+    // is a ratio. So the rank can be at most 17 before any geometry is considered.
+    const scaleDir = unit(x0)
+    const upS = flatCps(unpack(x0.map((v, i) => v + st * scaleDir[i])))
+    const dnS = flatCps(unpack(x0.map((v, i) => v - st * scaleDir[i])))
+    const scaleMoves = Math.max(...upS.map((v, i) => Math.abs(v - dnS[i]))) /
+      (2 * st * Math.max(...flatCps(s).map(Math.abs)))
+
+    // TWO directions are invisible, not one — the spectrum falls off a cliff after 16. The second is
+    // the REPARAMETRISATION: it scales Cₖ by λᵏ, and project(λᵏCₖ) = project(Cₖ) exactly, so it moves
+    // the Farin beads and leaves every control point where it was. That closes the count:
+    // 18 = 16 achievable + scale + reparametrisation.
+    const rep = reparametrise(s, 1.0 + 1e-5)
+    const repMoves = Math.max(...flatCps(rep).map((v, i) => Math.abs(v - flatCps(s)[i]))) /
+      Math.max(...flatCps(s).map(Math.abs))
+
+    console.log(
+      `seven control points against the degree-6 family:\n` +
+        `    family tangent             ${tangent.length} of 41   (J rank ${jRank} of ${J.length})\n` +
+        `    achievable POLYGONS        rank ${cpRank.rank} of 21 (gap ${cpRank.gap.toExponential(1)});` +
+          ` spectrum ${cpSv.slice(0, 3).map((v) => v.toExponential(1)).join(' ')} …` +
+          ` ${cpSv.slice(-3).map((v) => v.toExponential(1)).join(' ')}\n` +
+        `    so a polygon is OVER-DETERMINED by ${21 - cpRank.rank}\n` +
+        `    the projective scale moves no control point   ${scaleMoves.toExponential(1)}` +
+          `   (a control point is a RATIO, so the scale can never help)\n` +
+        `    nor does the reparametrisation      ${repMoves.toExponential(1)}` +
+          `   (Cₖ ↦ λᵏCₖ, and project is blind to it: it moves the BEADS, not the points)\n` +
+        `    so 18 = ${cpRank.rank} achievable + scale + reparametrisation\n` +
+        `    contrast the PLANE          4 points = 8 coordinates against a 10-dimensional family,` +
+          ` so every polygon is achievable and all four are free`,
+    )
+
+    expect(tangent.length, 'the family is 18-dimensional (finding 14)').toBe(18)
+    expect(scaleMoves, 'the projective scale cannot move a control point').toBeLessThan(1e-9)
+    expect(repMoves, 'nor can the reparametrisation move one').toBeLessThan(1e-9)
+    expect(cpRank.rank, 'leaving 16 reachable polygon directions of 21').toBe(16)
+    expect(21 - cpRank.rank, 'a seven-point polygon is over-determined by FIVE').toBe(5)
+  }, 120_000)
+
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
       const s = findMember(n, {
