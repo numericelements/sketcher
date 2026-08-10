@@ -2271,6 +2271,48 @@ describe('the space of conformal PH curves', () => {
     }
   }, 300_000)
 
+  it("Eric's design: hold FOUR, drag one of five, let the two grey absorb", () => {
+    // The proposal: of the seven control points, {P₀, P₁, P₃, P₅, P₆} are the ones you touch — one at
+    // a time, with the other four of the five HELD — and P₂, P₄ are grey, free to absorb. The count
+    // says exactly this: 5 points prescribed is 15 coordinates against the 16 reachable (7029402), so
+    // ONE dimension is left over and one slider closes it. The leftover after that is the
+    // reparametrisation, which no control point can see, so the polygon is then determined.
+    //
+    // Stage one needs no new solver: dragControlPoint already takes a `pin` list. Does it TRACK?
+    const TOUCH = [0, 1, 3, 5, 6]
+    const start = sexticSeed()
+    for (const idx of TOUCH) {
+      const held = TOUCH.filter((i) => i !== idx)
+      const p0 = controlPoints(start)[idx]
+      const span = Math.max(...controlPoints(start).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)))
+      let cur = start
+      let asked = 0
+      let stalled = -1
+      for (let k = 1; k <= 10; k++) {
+        asked = span * 0.06 * k
+        const target = { x: p0.x + asked, y: p0.y + 0.5 * asked, z: p0.z - 0.3 * asked }
+        const r = dragControlPoint(cur, idx, target, { pin: held, iterations: 80 })
+        if (!r.converged) { stalled = k; break }
+        cur = r.state
+      }
+      const moved = vnorm(vsub(controlPoints(cur)[idx], p0))
+      const wanted = asked * Math.hypot(1, 0.5, 0.3)
+      const heldMove = Math.max(...held.map((i) =>
+        vnorm(vsub(controlPoints(cur)[i], controlPoints(start)[i]))))
+      const greyMove = Math.max(...[2, 4].map((i) =>
+        vnorm(vsub(controlPoints(cur)[i], controlPoints(start)[i]))))
+      console.log(
+        `    drag P${idx}, hold [${held.join(',')}]:  travelled ${moved.toFixed(3)} of ${wanted.toFixed(3)}` +
+          ` = ${((moved / Math.max(wanted, 1e-12)) * 100).toFixed(0)}%` +
+          `   held moved ${heldMove.toExponential(1)}   grey P2/P4 moved ${greyMove.toFixed(3)}` +
+          `   residual ${relResidual(cur).toExponential(1)}` +
+          `   ${stalled > 0 ? `<- STALLED at ${stalled}` : ''}`,
+      )
+      expect(relResidual(cur), `P${idx}: stays on the family`).toBeLessThan(1e-9)
+      expect(heldMove, `P${idx}: the four held points really are held`).toBeLessThan(1e-6)
+    }
+  }, 300_000)
+
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
       const s = findMember(n, {
