@@ -164,9 +164,27 @@ instead: **what IS the nullity condition in the medial-axis reading?** ⟨P,P⟩
 medial sphere passes through a fixed point, which after an inversion at that point makes them all
 *planes*. `[OPEN]` — speculative, one inversion away from being checkable.
 
-**Q1′. Is the vertex count Möbius-invariant?** `[LIT]`, and now the first thing to read.
-See §2.6. If yes, the quantity this whole application controls is a conformal invariant and the
-conformal model is not a convenience but the right home for it.
+**Q1′ — ANSWERED for PLANE curves, and it changes the standing of the whole editor.** `[THM]`
+A vertex is a point of 4-point contact with a circle; Möbius and Lie sphere transformations preserve
+contact. So **the curvature-extrema count of a plane curve is both Möbius- and Lie-invariant** — the
+quantity this application controls is a *conformal* invariant, and the conformal model is its right
+home rather than a convenience. (Eric, and classical; a precise citation is still owed. One caveat
+worth stating: a Lie transformation need not carry a point curve to a point curve, so Lie-invariance
+is a statement about the **Legendre lift**, not about point sets.)
+
+**Q1″. And for SPACE curves it is NOT the same condition** — the asymmetry Eric flagged. `[OPEN]`
+For a space curve the osculating *circle* has 3-point contact, and pushing to 4 requires **both**
+κ′ = 0 *and* τ = 0 — far stronger than a curvature extremum. The conformally natural object is the
+osculating **sphere** (4-point contact) and its higher contact, with conformal curvature in place of κ.
+So:
+
+> **In the plane, our bound is a conformal invariant. In space, κ′ = 0 is not.** The 3D conformal PH
+> work therefore pairs a Möbius-invariant *family* with a non-invariant *functional*.
+
+That tension is honest and unresolved, and naming it is better than letting a reader assume the 2D
+result carries over. What the space-curve analogue costs — conformal arc length, conformal curvature,
+and whether their extrema are what an editor should control — is the sharpest open question this page
+has.
 
 **Q2. Is conformal PH ⊊ rational PH?** `[OPEN]`
 Möbius images of polynomial PH curves are rational PH, so conformal PH ⊆ rational PH. Is the
@@ -174,12 +192,13 @@ inclusion proper? Proper ⟹ we have found a distinguished subfamily and must sa
 it. Equality ⟹ a characterisation theorem: *the rational PH curves are exactly the O(4,1) ones.*
 Measurable: compare dimensions at fixed degree against the known rational PH count.
 
-**Q3. Which invariant's extrema does the editor control, in which geometry?** `[OPEN]`
-Curvature extrema are Euclidean. Conformal geometry has conformal arc length and conformal
-curvature; Lie sphere has its own. `CLAUDE.md` already says the three laws quantify over *any*
-scalar invariant — so the Möbius-invariant count is a numerator away. Whether it agrees with the
-Euclidean count is not known and should not be guessed. **Q1′ may collapse this question entirely:**
-if vertices are Möbius-invariant, the Euclidean count we already display *is* the conformal one.
+**Q3. Which invariant's extrema does the editor control, in which geometry?** — **split by Q1′/Q1″.**
+In the **plane** the question is closed: vertices are conformally invariant, so the Euclidean count the
+editor already displays *is* the conformal one, and no new numerator is needed. In **space** it is open
+and the honest answer is "not the same one": conformal arc length and conformal curvature are the
+invariant quantities there, and `CLAUDE.md` already provides for a new invariant by supplying its
+numerator. Whether an editor *should* control the conformal count in space, or the Euclidean one, is a
+design question as much as a mathematical one.
 
 ---
 
