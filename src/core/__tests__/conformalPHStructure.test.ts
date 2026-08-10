@@ -363,6 +363,8 @@ import {
   farinParameters,
   findMember,
   freeRadiusIndices,
+  locusDirection,
+  slideLocus,
   radii,
   speedAt,
   hermiteDataOf,
@@ -370,6 +372,7 @@ import {
   mobiusImage,
   pack,
   reparametrise,
+  slideAlongFamily,
   unpack,
   residual,
   weights,
@@ -2310,6 +2313,95 @@ describe('the space of conformal PH curves', () => {
       )
       expect(relResidual(cur), `P${idx}: stays on the family`).toBeLessThan(1e-9)
       expect(heldMove, `P${idx}: the four held points really are held`).toBeLessThan(1e-6)
+    }
+  }, 300_000)
+
+  it("Eric's design, stage two: with all FIVE held, which scalar is the missing dial?", () => {
+    // Stage one held four and dragged the fifth. Hold all FIVE and 15 coordinates are prescribed
+    // against 16 reachable, so what is left is a CURVE through the family — one dimension, hence one
+    // slider. The question this measures is which scalar readout is TRANSVERSE to it: a candidate
+    // that cannot move is a dead slider, and a candidate that moves the pinned points is not a dial
+    // at all.
+    //
+    // The nullspace here is 3-dimensional, not 1: the genuine direction plus the two gauge
+    // directions (projective scale, reparametrisation) that move NO control point and so satisfy the
+    // pin rows for free. That is exactly why the readout must be gauge-INVARIANT — otherwise the
+    // slider rides gauge and nothing happens on screen. Radii are invariant (ρ = √⟨C,C⟩/w is
+    // unchanged by C ↦ cC and by Cₖ ↦ λᵏCₖ) and so is the TOTAL arc length; the half-lengths of
+    // slide 14 are NOT, since reparametrisation moves the midpoint.
+    const TOUCH = [0, 1, 3, 5, 6]
+    const start = sexticSeed()
+    const candidates: { label: string; readout: (s: ConformalPHCurve) => number }[] = [
+      ...freeRadiusIndices(start).map((index) => ({
+        label: `ρ${'₀₁₂₃₄₅₆'[index]}`,
+        readout: (s: ConformalPHCurve) => radii(s)[index],
+      })),
+      { label: 'L(total)', readout: (s: ConformalPHCurve) => arcLength(s, 8) },
+    ]
+    for (const { label, readout } of candidates) {
+      const here = readout(start)
+      for (const direction of [+1, -1]) {
+        const target = here * (1 + 0.35 * direction)
+        let cur = start
+        let stalled = -1
+        for (let k = 1; k <= 12; k++) {
+          const r = slideAlongFamily(cur, { pin: TOUCH, readout, target, maxStep: 0.05 })
+          if (!r.converged) { stalled = k; break }
+          if (Math.abs(readout(r.state) - readout(cur)) < 1e-10) { stalled = k; break }
+          cur = r.state
+        }
+        const pinMove = Math.max(...TOUCH.map((i) =>
+          vnorm(vsub(controlPoints(cur)[i], controlPoints(start)[i]))))
+        const greyMove = Math.max(...[2, 4].map((i) =>
+          vnorm(vsub(controlPoints(cur)[i], controlPoints(start)[i]))))
+        const travelled = (readout(cur) - here) / (target - here)
+        console.log(
+          `    ${label.padEnd(8)} ${direction > 0 ? '+' : '-'}35%:  reached ${(travelled * 100).toFixed(0)}%` +
+            `   pinned moved ${pinMove.toExponential(1)}   grey P2/P4 moved ${greyMove.toFixed(3)}` +
+            `   residual ${relResidual(cur).toExponential(1)}` +
+            `   ${stalled > 0 ? `<- stalled at ${stalled}` : ''}`,
+        )
+        expect(relResidual(cur), `${label}: stays on the family`).toBeLessThan(1e-9)
+        expect(pinMove, `${label}: the five held points really are held`).toBeLessThan(1e-6)
+      }
+    }
+  }, 300_000)
+
+  it("Eric's design, stage two: the slider rides the LOCUS TANGENT, and does not fold", () => {
+    // Every named scalar folds (the test above). The tangent to P₂'s locus cannot: it IS the leftover
+    // dimension. So the slider is signed travel along it, and this measures that both directions run,
+    // that the five held points stay held, and what the geometry does while it runs — which is what
+    // the readouts on the slide will show.
+    const TOUCH = [0, 1, 3, 5, 6]
+    const start = sexticSeed()
+    const span = Math.max(...controlPoints(start).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)))
+    for (const direction of [+1, -1]) {
+      let cur = start
+      let dir: Vec3 | null = locusDirection(cur, 2, TOUCH)
+      expect(dir, 'the locus has a direction at the seed').not.toBeNull()
+      let travelled = 0
+      let stalled = -1
+      for (let k = 1; k <= 14; k++) {
+        const r = slideLocus(cur, 2, TOUCH, span * 0.05 * direction, { orient: dir })
+        if (!(Math.abs(r.travelled) > 1e-9)) { stalled = k; break }
+        cur = r.state
+        dir = r.direction
+        travelled += Math.abs(r.travelled)
+      }
+      const pinMove = Math.max(...TOUCH.map((i) =>
+        vnorm(vsub(controlPoints(cur)[i], controlPoints(start)[i]))))
+      const r0 = radii(start), r1 = radii(cur)
+      console.log(
+        `    slider ${direction > 0 ? '+' : '-'}:  P2 travelled ${travelled.toFixed(3)} (span ${span.toFixed(2)})` +
+          `   pinned moved ${pinMove.toExponential(1)}` +
+          `   ρ₂ ${r0[2].toFixed(3)}→${r1[2].toFixed(3)}  ρ₃ ${r0[3].toFixed(3)}→${r1[3].toFixed(3)}` +
+          `  ρ₄ ${r0[4].toFixed(3)}→${r1[4].toFixed(3)}` +
+          `  L ${arcLength(start, 8).toFixed(3)}→${arcLength(cur, 8).toFixed(3)}` +
+          `   residual ${relResidual(cur).toExponential(1)}   ${stalled > 0 ? `<- stalled at ${stalled}` : ''}`,
+      )
+      expect(relResidual(cur), 'slider: stays on the family').toBeLessThan(1e-9)
+      expect(pinMove, 'slider: the five held points really are held').toBeLessThan(1e-6)
+      expect(travelled, 'slider: the leftover dimension really is reachable').toBeGreaterThan(span * 0.1)
     }
   }, 300_000)
 

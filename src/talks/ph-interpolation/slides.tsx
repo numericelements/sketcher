@@ -42,7 +42,7 @@ import RmErfSplineFigure from './RmErfSplineFigure'
 import MobiusFigure from './MobiusFigure'
 import RationalPHCurveFigure from './RationalPHCurveFigure'
 import RationalPHQuarticFigure from './RationalPHQuarticFigure'
-import RationalPHSexticFigure from './RationalPHSexticFigure'
+import SexticFivePointFigure from './SexticFivePointFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
@@ -683,22 +683,26 @@ export const slides: SlideDefinition[] = [
       'core/conformalPHHopf (19 tests), conformalPHCurve, conformalPHFamily, conformal.',
   },
 // ---------------------------------------------------------------------------
-  // 14 — degree 6: the five moduli, one dial each
+  // 14 — degree 6: navigate the family by its control points
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Six moduli; the ends spend one, five dials pin the rest</h2>
+        <h2>Five control points and one slider — the whole family</h2>
         <WhenActive>
-          <RationalPHSexticFigure />
+          <SexticFivePointFigure />
         </WhenActive>
       </>
     ),
     notes:
-      'DEGREE 6, AND FIVE IS A MEASURED NUMBER. The family is 2n+5 = 17 dimensional and twelve of those directions change nothing geometric: TEN for O(4,1) acting linearly on R^{4,1}, ONE for the projective scale of the homogeneous representative, ONE for the w_k -> lambda^k w_k reparametrisation that slide 13 is about. All twelve are verified inside the tangent space to 1.8e-12. So the curves modulo Mobius AND reparametrisation number 2n-7: one at degree 4, three at degree 5, FIVE here, thirteen at degree 10. '
-      + 'AND THE COUNT IS NOT ABSTRACT, which is the point of the slide. Pinning the C1 Hermite data at both ends is exactly a SLICE through the gauge: twelve rows added to the defining Jacobian leave nullity 2, 4, 6 at degrees 4, 5, 6, and minus the one structurally spurious direction that is 1, 3, 5 = 2n-7, with gaps 4.7e9, 3.2e5, 8.4e9. So what strict mode lets you move IS the moduli, one slider each. This also retro-explains slide 12, whose notes already record freedom 3 measured at degree 5 -- that was 2n-7 all along. '
-      + 'THE FIFTH DIAL TOOK A MEASUREMENT TO FIND. The free radii plus the total arc length number free+1, which is 3+1 = 4 here -- one short, where degree 5 got 2+1 = 3 by luck. Splitting the arc length into its two halves supplies the fifth, and it is a real coordinate rather than a gauge artefact because the Hermite data pins the parametrisation: d0 = n(w1/w0)(P1-P0) fixes lambda, so length from 0 to 1/2 means something. Measured: rho_2, rho_3, rho_4, L1, L2 pin 5 of the 5 slice directions. Radii 1 and 5 are NOT dials because the data already fixes them, each being the distance to its near endpoint. '
+      'THE GESTURE IS ERIC\'S AND THE COUNTING IS WHY IT IS THE RIGHT ONE. Seven control points is 21 numbers for an 18-dimensional family, so a polygon looks over-determined -- and it is, but by FIVE, not three. The map from the family to the polygon has measured rank 16, because TWO family directions move no control point at all: the projective scale (C -> cC changes nothing observable, since every defining condition is quadratic) and slide 13\'s reparametrisation (C_k -> lambda^k C_k slides the Farin beads and leaves every centre exactly where it was). So the reachable polygons are 16-dimensional. '
+      + 'AND 16 = 15 + 1, WHICH IS THE WHOLE SLIDE. Five control points prescribed is fifteen coordinates -- the two ends, their neighbours, and the middle -- leaving ONE dimension, hence one slider. That is why {P0, P1, P3, P5, P6} are handles and P2, P4 are grey: the grey pair is what absorbs. Nothing about the arrangement is a taste decision. '
+      + 'MEASURED BEFORE IT WAS BUILT. Dragging one of the five with the other four held tracks the cursor to 100% for four of them over a long path, the held points stay put to 2e-15, the grey pair absorbs by up to 1.6 units, and the residual never leaves machine zero. P0 is the exception at 87% and the reason is visible on screen: rho_1 IS the distance from P0 to P1, so holding P1 while dragging P0 drives that sphere\'s radius directly. '
+      + 'WHY THE SLIDER IS NOT A NAMED QUANTITY -- this took a measurement and it is the interesting part. With all five held, what is left is a CURVE through the family, and the obvious dial is a geometric readout. Every candidate FAILS: rho_2 is CONSTANT along the locus (a dead slider, 0% both ways), while rho_3, rho_4 and the total arc length each sit at a FOLD -- rho_3 reaches 100% up and 17% down, rho_4 reaches 100% down and runs BACKWARDS (-71%) when asked up. A fold is where a readout stops being a coordinate; it is not a solver defect. So the slider rides the locus TANGENT, which cannot fold because it is the family\'s own direction. If asked how the tangent is found: project the ambient push onto the nullspace of the constraint Jacobian; the two gauge directions move no control point, so every probe that moves the point at all reports the same direction. '
+      + 'THE PREDICTOR NEEDS BACKTRACKING, and skipping it is what broke the first attempt. The step is travel/rate along the tangent, so where the point travels slowly per unit of the ambient step the predictor leaps: measured, one direction ran fourteen steps while the other diverged to a defect of 1e6 on its second, taking a 1.20 step where 0.07 was asked. An attempt is now accepted only if it stayed on the family AND did not overshoot the ask, and otherwise the ask is halved -- an ordinary line search, and nothing infeasible is ever shown. '
+      + 'WHERE THE SLIDER ENDS, and it is a real edge rather than a stall. It runs further one way than the other; going the short way rho_4 falls from 0.62 toward 0.29, and a sphere radius reaching zero is a POINT-sphere -- a boundary of the family. The readout says "end of the locus" instead of hiding it. '
+      + 'THE DIALS THIS SLIDE REPLACED, if someone asks for the moduli count. Pinning the C1 Hermite data at both ends is a slice through the gauge, leaving 2n-7 = five shapes at this degree: rho_2, rho_3, rho_4 and the arc length of each half were measured to pin 5 of the 5 slice directions (the total length alone is one short, where degree 5 got 2+1 = 3 by luck). That figure still exists as RationalPHSexticFigure. Its weakness is exactly what this slide fixes: you could turn five dials but move no control point. '
       + 'WHAT BENDING REACHES AT THIS DEGREE, and it is the sharper version of the old 17-against-13. The null lift of a polynomial curve is (1, p, half |p|^2), so the infinity coordinate is |p|^2 and degree d lands at conformal degree exactly 2d -- exactly, because the o-coordinate is the constant 1 so the five components share no common factor. O(4,1) acts LINEARLY and invertibly, so conformal degree is a Mobius invariant and bending cannot lower it either. Hence conformal 6 carries the polynomial PH CUBICS, and a polynomial PH QUINTIC needs conformal degree 10 -- Eric asked exactly this and the answer is 10, not 6. Measured: the lifted cubic is a degree-6 member to 4.1e-16, the lifted quintic a degree-10 member to 3.4e-16, both with every weight exactly 1. '
       + 'AND A GENERIC MEMBER HERE IS NOT EVEN A BENT CUBIC. p is a Mobius image of a polynomial iff some NULL S has <P,S> constant -- S is the point sent to infinity, and constant means the curve never reaches it. Constant in Bernstein form means S is orthogonal to every difference C_i - C_i+1, so the test is: does the orthogonal complement of the differences contain a null vector? At degree 6 that complement is measured ZERO-dimensional -- there is no candidate to test. At degree 4 there was one and it read <S,S> = 2.0e-3. The control experiment: the lifted polynomials give exactly 0. '
       + 'IF ASKED WHY THE SLIDERS DRIFT: they are genuinely coupled by the defining conditions, so moving one moves the others readings. The handles show what was ASKED, the readouts show what is MEASURED; showing the measured value on the handle makes it jump under the pointer. '

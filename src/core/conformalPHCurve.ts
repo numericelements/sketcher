@@ -704,6 +704,144 @@ export function dragRadius(
   }, options.iterations ?? 60)
 }
 
+/**
+ * The direction control point `index` can travel in when `pin` has cut the family down to a CURVE:
+ * the unit tangent to its locus, or null if the point is stationary there.
+ *
+ * WHY A SLIDER MUST RIDE THIS AND NOT A NAMED SCALAR. Hold five of the seven control points and one
+ * dimension is left (15 prescribed against 16 reachable). The obvious slider is a geometric readout —
+ * a free radius, an arc length — and every candidate was measured on the locus and every one fails
+ * (conformalPHStructure.test.ts): ρ₂ is CONSTANT along it, so its slider is dead; ρ₃, ρ₄ and the total
+ * arc length each sit at a FOLD, reaching the asked value one way and stalling — or running backwards
+ * — the other. That is the chart being singular, not the solver: a fold is where the readout stops
+ * being a coordinate. The tangent cannot fold, because it IS the family's direction.
+ *
+ * THE PROBE CANCELS OUT. δ = d − J⁺(J d) depends on the probe d, but the two gauge directions in the
+ * nullspace (the projective scale, the reparametrisation) move NO control point, so every probe that
+ * leaves a nonzero motion leaves the same motion DIRECTION. The strongest of the three axes is taken
+ * so that a probe accidentally orthogonal to the locus cannot be the one reported.
+ *
+ * The relative guard is dragAlongLocus's, and for its reason: "this point cannot move" is a real
+ * answer here, not a numerical accident.
+ */
+export function locusDirection(
+  from: ConformalPHCurve,
+  index: number,
+  pin: readonly number[],
+): Vec3 | null {
+  const held = pin.filter((i) => i !== index)
+  const before = controlPoints(from)
+  const U = unknownCount(degreeOf(from))
+  const x = pack(from)
+  const pinRows = (s: ConformalPHCurve): number[] => {
+    const P = controlPoints(s)
+    return held.flatMap((i) => [P[i].x - before[i].x, P[i].y - before[i].y, P[i].z - before[i].z])
+  }
+  const base = definingJacobian(from)
+  const J = base.map((r) => r.slice())
+  const rowCount = pinRows(from).length
+  for (let e = 0; e < rowCount; e++) J.push(new Array(U).fill(0))
+  const eps = 1e-7
+  for (let c = 0; c < U; c++) {
+    const xp = x.slice(); xp[c] += eps
+    const xm = x.slice(); xm[c] -= eps
+    const rp = pinRows(unpack(xp)), rm = pinRows(unpack(xm))
+    for (let e = 0; e < rowCount; e++) J[base.length + e][c] = (rp[e] - rm[e]) / (2 * eps)
+  }
+
+  const w = from.C[index][0]
+  let best: Vec3 | null = null
+  let bestRate = 0
+  for (const probe of [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }]) {
+    const wanted = new Array(U).fill(0)
+    wanted[5 * index + 1] = w * probe.x
+    wanted[5 * index + 2] = w * probe.y
+    wanted[5 * index + 3] = w * probe.z
+    let delta: number[]
+    try {
+      const Jd = J.map((row) => row.reduce((acc, v, i) => acc + v * wanted[i], 0))
+      const correction = leastSquares(J, Jd, 1e-11)
+      delta = wanted.map((v, i) => v - correction[i])
+    } catch { continue }
+    const dw = delta[5 * index]
+    const move: Vec3 = {
+      x: (delta[5 * index + 1] - before[index].x * dw) / w,
+      y: (delta[5 * index + 2] - before[index].y * dw) / w,
+      z: (delta[5 * index + 3] - before[index].z * dw) / w,
+    }
+    const scale = Math.hypot(...delta)
+    const rate = scale > 0 ? vnorm(move) / scale : 0
+    if (rate > bestRate) { bestRate = rate; best = move }
+  }
+  if (!best || !(bestRate > 1e-5)) return null
+  const norm = vnorm(best)
+  return norm > 0 ? vscale(best, 1 / norm) : null
+}
+
+export interface LocusSlide {
+  state: ConformalPHCurve
+  /** The tangent re-read at the new state and oriented to agree with the one asked for. Feed it back. */
+  direction: Vec3 | null
+  /** Signed distance actually travelled along `direction`. */
+  travelled: number
+  defect: number
+}
+
+/**
+ * Ride the leftover dimension: move control point `index` a signed distance along its locus, with
+ * `pin` held. This is the slide-16 slider — see locusDirection for why the dial cannot be a named
+ * geometric readout.
+ *
+ * BACKTRACKING, and it is what makes the slider survive both directions. The predictor steps
+ * travel/rate along the tangent, so where the point travels slowly per unit of δ — near a fold of the
+ * locus in space, which is not a fold of the FAMILY — the step is large and the corrector can land
+ * nowhere: measured, one direction ran fourteen steps while the other diverged to a defect of 1e6 on
+ * its second, taking a 1.20 step where 0.07 was asked. So an attempt is ACCEPTED only if it stayed on
+ * the family AND did not leap past what was asked, and otherwise the ask is halved and tried again.
+ * Halving the ask halves the predictor step, so this is an ordinary line search; nothing infeasible is
+ * ever returned, and a genuine end of the locus reports travelled 0 rather than a bad curve.
+ */
+export function slideLocus(
+  from: ConformalPHCurve,
+  index: number,
+  pin: readonly number[],
+  travel: number,
+  options: { orient?: Vec3 | null; iterations?: number; tolerance?: number } = {},
+): LocusSlide {
+  const defectOf = (s: ConformalPHCurve): number => Math.max(...residual(s).map(Math.abs))
+  const still: LocusSlide = { state: from, direction: null, travelled: 0, defect: defectOf(from) }
+  const raw = locusDirection(from, index, pin)
+  if (!raw) return still
+  const orient = options.orient
+  const dir = orient && vdot(raw, orient) < 0 ? vscale(raw, -1) : raw
+  if (!(Math.abs(travel) > 0)) return { ...still, direction: dir }
+
+  const before = controlPoints(from)[index]
+  const tolerance = options.tolerance ?? 1e-9
+  let ask = travel
+  for (let attempt = 0; attempt < 7; attempt++, ask /= 2) {
+    // maxStep 1 so dragAlongLocus takes the whole ask as its predictor travel: the backtracking here
+    // is the rate limit, and two of them fighting would make the slider crawl.
+    const r = dragAlongLocus(from, index, vadd(before, vscale(dir, ask)), {
+      pin, maxStep: 1, iterations: options.iterations ?? 80,
+    })
+    if (!r.converged) continue
+    const moved = vsub(controlPoints(r.state)[index], before)
+    const along = vdot(moved, dir)
+    if (defectOf(r.state) > tolerance) continue
+    if (vnorm(moved) > 1.5 * Math.abs(ask)) continue
+    if (!(Math.abs(along) > 1e-12)) continue
+    const next = locusDirection(r.state, index, pin)
+    return {
+      state: r.state,
+      direction: next && vdot(next, dir) < 0 ? vscale(next, -1) : next,
+      travelled: along,
+      defect: defectOf(r.state),
+    }
+  }
+  return { ...still, direction: dir }
+}
+
 /** Which spheres carry FREE radii: the middle ones. Empty at degree 3. */
 export function freeRadiusIndices(s: ConformalPHCurve): number[] {
   const n = degreeOf(s)
