@@ -15,6 +15,19 @@
 // side. docs/THE_LATTICE.md keeps that accounting honest, cell by cell.
 //
 // Act I is here. Acts II–IV are mapped at the end of docs/THE_LATTICE.md §3 and this file's tail.
+//
+// PARKED — deliberately deferred so the acts could be built first. Eric's call, and none of these
+// changes any mathematics:
+//
+//   1. ORDERING: plane-first or general-first? Act I is general-first (the (n,1) statement, then the
+//      examples). Plane-first would open with the one-line complex proof and generalise after. Both
+//      defensible; the choice is about how much patience the room has before a payoff.
+//   2. ONE STATIC PICTURE for slide 4 — the cone x² + y² = s² with the parabola drawn on it. The only
+//      place in this deck where a figure would carry its weight. Text for now, by choice.
+//   3. NO OUTLINE SLIDE yet, unlike the ph-interpolation deck. Add once the acts settle; an outline
+//      written before the content is a promise that gets broken.
+//   4. Slide 6's table is inline-styled. Fine for one table; extract a class if a second appears.
+//   5. Subtitle wording, and whether "offered for discussion" stays.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
