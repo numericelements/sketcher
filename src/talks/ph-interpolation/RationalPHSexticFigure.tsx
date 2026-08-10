@@ -12,7 +12,10 @@
 // AND THE COUNT IS NOT ABSTRACT: pinning the C¹ Hermite data at both ends is exactly a slice through
 // the gauge. Twelve rows added to the defining Jacobian leave nullity 2, 4, 6 at degrees 4, 5, 6 —
 // minus the one structurally spurious direction (see below) that is 1, 3, 5 = 2n − 7, with gaps
-// 4.7e9, 3.2e5, 8.4e9. So strict mode holds the data and what is left to move IS the moduli.
+// 4.7e9, 3.2e5, 8.4e9. So strict mode holds the data and what is left to move is FIVE SHAPES —
+// which is 2n−7, a codimension-1 slice of the 2n−6 = 6 moduli, not the moduli themselves. (Corrected:
+// the family is 2n+6 = 18, not 17; the Jacobian's 23-of-24 defect is a redundant EQUATION, not a
+// spurious direction. See conformalPHStructure.test.ts finding 14.)
 //
 // THE FIVE DIALS, and finding them took a measurement. `strictCoordinates` offers the free radii plus
 // the arc length, which is 3 + 1 = 4 here — one short, where degree 5's 2 + 1 = 3 matched by luck.
@@ -188,13 +191,13 @@ export default function RationalPHSexticFigure() {
       notation={[
         'P(t) = Σ Cₖ Bₖ(t) in R^{4,1}, n = 6',
         '⟨P,P⟩ ≡ 0 and ⟨P′,P′⟩ = h²',
-        strict ? '17 − 12 gauge = 5 moduli' : 'ends held — 11 free',
+        strict ? '18 − 12 gauge = 6 moduli' : 'ends held — 14 spare',
       ]}
       readouts={[
         { label: 'on the family', value: defect.toExponential(1), tone: 'ok' as const },
         { label: 'PH: |h/w| vs |p′|', value: speedError.toExponential(1), tone: 'ok' as const },
         { label: 'real roots of w', value: `${denominatorRealRoots(state)} — genuinely sextic`, tone: 'ok' as const },
-        { label: 'dim', value: strict ? '5 of 17 — the moduli' : '17 = 12 gauge + 5' },
+        { label: 'dim', value: strict ? '5 shapes of the 6 moduli' : '3 of 17 asked — 14 spare' },
         ...DIALS.map((d) => ({ label: d.label, value: valueOf(state, d.coordinate).toFixed(3) })),
         { label: 'out of plane', value: shape.outOfPlane.toFixed(3), tone: 'ok' as const },
         { label: 'κ spread', value: shape.curvatureSpread.toFixed(3), tone: 'ok' as const },

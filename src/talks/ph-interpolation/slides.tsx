@@ -689,7 +689,7 @@ export const slides: SlideDefinition[] = [
     type: 'content',
     content: (
       <>
-        <h2>Five moduli, five dials</h2>
+        <h2>Six moduli; the ends spend one, five dials pin the rest</h2>
         <WhenActive>
           <RationalPHSexticFigure />
         </WhenActive>
