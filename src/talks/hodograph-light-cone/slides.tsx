@@ -358,4 +358,234 @@ export const slides: SlideDefinition[] = [
       + 'what it costs and what it buys, which is Acts III and IV: the moduli counts (family 2n+6, moduli '
       + '2n-6) and the measured fact that bending polynomials reaches only a codimension-3 subvariety.',
   },
+
+  // ===========================================================================
+  // ACT II — THE PLANE, WHERE IT IS ONE LINE
+  //
+  // Act I proved Mobius invariance in the conformal model in two lines. This act shows that in the
+  // PLANE it takes ONE, with no conformal model at all — and then shows exactly what breaks when you
+  // go up a dimension, which is what forced the machinery. It ends on the break, deliberately: the
+  // room has already been given the payoff, so a cliffhanger costs nobody anything.
+  // ===========================================================================
+
+  // ---------------------------------------------------------------------------
+  // 8 — Mobius is a linear map
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>In the plane, Möbius is a linear map</h2>
+        <p>
+          Write the curve as a ratio of complex polynomials — <Math>{'z = P/Q'}</Math>, both of degree{' '}
+          <Math>{'n'}</Math>. Then
+        </p>
+        <Math display>
+          {'\\mu(z) = \\frac{az+b}{cz+d} \\qquad\\text{acts as}\\qquad (P, Q) \\;\\longmapsto\\; (aP + bQ,\\; cP + dQ)'}
+        </Math>
+        <p>
+          The matrix is <em>constant</em>, so it acts <strong>coefficient by Bernstein
+          coefficient</strong>. No degree rise. No reparametrisation. The control points and the Farin
+          beads map one for one.
+        </p>
+        <p style={{ marginTop: '1em', opacity: 0.75 }}>
+          Compare the same map on a <em>real</em> rational curve: a Möbius image of a cubic is a{' '}
+          <strong>sextic</strong>, eight control points become fifteen, and the polygon has to be rebuilt
+          from the lift. The complex chart is not a convenience — it is where the group acts by
+          multiplication.
+        </p>
+      </>
+    ),
+    notes:
+      'THE POINT IS THAT LINEARITY IS AVAILABLE HERE AND NOWHERE ELSE SO CHEAPLY. PSL(2,C) is the Mobius '
+      + 'group of the plane, and it acts on the homogeneous pair (P,Q) by an ordinary matrix -- so every '
+      + 'structure built linearly out of P and Q transforms by that matrix and nothing has to be '
+      + 'recomputed. The Farin beads come along because F_i is a weighted average of consecutive control '
+      + 'points, which is linear in the homogeneous representative. '
+      + 'THE CONTRAST IS MEASURED, not rhetorical: on the real rational side a Mobius map turned 8 control '
+      + 'points into 15 (ph-interpolation deck, slide 10). The degree DOUBLES because passing from the '
+      + 'complex model to the real one is z -> P Q-bar / |Q|^2, a quadratic operation -- the same doubling '
+      + 'as the null lift and as A -> A i A-bar. One phenomenon, three appearances; Act I named it. '
+      + 'IF ASKED WHY NOT ALWAYS WORK IN THE COMPLEX CHART: because it only exists in the plane. C is a '
+      + 'field, so P/Q means something; there is no division in R^3.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 9 — the Wronskian, and PH in one line
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>PH in one line</h2>
+        <p>Differentiate the ratio. The numerator is the Wronskian:</p>
+        <Math display>{"M = P'Q - PQ', \\qquad z' = M/Q^2, \\qquad |z'|^2 = \\frac{M\\bar{M}}{(Q\\bar{Q})^2}"}</Math>
+        <p>
+          <Math>{'Q\\bar{Q}'}</Math> is already a real polynomial, so PH asks only that{' '}
+          <Math>{'M\\bar{M}'}</Math> be a perfect square — and it is exactly when
+        </p>
+        <Math display>{'M = h\\,A^2, \\qquad h \\in \\mathbb{R}[t],\\; A \\in \\mathbb{C}[t]'}</Math>
+        <p>Now apply <Math>{'\\mu'}</Math>. The Wronskian is bilinear and alternating, so</p>
+        <Math display>{'\\tilde{M} = \\tilde{P}\'\\tilde{Q} - \\tilde{P}\\tilde{Q}\' = (ad - bc)\\,M = \\lambda M'}</Math>
+        <Math display>{'\\lambda\\, h A^2 = (|\\lambda|\\,h)\\,\\bigl(e^{i\\theta/2}A\\bigr)^2 \\qquad \\lambda = |\\lambda|e^{i\\theta}'}</Math>
+        <p>
+          <strong>Done.</strong> A constant multiple of a square is a square. The only property of the
+          ambient used is that <strong><Math>{'\\mathbb{C}'}</Math> has square roots</strong> — there is
+          no geometry in the argument at all.
+        </p>
+      </>
+    ),
+    notes:
+      'SAY THE LAST SENTENCE TWICE. The proof uses ONE fact about the scalars: square roots exist. That is '
+      + 'why this argument does not survive going up a dimension, and slide 11 is where that is made '
+      + 'precise. '
+      + 'ON h: generically h = 1 and the figures enforce M = A^2 exactly -- that is the residual the 2D '
+      + 'figure displays. The h is there for honesty, since M = t^2 + 1 is PH without being a square '
+      + '(|M| = t^2+1 is a polynomial). The general characterisation is the multiplicity condition: for '
+      + 'each non-real root z of M, the multiplicity of z plus that of z-bar is even. Marked as a claim '
+      + 'rather than a citation -- the sufficient direction is the one line above and is what we use. '
+      + 'MEASURED, and this is worth quoting because it is the act headline: apply a rotation-scaling, a '
+      + 'translation, an INVERSION, and a generic Mobius map to a solved cubic and M - A^2 stays at 1e-15 '
+      + 'with A only multiplied by sqrt(det) -- never re-solved. Irreducibility survives too, and the '
+      + 'image really is the pointwise Mobius image to 6.9e-16. core/complexRationalPHCubic mobiusImage, '
+      + 'pinned in complexRationalPHCubic.test.ts. '
+      + 'AND M REALLY HAS DEGREE 2n-2: the top coefficient cancels identically, measured, so for a cubic M '
+      + 'is a quartic and A a quadratic. That is why the PH condition is 5 complex coefficients.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10 — what the chart costs, and how many answers
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>What it costs, and how many answers there are</h2>
+        <p>
+          The chart is <em>points and beads</em>, and it is a bijection: four control points and three
+          Farin beads,
+        </p>
+        <Math display>
+          {'\\frac{w_{k+1}}{w_k} = \\frac{q_k - Z_k}{Z_{k+1} - q_k} \\qquad\\Longrightarrow\\qquad 4 + 3 = 7 \\text{ complex} = 14 \\text{ real}'}
+        </Math>
+        <p>
+          PH costs <strong>4</strong>, leaving a <strong>10</strong>-dimensional family. Quotient by
+          Möbius (6) and by the reparametrisation (1) and the shapes number <strong>3</strong>.
+        </p>
+        <p style={{ marginTop: '1em' }}>
+          And over a fixed polygon with one bead prescribed there are <strong>two</strong> algebraic
+          solutions — of which <strong>one</strong> is a curve. The other has <Math>{'P'}</Math> and{' '}
+          <Math>{'Q'}</Math> sharing a quadratic factor: a cubic coat over a{' '}
+          <strong>circular arc</strong>, trivially PH, and a whole positive-dimensional family of
+          representations of it.
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          Which is why it does not move when you drag a control point — seen on screen before it was
+          understood.
+        </p>
+      </>
+    ),
+    notes:
+      'THE REDUCIBLE BRANCH WAS FOUND BY EYE, and the story is worth telling because it is how the '
+      + 'reducibility test came to exist. Eric noticed that moving one control point moved one of the two '
+      + 'branches and not the other. A branch that does not respond to a control point is a branch whose '
+      + 'representation is not rigid: P and Q share a factor, z = P/Q is really degree ONE, and the cubic '
+      + 'representations of a given circular arc form a positive-dimensional family. So the ALGEBRAIC '
+      + 'count is 2 and the GEOMETRIC count is 1. core/complexRationalPHCubic reducibility, and the test '
+      + 'asserts exactly one of the two is reducible, across three different polygons. '
+      + 'CONTRAST WITH THE POLYNOMIAL CASE deliberately: the planar polynomial three-point problem has TWO '
+      + 'genuine solutions (deck one, slide 3) because its equations are quadratic. Here the second root '
+      + 'is degenerate instead. Same "finitely many", different bookkeeping. '
+      + 'DO NOT CLAIM 3 IS A NEW NUMBER. It is 10 - 6 - 1 and every term is elementary; what is measured '
+      + 'is the 10, i.e. that PH really costs 4 and not 3 or 5.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 11 — why the plane is easy: the cone factors
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Why the plane is easy: the cone factors</h2>
+        <p>Over <Math>{'\\mathbb{C}'}</Math>, the planar norm form splits into two <em>linear</em> factors:</p>
+        <Math display>{'x^2 + y^2 = (x + iy)(x - iy)'}</Math>
+        <p>
+          So the isotropic locus is a <strong>pair of lines</strong>, and choosing a square root is a{' '}
+          <strong>discrete</strong> choice — a sign. That is the whole reason slide 9 fits on one line and
+          the reason the answers come in finite numbers.
+        </p>
+        <p style={{ marginTop: '1em' }}>One dimension up, it stops:</p>
+        <Math display>{'x^2 + y^2 + z^2 \\quad\\text{does not factor} \\qquad \\text{— the isotropic cone in } \\mathbb{C}^3 \\text{ is IRREDUCIBLE}'}</Math>
+        <p>
+          There is no linear factorisation to take a root of. The choice is no longer a sign but a{' '}
+          <strong>spinor</strong>, and the spinor carries a continuous phase.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS THE HINGE OF THE WHOLE TALK, and it is one algebraic fact. In two variables the '
+      + 'quadratic form is a product of linear forms, so the "square root" is a choice among finitely many '
+      + 'branches. In three it is not, and the classical fix -- the Hopf map, A i A-bar -- is exactly a '
+      + 'parametrisation of an irreducible quadric by a spinor, which is Act I slide 5. '
+      + 'THE CONSEQUENCE IS NOT A LOSS OF PROOF, IT IS A CHANGE OF SHAPE. In the plane the ambiguity is '
+      + 'discrete: two solutions, four solutions. In space the ambiguity is a circle, because the spinor '
+      + 'phase A -> A e^{i theta} leaves A i A-bar alone. Every positive-dimensional solution family in '
+      + 'the spatial PH literature traces to that one circle. That is Act III and it is where this talk '
+      + 'stops being a reframing. '
+      + 'IF ASKED ABOUT C^2 VERSUS R^2: the factorisation needs i, so it is a statement about the form '
+      + 'over C. Over R the planar form is definite and has no isotropic vectors at all besides zero -- '
+      + 'which is why the complex chart, not the real one, is where the plane looks easy.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 12 — the cliffhanger
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>So the ambiguity changes shape</h2>
+        <table style={{ margin: '0 auto', borderCollapse: 'collapse', fontSize: '0.9em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.3em 1.2em', textAlign: 'left' }} />
+              <th style={{ padding: '0.3em 1.2em', textAlign: 'left' }}>the square root is</th>
+              <th style={{ padding: '0.3em 1.2em', textAlign: 'left' }}>so the answers are</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1.2em' }}>the plane</td>
+              <td style={{ padding: '0.3em 1.2em' }}>a <strong>sign</strong></td>
+              <td style={{ padding: '0.3em 1.2em' }}>finitely many curves</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1.2em' }}>space</td>
+              <td style={{ padding: '0.3em 1.2em' }}>a <strong>spinor phase</strong></td>
+              <td style={{ padding: '0.3em 1.2em' }}>a circle… an ellipse… a torus</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '1.4em' }}>
+          The interpolation problem has not changed. The <em>number</em> of answers has stopped being a
+          number.
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          What decides the shape is not the data and not the degree.
+        </p>
+      </>
+    ),
+    notes:
+      'END HERE AND STOP TALKING. The room has already been given Mobius invariance (Act I, slide 7), so '
+      + 'nobody leaves without a payoff -- which is what makes it safe to end an act on a question. '
+      + 'THE ANSWER, FOR YOUR OWN CONFIDENCE, is Act III: what decides the shape is the GAUGE GROUP of the '
+      + 'spinor representation, and the fiber of "forget the spinor, keep the curve" IS that group. Z/2 in '
+      + 'the plane, so finite. S^1 in space, so circles and tori. Non-compact in the conformal model, so '
+      + 'open roads that run to a degeneration instead of closing. Both ends of that are measured in this '
+      + 'repository -- the closed spatial cubic fiber with constant arc length, and the conformal road '
+      + 'whose backward end is a weight degeneration at 0.19 whatever the step budget. '
+      + 'DO NOT PREVIEW IT. The table on this slide is the question; a listener who works out the answer '
+      + 'themselves during the break is worth more than one who was told.',
+  },
 ]

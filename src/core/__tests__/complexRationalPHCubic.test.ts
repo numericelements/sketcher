@@ -436,4 +436,48 @@ describe('how each branch responds to each control point', () => {
     console.log(`    so ${reducible.length} of ${both.length} is reducible: the GENUINE count is ${both.length - reducible.length}`)
     expect(reducible.length, 'exactly one of the two is a lower-degree curve in disguise').toBe(1)
   }, 120_000)
+  it('MOBIUS PRESERVES PH, and the only thing used is that C has square roots', () => {
+    // Act II's headline, made executable. Mobius acts linearly on the homogeneous pair, the Wronskian
+    // is bilinear and alternating so M -> (ad-bc)M, and a constant multiple of a square is a square:
+    // lambda*A^2 = (sqrt(lambda)*A)^2. Nothing geometric is used, only that the scalars have square
+    // roots -- which is exactly what fails one signature up, where the isotropic cone stops factoring.
+    const Z = [C(-1.9, -0.6), C(-1.2, 1.0), C(0.4, 1.1), C(1.1, -0.6)]
+    const q0 = C(-1.55, 0.2)
+    const start = core.solveIrreducibleFromFarin(Z, 0, q0)
+    expect(start, 'a genuine cubic to transform').not.toBeNull()
+    const before = start as core.ComplexRationalPHCubic
+    const MAPS: [string, core.MobiusMap][] = [
+      ['a rotation-scaling  z -> (1+i)z', { a: C(1, 1), b: C(0), c: C(0), d: C(1) }],
+      ['a translation       z -> z + (0.4-0.3i)', { a: C(1), b: C(0.4, -0.3), c: C(0), d: C(1) }],
+      ['an inversion        z -> 1/z', { a: C(0), b: C(1), c: C(1), d: C(0) }],
+      ['a generic Mobius', { a: C(0.7, -0.2), b: C(-0.35, 0.9), c: C(0.15, 0.4), d: C(1.1, 0.25) }],
+    ]
+    for (const [name, m] of MAPS) {
+      const after = core.mobiusImage(before, m)
+      expect(after, `${name}: the image exists`).not.toBeNull()
+      const img = after as core.ComplexRationalPHCubic
+      // The image is still exactly PH -- and A was not re-solved, only multiplied by sqrt(det)/w0-tilde.
+      console.log(
+        `    ${name.padEnd(40)} M - A^2: ${core.phResidual(before).toExponential(1)}` +
+          ` -> ${img.residual.toExponential(1)}   coprime ${core.reducibility(img).toExponential(1)}`,
+      )
+      expect(img.residual, `${name}: still exactly PH, with A only rescaled`).toBeLessThan(1e-9)
+      // And it is still a genuine cubic, not a lower-degree curve in a cubic coat.
+      expect(core.reducibility(img), `${name}: irreducibility survives`).toBeGreaterThan(1e-6)
+    }
+
+    // The image really is the pointwise Mobius image of the curve, so nothing above is vacuous.
+    const m = MAPS[3][1]
+    const img = core.mobiusImage(before, m) as core.ComplexRationalPHCubic
+    let worst = 0
+    for (const t of [0.1, 0.3, 0.5, 0.7, 0.9]) {
+      const z = core.curveAt(before, t)
+      const got = core.curveAt(img, t)
+      if (!z || !got) continue
+      const want = cdiv(cadd(cmul(m.a, z), m.b), cadd(cmul(m.c, z), m.d))
+      worst = Math.max(worst, cnorm(csub(got, want)) / Math.max(cnorm(want), 1e-12))
+    }
+    console.log(`    and image(t) = mu(curve(t)) pointwise to ${worst.toExponential(1)}`)
+    expect(worst, 'the transformed cubic IS the Mobius image, pointwise').toBeLessThan(1e-12)
+  }, 120_000)
 })

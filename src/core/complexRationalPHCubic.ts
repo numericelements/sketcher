@@ -134,6 +134,76 @@ export function reducibility(c: ComplexRationalPHCubic): number {
   return Math.min(...roots.map((r) => cnorm(evalAt(P, r)))) / Math.max(scale, 1e-300)
 }
 
+/**
+ * The PH condition itself, as a number: max |coeff(M − A²)| relative to the scale of M.
+ *
+ * Exported because it is the quantity the theory deck's Act II is about, and a claim about it should
+ * be checkable from outside this file rather than trusted.
+ */
+export function phResidual(c: ComplexRationalPHCubic): number {
+  const P = toPower(c.Z.map((z, k) => cmul(c.w[k], z)))
+  const Q = toPower(c.w)
+  const M = Array.from({ length: 5 }, (_, k) =>
+    csub(mulPoly(deriv(P), Q)[k] ?? C(0), mulPoly(P, deriv(Q))[k] ?? C(0)),
+  )
+  const scale = Math.max(...M.map(cnorm), 1e-300)
+  return Math.max(...residualOf(c.Z, c.w, c.A).map(cnorm)) / scale
+}
+
+export interface MobiusMap {
+  readonly a: Complex
+  readonly b: Complex
+  readonly c: Complex
+  readonly d: Complex
+}
+
+/** The principal square root — the phase a Möbius map hands to A. */
+const csqrt = (z: Complex): Complex => {
+  const r = Math.sqrt(cnorm(z))
+  const half = Math.atan2(z.im, z.re) / 2
+  return { re: r * Math.cos(half), im: r * Math.sin(half) }
+}
+
+/**
+ * A Möbius transformation of a complex-rational PH cubic — and the whole of Act II in one function.
+ *
+ * μ(z) = (az+b)/(cz+d) acts LINEARLY on the homogeneous pair, coefficient by Bernstein coefficient,
+ * because the matrix is constant:
+ *
+ *     (P, Q)  ↦  (aP + bQ,  cP + dQ)
+ *
+ * No degree rise and no reparametrisation — contrast the real model, where a Möbius image of a cubic
+ * is a sextic and the control polygon has to be rebuilt from the lift.
+ *
+ * AND PH SURVIVES, in one line. The Wronskian is bilinear and alternating, so
+ *
+ *     M̃ = P̃′Q̃ − P̃Q̃′ = (ad − bc)·M = λM
+ *
+ * and a constant multiple of a square is a square, because ℂ has square roots: λA² = (√λ·A)². The
+ * only property of the ambient used is that the scalars are closed under square roots — there is no
+ * geometry in it at all. Renormalising to w₀ = 1 divides P and Q by Q̃₀, and M is bilinear, so it
+ * divides M by Q̃₀² and A by Q̃₀.
+ *
+ * Returns null when a Bernstein weight of the image vanishes, since Zₖ = P̃ₖ/Q̃ₖ is then not a point.
+ */
+export function mobiusImage(curve: ComplexRationalPHCubic, m: MobiusMap): ComplexRationalPHCubic | null {
+  const P = curve.Z.map((z, k) => cmul(curve.w[k], z))
+  const Q = curve.w
+  const Pt = P.map((p, k) => cadd(cmul(m.a, p), cmul(m.b, Q[k])))
+  const Qt = P.map((p, k) => cadd(cmul(m.c, p), cmul(m.d, Q[k])))
+  const scale = Math.max(...Qt.map(cnorm))
+  if (!(scale > 0) || Qt.some((q) => cnorm(q) < 1e-9 * scale)) return null
+
+  const norm = Qt[0]
+  const w = Qt.map((q) => cdiv(q, norm))
+  const Z = Pt.map((p, k) => cdiv(p, Qt[k]))
+  const lambda = csub(cmul(m.a, m.d), cmul(m.b, m.c))
+  const factor = cdiv(csqrt(lambda), norm)
+  const A = curve.A.map((a) => cmul(factor, a))
+  const image: ComplexRationalPHCubic = { Z, w, A, residual: curve.residual }
+  return { ...image, residual: phResidual(image) }
+}
+
 // --- the solve ----------------------------------------------------------------
 /** The weight ratio an edge's Farin point prescribes. */
 export const ratioFromFarin = (Za: Complex, Zb: Complex, q: Complex): Complex | null => {
