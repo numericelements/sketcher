@@ -842,6 +842,45 @@ export function slideLocus(
   return { ...still, direction: dir }
 }
 
+/**
+ * The leftover dimension, SAMPLED: the states either side of `from` along control point `index`'s
+ * locus, in order, with `from` somewhere inside.
+ *
+ * This is what makes the leftover dimension drawable instead of abstract. With five of the seven
+ * control points held, P₂ is confined to a CURVE in space and P₄ runs along with it; sampling the
+ * family gives both roads from one walk, since each sample is a whole curve and the caller reads
+ * whichever points it wants off it. Measured (conformalPHStructure.test.ts): 36 samples, arc 1.65
+ * against a polygon span of 1.45, chord/arc 0.83 — genuinely curved, so a drawn road says something —
+ * and P₄ travels 1.20 of it while P₂ travels 1.65.
+ *
+ * Each sample costs a solve, so this is for a settled state, not for every frame.
+ */
+export function locusSamples(
+  from: ConformalPHCurve,
+  index: number,
+  pin: readonly number[],
+  options: { steps?: number; bite?: number } = {},
+): ConformalPHCurve[] {
+  const steps = options.steps ?? 20
+  const bite = options.bite ?? 0.04 * Math.max(
+    ...controlPoints(from).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)),
+  )
+  const walk = (direction: number): ConformalPHCurve[] => {
+    const out: ConformalPHCurve[] = []
+    let cur = from
+    let dir: Vec3 | null = locusDirection(cur, index, pin)
+    for (let k = 0; k < steps; k++) {
+      const r = slideLocus(cur, index, pin, bite * direction, { orient: dir })
+      if (!(Math.abs(r.travelled) > 1e-9)) break
+      cur = r.state
+      dir = r.direction
+      out.push(cur)
+    }
+    return out
+  }
+  return [...walk(-1).reverse(), from, ...walk(+1)]
+}
+
 /** Which spheres carry FREE radii: the middle ones. Empty at degree 3. */
 export function freeRadiusIndices(s: ConformalPHCurve): number[] {
   const n = degreeOf(s)

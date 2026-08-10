@@ -351,6 +351,7 @@ import { controlPoints as phControlPoints, squareWeights, type SpatialPHCurve } 
 import {
   type ConformalPHCurve,
   dragControlPoint,
+  dragAlongLocus,
   type StrictCoordinate,
   arcLength,
   controlPoints,
@@ -364,6 +365,7 @@ import {
   findMember,
   freeRadiusIndices,
   locusDirection,
+  locusSamples,
   slideLocus,
   radii,
   speedAt,
@@ -2403,6 +2405,122 @@ describe('the space of conformal PH curves', () => {
       expect(pinMove, 'slider: the five held points really are held').toBeLessThan(1e-6)
       expect(travelled, 'slider: the leftover dimension really is reachable').toBeGreaterThan(span * 0.1)
     }
+  }, 300_000)
+
+  it('FREE mode: which pins does dragging all seven need?', () => {
+    // Slide 16 wants a free mode where every control point moves. Two arrangements are plausible and
+    // the difference is whether the two ENDS stay pinned: with them pinned the drag has 15 spare
+    // dimensions and minimum norm spends them, which is the arrangement already proven on the older
+    // sextic figure; with nothing pinned the whole curve may also translate, so a drag can be answered
+    // by sliding the rest of the curve out of the way instead of reshaping — good tracking that means
+    // less. Measured here so the choice is not a guess.
+    const start = sexticSeed()
+    const span = Math.max(...controlPoints(start).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)))
+    for (const arrangement of ['ends pinned', 'nothing pinned'] as const) {
+      const rows: string[] = []
+      for (let idx = 0; idx <= 6; idx++) {
+        const p0 = controlPoints(start)[idx]
+        let cur = start
+        let asked = 0
+        let stalled = -1
+        for (let k = 1; k <= 10; k++) {
+          asked = span * 0.06 * k
+          const target = { x: p0.x + asked, y: p0.y + 0.5 * asked, z: p0.z - 0.3 * asked }
+          const r = dragControlPoint(cur, idx, target,
+            arrangement === 'ends pinned' ? { pinEnds: true } : { pin: [] })
+          if (!r.converged) { stalled = k; break }
+          cur = r.state
+        }
+        const moved = vnorm(vsub(controlPoints(cur)[idx], p0))
+        const wanted = asked * Math.hypot(1, 0.5, 0.3)
+        // How much of the answer was the REST of the curve moving, which is what "free" is for.
+        const others = Math.max(...controlPoints(cur).map((p, i) =>
+          (i === idx ? 0 : vnorm(vsub(p, controlPoints(start)[i])))))
+        rows.push(
+          `P${idx} ${((moved / Math.max(wanted, 1e-12)) * 100).toFixed(0).padStart(3)}%` +
+            ` others ${others.toFixed(2)}${stalled > 0 ? ` stall@${stalled}` : ''}`,
+        )
+        expect(relResidual(cur), `${arrangement} P${idx}: stays on the family`).toBeLessThan(1e-9)
+      }
+      console.log(`    ${arrangement.padEnd(15)}  ${rows.join('   ')}`)
+    }
+  }, 300_000)
+
+  it('WHAT THE SLIDER IS: the grey point P2 runs along a LOCUS, and we can draw it', () => {
+    // The slider rides an abstract tangent, and it feels abstract. But the leftover dimension has a
+    // completely concrete picture: with the five held, P₂ is confined to a CURVE in space and P₄
+    // follows it. If that curve can be sampled, it can be DRAWN, and then the gesture is not a slider
+    // at all — you push the grey point and it slides along the only road available, which is slide 4's
+    // gesture one dimension up.
+    //
+    // Measured here: how far the locus runs each way, how curved it is (a straight locus would make a
+    // drawn line pointless), and how far P₄ travels while P₂ does — the coupling the audience sees.
+    const TOUCH = [0, 1, 3, 5, 6]
+    const start = sexticSeed()
+    const span = Math.max(...controlPoints(start).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)))
+    // The core helper the figure draws from, so the road on screen IS the quantity measured here.
+    const road = locusSamples(start, 2, TOUCH, { steps: 24, bite: span * 0.04 })
+    const pts = road.map((s) => controlPoints(s)[2])
+    const p4 = road.map((s) => controlPoints(s)[4])
+    // Every sample must be a member with the five still held, or the drawn road is a lie.
+    for (const s of road) {
+      expect(relResidual(s), 'every sample of the road is a member').toBeLessThan(1e-9)
+      expect(
+        Math.max(...TOUCH.map((i) => vnorm(vsub(controlPoints(s)[i], controlPoints(start)[i])))),
+        'every sample of the road holds the five',
+      ).toBeLessThan(1e-6)
+    }
+    const at = road.indexOf(start)
+    // Straightness: the chord over the arc. 1 is a straight segment; well below 1 is a curve worth drawing.
+    const chord = vnorm(vsub(pts[pts.length - 1], pts[0]))
+    const arc = pts.slice(1).reduce((acc, p, i) => acc + vnorm(vsub(p, pts[i])), 0)
+    const p4arc = p4.slice(1).reduce((acc, p, i) => acc + vnorm(vsub(p, p4[i])), 0)
+    const lengthTo = (from: number, to: number): number =>
+      pts.slice(Math.min(from, to) + 1, Math.max(from, to) + 1)
+        .reduce((acc, p, i) => acc + vnorm(vsub(p, pts[Math.min(from, to) + i])), 0)
+    console.log(
+      `    the locus of P2: ${pts.length} samples, ${lengthTo(0, at).toFixed(2)} back + ` +
+        `${lengthTo(at, pts.length - 1).toFixed(2)} forward (span ${span.toFixed(2)})` +
+        `   chord/arc ${(chord / Math.max(arc, 1e-12)).toFixed(3)}` +
+        `   P4 travels ${p4arc.toFixed(2)} while P2 travels ${arc.toFixed(2)}`,
+    )
+    expect(pts.length, 'the locus is sampleable in both directions').toBeGreaterThan(6)
+    expect(arc, 'the locus is long enough to be worth drawing').toBeGreaterThan(span * 0.2)
+
+    // And the natural gesture: push P₂ with a cursor OFF the locus. The point should slide along the
+    // road and get as close to the cursor as the road allows — no orientation to carry, no re-seating.
+    const dir0 = locusDirection(start, 2, TOUCH)!
+    const p2 = controlPoints(start)[2]
+    // A cursor 60° off the locus, so this is a genuine oblique push and not a tangent step in disguise.
+    const off = { x: dir0.y, y: -dir0.x, z: 0 }
+    const offNorm = vnorm(off)
+    const push = {
+      x: 0.5 * dir0.x + 0.866 * off.x / offNorm,
+      y: 0.5 * dir0.y + 0.866 * off.y / offNorm,
+      z: 0.5 * dir0.z + 0.866 * off.z / offNorm,
+    }
+    let cur = start
+    let travelled = 0
+    for (let k = 0; k < 10; k++) {
+      const here = controlPoints(cur)[2]
+      const target = { x: here.x + span * 0.08 * push.x, y: here.y + span * 0.08 * push.y, z: here.z + span * 0.08 * push.z }
+      const r = dragAlongLocus(cur, 2, target, { pin: TOUCH, maxStep: 0.06 })
+      if (!r.converged) break
+      const step = vnorm(vsub(controlPoints(r.state)[2], here))
+      if (step < 1e-9) break
+      cur = r.state
+      travelled += step
+    }
+    const pinMove = Math.max(...TOUCH.map((i) =>
+      vnorm(vsub(controlPoints(cur)[i], controlPoints(start)[i]))))
+    console.log(
+      `    an OBLIQUE push (60° off the locus): P2 slid ${travelled.toFixed(3)}` +
+        `   pinned moved ${pinMove.toExponential(1)}   residual ${relResidual(cur).toExponential(1)}` +
+        `   net displacement ${vnorm(vsub(controlPoints(cur)[2], p2)).toFixed(3)}`,
+    )
+    expect(pinMove, 'the oblique push still holds the five').toBeLessThan(1e-6)
+    expect(relResidual(cur), 'the oblique push stays on the family').toBeLessThan(1e-9)
+    expect(travelled, 'an oblique cursor still drives the grey point along its road').toBeGreaterThan(span * 0.05)
   }, 300_000)
 
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
