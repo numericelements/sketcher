@@ -2523,6 +2523,52 @@ describe('the space of conformal PH curves', () => {
     expect(travelled, 'an oblique cursor still drives the grey point along its road').toBeGreaterThan(span * 0.05)
   }, 300_000)
 
+  it('the two ENDS of the road, and why a zero radius is not one of them', () => {
+    // The slider spans the drawn road, so what the road's ends ARE is on screen and has to be right.
+    // An earlier reading said the road stopped where a sphere radius reached zero — a point-sphere
+    // boundary. That is wrong, and this pins the correction.
+    const TOUCH = [0, 1, 3, 5, 6]
+    const start = sexticSeed()
+    const span = Math.max(...controlPoints(start).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)))
+    const noPole = (s: ConformalPHCurve): boolean => denominatorRealRoots(s) === 0
+    const measure = (steps: number) => {
+      const road = locusSamples(start, 2, TOUCH, { steps, bite: span * 0.05, admissible: noPole })
+      const pts = road.map((s) => controlPoints(s)[2])
+      const at = road.indexOf(start)
+      const len = (a: number, b: number): number =>
+        pts.slice(a + 1, b + 1).reduce((acc, p, i) => acc + vnorm(vsub(p, pts[a + i])), 0)
+      return { road, back: len(0, at), forward: len(at, road.length - 1), budget: steps * span * 0.05 }
+    }
+    const small = measure(24), large = measure(60)
+    console.log(
+      `    backward: ${small.back.toFixed(2)} on a budget of ${small.budget.toFixed(2)}, ` +
+        `${large.back.toFixed(2)} on ${large.budget.toFixed(2)}  <- the SAME, so it is a wall` +
+        `\n      its weights: [${weights(small.road[0]).map((v) => v.toFixed(1)).join(', ')}]` +
+        `  (projectively w₀ -> 0, slide 13's asymptotic wall)` +
+        `\n    forward:  ${small.forward.toFixed(2)} on ${small.budget.toFixed(2)}, ` +
+        `${large.forward.toFixed(2)} on ${large.budget.toFixed(2)}  <- grows with the budget, so NOT a wall`,
+    )
+    // BACKWARD is a genuine end: more budget buys nothing.
+    expect(Math.abs(large.back - small.back), 'the backward end is a wall, not a step cap')
+      .toBeLessThan(0.05 * span)
+    // FORWARD is only the step cap: more budget buys more road.
+    expect(large.forward, 'the forward road does not end within any budget we draw')
+      .toBeGreaterThan(1.4 * small.forward)
+
+    // AND THE CORRECTION: a radius passes through zero and comes out negative, with the curve still a
+    // member at machine-zero residual. ⟨C,C⟩ < 0 is an imaginary sphere — a coordinate event.
+    const rho2 = large.road.map((s) => radii(s)[2])
+    const signChanges = rho2.slice(1).filter((v, i) => v * rho2[i] < 0).length
+    const worst = Math.max(...large.road.map((s) => relResidual(s)))
+    console.log(
+      `    ρ₂ along the road: ${rho2[0].toFixed(2)} -> ${rho2[rho2.length - 1].toFixed(2)}` +
+        `, ${signChanges} sign change(s), worst residual over the whole road ${worst.toExponential(1)}` +
+        `   <- passing through a point-sphere is NOT a boundary`,
+    )
+    expect(signChanges, 'ρ₂ crosses zero on the road rather than stopping there').toBeGreaterThan(0)
+    expect(worst, 'and every curve on the road is still a member').toBeLessThan(1e-8)
+  }, 300_000)
+
   it('the strata and the moduli count, at degree 4 and degree 6', () => {
     for (const n of [4, 6]) {
       const s = findMember(n, {

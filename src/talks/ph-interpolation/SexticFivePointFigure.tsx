@@ -23,19 +23,33 @@
 // THE LEFTOVER DIMENSION IS A ROAD, and that is the second version of this figure. The first spent it
 // on an abstract slider, which is what it felt like. But the dimension has a concrete picture: with
 // the five held, P₂ is confined to a CURVE in space and P₄ runs along with it. So the road is DRAWN
-// (locusSamples — measured: 36 samples, arc 1.65 against a polygon span of 1.45, chord/arc 0.83, so it
-// is genuinely curved and worth drawing) and the gesture is to PUSH the grey point along it. Measured:
-// a cursor 60° off the road still slides P₂ 1.50 along it with the five held to 2e-15. No slider, no
-// orientation to carry, no re-seating — and it is slide 4's gesture one dimension up.
+// (locusSamples — measured: 33 samples, arc 1.80 against a polygon span of 1.45, chord/arc 0.83, so it
+// is genuinely curved and worth drawing) and there are TWO ways to travel it: PUSH the grey point —
+// measured, a cursor 60° off the road still slides P₂ 1.50 along it with the five held to 2e-15 — or
+// use the slider, which indexes the samples that are already drawn and so costs NO solve at all. The
+// slider is the one thing a road cannot do on its own: it moves the point without a hand on it, which
+// is what a presenter needs.
 //
-// WHY NOT A NAMED QUANTITY, which took a measurement to learn. With all five held, ρ₂ is CONSTANT
-// along the road (a dead dial, 0% both ways), while ρ₃, ρ₄ and the total arc length each sit at a FOLD,
-// running one way and stalling or reversing the other. A fold is where a readout stops being a
-// coordinate; it is not a solver defect. The road has no such problem: it is the family's own shape.
+// WHY THE SLIDER IS NOT A NAMED QUANTITY, which took a measurement to learn. With all five held, ρ₂ is
+// CONSTANT along the road (a dead dial, 0% both ways), while ρ₃, ρ₄ and the total arc length each sit
+// at a FOLD, running one way and stalling or reversing the other. A fold is where a readout stops being
+// a coordinate; it is not a solver defect. Position along the road has no such problem, because the
+// road is the family's own shape rather than a function on it.
 //
-// The road ends where the family does — ρ₄ falls toward zero going one way, and a sphere of zero
-// radius is a point-sphere. That is a boundary, not a stall, and the drawn road shows it as an end
-// rather than reporting it in words.
+// THE TWO ENDS ARE DIFFERENT, and one earlier reading of them was wrong (measured, and the correction
+// is recorded in locusSamples):
+//
+//   · BACKWARD is a real wall at 0.19 whatever the step budget — a weight degeneration, the weights
+//     running to (1, 4.1, 11.7, 20.9, 142.9, 95.5, 43.5), which projectively is w₀ → 0. That is slide
+//     13's asymptotic wall met from a different direction.
+//   · FORWARD does not end: 1.61 travelled on a budget of 1.74, 3.06 on a budget of 4.34. The road
+//     drawn here is a generous stretch of it, not the whole thing, and the slider spans what is drawn.
+//
+// A RADIUS REACHING ZERO IS NOT AN END. ρ₂ passes through 0 and comes out NEGATIVE — ⟨C,C⟩ < 0, an
+// imaginary sphere — while the curve stays a perfectly good member at machine-zero residual. An earlier
+// version of this file called that a point-sphere boundary; it is a coordinate event, not a boundary.
+// What the road IS declined to walk past is a denominator with a real root, since that is a curve with
+// a pole; measured, that does not happen within the drawn stretch either.
 //
 // FREE MODE holds NOTHING, which was measured against the alternative (ends pinned): all seven points
 // track the cursor to 100% either way, and with nothing pinned the rest of the curve answers more
@@ -110,12 +124,54 @@ const RADIUS_LABELS = freeRadiusIndices(START).map((index) => ({
 }))
 
 /**
- * How the road is sampled. Each sample is a solve, so this is the one place a settle costs time:
- * 14 steps either way at 6% of the span, which is enough to reach both ends of the measured locus.
+ * How the road is sampled. Each sample is a solve, so this is the one place a settle costs time —
+ * measured at ~470 ms for the 33 samples this gives, and the admissibility guard is ~40 ms of that,
+ * so refusing to walk past a pole is nearly free. The sample count is also the slider's granularity:
+ * 33 notches over an arc of 1.80 is a step of 0.055, about 4% of the polygon span.
  */
-const ROAD = { steps: 14, bite: SPAN * 0.06 }
+const ROAD = { steps: 24, bite: SPAN * 0.05 }
 
 type Mode = 'strict' | 'free'
+
+/**
+ * The drawn road, its two tracks, and where on it we are. One walk gives both tracks, since each
+ * sample is a whole curve and the points are read off it.
+ *
+ * Held as ONE piece of state and rebuilt only at settle points (mount, releasing a handle, entering
+ * strict, reset) rather than in a memo, so the half-second it costs lands exactly where intended and
+ * never inside a drag.
+ */
+interface Road {
+  states: ConformalPHCurve[]
+  tracks: [number, number, number][][]
+  index: number
+}
+
+const buildRoad = (s: ConformalPHCurve): Road => {
+  const states = locusSamples(s, RIDER, TOUCH, {
+    ...ROAD,
+    // A denominator with a real root is a curve with a pole, so the road stops rather than drawing
+    // one. This is the same quantity the "real roots of w" readout shows.
+    admissible: (t) => denominatorRealRoots(t) === 0,
+  })
+  return {
+    states,
+    tracks: GREY.map((i) => states.map((t) => tri(controlPoints(t)[i]))),
+    index: Math.max(0, states.indexOf(s)),
+  }
+}
+
+/** Where a hand-pushed grey point has landed, in road samples. */
+const nearestOnRoad = (road: Road, s: ConformalPHCurve): number => {
+  const here = controlPoints(s)[RIDER]
+  let best = road.index
+  let bestGap = Infinity
+  road.states.forEach((t, i) => {
+    const gap = vnorm(vsub(controlPoints(t)[RIDER], here))
+    if (gap < bestGap) { bestGap = gap; best = i }
+  })
+  return best
+}
 
 export default function SexticFivePointFigure() {
   const [mode, setMode] = useState<Mode>('strict')
@@ -123,12 +179,12 @@ export default function SexticFivePointFigure() {
   const [grabbed, setGrabbed] = useState<number | null>(null)
   const [stalled, setStalled] = useState(false)
   /**
-   * The state the road was drawn from. Dragging a HANDLE lands on a different road, so it is redrawn
-   * when the handle is released — not per frame, since each sample costs a solve. Pushing a GREY point
-   * travels along the road that is already drawn, so it leaves this alone and the road stays put under
-   * the point, which is the whole visual point of drawing it.
+   * Dragging a HANDLE lands on a different road, so it is rebuilt when the handle is released — not per
+   * frame, since each sample costs a solve. Pushing a GREY point travels the road already drawn, so it
+   * only updates the index, and the road stays put under the point — which is the whole visual point of
+   * drawing it.
    */
-  const [settled, setSettled] = useState<ConformalPHCurve>(START)
+  const [road, setRoad] = useState<Road>(() => buildRoad(START))
 
   const strict = mode === 'strict'
 
@@ -136,14 +192,6 @@ export default function SexticFivePointFigure() {
   const beads = useMemo(() => farinPoints(state), [state])
   const curvePts = useMemo(() => sampleCurve(state, CURVE_SAMPLES).map(tri), [state])
   const rs = useMemo(() => radii(state), [state])
-
-  /** One walk gives BOTH roads, since each sample is a whole curve. */
-  const roads = useMemo(() => {
-    if (!strict) return null
-    const road = locusSamples(settled, RIDER, TOUCH, ROAD)
-    if (road.length < 3) return null
-    return GREY.map((i) => road.map((s) => tri(controlPoints(s)[i])))
-  }, [settled, strict])
 
   const speedError = useMemo(() => {
     let w = 0
@@ -162,10 +210,12 @@ export default function SexticFivePointFigure() {
     setStalled(false)
   }
 
-  /** A handle drag changed which road exists; a grey push did not. */
+  /** A handle drag changed which road exists; a grey push only changed where on it we are. */
   const drop = (i: number) => (): void => {
     setGrabbed(null)
-    if (strict && !GREY.includes(i)) setSettled(state)
+    if (!strict) return
+    if (GREY.includes(i)) setRoad((r) => ({ ...r, index: nearestOnRoad(r, state) }))
+    else setRoad(buildRoad(state))
   }
 
   /** Drag a HANDLE: strict holds the other four, free holds nothing at all. */
@@ -181,9 +231,20 @@ export default function SexticFivePointFigure() {
     if (step.converged) { setState(step.state); setStalled(false) } else setStalled(true)
   }
 
+  /**
+   * The slider: jump to a sample of the road that is already drawn. No solve, no orientation to carry
+   * and nothing to re-seat — every notch is a curve computed once and known to be a member.
+   */
+  const rideTo = (i: number): void => {
+    const clamped = Math.max(0, Math.min(road.states.length - 1, Math.round(i)))
+    setState(road.states[clamped])
+    setRoad((r) => ({ ...r, index: clamped }))
+    setStalled(false)
+  }
+
   const reset = (): void => {
     setState(START)
-    setSettled(START)
+    setRoad(buildRoad(START))
     setGrabbed(null)
     setStalled(false)
   }
@@ -192,7 +253,7 @@ export default function SexticFivePointFigure() {
     setMode(next)
     setStalled(false)
     // Entering strict, the road is the one through wherever free mode left the curve.
-    if (next === 'strict') setSettled(state)
+    if (next === 'strict') setRoad(buildRoad(state))
   }
 
   return (
@@ -213,6 +274,10 @@ export default function SexticFivePointFigure() {
         { label: 'out of plane', value: shape.outOfPlane.toFixed(3), tone: 'ok' as const },
         // Constant width, non-breaking pad: a readout that changes width can re-wrap the row and slide
         // a control out from under the pointer. See RationalPHQuarticFigure.
+        {
+          label: 'on the road',
+          value: (strict ? `${road.index + 1} of ${road.states.length}` : '—').padEnd(11, ' '),
+        },
         { label: 'step', value: (stalled ? 'not reached' : '—').padEnd(11, ' ') },
       ]}
       controls={
@@ -231,9 +296,23 @@ export default function SexticFivePointFigure() {
               free
             </button>
           </span>
+          {strict ? (
+            <label className="flex items-center gap-1">
+              <span className="text-slate-400">along the road</span>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, road.states.length - 1)}
+                step={1}
+                value={road.index}
+                onChange={(e) => rideTo(Number(e.target.value))}
+                className="w-40"
+              />
+            </label>
+          ) : null}
           <span className="text-slate-400">
             {strict
-              ? 'drag a blue point — the other four hold; push a grey one along its road'
+              ? 'or drag a blue point — the other four hold'
               : 'drag any of the seven — nothing is held'}
           </span>
           <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
@@ -253,16 +332,21 @@ export default function SexticFivePointFigure() {
             measured to track the cursor to 100% for four of the five, with the held points staying put
             to 2e-15 and the curve never leaving the family.{' '}
             <b>The one dimension left over is drawn.</b> Hold the five and the grey points are not free
-            in space: each is confined to a <b>road</b>, and they travel it together. Push one and it
-            slides — the cursor need not be on the road, and a shove 60° off it still carries the point
-            1.5 units along. Which is why the dial here is not a number: ρ₂ is <i>constant</i> along the
-            road, and ρ₃, ρ₄ and the arc length each turn back at a fold.{' '}
+            in space: each is confined to a <b>road</b>, and they travel it together. <b>Push</b> one and
+            it slides — the cursor need not be on the road, and a shove 60° off it still carries the
+            point 1.5 units along — or use the <b>slider</b>, which walks the samples already drawn and
+            so costs no solve at all. Which is why the dial is a <i>position</i> and not a number: ρ₂ is{' '}
+            <i>constant</i> along the road, and ρ₃, ρ₄ and the arc length each turn back at a fold.{' '}
             <span className="text-slate-400">
               P₀ is the one stiff handle (87%, not 100%): ρ₁ is the distance from P₀ to P₁, so holding
-              P₁ drives that sphere directly. The road ENDS, and the end is real — ρ₄ falls toward zero
-              one way, and a sphere of zero radius is a point-sphere, a boundary of the family. Moving a
-              blue point puts you on a different road, redrawn when you let go. Drag the background to
-              rotate.
+              P₁ drives that sphere directly. The two ends are different, and measured: <b>backward</b>{' '}
+              is a real wall at 0.19 whatever the budget — the weights degenerate, w₀ → 0 projectively,
+              slide 13's asymptotic wall met from another direction — while <b>forward</b> the road does
+              not end at all (1.61 travelled on a budget of 1.74, 3.06 on 4.34), so what is drawn is a
+              generous stretch, not the whole thing. Watch ρ₂ pass through <b>zero and go negative</b> on
+              the way: that is an imaginary sphere, ⟨C,C⟩ &lt; 0, and the curve stays a perfect member
+              through it — a point-sphere is a coordinate event, not a boundary. Moving a blue point puts
+              you on a different road, redrawn when you let go. Drag the background to rotate.
             </span>
           </>
         ) : (
@@ -283,10 +367,13 @@ export default function SexticFivePointFigure() {
       <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
       <Curve3D points={curvePts} color={FIG.color.curve} width={3.5} />
 
-      {/* the two roads: the one dimension the five held points leave, made visible */}
-      {roads?.map((road, i) => (
-        <Curve3D key={`road${i}`} points={road} color={FIG.color.derived} width={1.4} />
-      ))}
+      {/* the two tracks: the one dimension the five held points leave, made visible */}
+      {strict &&
+        road.tracks.map((track, i) =>
+          track.length > 1 ? (
+            <Curve3D key={`road${i}`} points={track} color={FIG.color.derived} width={1.4} />
+          ) : null,
+        )}
 
       {/* the Farin beads — the weights, and what the reparametrisation moves */}
       {beads.map((b, i) =>

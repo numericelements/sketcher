@@ -853,18 +853,39 @@ export function slideLocus(
  * against a polygon span of 1.45, chord/arc 0.83 — genuinely curved, so a drawn road says something —
  * and P₄ travels 1.20 of it while P₂ travels 1.65.
  *
+ * WHERE THE ROAD ENDS, and the two ends are not the same kind of thing (measured):
+ *
+ *   · BACKWARD it genuinely stops, at 0.19 whatever the step budget — a weight degeneration, the
+ *     weights running to (1, 4.1, 11.7, 20.9, 142.9, 95.5, 43.5), which projectively is w₀ → 0. That
+ *     is slide 13's asymptotic wall, and slideLocus's backtracking is what reports it.
+ *   · FORWARD it does NOT stop on its own: 1.61 with a budget of 1.74, 3.06 with a budget of 4.34.
+ *     What it does instead is leave the stratum — a weight crosses zero (w₃ = −0.61 at the far end),
+ *     and a denominator with a real root is a curve with a POLE. `admissible` is how a caller declines
+ *     to walk past that; the figure passes "no real root of w anywhere", which is the irreducibility
+ *     condition the slide already displays.
+ *
+ * A radius reaching zero is NOT an end, which corrects an earlier reading of this road: ρ₂ passes
+ * through 0 and comes out negative (⟨C,C⟩ < 0, an imaginary sphere) while the curve stays a perfectly
+ * good member at machine-zero residual. The point-sphere is a coordinate event, not a boundary.
+ *
  * Each sample costs a solve, so this is for a settled state, not for every frame.
  */
 export function locusSamples(
   from: ConformalPHCurve,
   index: number,
   pin: readonly number[],
-  options: { steps?: number; bite?: number } = {},
+  options: {
+    steps?: number
+    bite?: number
+    /** Refuse a sample the caller cannot use — the road stops there rather than walking past it. */
+    admissible?: (s: ConformalPHCurve) => boolean
+  } = {},
 ): ConformalPHCurve[] {
   const steps = options.steps ?? 20
   const bite = options.bite ?? 0.04 * Math.max(
     ...controlPoints(from).map((p, i, a) => (i ? vnorm(vsub(p, a[i - 1])) : 0)),
   )
+  const admissible = options.admissible
   const walk = (direction: number): ConformalPHCurve[] => {
     const out: ConformalPHCurve[] = []
     let cur = from
@@ -872,6 +893,7 @@ export function locusSamples(
     for (let k = 0; k < steps; k++) {
       const r = slideLocus(cur, index, pin, bite * direction, { orient: dir })
       if (!(Math.abs(r.travelled) > 1e-9)) break
+      if (admissible && !admissible(r.state)) break
       cur = r.state
       dir = r.direction
       out.push(cur)
