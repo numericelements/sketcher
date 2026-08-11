@@ -1011,7 +1011,90 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 19 — who established what
+  // 19 — the apparent conflict, and why there is none
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Möbius is all the point maps. Lie is the rest.</h2>
+        <p>Two results that look like they disagree:</p>
+        <ul style={{ fontSize: '0.9em' }}>
+          <li>
+            For <Math>{'n \\geq 3'}</Math>, the PH-preserving <strong>mappings</strong> are
+            (anti-)Möbius. <span style={{ opacity: 0.6 }}>Altavilla–Schröcker–Šír–Vršek 2026</span>
+          </li>
+          <li style={{ marginTop: '0.3em' }}>
+            <strong>Lie sphere</strong> transformations preserve rational PH — offsets of a PH curve are
+            rational PH. <span style={{ opacity: 0.6 }}>Peternell–Pottmann 1998</span>
+          </li>
+        </ul>
+        <p style={{ marginTop: '0.8em' }}>
+          They do not disagree, because <strong>a Lie transformation is not a mapping of points.</strong>{' '}
+          It acts on <em>contact elements</em>; the image of a curve is a <strong>wave front</strong>, with
+          cusps on the evolute. It is outside the class the first theorem quantifies over.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>
+          And then the classical fact that makes them one statement:
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <strong>the point-preserving Lie sphere transformations are precisely the Möbius transformations.</strong>
+        </p>
+        <table style={{ margin: '1em auto 0', borderCollapse: 'collapse', fontSize: '0.82em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }} />
+              <th style={{ padding: '0.3em 1em' }}>circles?</th>
+              <th style={{ padding: '0.3em 1em' }}>points?</th>
+              <th style={{ padding: '0.3em 1em' }}>PH?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>the planar group <Math>{"\\Phi' = \\Psi^2"}</Math></td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>no</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>yes</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>yes</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>Lie sphere</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>yes</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>no</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>yes</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}><strong>Möbius</strong></td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}><strong>yes</strong></td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}><strong>yes</strong></td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}><strong>yes</strong></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '0.9em', opacity: 0.75 }}>
+          Möbius is the <em>intersection</em> — which is why it answers two different questions.
+        </p>
+      </>
+    ),
+    notes:
+      "THIS SLIDE EXISTS BECAUSE ERIC ASKED THE OBVIOUS QUESTION: did they forget Lie sphere "
+      + 'transformations? They did not -- the theorem quantifies over POINT MAPPINGS, and a Lie '
+      + 'transformation is not one. Say that first, because it is the whole resolution. '
+      + 'THE TABLE IS THE PAYOFF. Conformal is NOT the same as circle-preserving -- only Mobius preserves '
+      + 'circles -- so the huge planar group of dilation-squared maps sits entirely outside Lie sphere '
+      + 'geometry, while Lie transformations sit outside the class of point maps. Mobius is where the two '
+      + 'conditions meet, and that is the structural reason it is the answer to both questions. '
+      + 'ONE THING TO CHECK WHEN READING THE 2026 PAPER, and it is the same slippage that muddled our own '
+      + 'discussion: WHICH class is being preserved. Mobius does NOT preserve POLYNOMIAL PH -- it makes it '
+      + 'rational -- so "PH-preserving" there must mean rational PH, or the property that the speed is '
+      + 'rational. Do not quote the theorem without that qualification. '
+      + 'AND THE GEOMETRIC READING OF THE LIE HALF: offsetting is the model non-Mobius Lie transformation, '
+      + 'and the offset speed is sigma*(1 - eps*kappa) -- rational, vanishing exactly at the cusp. The '
+      + 'SIGNED speed stays rational; it is the absolute value that breaks polynomiality, which is why Lie '
+      + 'geometry insists on ORIENTED spheres.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 20 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1085,7 +1168,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 20 — the reading path
+  // 21 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
