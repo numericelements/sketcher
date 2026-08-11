@@ -119,21 +119,27 @@ export default function RationalPHLoopFigure() {
   const [origin, setOrigin] = useState<Vec3>({ x: 0, y: 0, z: 0 })
 
   const strict = mode === 'strict'
-  const dragging = grabbed !== null
 
   const lambda = live.lambda
   const pole = live.pole
   const loop = committed
 
-  /** Rebuild the walked loop around wherever the gesture left us. */
+  /**
+   * Rebuild the walked loop AROUND wherever the gesture left us. fiberLoop starts at its argument, so
+   * resetting the sweep to 0 shows exactly the curve that is already on screen — the loop changes under
+   * it without the curve moving.
+   */
   const settle = useCallback((prm: OnePoleParams) => {
     setCommitted({ anchor: prm, ...loopOf(prm) })
     setPhase(0)
   }, [])
 
-  const here = dragging || !strict
-    ? live
-    : loop.members[Math.min(loop.members.length - 1, Math.round(phase * (loop.members.length - 1)))]
+  /**
+   * ONE source of truth for what is on screen. Sweeping the loop SELECTS a member, so it writes `live`
+   * like every other gesture does — an earlier version indexed the loop for display while leaving `live`
+   * behind, so switching to free (which shows `live`) jumped back to wherever the last dial had left it.
+   */
+  const here = live
   const member = useMemo(() => toMember(here), [here])
 
   const shift = useCallback(
@@ -163,6 +169,8 @@ export default function RationalPHLoopFigure() {
     setMode(next)
     setStalled(false)
     setGrabbed(null)
+    // Entering strict, the data is whatever free left on screen, and the fiber is rebuilt around it.
+    // Entering free needs nothing: `live` is already the displayed curve.
     if (next === 'strict') {
       setTarget(dataOf(toMember(live)))
       settle(live)
@@ -181,6 +189,14 @@ export default function RationalPHLoopFigure() {
     if (!next) { setStalled(true); return }
     setStalled(false)
     setLive(next)
+  }
+
+  /** Sweeping selects a member of the committed loop — and writes it, so every mode sees the same curve. */
+  const sweep = (next: number): void => {
+    setPhase(next)
+    const idx = Math.min(loop.members.length - 1, Math.max(0, Math.round(next * (loop.members.length - 1))))
+    setLive(loop.members[idx])
+    setStalled(false)
   }
 
   /** A dial re-solves the SAME data at a new λ or r. Cheap, so it runs live. */
@@ -254,7 +270,7 @@ export default function RationalPHLoopFigure() {
             <span className="text-slate-400">around the loop</span>
             <input
               type="range" min={0} max={1} step={0.004} value={phase}
-              onChange={(e) => setPhase(Number(e.target.value))} className="w-36"
+              onChange={(e) => sweep(Number(e.target.value))} className="w-36"
             />
           </label>
           <label className="flex items-center gap-1" style={{ display: strict ? undefined : 'none' }}>
