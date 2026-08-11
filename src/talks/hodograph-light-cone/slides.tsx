@@ -448,6 +448,100 @@ export const slides: SlideDefinition[] = [
       + 'R^{4,2} -- cyclographic, Blaschke, isotropic. This slide is the elementary route into that paper.',
   },
 
+  // ---------------------------------------------------------------------------
+  // 9 — the dual chart, and what it costs
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Parametrize by the normal</h2>
+        <p>
+          The cylinder is not just a place the projection lands — it is a <em>chart</em>. Index by the
+          normal direction instead of by the point:
+        </p>
+        <Math display>
+          {'h(\\hat{\\mathbf{n}}) = \\mathbf{c}\\cdot\\hat{\\mathbf{n}} \\qquad \\text{the \\emph{support function}}'}
+        </Math>
+        <p>
+          The curve is then the <strong>envelope of its oriented tangent lines</strong>; a surface, of its
+          tangent planes. And in this chart the offset is
+        </p>
+        <Math display>{'h \\;\\longmapsto\\; h + \\varepsilon'}</Math>
+        <p>
+          Same normals, displaced — every offset&apos;s tangent lines are <strong>parallel</strong> to the
+          original&apos;s. The entire offset family is one translation along the cylinder&apos;s fibre,
+          which is why offsets are trivial here and awkward in the point chart.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          So <strong>PH and PN both say: the support function is rational</strong>, over a rational
+          parametrization of the direction sphere.{' '}
+          <span className="text-slate-400">
+            Gravesen, Jüttler &amp; Šír (2008) — the class is closed under convolution, offsetting,
+            rotations and translations.
+          </span>
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          But the chart has a price. <strong>Infinite radius is not Lie-invariant:</strong> a general Lie
+          transformation carries a tangent <em>plane</em> to a tangent <em>sphere</em> of finite radius.
+          The subgroup that preserves it is exactly the one fixing the point at infinity —{' '}
+          <strong>Laguerre</strong>.
+        </p>
+        <table style={{ margin: '0.8em auto 0', borderCollapse: 'collapse', fontSize: '0.82em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>chart</th>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>the object is</th>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>its group</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>points</td>
+              <td style={{ padding: '0.3em 1em' }}><Math>{'\\mathbf{c}(t)'}</Math></td>
+              <td style={{ padding: '0.3em 1em' }}>Möbius — <Math>{'\\mathbb{R}^{n+1,1}'}</Math></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>tangent hyperplanes</td>
+              <td style={{ padding: '0.3em 1em' }}><Math>{'h(\\hat{\\mathbf{n}})'}</Math></td>
+              <td style={{ padding: '0.3em 1em' }}><strong>Laguerre</strong> — the Blaschke cylinder</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}><strong>all of them at once</strong></td>
+              <td style={{ padding: '0.3em 1em' }}>oriented spheres</td>
+              <td style={{ padding: '0.3em 1em' }}><strong>Lie</strong> — <Math>{'\\mathbb{R}^{n+1,2}'}</Math></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '1em' }}>
+          No single chart survives the whole group. <strong>That</strong> is why one embeds all of them in{' '}
+          <Math>{'\\mathbb{R}^{n+1,2}'}</Math> — not for elegance, but because each chart individually
+          breaks.
+        </p>
+      </>
+    ),
+    notes:
+      'ERIC BUILT THIS SLIDE BEFORE I NAMED IT, which is worth saying if the question comes from the room: '
+      + 'he described representing a curve by its family of parallel tangent lines, and a PN surface by its '
+      + 'parallel tangent planes. That IS the support function representation, and the "parallel" is the '
+      + 'whole point -- offsets share their normals, so in this chart offsetting is addition. '
+      + 'THE LITERATURE IS SPECIFIC. Gravesen, Juttler & Sir, "On rationally supported surfaces", CAGD '
+      + '25:320-331 (2008); Sir, Gravesen & Juttler, "Curves and surfaces represented by polynomial support '
+      + 'functions", TCS 392:141-157 (2008). Their result is the closure property quoted on the slide. A '
+      + 'detail worth knowing: ODD rational support functions correspond to the rational surfaces admitting '
+      + 'a LINEAR field of normals, which is how this meets PN surfaces and Juttler\'s LN surfaces. '
+      + 'THE SHARPENING IS THE SECOND HALF AND IT IS THE REASON THE SLIDE EXISTS. "Tangent planes are just '
+      + 'the Lie spheres of infinite radius" is true as a containment and misleading as a principle, '
+      + 'because INFINITE RADIUS IS NOT LIE-INVARIANT. The Lie transformations preserving it are precisely '
+      + 'those fixing the ideal point at infinity, and those are the Laguerre transformations. So the '
+      + 'support function is a LAGUERRE chart living inside a Lie space -- perfect while you stay in '
+      + 'Laguerre, meaningless the moment you leave it. '
+      + 'AND THAT RETRO-JUSTIFIES SLIDE 6 AND KRASAUSKAS. The R^{n+1,2} embedding is not chosen for '
+      + 'elegance: each individual Laguerre model -- cyclographic, Blaschke, isotropic -- fails to be '
+      + 'preserved by the full group, so the only way to have the whole group act linearly is to hold all '
+      + 'three at once. Say it in that order: the charts break, THEREFORE the ambient space.',
+  },
+
   // ===========================================================================
   // ACT II — THE PLANE, WHERE IT IS ONE LINE
   //
@@ -458,7 +552,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 9 — Mobius is a linear map
+  // 10 — Mobius is a linear map
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -500,7 +594,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 10 — the Wronskian, and PH in one line
+  // 11 — the Wronskian, and PH in one line
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -554,7 +648,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 11 — what the chart costs, and how many answers
+  // 12 — what the chart costs, and how many answers
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -601,7 +695,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 12 — why the plane is easy: the cone factors
+  // 13 — why the plane is easy: the cone factors
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -669,7 +763,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 13 — the cliffhanger
+  // 14 — the cliffhanger
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -733,7 +827,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 14 — the principle: the ambiguity is a group
+  // 15 — the principle: the ambiguity is a group
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -798,7 +892,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 15 — compact: the fiber closes, and arc length cannot choose
+  // 16 — compact: the fiber closes, and arc length cannot choose
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -847,7 +941,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 16 — non-compact: the family runs off
+  // 17 — non-compact: the family runs off
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -900,7 +994,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 17 — the principle, restated with both ends in hand
+  // 18 — the principle, restated with both ends in hand
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -960,7 +1054,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 18 — III-b: the third circle, by completing the square
+  // 19 — III-b: the third circle, by completing the square
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1018,7 +1112,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 19 — III-b: three circles, one gauge, a torus
+  // 20 — III-b: three circles, one gauge, a torus
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1082,7 +1176,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 20 — the apparent conflict, and why there is none
+  // 21 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1165,7 +1259,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 21 — who established what
+  // 22 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1239,7 +1333,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 22 — the reading path
+  // 23 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
