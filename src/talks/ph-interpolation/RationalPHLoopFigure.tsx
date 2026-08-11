@@ -21,13 +21,21 @@
 //   3. The limit names itself. Push the pole and the readout says how close infinity is to the curve
 //      while the end speed visibly diverges. A geometric event, not a solver failure.
 //
-// AND IT IS FAST: 0.014 ms to build a member, so the whole loop redraws live. The loop WALK is a
-// projection per sample, so it is rebuilt when a dial settles rather than every frame.
+// AND IT IS FAST: 0.014 ms to build a member, so the current curve follows a gesture instantly. The
+// loop WALK is different — one PROJECTION per sample, ~200 of them — so it is rebuilt when a gesture
+// SETTLES, never per frame. That split is why the figure stays responsive: during a drag the live curve
+// re-solves (about a millisecond) while the pale family stays as it was, and refreshes on release.
+//
+// THE FAR ENDPOINT IS A HANDLE, because it is already one of the three data items. Dragging it changes
+// the DATA, hence the fiber, so the loop it belongs to is a different loop — which is exactly the thing
+// worth feeling. (The start point is NOT a handle: c(0) is the origin by the translation gauge, so
+// moving it would only translate the picture.) With 8 parameters against 6 conditions the drag has slack
+// and minimum norm spends it; where no member exists the readout says so rather than lying.
 //
 // r3f cannot be verified headlessly, so this file holds NO mathematics — only marks and gestures. The
 // numbers above are pinned in core/__tests__/rationalPHOnePoleSpatial.test.ts and onePoleLoop.test.ts.
 // ============================================================================
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { Vec3 } from '../../core/quaternion'
 import {
   type OnePoleParams,
@@ -38,11 +46,12 @@ import {
   fiberLoop,
   phDefect,
   poleMargin,
+  projectToData,
   speedAt,
   toMember,
   withDial,
 } from '../../core/rationalPHOnePoleSpatial'
-import Figure3D, { Curve3D, Point3D } from '../framework/Figure3D'
+import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 
 const SEED: OnePoleParams = {
@@ -79,23 +88,35 @@ const BOUNDS = (() => {
   }
 })()
 
+const SEED_DATA = dataOf(toMember(SEED))
+
 export default function RationalPHLoopFigure() {
-  /** The dials, and where we are around the loop. The DATA is fixed once, from the seed. */
-  const [lambda, setLambda] = useState(SEED.lambda)
-  const [pole, setPole] = useState(SEED.pole)
+  /**
+   * Two tiers, and the split is what keeps the figure responsive. `live` is the member on screen and
+   * costs ~1 ms to re-solve, so it follows a gesture. `committed` carries the walked loop, which costs
+   * ~200 projections, so it is rebuilt only when a gesture ENDS. During a drag the pale family is
+   * therefore momentarily the old fiber — correct, and it refreshes on release.
+   */
+  const [live, setLive] = useState<OnePoleParams>(SEED)
+  const [target, setTarget] = useState<number[]>(SEED_DATA)
+  const [committed, setCommitted] = useState(() => ({ anchor: SEED, ...loopOf(SEED) }))
   const [phase, setPhase] = useState(0)
+  const [dragging, setDragging] = useState(false)
   const [stalled, setStalled] = useState(false)
 
-  const target = useMemo(() => dataOf(toMember(SEED)), [])
+  const lambda = live.lambda
+  const pole = live.pole
+  const loop = committed
 
-  /** Moving a dial re-solves the same data; the loop is then rebuilt around the new member. */
-  const anchor = useMemo(() => {
-    if (lambda === SEED.lambda && pole === SEED.pole) return SEED
-    return withDial(SEED, target, { lambda, pole }) ?? SEED
-  }, [lambda, pole, target])
+  /** Rebuild the walked loop around wherever the gesture left us. */
+  const settle = useCallback((prm: OnePoleParams) => {
+    setCommitted({ anchor: prm, ...loopOf(prm) })
+    setPhase(0)
+  }, [])
 
-  const loop = useMemo(() => loopOf(anchor), [anchor])
-  const here = loop.members[Math.min(loop.members.length - 1, Math.round(phase * (loop.members.length - 1)))]
+  const here = dragging
+    ? live
+    : loop.members[Math.min(loop.members.length - 1, Math.round(phase * (loop.members.length - 1)))]
   const member = useMemo(() => toMember(here), [here])
 
   const curve = useMemo(() => sample(here), [here])
@@ -105,21 +126,36 @@ export default function RationalPHLoopFigure() {
   const margin = poleMargin(here)
 
   const reset = (): void => {
-    setLambda(SEED.lambda)
-    setPole(SEED.pole)
-    setPhase(0)
+    setLive(SEED)
+    setTarget(SEED_DATA)
     setStalled(false)
+    setDragging(false)
+    settle(SEED)
   }
 
+  /** A dial re-solves the SAME data at a new λ or r. Cheap, so it runs live. */
   const dial = (next: { lambda?: number; pole?: number }): void => {
-    const ok = withDial(SEED, target, {
+    const ok = withDial(live, target, {
       lambda: next.lambda ?? lambda,
       pole: next.pole ?? pole,
     })
     if (!ok) { setStalled(true); return }
     setStalled(false)
-    if (next.lambda !== undefined) setLambda(next.lambda)
-    if (next.pole !== undefined) setPole(next.pole)
+    setLive(ok)
+  }
+
+  /**
+   * Drag the far endpoint: the DATA moves, so this is a different fiber. The start tangent is kept, the
+   * dials are kept, and the 8 parameters absorb the 6 conditions with slack to spare.
+   */
+  const dragEnd = ([x, y, z]: [number, number, number]): void => {
+    const next = [target[0], target[1], target[2], x, y, z]
+    const solved = projectToData(live, next)
+    const err = Math.hypot(...dataOf(toMember(solved)).map((v, i) => v - next[i]))
+    if (err > 1e-7) { setStalled(true); return }
+    setStalled(false)
+    setTarget(next)
+    setLive(solved)
   }
 
   return (
@@ -143,7 +179,7 @@ export default function RationalPHLoopFigure() {
         },
         { label: '‖c′(1)‖', value: endSpeed.toFixed(1), tone: endSpeed > 40 ? ('warn' as const) : ('plain' as const) },
         { label: 'loop', value: `${loop.members.length} members`.padEnd(14, ' ') },
-        { label: 'step', value: (stalled ? 'no member' : '—').padEnd(10, ' ') },
+        { label: 'step', value: (stalled ? 'no member there' : '—').padEnd(16, ' ') },
       ]}
       controls={
         <span className="flex items-center gap-3 flex-wrap justify-center">
@@ -158,14 +194,16 @@ export default function RationalPHLoopFigure() {
             <span className="text-slate-400">twist</span>
             <input
               type="range" min={-1.6} max={2.4} step={0.02} value={lambda}
-              onChange={(e) => dial({ lambda: Number(e.target.value) })} className="w-24"
+              onChange={(e) => dial({ lambda: Number(e.target.value) })}
+              onPointerUp={() => settle(live)} onKeyUp={() => settle(live)} className="w-24"
             />
           </label>
           <label className="flex items-center gap-1">
             <span className="text-slate-400">pole</span>
             <input
               type="range" min={1.04} max={3} step={0.01} value={pole}
-              onChange={(e) => dial({ pole: Number(e.target.value) })} className="w-24"
+              onChange={(e) => dial({ pole: Number(e.target.value) })}
+              onPointerUp={() => settle(live)} onKeyUp={() => settle(live)} className="w-24"
             />
           </label>
           <button onClick={reset} className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100">
@@ -188,7 +226,9 @@ export default function RationalPHLoopFigure() {
             And watch the <b>PH defect</b>: it does not move. Everywhere else in this deck a solver is
             holding the invariant and the residual drifts; here <b>𝒜 i 𝒜̄ IS the Wronskian</b>, so PH is a
             substitution and cannot fail. A member costs 0.014 ms to build — no Newton, no cached seed.
-            The control points are <i>outputs</i>, drawn grey. Drag the background to rotate.
+            The interior control points are <i>outputs</i>, drawn grey — nothing is solved from them. The
+            start point is pinned because c(0) is the origin by the translation gauge, so moving it would
+            only slide the picture. Drag the background to rotate.
           </span>
         </>
       }
@@ -206,9 +246,18 @@ export default function RationalPHLoopFigure() {
         <Point3D key={`cp${i}`} position={tri(p)} color={FIG.color.derived} radius={0.04} derived />
       ))}
 
-      {/* the two ends, which the data holds */}
+      {/* the start is pinned — it is the origin by the translation gauge, so moving it only translates */}
       <Point3D position={tri(curveAt(member, 0))} color={FIG.color.pinned} radius={0.055} />
-      <Point3D position={tri(curveAt(member, 1))} color={FIG.color.pinned} radius={0.055} />
+
+      {/* the FAR endpoint is a handle: it is one of the three data items, so dragging it changes fibers */}
+      <DragPoint3D
+        position={tri(curveAt(member, 1))}
+        color={dragging ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+        radius={0.058}
+        onDragStart={() => { setDragging(true); setStalled(false) }}
+        onDragEnd={() => { setDragging(false); settle(live) }}
+        onDrag={dragEnd}
+      />
 
       {/* the held start tangent, so the pinned data is visible rather than asserted */}
       <Curve3D
