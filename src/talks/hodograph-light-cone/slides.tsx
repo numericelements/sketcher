@@ -542,6 +542,72 @@ export const slides: SlideDefinition[] = [
       + 'three at once. Say it in that order: the charts break, THEREFORE the ambient space.',
   },
 
+  // ---------------------------------------------------------------------------
+  // 10 — why a curve becomes a surface
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Why a curve becomes a surface</h2>
+        <p>
+          <strong>Möbius does not preserve planes.</strong> A plane is a sphere through{' '}
+          <Math>{'\\infty'}</Math>; move <Math>{'\\infty'}</Math> and it comes back a genuine sphere.
+          The invariant class is <em>sphere-or-plane</em>. So slide 9&apos;s support chart is not
+          Möbius-natural either, and
+        </p>
+        <Math display>{'\\text{Möbius} \\cap \\text{Laguerre} = \\text{the similarities}'}</Math>
+        <p style={{ opacity: 0.75 }}>
+          You get the point chart and the support chart at once <em>only</em> in the Euclidean world.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          <strong>And a space curve has no unique tangent plane.</strong> Every plane through the tangent
+          line is one — a <em>pencil</em>. So the family along the curve is <strong>2-dimensional</strong>,
+          which is exactly the Lie dimension: in <Math>{'\\mathbb{R}^3'}</Math> the fundamental object is
+          a <strong>Legendre submanifold of dimension 2</strong>. The pencil <em>is</em> the curve&apos;s
+          Legendre lift.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          <strong>So the curve was the degenerate case all along.</strong> Its lift is 2-dimensional and
+          merely happens to project onto something 1-dimensional. Nothing in the lift knows it ought to
+          stay a curve — so move it, and it will not.
+        </p>
+        <Math display>
+          {'\\text{PH curve} \\quad \\xrightarrow{\\ \\text{Lie}\\ } \\quad \\text{canal surface}'}
+        </Math>
+        <p>
+          Read in spheres, it is the same sentence: the point-spheres acquire radii, and a one-parameter
+          family of spheres envelopes a canal surface. Offsetting is the model case — the{' '}
+          <strong>pipe surface</strong> of radius <Math>{'\\varepsilon'}</Math> around the curve.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          Which is why PH curves and PN surfaces are <strong>one theory and not two</strong>. The
+          object&apos;s dimension rises under the group; the <em>condition</em> does not change, because it
+          was always a condition on the sphere family.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS SLIDE ANSWERS THREE OF ERIC\'S QUESTIONS AT ONCE, and they turned out to be one question. '
+      + 'Deliver it in the order on the slide: Mobius does not preserve planes; a space curve has no unique '
+      + 'tangent plane; therefore the curve is degenerate and a Lie map un-degenerates it. '
+      + 'THE INTERSECTION FACT IS WORTH PAUSING ON. Mobius preserves points, Laguerre preserves planes, and '
+      + 'their intersection is the transformations fixing the ideal point at infinity -- the affine '
+      + 'conformal maps, i.e. the similarities. So "use the point chart AND the support chart" is only '
+      + 'available in Euclidean geometry. That is the sharpest form of slide 9\'s "each chart breaks", and '
+      + 'it is the honest reason for the R^{n+1,2} embedding. '
+      + 'THE DIMENSION BOOKKEEPING, if challenged: in R^3 a Legendre submanifold has dimension 2 = n - 1, '
+      + 'and a SURFACE is the generic projection. A curve lifts to a 2-dimensional set of contact elements '
+      + '(point on the curve, plus a plane from the pencil) whose projection collapses to dimension 1. That '
+      + 'collapse is the special thing, not the surface. '
+      + 'AND THE BRIDGE THIS COMPLETES: PH curves and PN surfaces are one theory (Peternell-Pottmann 1998) '
+      + 'precisely because a Lie transformation carries one to the other. One caveat to VERIFY rather than '
+      + 'quote: their list of PN surfaces includes canal surfaces with rational spine AND rational radius '
+      + 'function, and "pipe surfaces with rational spine are rational" is a separate 1995 result about '
+      + 'rationality, not PN-ness. The shape of the statement is certainly right; the exact hypotheses for '
+      + '"the pipe around a PH curve is PN" have not been checked here.',
+  },
+
   // ===========================================================================
   // ACT II — THE PLANE, WHERE IT IS ONE LINE
   //
@@ -552,7 +618,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 10 — Mobius is a linear map
+  // 11 — Mobius is a linear map
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -594,7 +660,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 11 — the Wronskian, and PH in one line
+  // 12 — the Wronskian, and PH in one line
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -648,7 +714,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 12 — what the chart costs, and how many answers
+  // 13 — what the chart costs, and how many answers
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -695,7 +761,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 13 — why the plane is easy: the cone factors
+  // 14 — why the plane is easy: the cone factors
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -763,7 +829,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 14 — the cliffhanger
+  // 15 — the cliffhanger
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -827,7 +893,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 15 — the principle: the ambiguity is a group
+  // 16 — the principle: the ambiguity is a group
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -892,7 +958,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 16 — compact: the fiber closes, and arc length cannot choose
+  // 17 — compact: the fiber closes, and arc length cannot choose
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -941,7 +1007,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 17 — non-compact: the family runs off
+  // 18 — non-compact: the family runs off
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -994,7 +1060,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 18 — the principle, restated with both ends in hand
+  // 19 — the principle, restated with both ends in hand
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1054,7 +1120,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 19 — III-b: the third circle, by completing the square
+  // 20 — III-b: the third circle, by completing the square
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1112,7 +1178,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 20 — III-b: three circles, one gauge, a torus
+  // 21 — III-b: three circles, one gauge, a torus
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1176,7 +1242,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 21 — the apparent conflict, and why there is none
+  // 22 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1259,7 +1325,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 22 — who established what
+  // 23 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1333,7 +1399,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 23 — the reading path
+  // 24 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
