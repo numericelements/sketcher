@@ -126,6 +126,68 @@ const DP: Vec3 = { x: 1.0, y: 0.25, z: 0.15 }
 const ANGLES = [0, 0.7, 1.9, 2.6, 4.1, 5.4]
 
 describe('the spatial PH quintic Hermite family is a 2-torus of Hopf phases', () => {
+  it('THE CUBIC FIRST: two Hopf circles mod the diagonal gauge, so the fiber is a CIRCLE', () => {
+    // The degree-3 case, which is the torus derivation with one circle fewer -- and the comparison that
+    // makes the quintic legible. A(t) = A0(1−t) + A1t, so c' = A i Ā is quadratic and c is a cubic with
+    // legs
+    //     3(P1−P0) = A0 i Ā0,   3(P2−P1) = ½·polar(A0,A1),   3(P3−P2) = A1 i Ā1
+    // Fix P0, P1 (the first leg) and P3. That is 6 conditions on 8 unknowns with a 1-dimensional gauge,
+    // so 8 − 6 − 1 = 1: a one-parameter fiber. COMPLETE THE SQUARE exactly as at degree 5: with
+    // Y = A1 + ½A0 the displacement condition collapses to one Hopf equation
+    //     Y i Ȳ = V + ¼·d0,     V = 3(P3−P0) − d0
+    // so A1's freedom is a Hopf circle, A0's is another, and the gauge acts diagonally: (S¹)²/S¹ ≅ S¹.
+    // A closed loop -- which is the ellipse the other deck draws.
+    const leg0: Vec3 = { x: 0.9, y: 0.35, z: -0.2 }        // 3(P1 − P0)
+    const span: Vec3 = { x: 1.4, y: -0.5, z: 0.3 }         // 3(P3 − P0)
+    const member = (phi: number, psi: number): [Quat, Quat] | null => {
+      const a0 = quatFromSandwich(leg0)
+      if (!a0) return null
+      const A0 = gaugeRotate(a0, phi)
+      const V = vsub(span, sandwich(A0))
+      const y = quatFromSandwich(vadd(V, vscale(sandwich(A0), 1 / 4)))
+      if (!y) return null
+      const Y = gaugeRotate(y, psi)
+      return [A0, qsub(Y, qscale(A0, 1 / 2))]
+    }
+    const legs = (A: [Quat, Quat]): { first: Vec3; total: Vec3 } => ({
+      first: sandwich(A[0]),
+      total: vadd(
+        vadd(sandwich(A[0]), vscale(polarSandwich(A[0], A[1]), 1 / 2)),
+        sandwich(A[1]),
+      ),
+    })
+    let worstFirst = 0, worstTotal = 0, count = 0
+    for (const phi of ANGLES) {
+      for (const psi of ANGLES) {
+        const A = member(phi, psi)
+        if (!A) continue
+        count++
+        const { first, total } = legs(A)
+        worstFirst = Math.max(worstFirst, vnorm(vsub(first, leg0)) / vnorm(leg0))
+        worstTotal = Math.max(worstTotal, vnorm(vsub(total, span)) / vnorm(span))
+      }
+    }
+    console.log(
+      `    ${count} members from ${ANGLES.length}² pairs:  first leg off ≤ ${worstFirst.toExponential(1)},` +
+        `  P3−P0 off ≤ ${worstTotal.toExponential(1)}   (no solver)`,
+    )
+    expect(worstFirst, 'the first leg is hit exactly').toBeLessThan(1e-13)
+    expect(worstTotal, 'and so is the far endpoint — the completed square is right').toBeLessThan(1e-13)
+
+    // The gauge is diagonal here too, so two circles give a ONE-dimensional fiber.
+    let gaugeWorst = 0
+    for (const theta of [0.4, 1.3, 2.7]) {
+      const A = member(0.7, 2.1)!, B = member(0.7 + theta, 2.1 + theta)!
+      const rotated = gaugeRotate(A[1], theta)
+      gaugeWorst = Math.max(
+        gaugeWorst,
+        Math.sqrt(qnormSq(qsub(rotated, B[1]))) / Math.sqrt(qnormSq(B[1])),
+      )
+    }
+    console.log(`    diagonal shift: A1 picks up exactly e^{iθ} to ${gaugeWorst.toExponential(1)}`)
+    expect(gaugeWorst, 'the gauge is diagonal, so (S¹)²/S¹ ≅ S¹ — a closed loop').toBeLessThan(1e-13)
+  })
+
   it('the closed form HITS the data, for every triple of angles', () => {
     // If the completed square is right, every (φ₀, φ₂, ψ) gives an interpolant with no solving at all.
     // If the algebra were wrong this fails immediately and loudly.

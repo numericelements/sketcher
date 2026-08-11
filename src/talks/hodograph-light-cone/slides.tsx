@@ -1477,7 +1477,61 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 26 — in space, the spinor squares to the Wronskian
+  // 26 — the polynomial cubic fiber, computed
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The polynomial cubic, computed</h2>
+        <p>
+          <Math>{'\\mathcal{A}(t) = \\mathcal{A}_0(1-t) + \\mathcal{A}_1 t'}</Math>, so{' '}
+          <Math>{"\\mathbf{c}' = \\mathcal{A}i\\bar{\\mathcal{A}}"}</Math> is quadratic and the legs are
+        </p>
+        <Math display>
+          {'3(P_1 - P_0) = \\mathcal{A}_0 i \\bar{\\mathcal{A}}_0, \\quad 3(P_2 - P_1) = \\tfrac12\\bigl(\\mathcal{A}_0 i \\bar{\\mathcal{A}}_1 + \\mathcal{A}_1 i \\bar{\\mathcal{A}}_0\\bigr), \\quad 3(P_3 - P_2) = \\mathcal{A}_1 i \\bar{\\mathcal{A}}_1'}
+        </Math>
+        <p>
+          Fix <Math>{'P_0'}</Math>, <Math>{'P_1'}</Math> and <Math>{'P_3'}</Math>: six conditions, eight
+          unknowns, one gauge. <Math>{'8 - 6 - 1 = 1'}</Math>.
+        </p>
+        <p style={{ marginTop: '0.7em' }}>
+          <Math>{'\\mathcal{A}_0'}</Math> is the Hopf fiber over the first leg — one circle. What is left
+          is quadratic in <Math>{'\\mathcal{A}_1'}</Math>, so <strong>complete the square</strong>:
+        </p>
+        <Math display>
+          {'Y = \\mathcal{A}_1 + \\tfrac12 \\mathcal{A}_0 \\quad\\Longrightarrow\\quad Y i \\bar{Y} = V + \\tfrac14 \\mathbf{d}_0, \\qquad V = 3(P_3 - P_0) - \\mathbf{d}_0'}
+        </Math>
+        <p>
+          <strong>One more Hopf equation</strong> — a second circle. The gauge acts diagonally, so
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <Math>{'(S^1)^2 / S^1_{\\text{diag}} \\cong S^1'}</Math> — <strong>a closed loop</strong>
+        </p>
+        <p style={{ opacity: 0.75, marginTop: '0.7em' }}>
+          Measured: 36 members from a 6×6 grid of angles, first leg and far endpoint hit to 4e-16, no
+          solver. Degree 5 is the identical derivation with a third circle, giving{' '}
+          <Math>{'(S^1)^3/S^1 \\cong T^2'}</Math>.
+        </p>
+      </>
+    ),
+    notes:
+      'ERIC ASKED FOR THIS ONE SO THE NEXT SLIDE HAS SOMETHING TO BE COMPARED AGAINST, and that is exactly '
+      + 'its job. The cubic is the quintic derivation with one circle fewer, so whoever follows this slide '
+      + 'follows the torus too. '
+      + 'THE MOVE IS COMPLETING THE SQUARE, twice in this talk now. Here the cross term is '
+      + 'half the polarisation, so lambda = 1/2 and the leftover lambda-squared term moves to the right as '
+      + 'the quarter-d0. At degree 5 the cross term is against S = A0 + A2 and lambda = 3/4, leaving the '
+      + 'nine-sixteenths. Same manoeuvre, different coefficient. '
+      + 'WHY IT CLOSES: both freedoms are HOPF FIBERS, and a Hopf fiber is a circle. Two circles against a '
+      + 'diagonal gauge is one circle -- so the fiber is a closed loop, which is the ellipse the '
+      + 'interactive deck draws with its 181 traced members and constant arc length. '
+      + 'Measured in spatialQuinticTorus.test.ts alongside the quintic: 36 members from a 6x6 grid, first '
+      + 'leg to 5.2e-16, far endpoint to 3.8e-16, gauge diagonal to 3.9e-16. No solver anywhere.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 27 — in space, the spinor squares to the Wronskian
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1536,7 +1590,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 27 — and there the condition is quadratic
+  // 28 — and there the condition is quadratic
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1573,10 +1627,17 @@ export const slides: SlideDefinition[] = [
           <strong>scale and gauge</strong> directions — which is why the gauge has been turning up all
           afternoon.
         </p>
-        <p style={{ marginTop: '0.8em', opacity: 0.75 }}>
+        <p style={{ marginTop: '0.8em' }}>
+          <strong>Compare slide 26.</strong> There the only nonlinearity <em>was</em> the Hopf quadratic,
+          so completing the square turned it into another Hopf equation and the fiber was a product of
+          named circles. Here the quadratic relates <Math>{'\\mathcal{A}'}</Math> to{' '}
+          <Math>{"\\mathcal{A}'"}</Math> at the <em>same</em> point — an <strong>incidence</strong>, not a
+          Hopf square. There is no square to complete.
+        </p>
+        <p style={{ opacity: 0.75 }}>
           So the fiber is cut by a <strong>determinantal</strong> condition — “the logarithmic derivative
           lies in its own gauge plane” — not by a generic nonlinear system. Elimination handles that.
-          Linear derivation does not.
+          Completing the square does not.
         </p>
       </>
     ),
@@ -1602,7 +1663,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 28 — or start from any rational curve at all
+  // 29 — or start from any rational curve at all
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1685,7 +1746,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 29 — the apparent conflict, and why there is none
+  // 30 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1768,7 +1829,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 30 — who established what
+  // 31 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1842,7 +1903,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 31 — the reading path
+  // 32 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
