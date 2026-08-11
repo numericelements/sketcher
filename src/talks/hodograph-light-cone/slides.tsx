@@ -397,7 +397,7 @@ export const slides: SlideDefinition[] = [
         <p>
           The rays of a light cone in <Math>{'\\mathbb{R}^{n,1}'}</Math> form the sphere{' '}
           <Math>{'S^{n-1}'}</Math> — the <em>celestial sphere</em> — and the image of{' '}
-          <Math>{'\\boldsymbol{\\gamma}'}</Math> there is the curve&apos\\;s <strong>tangent
+          <Math>{'\\boldsymbol{\\gamma}'}</Math> there is the curve&apos;s <strong>tangent
           indicatrix</strong>. Now adjoin the signed distance <Math>{'d = \\mathbf{c}\\cdot\\hat{\\mathbf{n}}'}</Math>:
         </p>
         <Math display>
@@ -1152,7 +1152,7 @@ export const slides: SlideDefinition[] = [
         </Math>
         <p>
           <strong>One more Hopf equation.</strong> So{' '}
-          <Math>{'\\mathcal{A}_1'}</Math>&apos\\;s freedom is the fiber over <Math>{'T'}</Math> —{' '}
+          <Math>{'\\mathcal{A}_1'}</Math>&apos;s freedom is the fiber over <Math>{'T'}</Math> —{' '}
           <Math>{'Y = Y^{*} e^{i\\psi}'}</Math>, a <em>third</em> circle.
         </p>
       </>
@@ -1202,8 +1202,8 @@ export const slides: SlideDefinition[] = [
           {'\\text{216 members from } 6^3 \\text{ triples: } \\mathbf{d} \\text{ to } 2.9\\!\\times\\!10^{-16},\\; \\Delta\\mathbf{p} \\text{ to } 8.6\\!\\times\\!10^{-16}'}
         </Math>
         <p>
-          The diagonal shift leaves the hodograph fixed to <Math>{'2.8\\times10^{-15}'}</Math>\\; each
-          remaining circle closes at <Math>{'2\\pi'}</Math> to <Math>{'3.3\\times10^{-16}'}</Math>\\; and
+          The diagonal shift leaves the hodograph fixed to <Math>{'2.8\\times10^{-15}'}</Math>; each
+          remaining circle closes at <Math>{'2\\pi'}</Math> to <Math>{'3.3\\times10^{-16}'}</Math>; and
           the two tangent directions span a genuine 2-plane —{' '}
           <Math>{'\\sin\\angle = 0.228'}</Math>, so it is a <strong>surface</strong>, not a curve.
         </p>
