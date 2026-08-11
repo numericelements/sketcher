@@ -44,6 +44,7 @@ import RationalPHCurveFigure from './RationalPHCurveFigure'
 import RationalPHQuarticFigure from './RationalPHQuarticFigure'
 import SexticFivePointFigure from './SexticFivePointFigure'
 import RationalPHLoopFigure from './RationalPHLoopFigure'
+import RationalPHTwoPoleFigure from './RationalPHTwoPoleFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
@@ -756,6 +757,44 @@ export const slides: SlideDefinition[] = [
       + 'and the curve never reaches infinity -- the seam with the polynomial case. '
       + 'core/rationalPHOnePoleSpatial, pinned in rationalPHOnePoleSpatial.test.ts, onePoleLoop.test.ts, '
       + 'spinorChartDrag.test.ts and onePoleTwist.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 17 — the same thing with two poles, kept beside slide 16 for comparison
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Two poles: a degree-5 fiber, and two of everything</h2>
+        <WhenActive>
+          <RationalPHTwoPoleFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THIS SLIDE EXISTS TO BE COMPARED WITH THE PREVIOUS ONE, and both are kept deliberately. Slide 16 '
+      + 'is m = 1: degree 4, the curve meets infinity once, one twist dial. This is m = 2: degree 5, twice, '
+      + 'two dials. The difference between the slides IS the experience of adding a pole -- which is not a '
+      + 'control that belongs on a slider, since it changes the curve degree and the whole parameter space. '
+      + 'WHAT MAKES IT POSSIBLE, and it was checked before it was built. The no-log condition is BILINEAR '
+      + 'in (A, lambda), so one twist rate per root leaves it LINEAR in A at any number of poles: two '
+      + 'linear solves, no elimination (FOUNDATIONS F17). An earlier version of this deck claimed two or '
+      + 'more poles brought a solver back; that was wrong and is corrected. '
+      + 'AND THE LOOP SURVIVES, which was the gate on building this at all. Holding the dials leaves '
+      + 'fiber = 4n - 4m - 3, which is ONE exactly when n = m + 1 -- so each extra pole buys a degree of '
+      + 'curve AND a dial without spending the sweepable dimension. m = 1 gives degree 4, m = 2 degree 5, '
+      + 'm = 3 degree 6, all with a one-dimensional loop. Measured: the two-pole loop closes after '
+      + 'wandering 0.177 with a gap of 6.8e-4. '
+      + 'THE THING TO POINT AT THAT SLIDE 16 CANNOT SHOW: the two poles are INDEPENDENT. Drive r1 toward '
+      + 'the domain and the curve strains while r2 sits untouched, so "the honest limit" becomes a property '
+      + 'of a particular pole rather than of the family. That is worth a moment on screen. '
+      + 'AND WHAT IS UNCHANGED IS THE ARGUMENT: the PH readout still does not move. A i A-bar IS the '
+      + 'Wronskian whatever m is, so PH stays a substitution rather than a constraint -- and in free mode '
+      + 'you can drag any of the six control points, eighteen coordinates over an eight-dimensional '
+      + 'admissible space, with the defect at 2e-16 throughout. '
+      + 'core/rationalPHMultiPoleSpatial, pinned in rationalPHMultiPoleSpatial.test.ts (5 tests) and '
+      + 'multiPoleLoop.test.ts; the bilinearity itself in multiPoleLinearity.test.ts.',
   },
 
 ]
