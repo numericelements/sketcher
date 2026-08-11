@@ -43,6 +43,7 @@ import MobiusFigure from './MobiusFigure'
 import RationalPHCurveFigure from './RationalPHCurveFigure'
 import RationalPHQuarticFigure from './RationalPHQuarticFigure'
 import SexticFivePointFigure from './SexticFivePointFigure'
+import RationalPHLoopFigure from './RationalPHLoopFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
@@ -713,4 +714,45 @@ export const slides: SlideDefinition[] = [
       + 'THE MEMBER IS CACHED, not solved at load -- findMember takes 19 s at this degree. The test asserts its residual is machine zero, so it is a computed member pinned as data. '
       + 'core/conformalPHStructure.test.ts (4 tests), conformalPHCurve, conformal.',
   },
+  // ---------------------------------------------------------------------------
+  // 16 — the rational fiber you can sweep, with two named dials
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>A fiber you can sweep, and two dials with names</h2>
+        <WhenActive>
+          <RationalPHLoopFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'WHY THIS FIGURE EXISTS, and it is worth saying to the room. The polynomial fiber of slide 6 is '
+      + 'beautiful for three reasons and only one is mathematical: it CLOSES, you can see all of it at '
+      + 'once, and it says something. The rational fiber, measured as a bare road, had none of those. But '
+      + 'the one-pole rational family mixes two kinds of freedom, and separating them gives all three back. '
+      + 'THE LOOP IS A HOPF PHASE. Holding the start point, the start tangent and the far endpoint leaves '
+      + '8 parameters minus 6 conditions minus 1 gauge = ONE dimension, and it closes -- measured, it '
+      + 'returns after the midpoint wanders 1.04, with a closure gap of 3.9e-3. The compact direction is '
+      + 'the same thing that closes the polynomial cubic fiber: prescribing c-prime(0) pins the spinor only '
+      + 'up to a circle, and a circle comes back. '
+      + 'THE TWO DIALS HAVE NAMES, which is the complaint about the previous slide answered. TWIST is the '
+      + "frame's rate of rotation ABOUT the tangent at the pole -- measured exactly omega = 2 lambda e_1, "
+      + 'purely tangential, to six decimals with no off-axis part. POLE is where the curve passes through '
+      + 'INFINITY, since w(r) = 0. Drive the pole down and the readout "infinity to curve" shrinks while '
+      + 'the end speed diverges 4.6 -> 179. That is the family\'s honest limit and it NAMES ITSELF -- a '
+      + 'geometric event, not a solver giving up. '
+      + 'AND THE READOUT THAT DOES NOT MOVE IS THE POINT. Everywhere else in this deck a solver holds the '
+      + 'invariant and the residual drifts as you drag. Here the spinor squares to the WRONSKIAN -- '
+      + 'A i A-bar = p-prime w - p w-prime -- so PH is a substitution, the defect sits at 1e-15, and it '
+      + 'cannot do otherwise. A member costs 0.014 ms: no Newton, no cached seed. If asked what changed to '
+      + 'make that possible: parametrise first, then impose the data, instead of imposing both at once. '
+      + 'THE HONEST SCOPE. This is the ONE-POLE family. With two or more poles the no-log conditions at '
+      + 'different roots couple and the closed form does not survive -- that is FOUNDATIONS F14/F16, and it '
+      + 'is why this figure sits beside the general one rather than replacing it. '
+      + 'core/rationalPHOnePoleSpatial, pinned in rationalPHOnePoleSpatial.test.ts, onePoleLoop.test.ts, '
+      + 'spinorChartDrag.test.ts and onePoleTwist.test.ts.',
+  },
+
 ]
