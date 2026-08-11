@@ -9,10 +9,22 @@
 // audience a claim-then-defend structure invites scepticism. Instead do one line of algebra that lands
 // on the cone, so the title is earned in thirty seconds and the rest of the talk is unpacking.
 //
-// WHAT IS OURS AND WHAT IS NOT. The complex form, the quaternion/Hopf form, rational PH and its
-// offsets are Farouki's book and the surrounding literature. This deck claims a VANTAGE POINT on them,
-// plus one genuinely new cell (PH as an O(4,1)-invariant condition, with the counts) and the editing
-// side. docs/THE_LATTICE.md keeps that accounting honest, cell by cell.
+// WHAT THIS DECK IS, after the literature check of 2026-08-10: an EXPOSITION of a known theory, built
+// so that every step is checkable, plus the editor it serves. It is not a contribution and must not be
+// presented as one. The two papers it re-presents are named on the slides themselves:
+//
+//   Choi et al. 2002  (Adv. Comput. Math)  -- the spin representation unifying every incarnation of PH
+//   Krasauskas 2017   (AACA 27:491-502)    -- all Laguerre models inside one ambient R^{4,2}
+//
+// and the invariance question the first two acts circle is CLOSED, very recently, by
+//
+//   Altavilla, Schrocker, Sir, Vrsek (2026, Proc. Roy. Soc. A; arXiv 2512.19587)
+//   -- PH-preserving maps are exactly the conformal maps whose dilation is the square of a real
+//      rational function. In the plane that is a HUGE group; for n >= 3 Liouville collapses it to
+//      (anti-)Mobius. Slide 9 carries this, because our Wronskian argument is one special case of it.
+//
+// docs/THE_LATTICE.md section 0' keeps the accounting. The genuinely unmatched work is the EDITOR --
+// curvature-extrema control under a drag -- and this deck is its introduction, not its rival.
 //
 // Act I is here. Acts II–IV are mapped at the end of docs/THE_LATTICE.md §3 and this file's tail.
 //
@@ -439,6 +451,17 @@ export const slides: SlideDefinition[] = [
           ambient used is that <strong><Math>{'\\mathbb{C}'}</Math> has square roots</strong> — there is
           no geometry in the argument at all.
         </p>
+        <p style={{ marginTop: '1em', opacity: 0.8 }}>
+          And that argument is the tip of a theorem. Möbius is merely the case where the dilation{' '}
+          <Math>{'(ad-bc)/(cz+d)^2'}</Math> is a square — which it always is. The <em>complete</em>{' '}
+          class of PH-preserving maps is
+        </p>
+        <Math display>{"\\partial\\Phi/\\partial z = \\Psi^2 \\qquad \\Psi \\text{ meromorphic, with residue conditions}"}</Math>
+        <p style={{ opacity: 0.8 }}>
+          <span className="text-slate-400">
+            Altavilla, Schröcker, Šír &amp; Vršek, <em>Proc. Roy. Soc. A</em> (2026).
+          </span>
+        </p>
       </>
     ),
     notes:
@@ -527,6 +550,29 @@ export const slides: SlideDefinition[] = [
           There is no linear factorisation to take a root of. The choice is no longer a sign but a{' '}
           <strong>spinor</strong>, and the spinor carries a continuous phase.
         </p>
+        <p style={{ marginTop: '1em' }}>
+          One fact, <strong>two</strong> consequences — and the second is not the one you would guess:
+        </p>
+        <table style={{ margin: '0.4em auto 0', borderCollapse: 'collapse', fontSize: '0.86em' }}>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1.1em', textAlign: 'right', opacity: 0.7 }}>the square root is</td>
+              <td style={{ padding: '0.3em 1.1em' }}>discrete in the plane, continuous in space</td>
+              <td style={{ padding: '0.3em 1.1em', opacity: 0.6 }}>→ Act III</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1.1em', textAlign: 'right', opacity: 0.7 }}>the PH-preserving group is</td>
+              <td style={{ padding: '0.3em 1.1em' }}>
+                <strong>enormous</strong> in the plane, <strong>only Möbius</strong> for <Math>{'n \\geq 3'}</Math>
+              </td>
+              <td style={{ padding: '0.3em 1.1em', opacity: 0.6 }}>Liouville</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '1em' }}>
+          So the plane is not merely <em>easier</em>. It is <strong>less rigid</strong>. Rigidity is what
+          arrives at dimension three.
+        </p>
       </>
     ),
     notes:
@@ -541,7 +587,14 @@ export const slides: SlideDefinition[] = [
       + 'stops being a reframing. '
       + 'IF ASKED ABOUT C^2 VERSUS R^2: the factorisation needs i, so it is a statement about the form '
       + 'over C. Over R the planar form is definite and has no isotropic vectors at all besides zero -- '
-      + 'which is why the complex chart, not the real one, is where the plane looks easy.',
+      + 'which is why the complex chart, not the real one, is where the plane looks easy. '
+      + 'THE SECOND ROW OF THE TABLE IS THE 2026 THEOREM and it is the better half of this slide. An '
+      + 'earlier version of this talk said only "the plane is easier", which undersells it: by '
+      + 'Altavilla-Schrocker-Sir-Vrsek the PH-preserving maps of the plane are ALL conformal maps whose '
+      + 'dilation is a square -- a vast group, of which Mobius is one small piece -- while for n >= 3 '
+      + "Liouville's theorem forces (anti-)Mobius and nothing else. So the interesting statement is not "
+      + 'that the plane is easy but that RIGIDITY APPEARS AT DIMENSION THREE. Slide 9 states the theorem; '
+      + 'this slide says what it means.',
   },
 
   // ---------------------------------------------------------------------------
@@ -945,5 +998,155 @@ export const slides: SlideDefinition[] = [
       + 'concede "a doubly periodic closed surface" if pressed. '
       + 'AND THE HONEST LIMIT: T = 0 would break the parametrisation. Not found in a sweep, not proved '
       + 'impossible.',
+  },
+
+  // ===========================================================================
+  // ACT IV — WHOSE SUBJECT THIS IS
+  //
+  // The act that was going to be "the dictionary and the lattice" is instead the credit map and the
+  // reading path. That is the honest ending: the theory these three acts present is published, the
+  // invariance question is closed as of 2026, and what this deck adds is the checking and the editor.
+  // An outlook act would have been the weakest thing here; a bibliography that says exactly who
+  // established what is the strongest.
+  // ===========================================================================
+
+  // ---------------------------------------------------------------------------
+  // 19 — who established what
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Whose subject this is</h2>
+        <table style={{ margin: '0 auto', borderCollapse: 'collapse', fontSize: '0.82em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>the result</th>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>whose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}><Math>{"\\mathbf{c}' = w^2"}</Math>, and the whole classical theory</td>
+              <td style={{ padding: '0.3em 1em' }}>Farouki</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}><Math>{'\\mathcal{A}i\\bar{\\mathcal{A}}'}</Math>, the spatial spinor form</td>
+              <td style={{ padding: '0.3em 1em' }}>Choi, Han &amp; Farouki</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}><strong>the spin cover unifying every incarnation</strong> — Act I</td>
+              <td style={{ padding: '0.3em 1em' }}>Choi et al., 2002</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}><strong>every Laguerre model inside one <Math>{'\\mathbb{R}^{4,2}'}</Math></strong> — slide 6</td>
+              <td style={{ padding: '0.3em 1em' }}>Krasauskas, 2017</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>PH curves <em>and</em> PN surfaces from Laguerre geometry</td>
+              <td style={{ padding: '0.3em 1em' }}>Peternell &amp; Pottmann, 1998</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>Lie = two Möbius + one parallel</td>
+              <td style={{ padding: '0.3em 1em' }}>Cecil &amp; Chern</td>
+            </tr>
+            <tr style={{ borderTop: '1px solid currentColor' }}>
+              <td style={{ padding: '0.3em 1em' }}>
+                <strong>PH-preserving maps, completely</strong> — slides 9, 11
+              </td>
+              <td style={{ padding: '0.3em 1em' }}>
+                <strong>Altavilla, Schröcker, Šír &amp; Vršek, 2026</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '1.2em' }}>
+          What these three acts add is not a theorem. It is that <strong>every number on every slide was
+          measured before it was written</strong> — and the editor the theory is for.
+        </p>
+      </>
+    ),
+    notes:
+      'SAY THIS SLIDE WITHOUT APOLOGY AND WITHOUT INFLATION. The theory in Acts I-III is published: the '
+      + 'spin-cover unification is Choi et al. 2002, the R^{4,2} embedding is Krasauskas 2017, the '
+      + 'Laguerre invariance is Peternell-Pottmann 1998, and the invariance question is CLOSED as of 2026 '
+      + 'by Altavilla-Schrocker-Sir-Vrsek. Presenting any of it as new would be false and, in this room, '
+      + 'immediately caught. '
+      + 'WHAT IS ACTUALLY DIFFERENT HERE is the checking. Every dimension count, every residual, every '
+      + 'claim about a fiber closing or a road ending was measured in a test before it reached a slide, '
+      + 'and the measurement is named in these notes. That is unusual for a theory talk and it is worth '
+      + 'saying plainly: not "we discovered", but "we verified, and here is what it cost". '
+      + 'AND THE HONEST HIERARCHY: the unmatched work is the EDITOR -- interactive curvature-extrema '
+      + 'control under a drag, with a monotone bound. None of the literature above touches it. The '
+      + 'contact-order argument establishes that in the PLANE the quantity it controls is a genuine '
+      + 'conformal invariant, which is what makes the conformal setting the right home for it rather than '
+      + 'a detour. In SPACE that is open (kappa\' = 0 is not conformally invariant), and it is the '
+      + 'sharpest question this work has.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 20 — the reading path
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The reading path</h2>
+        <ol style={{ fontSize: '0.86em', lineHeight: 1.5 }}>
+          <li>
+            <strong>Choi et al. (2002)</strong>, <em>Clifford Algebra, Spin Representation, and Rational
+            Parameterization of Curves and Surfaces</em>, Adv. Comput. Math.
+            <br />
+            <span style={{ opacity: 0.65 }}>Acts I and II, done properly and first.</span>
+          </li>
+          <li style={{ marginTop: '0.4em' }}>
+            <strong>Krasauskas (2017)</strong>, <em>Unifying Theory of Pythagorean-Normal Surfaces Based on
+            Geometric Algebra</em>, AACA 27:491–502.
+            <br />
+            <span style={{ opacity: 0.65 }}>
+              Cyclographic, Blaschke and isotropic models all inside <Math>{'\\mathbb{R}^{4,2}'}</Math>.
+            </span>
+          </li>
+          <li style={{ marginTop: '0.4em' }}>
+            <strong>Altavilla, Schröcker, Šír &amp; Vršek (2026)</strong>, <em>A Complete Characterization
+            of Pythagorean Hodograph Preserving Mappings</em>, Proc. Roy. Soc. A.
+            <br />
+            <span style={{ opacity: 0.65 }}>
+              The invariance question, closed. Read closely — the residue conditions are the “no-log”
+              condition met from the other side.
+            </span>
+          </li>
+          <li style={{ marginTop: '0.4em' }}>
+            <strong>Peternell &amp; Pottmann (1998)</strong>, <em>A Laguerre geometric approach to rational
+            offsets</em>, CAGD 15(3):223–249. And <strong>Cecil</strong>, <em>Lie Sphere Geometry</em>.
+            <br />
+            <span style={{ opacity: 0.65 }}>Where the circles live. Kosinka &amp; Jüttler for the Minkowski cell.</span>
+          </li>
+          <li style={{ marginTop: '0.4em' }}>
+            <strong>Farouki (2023)</strong>, <em>Partition of the space of planar quintic PH curves</em>,
+            CAGD 106:102242.
+            <br />
+            <span style={{ opacity: 0.65 }}>How a moduli question is actually posed and answered in print.</span>
+          </li>
+        </ol>
+        <p style={{ marginTop: '0.8em', opacity: 0.75 }}>
+          <strong>The people:</strong> Farouki · Šír, Schröcker, Vršek, Altavilla · Krasauskas, Peternell,
+          Pottmann · Kosinka, Jüttler.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS FOR THE ROOM AND FOR US. Ordered by what to read FIRST, not by date -- Choi et al. '
+      + 'and Krasauskas before anything else, because they are the two papers these acts re-present, and '
+      + 'reading them will change how the acts should be told. '
+      + 'THE 2026 PAPER IS THE ONE TO READ CLOSELY. Its residue conditions on Psi are the same "no-log" '
+      + 'condition that turned up in our own spinor derivation from the other direction -- so we were '
+      + 'rediscovering a piece of it, which is a good sign about the derivation and a clear sign about '
+      + 'the priority. '
+      + 'WHAT IS NOT ON THIS LIST, because a search did not find it: the moduli geometry of the conformal '
+      + 'PH CURVE variety -- dimension 2n+6, moduli 2n-6, the codimension-3 bendable locus, the singular '
+      + 'stratum at lifted polynomials. Farouki 2023 does exactly this KIND of thing for planar quintics, '
+      + 'so the technique is established and the specific object may be unclaimed. Treat that as "not '
+      + 'found", not "not taken" -- and read Farouki 2023 to see the standard before deciding anything.',
   },
 ]
