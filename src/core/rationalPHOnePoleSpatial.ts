@@ -294,3 +294,80 @@ export function withDial(
 /** How close the pole is to the drawn piece — 0 means infinity has reached the curve. */
 export const poleMargin = (prm: OnePoleParams): number =>
   prm.pole > 1 ? prm.pole - 1 : prm.pole < 0 ? -prm.pole : 0
+
+// --- free dragging: all ten parameters, and PH still cannot fail --------------
+const PACK_FULL = (prm: OnePoleParams): number[] => [
+  prm.b0.u, prm.b0.v, prm.b0.p, prm.b0.q,
+  prm.b2.u, prm.b2.v, prm.b2.p, prm.b2.q,
+  prm.lambda, prm.pole,
+]
+const UNPACK_FULL = (x: readonly number[]): OnePoleParams => ({
+  b0: { u: x[0], v: x[1], p: x[2], q: x[3] },
+  b2: { u: x[4], v: x[5], p: x[6], q: x[7] },
+  lambda: x[8],
+  pole: x[9],
+})
+
+/**
+ * Drag control point `index` toward `target`, spending all TEN parameters by minimum norm.
+ *
+ * The control points are OUTPUTS of this family — five of them, fifteen coordinates, over a
+ * ten-parameter space — so no control point can be prescribed exactly and none needs to be. What the
+ * fit gives is the nearest member, and the thing worth noticing is what it does NOT have to do: there
+ * is no constraint to satisfy, because 𝒜 i 𝒜̄ IS the Wronskian. PH is not held here; it is unavailable
+ * for violation.
+ *
+ * Rate-limited for the reason every dragger in this repository is: a cursor can jump, and asking for a
+ * large reshape in one solve is what makes a handle appear to explode.
+ *
+ * The pole guard is the honest limit rather than a numerical one. r may not cross into [0,1], because
+ * that is where the curve passes through the drawn piece — so a step that would take it there is
+ * refused and the caller reports the geometry instead of a failure.
+ */
+export function dragControlPoint(
+  prm: OnePoleParams,
+  index: number,
+  target: Vec3,
+  options: { iterations?: number; maxStep?: number } = {},
+): OnePoleParams | null {
+  const startSide = prm.pole > 1 ? 1 : -1
+  const points = controlStructure(toMember(prm)).points
+  const scale = Math.max(
+    ...points.map((q, i) => (i === index ? 0 : Math.hypot(q.x - points[index].x, q.y - points[index].y, q.z - points[index].z))),
+    1e-9,
+  )
+  const offset = { x: target.x - points[index].x, y: target.y - points[index].y, z: target.z - points[index].z }
+  const reach = Math.hypot(offset.x, offset.y, offset.z)
+  if (!(reach > 1e-12)) return prm
+  const travel = Math.min(reach, (options.maxStep ?? 0.12) * scale) / reach
+  const want: Vec3 = {
+    x: points[index].x + offset.x * travel,
+    y: points[index].y + offset.y * travel,
+    z: points[index].z + offset.z * travel,
+  }
+
+  let x = PACK_FULL(prm)
+  const residual = (q: readonly number[]): number[] => {
+    const pt = controlStructure(toMember(UNPACK_FULL(q))).points[index]
+    return [pt.x - want.x, pt.y - want.y, pt.z - want.z]
+  }
+  for (let it = 0; it < (options.iterations ?? 24); it++) {
+    const r = residual(x)
+    if (Math.hypot(...r) < 1e-12) break
+    const J = r.map((_, k) => x.map((_, j) => {
+      const e = 1e-7
+      const hi = x.slice(); hi[j] += e
+      const lo = x.slice(); lo[j] -= e
+      return (residual(hi)[k] - residual(lo)[k]) / (2 * e)
+    }))
+    let step: number[]
+    try { step = leastSquares(J, r.map((v) => -v), 1e-10) } catch { return null }
+    const next = x.map((v, j) => v + step[j])
+    // Refuse to walk the pole into the drawn piece: that is the family's real edge.
+    const side = next[9] > 1 ? 1 : next[9] < 0 ? -1 : 0
+    if (side !== startSide) return null
+    x = next
+  }
+  const out = UNPACK_FULL(x)
+  return poleMargin(out) > 1e-3 ? out : null
+}

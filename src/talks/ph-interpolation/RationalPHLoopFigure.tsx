@@ -32,6 +32,16 @@
 // moving it would only translate the picture.) With 8 parameters against 6 conditions the drag has slack
 // and minimum norm spends it; where no member exists the readout says so rather than lying.
 //
+// STRICT AND FREE. Strict is the above: the data held, a loop to sweep, two named dials. FREE releases
+// the data and makes every control point a handle — and it is the sharper demonstration of the same
+// point, because you can drag anything anywhere and the PH readout still does not move. There is no
+// optimizer holding an invariant here; there is no invariant available to violate. Measured: P₁…P₄ track
+// a long path at 100% with PH at 1e-15 (rationalPHOnePoleSpatial.test.ts).
+//
+// P₀ IS THE EXCEPTION, and it is structural rather than a limitation: c(0) is the origin by the
+// translation gauge, so P₀ cannot move within the family. Dragging it therefore TRANSLATES the picture,
+// which is exactly what moving it means — the figure owns that offset, not the core.
+//
 // r3f cannot be verified headlessly, so this file holds NO mathematics — only marks and gestures. The
 // numbers above are pinned in core/__tests__/rationalPHOnePoleSpatial.test.ts and onePoleLoop.test.ts.
 // ============================================================================
@@ -43,6 +53,7 @@ import {
   curveAt,
   dataOf,
   derivativeAt,
+  dragControlPoint,
   fiberLoop,
   phDefect,
   poleMargin,
@@ -101,8 +112,14 @@ export default function RationalPHLoopFigure() {
   const [target, setTarget] = useState<number[]>(SEED_DATA)
   const [committed, setCommitted] = useState(() => ({ anchor: SEED, ...loopOf(SEED) }))
   const [phase, setPhase] = useState(0)
-  const [dragging, setDragging] = useState(false)
+  const [grabbed, setGrabbed] = useState<number | null>(null)
   const [stalled, setStalled] = useState(false)
+  const [mode, setMode] = useState<'strict' | 'free'>('strict')
+  /** P₀'s drag is a translation, since c(0) is the origin by the gauge. The figure owns it. */
+  const [origin, setOrigin] = useState<Vec3>({ x: 0, y: 0, z: 0 })
+
+  const strict = mode === 'strict'
+  const dragging = grabbed !== null
 
   const lambda = live.lambda
   const pole = live.pole
@@ -114,12 +131,19 @@ export default function RationalPHLoopFigure() {
     setPhase(0)
   }, [])
 
-  const here = dragging
+  const here = dragging || !strict
     ? live
     : loop.members[Math.min(loop.members.length - 1, Math.round(phase * (loop.members.length - 1)))]
   const member = useMemo(() => toMember(here), [here])
 
-  const curve = useMemo(() => sample(here), [here])
+  const shift = useCallback(
+    (v: Vec3): [number, number, number] => [v.x + origin.x, v.y + origin.y, v.z + origin.z],
+    [origin],
+  )
+  const curve = useMemo(
+    () => sample(here).map(([x, y, z]) => [x + origin.x, y + origin.y, z + origin.z] as [number, number, number]),
+    [here, origin],
+  )
   const control = useMemo(() => controlStructure(member), [member])
   const defect = useMemo(() => Math.max(phDefect(member), member.consistency), [member])
   const endSpeed = speedAt(member, 1)
@@ -129,8 +153,34 @@ export default function RationalPHLoopFigure() {
     setLive(SEED)
     setTarget(SEED_DATA)
     setStalled(false)
-    setDragging(false)
+    setGrabbed(null)
+    setOrigin({ x: 0, y: 0, z: 0 })
     settle(SEED)
+  }
+
+  /** Entering strict re-reads the data from wherever free left the curve, then rebuilds its fiber. */
+  const toMode = (next: 'strict' | 'free') => (): void => {
+    setMode(next)
+    setStalled(false)
+    setGrabbed(null)
+    if (next === 'strict') {
+      setTarget(dataOf(toMember(live)))
+      settle(live)
+    }
+  }
+
+  /** FREE: any control point to the cursor, all ten parameters spent by minimum norm. */
+  const dragFree = (index: number, [x, y, z]: [number, number, number]): void => {
+    if (index === 0) {
+      // c(0) is the origin by the gauge, so this is a translation and nothing else.
+      setOrigin({ x: x - 0, y: y - 0, z: z - 0 })
+      setStalled(false)
+      return
+    }
+    const next = dragControlPoint(live, index, { x: x - origin.x, y: y - origin.y, z: z - origin.z })
+    if (!next) { setStalled(true); return }
+    setStalled(false)
+    setLive(next)
   }
 
   /** A dial re-solves the SAME data at a new λ or r. Cheap, so it runs live. */
@@ -183,14 +233,31 @@ export default function RationalPHLoopFigure() {
       ]}
       controls={
         <span className="flex items-center gap-3 flex-wrap justify-center">
-          <label className="flex items-center gap-1">
+          <span className="inline-flex rounded overflow-hidden border border-slate-300">
+            <button
+              onClick={toMode('strict')}
+              className={`px-2 py-[0.15em] ${strict ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              strict
+            </button>
+            <button
+              onClick={toMode('free')}
+              className={`px-2 py-[0.15em] ${!strict ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              free
+            </button>
+          </span>
+          {!strict ? (
+            <span className="text-slate-400">drag any control point — nothing is held</span>
+          ) : null}
+          <label className="flex items-center gap-1" style={{ display: strict ? undefined : 'none' }}>
             <span className="text-slate-400">around the loop</span>
             <input
               type="range" min={0} max={1} step={0.004} value={phase}
               onChange={(e) => setPhase(Number(e.target.value))} className="w-36"
             />
           </label>
-          <label className="flex items-center gap-1">
+          <label className="flex items-center gap-1" style={{ display: strict ? undefined : 'none' }}>
             <span className="text-slate-400">twist</span>
             <input
               type="range" min={-1.6} max={2.4} step={0.02} value={lambda}
@@ -198,7 +265,7 @@ export default function RationalPHLoopFigure() {
               onPointerUp={() => settle(live)} onKeyUp={() => settle(live)} className="w-24"
             />
           </label>
-          <label className="flex items-center gap-1">
+          <label className="flex items-center gap-1" style={{ display: strict ? undefined : 'none' }}>
             <span className="text-slate-400">pole</span>
             <input
               type="range" min={1.04} max={3} step={0.01} value={pole}
@@ -212,65 +279,108 @@ export default function RationalPHLoopFigure() {
         </span>
       }
       caption={
-        <>
-          <b>A fiber you can sweep, and two dials with names.</b> The start point, the start tangent and
-          the far endpoint are held. What is left closes into a <b>loop</b> — the pale curves are the
-          whole family at once — because the freedom is a <b>Hopf phase</b>, and a phase is an angle.
-          Sweep it and you come back.{' '}
-          <b>Then the two dials deform it, and both mean something.</b> <b>Twist</b> is the frame&apos;s
-          rate of rotation <i>about</i> the tangent at the pole — measured, exactly{' '}
-          <i>ω</i> = 2λ·<b>e</b>₁, purely tangential. <b>Pole</b> is where the curve passes through{' '}
-          <b>infinity</b>: drive it down and watch <i>infinity to curve</i> shrink while ‖c′(1)‖ diverges.
-          That is the family&apos;s honest limit — a geometric event, not a solver giving up.{' '}
-          <span className="text-slate-400">
-            And watch the <b>PH defect</b>: it does not move. Everywhere else in this deck a solver is
-            holding the invariant and the residual drifts; here <b>𝒜 i 𝒜̄ IS the Wronskian</b>, so PH is a
-            substitution and cannot fail. A member costs 0.014 ms to build — no Newton, no cached seed.
-            The interior control points are <i>outputs</i>, drawn grey — nothing is solved from them. The
-            start point is pinned because c(0) is the origin by the translation gauge, so moving it would
-            only slide the picture. Drag the background to rotate.
-          </span>
-        </>
+        strict ? (
+          <>
+            <b>A fiber you can sweep, and two dials with names.</b> The start point, the start tangent
+            and the far endpoint are held. What is left closes into a <b>loop</b> — the pale curves are
+            the whole family at once — because the freedom is a <b>Hopf phase</b>, and a phase is an
+            angle. Sweep it and you come back.{' '}
+            <b>Then the two dials deform it, and both mean something.</b> <b>Twist</b> is the
+            frame&apos;s rate of rotation <i>about</i> the tangent at the pole — measured, exactly{' '}
+            <i>ω</i> = 2λ·<b>e</b>₁, purely tangential. <b>Pole</b> is where the curve passes through{' '}
+            <b>infinity</b>: drive it down and watch <i>infinity to curve</i> shrink while ‖c′(1)‖
+            diverges — the family&apos;s honest limit, a geometric event rather than a solver giving up.{' '}
+            <b>The far endpoint is draggable</b>, and since it is one of the held data items, moving it
+            takes you to a <i>different</i> fiber; the pale family redraws when you let go.{' '}
+            <span className="text-slate-400">
+              And watch the <b>PH defect</b>: it does not move. Elsewhere in this deck a solver holds the
+              invariant and the residual drifts; here <b>𝒜 i 𝒜̄ IS the Wronskian</b>, so PH is a
+              substitution. A member costs 0.014 ms — no Newton, no cached seed. Interior control points
+              are <i>outputs</i>, drawn grey. Drag the background to rotate.
+            </span>
+          </>
+        ) : (
+          <>
+            <b>Free: nothing is held, and every control point is a handle.</b> Drag any of the five and
+            all ten parameters answer by minimum norm — the four of the spinor&apos;s base point, the four
+            of its second coefficient, plus <b>twist</b> and <b>pole</b>, which you can watch move in the
+            readouts. Measured: the four movable points track a long path at 100%.{' '}
+            <b>And the PH defect still does not move.</b> That is the whole argument of this figure. There
+            is no optimizer holding an invariant here, because <b>there is no invariant available to
+            violate</b> — <b>𝒜 i 𝒜̄</b> <i>is</i> the Wronskian, so every parameter value whatsoever is a
+            PH curve. Nothing can stall, and nothing needs to be projected back.{' '}
+            <span className="text-slate-400">
+              <b>P₀</b> is the exception and it is structural: c(0) is the origin by the translation
+              gauge, so dragging it <i>translates</i> the picture — which is what moving it means. The one
+              thing refused is walking the <b>pole</b> into [0,1], where the curve would pass through the
+              piece you are drawing; then the readout says <i>no member there</i>. Return to <b>strict</b>
+              and the data is re-read from wherever you left the curve. Drag the background to rotate.
+            </span>
+          </>
+        )
       }
     >
       {/* the whole family at once — the thing that made the polynomial fiber beautiful */}
-      {loop.ghosts.map((g, i) => (
-        <Curve3D key={`ghost${i}`} points={g} color={FIG.color.derived} width={1} />
-      ))}
+      {strict
+        ? loop.ghosts.map((g, i) => (
+            <Curve3D
+              key={`ghost${i}`}
+              points={g.map(([x, y, z]) => [x + origin.x, y + origin.y, z + origin.z] as [number, number, number])}
+              color={FIG.color.derived}
+              width={1}
+            />
+          ))
+        : null}
 
-      <Curve3D points={control.points.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
+      <Curve3D points={control.points.map(shift)} color={FIG.color.controlPolygon} width={1} dashed />
       <Curve3D points={curve} color={FIG.color.curve} width={3.5} />
 
-      {/* control points are DERIVED here — nothing is solved from them */}
-      {control.points.map((p, i) => (
-        <Point3D key={`cp${i}`} position={tri(p)} color={FIG.color.derived} radius={0.04} derived />
-      ))}
+      {/*
+        Colour carries one distinction and it is static: can the mouse move this? In STRICT only the far
+        endpoint can, because it is data; the interior points are outputs. In FREE every one is a handle.
+        Nothing recolours mid-drag except the grabbed point itself.
+      */}
+      {control.points.map((p, i) => {
+        const handle = !strict || i === 4
+        if (!handle) {
+          return <Point3D key={`cp${i}`} position={shift(p)} color={FIG.color.derived} radius={0.04} derived />
+        }
+        return (
+          <DragPoint3D
+            key={`cp${i}`}
+            position={shift(p)}
+            color={grabbed === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+            radius={i === 0 || i === 4 ? 0.056 : 0.046}
+            onDragStart={() => { setGrabbed(i); setStalled(false) }}
+            onDragEnd={() => { setGrabbed(null); if (strict) settle(live) }}
+            onDrag={(q) => (strict ? dragEnd(q) : dragFree(i, q))}
+          />
+        )
+      })}
 
-      {/* the start is pinned — it is the origin by the translation gauge, so moving it only translates */}
-      <Point3D position={tri(curveAt(member, 0))} color={FIG.color.pinned} radius={0.055} />
+      {/* the start point: pinned in strict, a translation handle in free (see the header) */}
+      {strict ? (
+        <Point3D position={shift(curveAt(member, 0))} color={FIG.color.pinned} radius={0.055} />
+      ) : null}
 
-      {/* the FAR endpoint is a handle: it is one of the three data items, so dragging it changes fibers */}
-      <DragPoint3D
-        position={tri(curveAt(member, 1))}
-        color={dragging ? FIG.color.dataPointDrag : FIG.color.dataPoint}
-        radius={0.058}
-        onDragStart={() => { setDragging(true); setStalled(false) }}
-        onDragEnd={() => { setDragging(false); settle(live) }}
-        onDrag={dragEnd}
-      />
+      {/* the start tangent — visible so the held data is shown rather than asserted */}
+      {strict ? (
+        <Curve3D
+          points={[
+            shift(curveAt(member, 0)),
+            shift((() => {
+              const c0 = curveAt(member, 0)
+              const d0 = derivativeAt(member, 0)
+              const n = Math.hypot(d0.x, d0.y, d0.z) || 1
+              const k = 0.5 / n
+              return { x: c0.x + d0.x * k, y: c0.y + d0.y * k, z: c0.z + d0.z * k }
+            })()),
+          ]}
+          color={FIG.color.pinned}
+          width={2}
+        />
+      ) : null}
 
-      {/* the held start tangent, so the pinned data is visible rather than asserted */}
-      <Curve3D
-        points={[tri(curveAt(member, 0)), tri((() => {
-          const c0 = curveAt(member, 0)
-          const d0 = derivativeAt(member, 0)
-          const n = Math.hypot(d0.x, d0.y, d0.z) || 1
-          const s = 0.5 / n
-          return { x: c0.x + d0.x * s, y: c0.y + d0.y * s, z: c0.z + d0.z * s }
-        })())]}
-        color={FIG.color.pinned}
-        width={2}
-      />
     </Figure3D>
   )
 }

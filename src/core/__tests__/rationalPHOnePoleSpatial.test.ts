@@ -3,8 +3,8 @@
 // figure's claims live.
 import { describe, it, expect } from 'vitest'
 import {
-  type OnePoleParams, controlStructure, curveAt, dataOf, fiberLoop, phDefect, poleMargin,
-  speedAt, toMember, withDial,
+  type OnePoleParams, controlStructure, curveAt, dataOf, dragControlPoint, fiberLoop, phDefect,
+  poleMargin, speedAt, toMember, withDial,
 } from '../rationalPHOnePoleSpatial'
 
 const SEED: OnePoleParams = {
@@ -72,5 +72,60 @@ describe('rationalPHOnePoleSpatial', () => {
     }
     console.log(`    pole dial: ${margins.join('; ')}`)
     expect(poleMargin({ ...SEED, pole: 1.01 })).toBeCloseTo(0.01, 6)
+  }, 120_000)
+})
+
+describe('free dragging: every control point, and PH unavailable for violation', () => {
+  const SEED2: OnePoleParams = {
+    b0: { u: 1.0, v: 0.3, p: -0.4, q: 0.2 },
+    b2: { u: 0.25, v: -0.5, p: 0.15, q: 0.35 },
+    lambda: 0.6,
+    pole: 1.7,
+  }
+
+  it('drags each of the five control points, and PH never moves', () => {
+    const base = controlStructure(toMember(SEED2)).points
+    const span = Math.max(...base.map((p, i, a) => (i ? Math.hypot(p.x - a[i - 1].x, p.y - a[i - 1].y, p.z - a[i - 1].z) : 0)))
+    for (let idx = 0; idx < 5; idx++) {
+      let cur = SEED2
+      let asked = 0
+      let stalled = -1
+      for (let k = 1; k <= 10; k++) {
+        asked = span * 0.08 * k
+        const p0 = base[idx]
+        const t = { x: p0.x + asked, y: p0.y + 0.4 * asked, z: p0.z - 0.3 * asked }
+        const next = dragControlPoint(cur, idx, t, { maxStep: 0.25 })
+        if (!next) { stalled = k; break }
+        cur = next
+      }
+      const got = controlStructure(toMember(cur)).points[idx]
+      const moved = Math.hypot(got.x - base[idx].x, got.y - base[idx].y, got.z - base[idx].z)
+      const wanted = asked * Math.hypot(1, 0.4, 0.3)
+      const defect = Math.max(phDefect(toMember(cur)), toMember(cur).consistency)
+      console.log(
+        `    P${idx}: travelled ${(100 * moved / Math.max(wanted, 1e-12)).toFixed(0)}%` +
+          `   PH defect ${defect.toExponential(1)}   pole ${cur.pole.toFixed(3)}` +
+          `${stalled > 0 ? `   <- stopped at ${stalled}` : ''}`,
+      )
+      expect(defect, `P${idx}: PH cannot be violated`).toBeLessThan(1e-9)
+      expect(poleMargin(cur), `P${idx}: the pole stayed out of the domain`).toBeGreaterThan(0)
+    }
+  }, 120_000)
+
+  it('and it refuses to walk the pole into the drawn piece', () => {
+    // Aim a control point somewhere that would need the pole inside [0,1] and check we get null, not a
+    // curve with a pole through it.
+    let cur: OnePoleParams | null = SEED2
+    let steps = 0
+    const far = { x: 40, y: -30, z: 25 }
+    while (cur && steps < 400) {
+      const next: OnePoleParams | null = dragControlPoint(cur, 4, far, { maxStep: 0.4 })
+      if (!next) break
+      cur = next
+      steps++
+    }
+    console.log(`    pushed ${steps} steps toward a far target; final pole ${cur?.pole.toFixed(4) ?? 'n/a'}`)
+    expect(cur, 'the last accepted state is still a member').not.toBeNull()
+    expect(poleMargin(cur as OnePoleParams), 'and its pole is outside the domain').toBeGreaterThan(0)
   }, 120_000)
 })
