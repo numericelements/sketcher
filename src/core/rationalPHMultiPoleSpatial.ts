@@ -409,3 +409,63 @@ export function seedQuintic(): MultiPoleParams {
   }
   return projectToFamily(prm)
 }
+
+/**
+ * FREE drag with the FAR END HELD — the m-pole twin of the one-pole function of the same name.
+ *
+ * c(0) is already immovable (p(0) = 0 pins the translation), so only c(1) is added: 6 conditions against
+ * the 8-dimensional admissible subspace, hence underdetermined and spent by minimum norm. The twist rates
+ * and the poles are held, as they are for the plain free drag — those are dials, not drag slack.
+ *
+ * `index` may be null for the "move only the endpoint" case.
+ */
+export function dragWithEndHeld(
+  prm: MultiPoleParams,
+  index: number | null,
+  target: Vec3 | null,
+  endTarget: Vec3,
+  options: { maxStep?: number; iterations?: number } = {},
+): MultiPoleParams | null {
+  const basis = familyBasis(prm)
+  const points = controlStructure(toMember(prm)).points
+  let want: Vec3 | null = null
+  if (index !== null && target !== null) {
+    const scale = Math.max(
+      ...points.map((q, i) => (i === index
+        ? 0
+        : Math.hypot(q.x - points[index].x, q.y - points[index].y, q.z - points[index].z))),
+      1e-9,
+    )
+    const off = {
+      x: target.x - points[index].x, y: target.y - points[index].y, z: target.z - points[index].z,
+    }
+    const reach = Math.hypot(off.x, off.y, off.z)
+    const k = reach > 1e-12 ? Math.min(reach, (options.maxStep ?? 0.12) * scale) / reach : 0
+    want = { x: points[index].x + off.x * k, y: points[index].y + off.y * k, z: points[index].z + off.z * k }
+  }
+
+  let c = coordsOf(prm, basis)
+  const residual = (q: readonly number[]): number[] => {
+    const mem = toMember(fromCoords(prm, basis, q))
+    const end = curveAt(mem, 1)
+    const rows = [end.x - endTarget.x, end.y - endTarget.y, end.z - endTarget.z]
+    if (index !== null && want) {
+      const pt = controlStructure(mem).points[index]
+      rows.push(pt.x - want.x, pt.y - want.y, pt.z - want.z)
+    }
+    return rows
+  }
+  for (let it = 0; it < (options.iterations ?? 20); it++) {
+    const r = residual(c)
+    if (Math.hypot(...r) < 1e-12) break
+    const J = r.map((_, k) => c.map((_, j) => {
+      const e = 1e-7
+      const hi = c.slice(); hi[j] += e
+      const lo = c.slice(); lo[j] -= e
+      return (residual(hi)[k] - residual(lo)[k]) / (2 * e)
+    }))
+    try { const st = leastSquares(J, r.map((v) => -v), 1e-10); c = c.map((v, j) => v + st[j]) } catch { return null }
+  }
+  const out = fromCoords(prm, basis, c)
+  return poleMargin(out) > 1e-3 ? out : null
+}

@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   type OnePoleParams, controlStructure, curveAt, dataOf, dragControlPoint, fiberLoop, phDefect,
-  poleMargin, speedAt, toMember, withDial,
+  poleMargin, speedAt, toMember, withDial, dragWithEndHeld,
 } from '../rationalPHOnePoleSpatial'
 
 const SEED: OnePoleParams = {
@@ -128,4 +128,45 @@ describe('free dragging: every control point, and PH unavailable for violation',
     expect(cur, 'the last accepted state is still a member').not.toBeNull()
     expect(poleMargin(cur as OnePoleParams), 'and its pole is outside the domain').toBeGreaterThan(0)
   }, 120_000)
+})
+
+describe('free dragging with the ends HELD', () => {
+  const S: OnePoleParams = {
+    b0: { u: 1.0, v: 0.3, p: -0.4, q: 0.2 },
+    b2: { u: 0.25, v: -0.5, p: 0.15, q: 0.35 },
+    lambda: 0.6,
+    pole: 1.7,
+  }
+  it('an interior drag leaves BOTH endpoints where they were', () => {
+    const base = controlStructure(toMember(S)).points
+    const end0 = curveAt(toMember(S), 1)
+    const span = Math.max(...base.map((p, i, a) => (i ? Math.hypot(p.x - a[i - 1].x, p.y - a[i - 1].y, p.z - a[i - 1].z) : 0)))
+    for (const idx of [1, 2, 3]) {
+      let cur = S
+      for (let k = 1; k <= 8; k++) {
+        const s = span * 0.08 * k
+        const t = { x: base[idx].x + s, y: base[idx].y + 0.5 * s, z: base[idx].z - 0.35 * s }
+        const next = dragWithEndHeld(cur, idx, t, end0, { maxStep: 0.25 })
+        if (!next) break
+        cur = next
+      }
+      const m = toMember(cur)
+      const start = curveAt(m, 0)
+      const end = curveAt(m, 1)
+      const moved = Math.hypot(
+        controlStructure(m).points[idx].x - base[idx].x,
+        controlStructure(m).points[idx].y - base[idx].y,
+        controlStructure(m).points[idx].z - base[idx].z,
+      )
+      const endDrift = Math.hypot(end.x - end0.x, end.y - end0.y, end.z - end0.z)
+      console.log(
+        `    P${idx}: moved ${moved.toFixed(3)};  c(0) drift ${Math.hypot(start.x, start.y, start.z).toExponential(1)}` +
+          `   c(1) drift ${endDrift.toExponential(1)}   PH ${phDefect(m).toExponential(1)}`,
+      )
+      expect(moved, `P${idx} actually moved`).toBeGreaterThan(0.02)
+      expect(Math.hypot(start.x, start.y, start.z), 'c(0) is pinned by p(0) = 0').toBeLessThan(1e-9)
+      expect(endDrift, 'and c(1) was held').toBeLessThan(1e-7)
+      expect(phDefect(m), 'PH still cannot fail').toBeLessThan(1e-9)
+    }
+  }, 300_000)
 })

@@ -53,7 +53,7 @@ import {
   curveAt,
   dataOf,
   derivativeAt,
-  dragControlPoint,
+  dragWithEndHeld,
   fiberLoop,
   phDefect,
   poleMargin,
@@ -177,15 +177,33 @@ export default function RationalPHLoopFigure() {
     }
   }
 
-  /** FREE: any control point to the cursor, all ten parameters spent by minimum norm. */
+  /**
+   * FREE, with the ENDS HELD — the gesture the rest of this deck already has: move an interior point and
+   * the endpoints stay put; move one endpoint and the other stays put.
+   *
+   * c(0) needs no holding: p(0) = 0 pins the translation, so the start cannot move within the family. So
+   * an interior drag adds one condition (hold c(1) in WORLD space) and stays underdetermined — 6 against
+   * 10 — with minimum norm spending the rest. Dragging P₀ is the mirror case: the picture translates to
+   * the cursor while the family re-solves to leave c(1) where it was on screen.
+   */
   const dragFree = (index: number, [x, y, z]: [number, number, number]): void => {
+    const last = control.points.length - 1
+    const worldEnd = shift(curveAt(member, 1))
     if (index === 0) {
-      // c(0) is the origin by the gauge, so this is a translation and nothing else.
-      setOrigin({ x: x - 0, y: y - 0, z: z - 0 })
+      const nextOrigin = { x, y, z }
+      const held = { x: worldEnd[0] - x, y: worldEnd[1] - y, z: worldEnd[2] - z }
+      const solved = dragWithEndHeld(live, null, null, held)
+      if (!solved) { setStalled(true); return }
       setStalled(false)
+      setOrigin(nextOrigin)
+      setLive(solved)
       return
     }
-    const next = dragControlPoint(live, index, { x: x - origin.x, y: y - origin.y, z: z - origin.z })
+    const cursor = { x: x - origin.x, y: y - origin.y, z: z - origin.z }
+    const held = index === last
+      ? cursor
+      : { x: worldEnd[0] - origin.x, y: worldEnd[1] - origin.y, z: worldEnd[2] - origin.z }
+    const next = dragWithEndHeld(live, index === last ? null : index, index === last ? null : cursor, held)
     if (!next) { setStalled(true); return }
     setStalled(false)
     setLive(next)
@@ -326,8 +344,9 @@ export default function RationalPHLoopFigure() {
             violate</b> — <b>𝒜 i 𝒜̄</b> <i>is</i> the Wronskian, so every parameter value whatsoever is a
             PH curve. Nothing can stall, and nothing needs to be projected back.{' '}
             <span className="text-slate-400">
-              <b>P₀</b> is the exception and it is structural: c(0) is the origin by the translation
-              gauge, so dragging it <i>translates</i> the picture — which is what moving it means. The one
+              <b>The ends hold each other.</b> Move an interior point and both endpoints stay put; move one
+              endpoint and the other does. c(0) needs no pinning — p(0) = 0 fixes it — so dragging{' '}
+              <b>P₀</b> slides the picture while the family re-solves to leave c(1) on screen. The one
               thing refused is walking the <b>pole</b> into [0,1], where the curve would pass through the
               piece you are drawing; then the readout says <i>no member there</i>. Return to <b>strict</b>
               and the data is re-read from wherever you left the curve. Drag the background to rotate.

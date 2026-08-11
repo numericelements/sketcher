@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   type MultiPoleParams, controlStructure, curveAt, dataOf, dragControlPoint, fiberLoop,
-  familyBasis, phDefect, poleMargin, projectToFamily, speedAt, toMember, withDial,
+  familyBasis, phDefect, poleMargin, projectToFamily, speedAt, toMember, withDial, dragWithEndHeld,
 } from '../rationalPHMultiPoleSpatial'
 
 const SEED_A: MultiPoleParams = {
@@ -99,6 +99,41 @@ describe('rationalPHMultiPoleSpatial (n = 3, m = 2 — a rational quintic)', () 
       const moved = Math.hypot(got.x - base[idx].x, got.y - base[idx].y, got.z - base[idx].z)
       console.log(`    P${idx}: ${ok} steps, moved ${moved.toFixed(3)}, PH ${phDefect(toMember(cur)).toExponential(1)}`)
       expect(phDefect(toMember(cur)), `P${idx}: PH is not a thing that can fail`).toBeLessThan(1e-9)
+    }
+  }, 300_000)
+})
+
+describe('two poles: free dragging with the ends held', () => {
+  const seed = projectToFamily(SEED_A)
+  it('an interior drag leaves both endpoints put, at two poles too', () => {
+    const base = controlStructure(toMember(seed)).points
+    const end0 = curveAt(toMember(seed), 1)
+    const span = Math.max(...base.map((p, i, a) => (i ? Math.hypot(p.x - a[i - 1].x, p.y - a[i - 1].y, p.z - a[i - 1].z) : 0)))
+    for (const idx of [1, 2, 3, 4]) {
+      let cur = seed
+      for (let k = 1; k <= 6; k++) {
+        const s = span * 0.1 * k
+        const t = { x: base[idx].x + s, y: base[idx].y + 0.5 * s, z: base[idx].z - 0.35 * s }
+        const next = dragWithEndHeld(cur, idx, t, end0, { maxStep: 0.3 })
+        if (!next) break
+        cur = next
+      }
+      const m = toMember(cur)
+      const start = curveAt(m, 0), end = curveAt(m, 1)
+      const moved = Math.hypot(
+        controlStructure(m).points[idx].x - base[idx].x,
+        controlStructure(m).points[idx].y - base[idx].y,
+        controlStructure(m).points[idx].z - base[idx].z,
+      )
+      console.log(
+        `    P${idx}: moved ${moved.toFixed(3)};  c(0) ${Math.hypot(start.x, start.y, start.z).toExponential(1)}` +
+          `   c(1) drift ${Math.hypot(end.x - end0.x, end.y - end0.y, end.z - end0.z).toExponential(1)}` +
+          `   PH ${phDefect(m).toExponential(1)}`,
+      )
+      expect(moved, `P${idx} moved`).toBeGreaterThan(0.01)
+      expect(Math.hypot(start.x, start.y, start.z), 'c(0) pinned').toBeLessThan(1e-9)
+      expect(Math.hypot(end.x - end0.x, end.y - end0.y, end.z - end0.z), 'c(1) held').toBeLessThan(1e-6)
+      expect(phDefect(m), 'PH cannot fail').toBeLessThan(1e-9)
     }
   }, 300_000)
 })

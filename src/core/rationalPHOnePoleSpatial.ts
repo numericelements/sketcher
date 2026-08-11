@@ -377,3 +377,70 @@ export function dragControlPoint(
   const out = UNPACK_FULL(x)
   return poleMargin(out) > 1e-3 ? out : null
 }
+
+/**
+ * FREE drag with the FAR END HELD — the gesture slides 16 and 17 use, and the one the rest of this deck
+ * already has: move an interior control point and the endpoints stay put.
+ *
+ * c(0) needs no holding: p(0) = 0 pins the translation, so the start point cannot move within the family
+ * at all. Only c(1) has to be added, which makes this 6 conditions (cursor + endpoint) against 10
+ * parameters — underdetermined, so minimum norm spends the slack and nothing has to be given up.
+ *
+ * `index` may be null, which is the "move only the endpoint" case: then the endpoint target IS the
+ * gesture and there is nothing else to aim.
+ */
+export function dragWithEndHeld(
+  prm: OnePoleParams,
+  index: number | null,
+  target: Vec3 | null,
+  endTarget: Vec3,
+  options: { maxStep?: number; iterations?: number } = {},
+): OnePoleParams | null {
+  const startSide = prm.pole > 1 ? 1 : -1
+  const points = controlStructure(toMember(prm)).points
+  let want: Vec3 | null = null
+  if (index !== null && target !== null) {
+    const scale = Math.max(
+      ...points.map((q, i) => (i === index
+        ? 0
+        : Math.hypot(q.x - points[index].x, q.y - points[index].y, q.z - points[index].z))),
+      1e-9,
+    )
+    const off = {
+      x: target.x - points[index].x, y: target.y - points[index].y, z: target.z - points[index].z,
+    }
+    const reach = Math.hypot(off.x, off.y, off.z)
+    const k = reach > 1e-12 ? Math.min(reach, (options.maxStep ?? 0.12) * scale) / reach : 0
+    want = { x: points[index].x + off.x * k, y: points[index].y + off.y * k, z: points[index].z + off.z * k }
+  }
+
+  let x = PACK_FULL(prm)
+  const residual = (q: readonly number[]): number[] => {
+    const mem = toMember(UNPACK_FULL(q))
+    const end = curveAt(mem, 1)
+    const rows = [end.x - endTarget.x, end.y - endTarget.y, end.z - endTarget.z]
+    if (index !== null && want) {
+      const pt = controlStructure(mem).points[index]
+      rows.push(pt.x - want.x, pt.y - want.y, pt.z - want.z)
+    }
+    return rows
+  }
+  for (let it = 0; it < (options.iterations ?? 24); it++) {
+    const r = residual(x)
+    if (Math.hypot(...r) < 1e-12) break
+    const J = r.map((_, k) => x.map((_, j) => {
+      const e = 1e-7
+      const hi = x.slice(); hi[j] += e
+      const lo = x.slice(); lo[j] -= e
+      return (residual(hi)[k] - residual(lo)[k]) / (2 * e)
+    }))
+    let step: number[]
+    try { step = leastSquares(J, r.map((v) => -v), 1e-10) } catch { return null }
+    const next = x.map((v, j) => v + step[j])
+    const side = next[9] > 1 ? 1 : next[9] < 0 ? -1 : 0
+    if (side !== startSide) return null
+    x = next
+  }
+  const out = UNPACK_FULL(x)
+  return poleMargin(out) > 1e-3 ? out : null
+}

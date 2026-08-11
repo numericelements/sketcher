@@ -32,7 +32,7 @@ import {
   curveAt,
   dataOf,
   derivativeAt,
-  dragControlPoint,
+  dragWithEndHeld,
   fiberLoop,
   phDefect,
   poleMargin,
@@ -130,9 +130,24 @@ export default function RationalPHTwoPoleFigure() {
     setLive(solved)
   }
 
+  /** FREE, with the ENDS HELD — see the slide-16 figure for why c(0) needs no pinning. */
   const dragFree = (index: number, [x, y, z]: [number, number, number]): void => {
-    if (index === 0) { setOrigin({ x, y, z }); setStalled(false); return }
-    const next = dragControlPoint(live, index, { x: x - origin.x, y: y - origin.y, z: z - origin.z })
+    const last = control.points.length - 1
+    const worldEnd = shift(curveAt(member, 1))
+    if (index === 0) {
+      const held = { x: worldEnd[0] - x, y: worldEnd[1] - y, z: worldEnd[2] - z }
+      const solved = dragWithEndHeld(live, null, null, held)
+      if (!solved) { setStalled(true); return }
+      setStalled(false)
+      setOrigin({ x, y, z })
+      setLive(solved)
+      return
+    }
+    const cursor = { x: x - origin.x, y: y - origin.y, z: z - origin.z }
+    const held = index === last
+      ? cursor
+      : { x: worldEnd[0] - origin.x, y: worldEnd[1] - origin.y, z: worldEnd[2] - origin.z }
+    const next = dragWithEndHeld(live, index === last ? null : index, index === last ? null : cursor, held)
     if (!next) { setStalled(true); return }
     setStalled(false)
     setLive(next)
@@ -247,8 +262,10 @@ export default function RationalPHTwoPoleFigure() {
             <b>The PH defect still does not move</b>, at two poles as at one, because there is no invariant
             available to violate.{' '}
             <span className="text-slate-400">
-              <b>P₀</b> translates the picture, as before — c(0) is the origin because p(0) = 0 pins the
-              translation. The refusals are geometric: a <b>pole</b> may not enter [0,1], and where no
+              <b>The ends hold each other</b>, as on the previous slide: an interior drag leaves both
+              endpoints put, and each endpoint drag leaves the other. c(0) needs no pinning because
+              p(0) = 0 fixes it, so <b>P₀</b> slides the picture while the family re-solves. The refusals
+              are geometric: a <b>pole</b> may not enter [0,1], and where no
               member exists the readout says <i>no member there</i>. Back to <b>strict</b> re-reads the
               data from wherever you left the curve. Drag the background to rotate.
             </span>
