@@ -18,9 +18,9 @@
 //
 // and the invariance question the first two acts circle is CLOSED, very recently, by
 //
-//   Altavilla, Schrocker, Sir, Vrsek (2026, Proc. Roy. Soc. A; arXiv 2512.19587)
+//   Altavilla, Schrocker, Sir, Vrsek (2026, Proc. Roy. Soc. A\\; arXiv 2512.19587)
 //   -- PH-preserving maps are exactly the conformal maps whose dilation is the square of a real
-//      rational function. In the plane that is a HUGE group; for n >= 3 Liouville collapses it to
+//      rational function. In the plane that is a HUGE group\\; for n >= 3 Liouville collapses it to
 //      (anti-)Mobius. Slide 9 carries this, because our Wronskian argument is one special case of it.
 //
 // docs/THE_LATTICE.md section 0' keeps the accounting. The genuinely unmatched work is the EDITOR --
@@ -33,12 +33,12 @@
 //
 //   1. ORDERING: plane-first or general-first? Act I is general-first (the (n,1) statement, then the
 //      examples). Plane-first would open with the one-line complex proof and generalise after. Both
-//      defensible; the choice is about how much patience the room has before a payoff.
+//      defensible\\; the choice is about how much patience the room has before a payoff.
 //   2. ONE STATIC PICTURE for slide 4 — the cone x² + y² = s² with the parabola drawn on it. The only
 //      place in this deck where a figure would carry its weight. Text for now, by choice.
-//   3. NO OUTLINE SLIDE yet, unlike the ph-interpolation deck. Add once the acts settle; an outline
+//   3. NO OUTLINE SLIDE yet, unlike the ph-interpolation deck. Add once the acts settle\\; an outline
 //      written before the content is a promise that gets broken.
-//   4. Slide 6's table is inline-styled. Fine for one table; extract a class if a second appears.
+//   4. Slide 6's table is inline-styled. Fine for one table\\; extract a class if a second appears.
 //   5. Subtitle wording, and whether "offered for discussion" stays.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
@@ -96,13 +96,15 @@ export const slides: SlideDefinition[] = [
         </Math>
         <p style={{ marginTop: '1em' }}>
           <strong>
-            PH <Math>{'\\iff'}</Math> the curve <Math>{'\\boldsymbol{\\gamma}'}</Math> lies on the{' '}
-            <em>light cone</em> of <Math>{'\\mathbb{R}^{n,1}'}</Math>.
+            PH <Math>{'\\iff'}</Math> <Math>{'\\boldsymbol{\\gamma}'}</Math> is a{' '}
+            <em>polynomial</em> curve on the light cone of <Math>{'\\mathbb{R}^{n,1}'}</Math>.
           </strong>
         </p>
         <p style={{ opacity: 0.65 }}>
-          Nothing has been done except <strong>refusing to treat <Math>{'\\sigma'}</Math> as
-          derived.</strong>
+          The word <em>polynomial</em> is carrying everything. <Math>{"(\\mathbf{c}', \\|\\mathbf{c}'\\|)"}</Math>{' '}
+          lies on the cone for <strong>every</strong> regular curve — membership is free. PH asks whether
+          the lift can be taken <strong>algebraically</strong>. Nothing else has been done except{' '}
+          <strong>refusing to treat <Math>{'\\sigma'}</Math> as derived.</strong>
         </p>
       </>
     ),
@@ -117,7 +119,7 @@ export const slides: SlideDefinition[] = [
       + 'coordinate. If one thing is remembered from the talk it should be that vector. '
       + 'AND NOTE WHAT R^{n,1} ALREADY IS: for n = 3 it is the space of the spatial medial axis '
       + 'transform, where the extra coordinate is the RADIUS. Same space, two readings -- speed here, '
-      + 'radius there. That dictionary is Act IV; plant it now, do not explain it. '
+      + 'radius there. That dictionary is Act IV\\; plant it now, do not explain it. '
       + 'Measured: core/__tests__/hodographLightCone.test.ts checks gamma is on the cone for planar '
       + 'spinors of degree 1, 2, 3 and quaternion spinors of degree 1, 2 -- worst 1.0e-15 relative.',
   },
@@ -316,7 +318,7 @@ export const slides: SlideDefinition[] = [
       + 'speed, or the radius, depending on which reading you are in. Conformal invariance always costs '
       + 'a HYPERBOLIC PAIR, the two null directions o and infinity of the conformal model. They are '
       + 'different prices for different goods, and adding them is what produces R^{n+1,2}. '
-      + 'WHERE THIS LANDS: <P,P> = 0 says the curve is a point curve in R^{4,1}; <P-prime,P-prime> = h^2 '
+      + 'WHERE THIS LANDS: <P,P> = 0 says the curve is a point curve in R^{4,1}\\; <P-prime,P-prime> = h^2 '
       + 'says the vector (P-prime, h) is ISOTROPIC in R^{4,1} + R^{0,1} = R^{4,2}. So the Lie sphere '
       + 'space is not imported, it is FORCED by writing the PH condition of a conformal curve. Canal '
       + 'surfaces, oriented spheres and Laguerre geometry are then readings of a space we are already in. '
@@ -325,7 +327,7 @@ export const slides: SlideDefinition[] = [
       + 'cyclographic, Blaschke-cylinder and isotropic models of Laguerre geometry into exactly this '
       + 'R^{4,2} and says so in the abstract. The slide\'s punchline is that paper\'s thesis. Act I slide 5 '
       + 'is likewise Choi et al. 2002 (Clifford algebra and the spin representation unifying all '
-      + 'incarnations of PH curves). Say both out loud; the deck is exposition here, not contribution. '
+      + 'incarnations of PH curves). Say both out loud\\; the deck is exposition here, not contribution. '
       + 'AND THE OTHER READING OF THE SAME LADDER: off the null quadric a vector IS a sphere, so a curve '
       + 'off the cone is a SPHERE FAMILY and what you see is its envelope. On the cone the vector is a '
       + 'point and the curve is a curve. That single distinction separates our conformal PH curves from '
@@ -357,7 +359,7 @@ export const slides: SlideDefinition[] = [
             <Math>{'h'}</Math> is the speed <em>numerator</em>.
           </strong>{' '}
           The true speed is <Math>{'h/w'}</Math>, so a Möbius map rescales speed by the conformal factor
-          and never touches PH-ness. <strong>PH is a statement about the numerator; Möbius acts on the
+          and never touches PH-ness. <strong>PH is a statement about the numerator\\; Möbius acts on the
           denominator.</strong>
         </p>
       </>
@@ -372,9 +374,78 @@ export const slides: SlideDefinition[] = [
       + 'PICK THE REPRESENTATION WHOSE SPIN GROUP CONTAINS THE SYMMETRY YOU WANT. Spin(3) buys rotations. '
       + 'Spin(4,1) = Sp(1,1) buys Mobius -- and it is QUATERNIONIC, which is why quaternions reappear in '
       + 'the spinor solution after the conformal model appeared to have left them behind. '
-      + 'DO NOT OVERSELL. This two-line argument is the reason the conformal model works; the CONTENT is '
+      + 'DO NOT OVERSELL. This two-line argument is the reason the conformal model works\\; the CONTENT is '
       + 'what it costs and what it buys, which is Acts III and IV: the moduli counts (family 2n+6, moduli '
       + '2n-6) and the measured fact that bending polynomials reaches only a codimension-3 subvariety.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8 — the bridge: divide out the scale
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Divide out the scale</h2>
+        <p>
+          The cone has a scale, and <Math>{'\\boldsymbol{\\gamma}'}</Math> carries an obvious one. Divide
+          by it:
+        </p>
+        <Math display>
+          {"\\boldsymbol{\\gamma}/\\sigma = (\\mathbf{c}'/\\sigma,\\; 1) = (\\mathbf{T},\\; 1) \\qquad \\mathbf{T} = \\text{the unit tangent}"}
+        </Math>
+        <p>
+          The rays of a light cone in <Math>{'\\mathbb{R}^{n,1}'}</Math> form the sphere{' '}
+          <Math>{'S^{n-1}'}</Math> — the <em>celestial sphere</em> — and the image of{' '}
+          <Math>{'\\boldsymbol{\\gamma}'}</Math> there is the curve&apos\\;s <strong>tangent
+          indicatrix</strong>. Now adjoin the signed distance <Math>{'d = \\mathbf{c}\\cdot\\hat{\\mathbf{n}}'}</Math>:
+        </p>
+        <Math display>
+          {'(\\hat{\\mathbf{n}},\\, d) \\in S^{n-1} \\times \\mathbb{R} \\;=\\; \\text{the Blaschke cylinder} \\;=\\; \\text{oriented hyperplanes}'}
+        </Math>
+        <p>
+          which sits inside the <strong>Lie quadric</strong> as the spheres of infinite radius. So the
+          chain is
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <strong>cone <Math>{'\\to'}</Math> celestial sphere <Math>{'\\to'}</Math> Blaschke cylinder{' '}
+          <Math>{'\\to'}</Math> Lie quadric</strong>
+        </p>
+        <p style={{ marginTop: '0.9em' }}>and PH is <em>one</em> condition the whole way down:</p>
+        <Math display>
+          {"\\sigma \\text{ rational} \\iff \\mathbf{T} = \\mathbf{c}'/\\sigma \\text{ rational} \\iff \\hat{\\mathbf{n}} \\text{ rational} \\iff \\text{the oriented tangent family is rational}"}
+        </Math>
+        <p>
+          <strong>Which is why sphere geometry preserves PH:</strong> Laguerre and Lie transformations act
+          on the oriented tangent family, and that is where the condition lives. Offsetting fixes{' '}
+          <Math>{'\\hat{\\mathbf{n}}'}</Math> and shifts <Math>{'d'}</Math> — a translation along the
+          cylinder&apos\\;s fiber.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS THE BRIDGE FROM ACT I TO ACT IV, and it exists because Eric asked how the '
+      + '(velocity, speed) space connects to Lie sphere geometry. It is a CONSTRUCTION, not a '
+      + 'coincidence, and the distinction matters -- an earlier version of this work claimed a '
+      + '"dictionary" identifying the hodograph space with a sphere space because both happened to be '
+      + 'R^{3,1}. That was a dimension coincidence and it was wrong (the conformal space of the PLANE is '
+      + 'R^{3,1}, and so is the hodograph space of SPACE\\; same form, unrelated meanings, one used '
+      + 'projectively and the other affinely). The real link is the projection on this slide. '
+      + 'THE DIMENSIONS, if anyone checks: plane -- hodograph R^{2,1} is 3, its rays are S^1, the Blaschke '
+      + 'cylinder S^1 x R is 2 = the oriented lines, and the Lie quadric is 3 = the oriented circles. '
+      + 'Space -- R^{3,1} is 4, rays S^2, cylinder S^2 x R is 3 = oriented planes, Lie quadric 4 = oriented '
+      + 'spheres. Every step drops or adds exactly what it should. '
+      + 'THE PAYOFF IS THE LAST PARAGRAPH. PH is not really a statement about speed, it is a statement '
+      + 'about the ORIENTED TANGENT FAMILY being rational -- equivalently that the tangent indicatrix is a '
+      + 'rational point of the sphere, which IS the Pythagorean condition. Sphere-geometry groups act on '
+      + 'that family, so of course they preserve it. This is also the equivalence "PH iff rational '
+      + 'offsets" seen structurally rather than computed. '
+      + 'AND ORIENTATION IS FORCED HERE, which answers why Lie geometry insists on it: projectivising a '
+      + 'cone means choosing a RAY, future or past, and that choice IS the orientation. It is the same '
+      + 'fact as the signed speed sigma(1 - eps kappa) staying rational where the absolute value would '
+      + 'not. '
+      + 'CREDIT: the Blaschke cylinder is one of the three Laguerre models Krasauskas 2017 embeds in '
+      + 'R^{4,2} -- cyclographic, Blaschke, isotropic. This slide is the elementary route into that paper.',
   },
 
   // ===========================================================================
@@ -387,7 +458,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 8 — Mobius is a linear map
+  // 9 — Mobius is a linear map
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -423,13 +494,13 @@ export const slides: SlideDefinition[] = [
       + 'THE CONTRAST IS MEASURED, not rhetorical: on the real rational side a Mobius map turned 8 control '
       + 'points into 15 (ph-interpolation deck, slide 10). The degree DOUBLES because passing from the '
       + 'complex model to the real one is z -> P Q-bar / |Q|^2, a quadratic operation -- the same doubling '
-      + 'as the null lift and as A -> A i A-bar. One phenomenon, three appearances; Act I named it. '
+      + 'as the null lift and as A -> A i A-bar. One phenomenon, three appearances\\; Act I named it. '
       + 'IF ASKED WHY NOT ALWAYS WORK IN THE COMPLEX CHART: because it only exists in the plane. C is a '
-      + 'field, so P/Q means something; there is no division in R^3.',
+      + 'field, so P/Q means something\\; there is no division in R^3.',
   },
 
   // ---------------------------------------------------------------------------
-  // 9 — the Wronskian, and PH in one line
+  // 10 — the Wronskian, and PH in one line
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -459,7 +530,7 @@ export const slides: SlideDefinition[] = [
         <Math display>{"\\partial\\Phi/\\partial z = \\Psi^2 \\qquad \\Psi \\text{ meromorphic, with residue conditions}"}</Math>
         <p style={{ opacity: 0.8 }}>
           <span className="text-slate-400">
-            Altavilla, Schröcker, Šír &amp; Vršek, <em>Proc. Roy. Soc. A</em> (2026).
+            Altavilla, Schröcker, Šír &amp\\; Vršek, <em>Proc. Roy. Soc. A</em> (2026).
           </span>
         </p>
       </>
@@ -483,7 +554,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 10 — what the chart costs, and how many answers
+  // 11 — what the chart costs, and how many answers
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -525,12 +596,12 @@ export const slides: SlideDefinition[] = [
       + 'CONTRAST WITH THE POLYNOMIAL CASE deliberately: the planar polynomial three-point problem has TWO '
       + 'genuine solutions (deck one, slide 3) because its equations are quadratic. Here the second root '
       + 'is degenerate instead. Same "finitely many", different bookkeeping. '
-      + 'DO NOT CLAIM 3 IS A NEW NUMBER. It is 10 - 6 - 1 and every term is elementary; what is measured '
+      + 'DO NOT CLAIM 3 IS A NEW NUMBER. It is 10 - 6 - 1 and every term is elementary\\; what is measured '
       + 'is the 10, i.e. that PH really costs 4 and not 3 or 5.',
   },
 
   // ---------------------------------------------------------------------------
-  // 11 — why the plane is easy: the cone factors
+  // 12 — why the plane is easy: the cone factors
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -593,12 +664,12 @@ export const slides: SlideDefinition[] = [
       + 'Altavilla-Schrocker-Sir-Vrsek the PH-preserving maps of the plane are ALL conformal maps whose '
       + 'dilation is a square -- a vast group, of which Mobius is one small piece -- while for n >= 3 '
       + "Liouville's theorem forces (anti-)Mobius and nothing else. So the interesting statement is not "
-      + 'that the plane is easy but that RIGIDITY APPEARS AT DIMENSION THREE. Slide 9 states the theorem; '
+      + 'that the plane is easy but that RIGIDITY APPEARS AT DIMENSION THREE. Slide 9 states the theorem\\; '
       + 'this slide says what it means.',
   },
 
   // ---------------------------------------------------------------------------
-  // 12 — the cliffhanger
+  // 13 — the cliffhanger
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -644,7 +715,7 @@ export const slides: SlideDefinition[] = [
       + 'open roads that run to a degeneration instead of closing. Both ends of that are measured in this '
       + 'repository -- the closed spatial cubic fiber with constant arc length, and the conformal road '
       + 'whose backward end is a weight degeneration at 0.19 whatever the step budget. '
-      + 'DO NOT PREVIEW IT. The table on this slide is the question; a listener who works out the answer '
+      + 'DO NOT PREVIEW IT. The table on this slide is the question\\; a listener who works out the answer '
       + 'themselves during the break is worth more than one who was told.',
   },
 
@@ -662,7 +733,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 13 — the principle: the ambiguity is a group
+  // 14 — the principle: the ambiguity is a group
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -727,7 +798,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 14 — compact: the fiber closes, and arc length cannot choose
+  // 15 — compact: the fiber closes, and arc length cannot choose
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -776,7 +847,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 15 — non-compact: the family runs off
+  // 16 — non-compact: the family runs off
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -814,7 +885,7 @@ export const slides: SlideDefinition[] = [
       + 'boundary from your own step limit. Walk the family twice with different budgets: an end that does '
       + 'not move is a WALL, an end that grows with the budget was never an end at all. Measured 0.19 both '
       + 'times backward, and 1.61 versus 3.06 forward. An earlier version of the slide claimed the forward '
-      + 'end was a boundary; it was the step cap, and this is how that was caught. '
+      + 'end was a boundary\\; it was the step cap, and this is how that was caught. '
       + 'WHAT THE WALL IS: the weights degenerating, w_0 -> 0 projectively, which is the same asymptotic '
       + 'wall the reparametrisation dial runs into in the other deck -- met from a different direction. '
       + 'Non-compact gauge, so the family runs to a degeneration instead of returning. '
@@ -829,7 +900,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 16 — the principle, restated with both ends in hand
+  // 17 — the principle, restated with both ends in hand
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -848,7 +919,7 @@ export const slides: SlideDefinition[] = [
             <tr>
               <td style={{ padding: '0.35em 1.1em' }}><Math>{'\\mathbb{Z}/2'}</Math> — discrete</td>
               <td style={{ padding: '0.35em 1.1em' }}>zero-dimensional</td>
-              <td style={{ padding: '0.35em 1.1em' }}>finitely many curves; <em>pick one</em></td>
+              <td style={{ padding: '0.35em 1.1em' }}>finitely many curves\\; <em>pick one</em></td>
             </tr>
             <tr>
               <td style={{ padding: '0.35em 1.1em' }}><Math>{'S^1'}</Math> — compact</td>
@@ -883,13 +954,13 @@ export const slides: SlideDefinition[] = [
       + 'Compact gauge means a continuum with no distinguished member, so a choice rule is mandatory -- and '
       + 'if your functional is gauge-constant, as arc length is on the spatial cubic fiber, it will select '
       + 'nothing and you will not be able to tell from the residuals. '
-      + 'THE NEXT TWO SLIDES NAME THE CIRCLES. The count 12 - 9 - 1 = 2 was never the hard part; saying '
+      + 'THE NEXT TWO SLIDES NAME THE CIRCLES. The count 12 - 9 - 1 = 2 was never the hard part\\; saying '
       + 'WHICH two circles is, and the answer turns out to be three Hopf fibers with the gauge acting '
       + 'diagonally on them.',
   },
 
   // ---------------------------------------------------------------------------
-  // 17 — III-b: the third circle, by completing the square
+  // 18 — III-b: the third circle, by completing the square
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -921,7 +992,7 @@ export const slides: SlideDefinition[] = [
         </Math>
         <p>
           <strong>One more Hopf equation.</strong> So{' '}
-          <Math>{'\\mathcal{A}_1'}</Math>&apos;s freedom is the fiber over <Math>{'T'}</Math> —{' '}
+          <Math>{'\\mathcal{A}_1'}</Math>&apos\\;s freedom is the fiber over <Math>{'T'}</Math> —{' '}
           <Math>{'Y = Y^{*} e^{i\\psi}'}</Math>, a <em>third</em> circle.
         </p>
       </>
@@ -947,7 +1018,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 18 — III-b: three circles, one gauge, a torus
+  // 19 — III-b: three circles, one gauge, a torus
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -971,8 +1042,8 @@ export const slides: SlideDefinition[] = [
           {'\\text{216 members from } 6^3 \\text{ triples: } \\mathbf{d} \\text{ to } 2.9\\!\\times\\!10^{-16},\\; \\Delta\\mathbf{p} \\text{ to } 8.6\\!\\times\\!10^{-16}'}
         </Math>
         <p>
-          The diagonal shift leaves the hodograph fixed to <Math>{'2.8\\times10^{-15}'}</Math>; each
-          remaining circle closes at <Math>{'2\\pi'}</Math> to <Math>{'3.3\\times10^{-16}'}</Math>; and
+          The diagonal shift leaves the hodograph fixed to <Math>{'2.8\\times10^{-15}'}</Math>\\; each
+          remaining circle closes at <Math>{'2\\pi'}</Math> to <Math>{'3.3\\times10^{-16}'}</Math>\\; and
           the two tangent directions span a genuine 2-plane —{' '}
           <Math>{'\\sin\\angle = 0.228'}</Math>, so it is a <strong>surface</strong>, not a curve.
         </p>
@@ -993,7 +1064,7 @@ export const slides: SlideDefinition[] = [
       + 'IF ASKED WHETHER IT IS EXACTLY T^2 rather than some other surface: what is measured is that both '
       + 'parameters are 2pi-periodic and their tangent directions are independent, which gives a closed '
       + 'surface swept doubly periodically. The third circle T depends on the first two, so strictly this '
-      + 'is a circle bundle over T^2 quotiented by the diagonal; that it is the TRIVIAL bundle -- hence '
+      + 'is a circle bundle over T^2 quotiented by the diagonal\\; that it is the TRIVIAL bundle -- hence '
       + 'exactly T^2 and not, say, a Klein bottle -- is not proved here. Say "a torus" and be ready to '
       + 'concede "a doubly periodic closed surface" if pressed. '
       + 'AND THE HONEST LIMIT: T = 0 would break the parametrisation. Not found in a sweep, not proved '
@@ -1006,12 +1077,12 @@ export const slides: SlideDefinition[] = [
   // The act that was going to be "the dictionary and the lattice" is instead the credit map and the
   // reading path. That is the honest ending: the theory these three acts present is published, the
   // invariance question is closed as of 2026, and what this deck adds is the checking and the editor.
-  // An outlook act would have been the weakest thing here; a bibliography that says exactly who
+  // An outlook act would have been the weakest thing here\\; a bibliography that says exactly who
   // established what is the strongest.
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 19 — the apparent conflict, and why there is none
+  // 20 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1031,7 +1102,7 @@ export const slides: SlideDefinition[] = [
         </ul>
         <p style={{ marginTop: '0.8em' }}>
           They do not disagree, because <strong>a Lie transformation is not a mapping of points.</strong>{' '}
-          It acts on <em>contact elements</em>; the image of a curve is a <strong>wave front</strong>, with
+          It acts on <em>contact elements</em>\\; the image of a curve is a <strong>wave front</strong>, with
           cusps on the evolute. It is outside the class the first theorem quantifies over.
         </p>
         <p style={{ marginTop: '0.8em' }}>
@@ -1089,12 +1160,12 @@ export const slides: SlideDefinition[] = [
       + 'rational. Do not quote the theorem without that qualification. '
       + 'AND THE GEOMETRIC READING OF THE LIE HALF: offsetting is the model non-Mobius Lie transformation, '
       + 'and the offset speed is sigma*(1 - eps*kappa) -- rational, vanishing exactly at the cusp. The '
-      + 'SIGNED speed stays rational; it is the absolute value that breaks polynomiality, which is why Lie '
+      + 'SIGNED speed stays rational\\; it is the absolute value that breaks polynomiality, which is why Lie '
       + 'geometry insists on ORIENTED spheres.',
   },
 
   // ---------------------------------------------------------------------------
-  // 20 — who established what
+  // 21 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1115,7 +1186,7 @@ export const slides: SlideDefinition[] = [
             </tr>
             <tr>
               <td style={{ padding: '0.3em 1em' }}><Math>{'\\mathcal{A}i\\bar{\\mathcal{A}}'}</Math>, the spatial spinor form</td>
-              <td style={{ padding: '0.3em 1em' }}>Choi, Han &amp; Farouki</td>
+              <td style={{ padding: '0.3em 1em' }}>Choi, Han &amp\\; Farouki</td>
             </tr>
             <tr>
               <td style={{ padding: '0.3em 1em' }}><strong>the spin cover unifying every incarnation</strong> — Act I</td>
@@ -1127,18 +1198,18 @@ export const slides: SlideDefinition[] = [
             </tr>
             <tr>
               <td style={{ padding: '0.3em 1em' }}>PH curves <em>and</em> PN surfaces from Laguerre geometry</td>
-              <td style={{ padding: '0.3em 1em' }}>Peternell &amp; Pottmann, 1998</td>
+              <td style={{ padding: '0.3em 1em' }}>Peternell &amp\\; Pottmann, 1998</td>
             </tr>
             <tr>
               <td style={{ padding: '0.3em 1em' }}>Lie = two Möbius + one parallel</td>
-              <td style={{ padding: '0.3em 1em' }}>Cecil &amp; Chern</td>
+              <td style={{ padding: '0.3em 1em' }}>Cecil &amp\\; Chern</td>
             </tr>
             <tr style={{ borderTop: '1px solid currentColor' }}>
               <td style={{ padding: '0.3em 1em' }}>
                 <strong>PH-preserving maps, completely</strong> — slides 9, 11
               </td>
               <td style={{ padding: '0.3em 1em' }}>
-                <strong>Altavilla, Schröcker, Šír &amp; Vršek, 2026</strong>
+                <strong>Altavilla, Schröcker, Šír &amp\\; Vršek, 2026</strong>
               </td>
             </tr>
           </tbody>
@@ -1168,7 +1239,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 21 — the reading path
+  // 22 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1191,7 +1262,7 @@ export const slides: SlideDefinition[] = [
             </span>
           </li>
           <li style={{ marginTop: '0.4em' }}>
-            <strong>Altavilla, Schröcker, Šír &amp; Vršek (2026)</strong>, <em>A Complete Characterization
+            <strong>Altavilla, Schröcker, Šír &amp\\; Vršek (2026)</strong>, <em>A Complete Characterization
             of Pythagorean Hodograph Preserving Mappings</em>, Proc. Roy. Soc. A.
             <br />
             <span style={{ opacity: 0.65 }}>
@@ -1200,10 +1271,10 @@ export const slides: SlideDefinition[] = [
             </span>
           </li>
           <li style={{ marginTop: '0.4em' }}>
-            <strong>Peternell &amp; Pottmann (1998)</strong>, <em>A Laguerre geometric approach to rational
+            <strong>Peternell &amp\\; Pottmann (1998)</strong>, <em>A Laguerre geometric approach to rational
             offsets</em>, CAGD 15(3):223–249. And <strong>Cecil</strong>, <em>Lie Sphere Geometry</em>.
             <br />
-            <span style={{ opacity: 0.65 }}>Where the circles live. Kosinka &amp; Jüttler for the Minkowski cell.</span>
+            <span style={{ opacity: 0.65 }}>Where the circles live. Kosinka &amp\\; Jüttler for the Minkowski cell.</span>
           </li>
           <li style={{ marginTop: '0.4em' }}>
             <strong>Farouki (2023)</strong>, <em>Partition of the space of planar quintic PH curves</em>,
