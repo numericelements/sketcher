@@ -1477,61 +1477,139 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 26 — the polynomial cubic fiber, computed
+  // 26 — the Hopf map has circles for fibers
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>The polynomial cubic, computed</h2>
+        <h2>The Hopf map has circles for fibers</h2>
+        <Math display>{'\\mathcal{A} \\;\\longmapsto\\; \\mathcal{A}\\,i\\,\\bar{\\mathcal{A}}'}</Math>
         <p>
-          <Math>{'\\mathcal{A}(t) = \\mathcal{A}_0(1-t) + \\mathcal{A}_1 t'}</Math>, so{' '}
-          <Math>{"\\mathbf{c}' = \\mathcal{A}i\\bar{\\mathcal{A}}"}</Math> is quadratic and the legs are
-        </p>
-        <Math display>
-          {'3(P_1 - P_0) = \\mathcal{A}_0 i \\bar{\\mathcal{A}}_0, \\quad 3(P_2 - P_1) = \\tfrac12\\bigl(\\mathcal{A}_0 i \\bar{\\mathcal{A}}_1 + \\mathcal{A}_1 i \\bar{\\mathcal{A}}_0\\bigr), \\quad 3(P_3 - P_2) = \\mathcal{A}_1 i \\bar{\\mathcal{A}}_1'}
-        </Math>
-        <p>
-          Fix <Math>{'P_0'}</Math>, <Math>{'P_1'}</Math> and <Math>{'P_3'}</Math>: six conditions, eight
-          unknowns, one gauge. <Math>{'8 - 6 - 1 = 1'}</Math>.
+          It eats a quaternion — <strong>four</strong> real numbers — and returns a vector in{' '}
+          <Math>{'\\mathbb{R}^3'}</Math> — <strong>three</strong>. So going <em>backwards</em> leaves one
+          number free. Which one?
         </p>
         <p style={{ marginTop: '0.7em' }}>
-          <Math>{'\\mathcal{A}_0'}</Math> is the Hopf fiber over the first leg — one circle. What is left
-          is quadratic in <Math>{'\\mathcal{A}_1'}</Math>, so <strong>complete the square</strong>:
+          <Math>{'|\\mathcal{A}i\\bar{\\mathcal{A}}| = |\\mathcal{A}|^2'}</Math>, so the <em>length</em>
+          of the target pins <Math>{'|\\mathcal{A}|'}</Math> completely. And{' '}
+          <Math>{'\\mathcal{A}'}</Math> acts as a <strong>rotation</strong>, whose job is to carry a fixed
+          reference axis onto the direction <Math>{'\\hat{\\mathbf{v}}'}</Math> — and a rotation doing
+          that is determined only up to a <strong>spin about that axis afterwards</strong>.
         </p>
+        <p style={{ marginTop: '0.7em' }}>That spin is the free number. In algebra:</p>
         <Math display>
-          {'Y = \\mathcal{A}_1 + \\tfrac12 \\mathcal{A}_0 \\quad\\Longrightarrow\\quad Y i \\bar{Y} = V + \\tfrac14 \\mathbf{d}_0, \\qquad V = 3(P_3 - P_0) - \\mathbf{d}_0'}
+          {'\\bigl(\\mathcal{A}e^{i\\theta}\\bigr)\\,i\\,\\overline{\\bigl(\\mathcal{A}e^{i\\theta}\\bigr)} = \\mathcal{A}\\,e^{i\\theta} i e^{-i\\theta}\\,\\bar{\\mathcal{A}} = \\mathcal{A}\\,i\\,\\bar{\\mathcal{A}}'}
         </Math>
-        <p>
-          <strong>One more Hopf equation</strong> — a second circle. The gauge acts diagonally, so
+        <p style={{ opacity: 0.75 }}>
+          because <Math>{'e^{i\\theta}'}</Math> commutes with <Math>{'i'}</Math> and has unit length. And
+          those are <em>all</em> the solutions.
         </p>
-        <p style={{ textAlign: 'center' }}>
-          <Math>{'(S^1)^2 / S^1_{\\text{diag}} \\cong S^1'}</Math> — <strong>a closed loop</strong>
+        <p style={{ marginTop: '0.9em' }}>
+          <strong>
+            So <Math>{'\\mathcal{A}\\,i\\,\\bar{\\mathcal{A}} = \\mathbf{v}'}</Math> has a{' '}
+            <em>circle</em> of solutions: <Math>{'\\mathcal{A} = \\mathcal{A}^{*}e^{i\\varphi}'}</Math>.
+          </strong>{' '}
+          That circle is <em>the Hopf fiber over</em> <Math>{'\\mathbf{v}'}</Math>.
         </p>
-        <p style={{ opacity: 0.75, marginTop: '0.7em' }}>
-          Measured: 36 members from a 6×6 grid of angles, first leg and far endpoint hit to 4e-16, no
-          solver. Degree 5 is the identical derivation with a third circle, giving{' '}
-          <Math>{'(S^1)^3/S^1 \\cong T^2'}</Math>.
+        <p style={{ marginTop: '0.7em', textAlign: 'center' }}>
+          <strong>Every Hopf equation you solve contributes one free angle.</strong>
         </p>
       </>
     ),
     notes:
-      'ERIC ASKED FOR THIS ONE SO THE NEXT SLIDE HAS SOMETHING TO BE COMPARED AGAINST, and that is exactly '
-      + 'its job. The cubic is the quintic derivation with one circle fewer, so whoever follows this slide '
-      + 'follows the torus too. '
-      + 'THE MOVE IS COMPLETING THE SQUARE, twice in this talk now. Here the cross term is '
-      + 'half the polarisation, so lambda = 1/2 and the leftover lambda-squared term moves to the right as '
-      + 'the quarter-d0. At degree 5 the cross term is against S = A0 + A2 and lambda = 3/4, leaving the '
-      + 'nine-sixteenths. Same manoeuvre, different coefficient. '
-      + 'WHY IT CLOSES: both freedoms are HOPF FIBERS, and a Hopf fiber is a circle. Two circles against a '
-      + 'diagonal gauge is one circle -- so the fiber is a closed loop, which is the ellipse the '
-      + 'interactive deck draws with its 181 traced members and constant arc length. '
-      + 'Measured in spatialQuinticTorus.test.ts alongside the quintic: 36 members from a 6x6 grid, first '
-      + 'leg to 5.2e-16, far endpoint to 3.8e-16, gauge diagonal to 3.9e-16. No solver anywhere.',
+      'THIS SLIDE EXISTS BECAUSE THE PHRASE "THE HOPF FIBER OVER THE FIRST LEG" IS OPAQUE UNTIL SOMEBODY '
+      + 'SAYS THIS, and Eric said so directly. Do not skip it -- the next slide is unreadable without it. '
+      + 'THE ROTATION READING IS THE ONE THAT STICKS. Forget the algebra for a moment: 𝒜 is essentially a '
+      + 'rotation, and all it is asked to do is point a reference axis in a given direction. Any such '
+      + 'rotation can be followed by a spin ABOUT that direction and still do the job. That leftover spin '
+      + 'is the circle. Say it that way first, then show the one-line algebra as confirmation. '
+      + 'THE LENGTH IS NOT FREE, which is worth stating so nobody thinks the fiber is bigger than it is: '
+      + '|𝒜 i 𝒜̄| = |𝒜|², so the magnitude of the target fixes |𝒜| exactly. Four numbers in, three '
+      + 'conditions, one angle left. '
+      + 'AND THE LAST LINE IS THE ONE TO CARRY FORWARD. Every count in Act III and every count on the next '
+      + 'slide is just bookkeeping on how many Hopf equations had to be solved: the cubic solves two, the '
+      + 'quintic three, and the gauge removes one in each case.',
   },
 
   // ---------------------------------------------------------------------------
-  // 27 — in space, the spinor squares to the Wronskian
+  // 27 — the cubic fiber, in six steps
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The cubic fiber, in six steps</h2>
+        <ol style={{ fontSize: '0.86em', lineHeight: 1.45 }}>
+          <li>
+            <strong>The data.</strong> Fix <Math>{'P_0, P_1, P_3'}</Math>;{' '}
+            <Math>{'P_2'}</Math> stays free. <Math>{'P_1'}</Math> prescribes the first leg{' '}
+            <Math>{'\\mathbf{d}_0 = 3(P_1-P_0)'}</Math> — 3 conditions; <Math>{'P_3'}</Math> prescribes
+            the total — 3 more. <strong>Six conditions on the eight numbers in{' '}
+            <Math>{'(\\mathcal{A}_0, \\mathcal{A}_1)'}</Math>.</strong>
+          </li>
+          <li style={{ marginTop: '0.35em' }}>
+            <strong>First equation.</strong>{' '}
+            <Math>{'\\mathcal{A}_0 i \\bar{\\mathcal{A}}_0 = \\mathbf{d}_0'}</Math> — a Hopf equation.
+            So <Math>{'\\mathcal{A}_0 = \\mathcal{A}_0^{*}e^{i\\varphi}'}</Math>: <strong>circle one.</strong>
+          </li>
+          <li style={{ marginTop: '0.35em' }}>
+            <strong>Second equation,</strong> the total with <Math>{'\\mathbf{d}_0'}</Math> moved across:
+            <Math display>
+              {'V := 3(P_3-P_0) - \\mathbf{d}_0 = \\tfrac12\\bigl(\\mathcal{A}_0 i \\bar{\\mathcal{A}}_1 + \\mathcal{A}_1 i \\bar{\\mathcal{A}}_0\\bigr) + \\mathcal{A}_1 i \\bar{\\mathcal{A}}_1'}
+            </Math>
+            Quadratic in <Math>{'\\mathcal{A}_1'}</Math>, <em>and</em> coupled to{' '}
+            <Math>{'\\mathcal{A}_0'}</Math>. Ugly.
+          </li>
+          <li style={{ marginTop: '0.35em' }}>
+            <strong>Complete the square</strong> — as in{' '}
+            <Math>{'x^2 + bx = (x+\\tfrac{b}{2})^2 - \\tfrac{b^2}{4}'}</Math>, with the Hopf quadratic
+            playing the square. Put <Math>{'Y = \\mathcal{A}_1 + \\tfrac12\\mathcal{A}_0'}</Math>:
+            <Math display>{'Y i \\bar{Y} = V + \\tfrac14\\mathbf{d}_0'}</Math>
+            The cross term is absorbed. <strong>Another Hopf equation</strong>, right-hand side known.
+          </li>
+          <li style={{ marginTop: '0.35em' }}>
+            <strong>Solve it the same way.</strong>{' '}
+            <Math>{'Y = Y^{*}e^{i\\psi}'}</Math> — <strong>circle two</strong> — and then{' '}
+            <Math>{'\\mathcal{A}_1 = Y - \\tfrac12\\mathcal{A}_0'}</Math>.
+          </li>
+          <li style={{ marginTop: '0.35em' }}>
+            <strong>Count.</strong> Two angles. But shifting <em>both</em> by the same{' '}
+            <Math>{'\\theta'}</Math> is <Math>{'\\mathcal{A}(t) \\mapsto \\mathcal{A}(t)e^{i\\theta}'}</Math>,
+            which changes no curve — the gauge. So{' '}
+            <strong>2 − 1 = 1</strong>, and it is an angle:
+          </li>
+        </ol>
+        <p style={{ textAlign: 'center', marginTop: '0.4em' }}>
+          <strong>a CIRCLE — a closed loop.</strong>
+        </p>
+        <p style={{ opacity: 0.7, marginTop: '0.5em' }}>
+          Measured: 36 members from a 6×6 grid of <Math>{'(\\varphi, \\psi)'}</Math>, first leg and far
+          endpoint hit to 4e-16, no solver. Degree 5 is the same six steps with a{' '}
+          <em>third</em> Hopf equation, giving <Math>{'T^2'}</Math>.
+        </p>
+      </>
+    ),
+    notes:
+      'WALK THE STEPS, DO NOT SUMMARISE THEM. This slide replaced one that stated the result; Eric could '
+      + 'not follow that one and could follow these, which is the whole reason for the change. Six beats, '
+      + 'one sentence each. '
+      + 'STEP 4 IS THE ONLY IDEA. Everything else is bookkeeping. The cross term (A_0 i A_1-bar + A_1 i '
+      + 'A_0-bar) is exactly what appears when you expand (A_1 + lambda A_0) i conj(A_1 + lambda A_0), so '
+      + 'choosing lambda = 1/2 absorbs it and the leftover lambda-squared term -- a quarter of d_0 -- moves '
+      + 'to the right. At degree 5 the same manoeuvre uses S = A_0 + A_2 and lambda = 3/4, leaving nine '
+      + 'sixteenths. Different coefficient, identical idea. '
+      + 'WHY IT CLOSES INTO A LOOP: both freedoms are Hopf fibers, and a Hopf fiber is a circle (previous '
+      + 'slide). Two circles against a diagonal gauge is one circle. That is the ellipse the interactive '
+      + 'deck traces with 181 members and constant arc length. '
+      + 'AND THE COMPARISON THE NEXT ACT NEEDS: the ONLY nonlinearity here was the Hopf quadratic itself, '
+      + 'which is why completing the square worked. Slide 29 meets a quadratic that is not of that form. '
+      + 'Pinned in spatialQuinticTorus.test.ts: first leg 5.2e-16, far endpoint 3.8e-16, gauge diagonal '
+      + '3.9e-16.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 28 — in space, the spinor squares to the Wronskian
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1590,7 +1668,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 28 — and there the condition is quadratic
+  // 29 — and there the condition is quadratic
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1628,7 +1706,7 @@ export const slides: SlideDefinition[] = [
           afternoon.
         </p>
         <p style={{ marginTop: '0.8em' }}>
-          <strong>Compare slide 26.</strong> There the only nonlinearity <em>was</em> the Hopf quadratic,
+          <strong>Compare slide 27.</strong> There the only nonlinearity <em>was</em> the Hopf quadratic,
           so completing the square turned it into another Hopf equation and the fiber was a product of
           named circles. Here the quadratic relates <Math>{'\\mathcal{A}'}</Math> to{' '}
           <Math>{"\\mathcal{A}'"}</Math> at the <em>same</em> point — an <strong>incidence</strong>, not a
@@ -1663,7 +1741,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 29 — or start from any rational curve at all
+  // 30 — or start from any rational curve at all
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1746,7 +1824,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 30 — the apparent conflict, and why there is none
+  // 31 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1829,7 +1907,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 31 — who established what
+  // 32 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1903,7 +1981,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 32 — the reading path
+  // 33 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
