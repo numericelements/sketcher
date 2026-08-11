@@ -1609,7 +1609,95 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 28 — in space, the spinor squares to the Wronskian
+  // 28 — the rational quartic, in the same six steps
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The rational quartic, same six steps plus one</h2>
+        <p>
+          One pole, <Math>{'w = t - r'}</Math>. Then <Math>{'\\Sigma'}</Math> is a sum over the{' '}
+          <em>other</em> roots, so <Math>{'\\Sigma = 0'}</Math> and the no-log condition is at its
+          simplest — <strong>and it is explicitly solvable</strong>:
+        </p>
+        <Math display>
+          {"\\mathcal{A}'(r) = \\lambda\\,\\mathcal{A}(r)\\,i \\qquad\\Longrightarrow\\qquad \\mathcal{A}(t) = B_0 + \\lambda (B_0 i)(t-r) + B_2 (t-r)^2 + \\ldots"}
+        </Math>
+        <p>
+          Choose <Math>{'B_0'}</Math> and <Math>{'\\lambda'}</Math>, and{' '}
+          <Math>{"\\mathcal{A}'(r)"}</Math> is <em>determined</em>. That is the one new step. Everything
+          else is the cubic&apos;s walkthrough:
+        </p>
+        <ol style={{ fontSize: '0.85em', lineHeight: 1.4 }}>
+          <li>
+            <strong>Wronskian, and it is linear.</strong>{' '}
+            <Math>{"(e-1)p_e - r(e+1)p_{e+1} = N_e"}</Math> — square, with the translations{' '}
+            <Math>{'p \\mapsto p + \\mathbf{c}_0 w'}</Math> in the kernel. So{' '}
+            <Math>{'p'}</Math> is unique once <Math>{'c(0)'}</Math> is fixed.
+          </li>
+          <li style={{ marginTop: '0.3em' }}>
+            <strong>Count.</strong> <Math>{'4d+2'}</Math> parameters —{' '}
+            <Math>{'B_0'}</Math> (4), <Math>{'\\lambda'}</Math> (1), the higher{' '}
+            <Math>{'B_k'}</Math> (4 each), and the pole <Math>{'r'}</Math> (1). One gauge.
+          </li>
+        </ol>
+        <table style={{ margin: '0.6em auto 0', borderCollapse: 'collapse', fontSize: '0.82em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.25em 0.9em', textAlign: 'left' }} />
+              <th style={{ padding: '0.25em 0.9em' }}>ends + first leg</th>
+              <th style={{ padding: '0.25em 0.9em' }}><Math>{'C^1'}</Math> Hermite</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.25em 0.9em' }}>degree 4 (<Math>{'d=2'}</Math>, 10 params)</td>
+              <td style={{ padding: '0.25em 0.9em', textAlign: 'center' }}>3</td>
+              <td style={{ padding: '0.25em 0.9em', textAlign: 'center' }}><strong>0</strong></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.25em 0.9em' }}>degree 6 (<Math>{'d=3'}</Math>, 14 params)</td>
+              <td style={{ padding: '0.25em 0.9em', textAlign: 'center' }}>7</td>
+              <td style={{ padding: '0.25em 0.9em', textAlign: 'center' }}>4</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '0.8em' }}>
+          <strong>But the fiber does not close.</strong> The cubic&apos;s freedoms were{' '}
+          <em>angles</em>; here <Math>{'\\lambda'}</Math> and <Math>{'r'}</Math> are not. Measured:{' '}
+          <Math>{'\\lambda'}</Math> pushed by <strong>16</strong> with the data held to 1.5e-14.
+          A road, not a loop — exactly what Act III predicts of a non-compact gauge.
+        </p>
+      </>
+    ),
+    notes:
+      'THE SIDE BY SIDE IS THE POINT OF THE ACT, so put this beside slide 27 and change ONE thing. The '
+      + 'polynomial cubic and the rational quartic share five of six steps; what the rational case adds '
+      + 'is the residue condition, and with ONE pole that condition is explicitly solvable rather than '
+      + 'something to eliminate -- choose the base point, choose lambda, and the derivative is determined. '
+      + 'A CORRECTION TO CARRY: an earlier version of the next slide said this needs elimination. That is '
+      + 'true for TWO OR MORE poles, where the conditions at different roots couple through the spinor '
+      + 'coefficients. With one pole it is a parametrisation, not a solve. Say the distinction out loud, '
+      + 'because it is exactly the difference between a walkthrough and a research programme. '
+      + 'DEGREE 2 IS NOT THE MINIMAL EXAMPLE, and the reason is pretty enough to give if asked: the '
+      + 'condition forces 𝒜(t) = B_0(1 + lambda i (t-r)), and the scalar-plus-i factor COMMUTES with i, so '
+      + 'N = (1 + lambda^2 s^2)(B_0 i B_0-bar) -- a fixed vector times a scalar. The direction never '
+      + 'changes and the curve is a straight LINE. Measured: tangent spread 2.2e-11, curvature 5e-9. So '
+      + 'degree 4 is the minimal non-degenerate case, and degree 6 the next. '
+      + 'THE FIBER TABLE IS MEASURED, not counted on paper -- ranks 6 and 9 respectively, so the '
+      + 'conditions are independent, and the fiber is params minus rank minus the one gauge. The degree-4 '
+      + 'C1 Hermite entry being ZERO is the headline: finitely many rational PH quartics through C1 data, '
+      + 'the direct analogue of the classical finite counts. '
+      + 'AND THE LAST PARAGRAPH TIES THE ACT TO ACT III. The polynomial fiber closed because every freedom '
+      + 'was an angle. Here lambda and the pole location are non-compact, so the fiber is an open road -- '
+      + 'and Act III said the shape of a solution family is inherited from the group the free parameter '
+      + 'lives in. This is that principle predicting something it was not built from. Pinned in '
+      + 'rationalPHOnePole.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 29 — in space, the spinor squares to the Wronskian
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1668,7 +1756,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 29 — and there the condition is quadratic
+  // 30 — and there the condition is quadratic
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1706,7 +1794,7 @@ export const slides: SlideDefinition[] = [
           afternoon.
         </p>
         <p style={{ marginTop: '0.8em' }}>
-          <strong>Compare slide 27.</strong> There the only nonlinearity <em>was</em> the Hopf quadratic,
+          <strong>Compare slides 27 and 28.</strong> There the only nonlinearity <em>was</em> the Hopf quadratic,
           so completing the square turned it into another Hopf equation and the fiber was a product of
           named circles. Here the quadratic relates <Math>{'\\mathcal{A}'}</Math> to{' '}
           <Math>{"\\mathcal{A}'"}</Math> at the <em>same</em> point — an <strong>incidence</strong>, not a
@@ -1714,8 +1802,9 @@ export const slides: SlideDefinition[] = [
         </p>
         <p style={{ opacity: 0.75 }}>
           So the fiber is cut by a <strong>determinantal</strong> condition — “the logarithmic derivative
-          lies in its own gauge plane” — not by a generic nonlinear system. Elimination handles that.
-          Completing the square does not.
+          lies in its own gauge plane” — not by a generic nonlinear system.{' '}
+          <strong>One pole and you can parametrize it</strong> (slide 28); <strong>two or more and the
+          conditions couple</strong>, and then it is elimination rather than a walkthrough.
         </p>
       </>
     ),
@@ -1741,7 +1830,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 30 — or start from any rational curve at all
+  // 31 — or start from any rational curve at all
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1824,7 +1913,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 31 — the apparent conflict, and why there is none
+  // 32 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1907,7 +1996,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 32 — who established what
+  // 33 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1981,7 +2070,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 33 — the reading path
+  // 34 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
