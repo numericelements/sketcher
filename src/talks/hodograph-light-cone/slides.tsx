@@ -1714,9 +1714,11 @@ export const slides: SlideDefinition[] = [
         </p>
         <p style={{ opacity: 0.75 }}>
           So the fiber is cut by a <strong>determinantal</strong> condition — “the logarithmic derivative
-          lies in its own gauge plane” — not by a generic nonlinear system.{' '}
-          <strong>One pole and you can parametrize it</strong> (next slide); <strong>two or more and the
-          conditions couple</strong>, and then it is elimination rather than a walkthrough.
+          lies in its own gauge plane” — not by a generic nonlinear system. And it is better than
+          quadratic: it is <strong>bilinear</strong>. The only nonlinearity is that{' '}
+          <Math>{'\\lambda'}</Math> multiplies <Math>{'\\mathcal{A}'}</Math>, so <strong>fix one{' '}
+          <Math>{'\\lambda_k'}</Math> per root and it is LINEAR</strong> in{' '}
+          <Math>{'\\mathcal{A}'}</Math> — at any number of poles.
         </p>
       </>
     ),
@@ -1736,9 +1738,19 @@ export const slides: SlideDefinition[] = [
       + 'make the Wronskian solvable to 6e-15 on a 15x15 system, while an off-form spinor leaves residue '
       + '1.3 and no solution at 7.8e-1. Three independent conditions per root, normalised Gram determinant '
       + '1.0. '
-      + 'WHAT TO DO WITH IT: elimination, not linear algebra. Three STRUCTURED conditions per root is a '
-      + 'tractable Groebner problem at these sizes, which is the honest route to spatial rational-PH '
-      + 'fibers. Recorded as FOUNDATIONS F14.',
+      + 'WHAT TO DO WITH IT, and this CORRECTS an earlier version of the slide that said "elimination". No '
+      + 'elimination is needed. The condition is BILINEAR in the two groups, so fixing one slider lambda_k '
+      + 'per root leaves it LINEAR in A -- at any number of poles -- and the recipe is four steps of which '
+      + 'two are linear solves: pick the roots, pick the sliders, linear-solve for A, linear-solve the '
+      + 'Wronskian for p. Measured: doubling A doubles the residual to 0.0e+0 exactly at m = 1, 2 and 3, and '
+      + 'the admissible A form a linear subspace of dimension 4(n+1) - 4m, confirmed at four (n,m) pairs. '
+      + 'FOUNDATIONS F17. '
+      + 'THE LESSON WORTH SAYING OUT LOUD if the old framing comes up: "quadratic" was allowed to stand in '
+      + 'for "hard", and bilinear-in-two-groups is not hard at all. '
+      + 'AND THE ONE THING THE SLIDERS MISS: the derivation divides by A(r), so the stratum A(r) = 0 lies '
+      + 'outside the chart -- and there the condition holds for FREE, because N acquires a double zero. '
+      + 'Geometrically the apparent pole CANCELS and the curve never reaches infinity, which makes that '
+      + 'stratum the seam with the polynomial case rather than a technicality.',
   },
 
   // ---------------------------------------------------------------------------
@@ -1750,8 +1762,9 @@ export const slides: SlideDefinition[] = [
       <>
         <h2>Same six steps, plus one</h2>
         <p>
-          Take <strong>one pole</strong>, <Math>{'w = t - r'}</Math>. Then the walkthrough of slide 27
-          runs again — with a single new step inserted at the front, and the rest unchanged.
+          Take <strong>one pole</strong>, <Math>{'w = t - r'}</Math> — a choice for legibility, not a
+          restriction: <Math>{'m'}</Math> poles need <Math>{'m'}</Math> sliders and stay linear. Then the
+          walkthrough of slide 27 runs again, with a single new step at the front and the rest unchanged.
         </p>
         <p style={{ marginTop: '0.4em' }}>
           With one pole <Math>{'\\Sigma'}</Math> is a sum over the <em>other</em> roots — so it is empty,
@@ -2122,7 +2135,10 @@ export const slides: SlideDefinition[] = [
         </p>
         <p style={{ marginTop: '0.7em', opacity: 0.8 }}>
           The only refusal is geometric: the <b>pole</b> may not enter <Math>{'[0,1]'}</Math>, where the
-          curve would pass through the piece you are drawing. A sentence, not a tolerance.
+          curve would pass through the piece you are drawing. A sentence, not a tolerance. And{' '}
+          <Math>{'m'}</Math> poles cost <Math>{'m'}</Math> sliders, not a solver — the chart&apos;s one
+          genuine gap is <Math>{'\\mathcal{A}(r) = 0'}</Math>, where the pole cancels and the curve never
+          reaches infinity at all.
         </p>
       </>
     ),
@@ -2142,9 +2158,13 @@ export const slides: SlideDefinition[] = [
       + 'CONTROL POINTS AS OUTPUTS IS THE ARCHITECTURAL INVERSION, and it is worth stating as such: the '
       + 'usual editor makes the control points primary and the invariant a constraint; this one makes the '
       + 'spinor primary and the control points a rendering. That is why nothing can stall. '
-      + 'HONEST SCOPE, and do not let it slide: ONE POLE. With two or more the no-log conditions couple, '
-      + 'the closed form goes, and the solver comes back. F14/F16. Measured in spinorChartDrag.test.ts and '
-      + 'rationalPHOnePoleSpatial.test.ts.',
+      + 'SCOPE, CORRECTED. An earlier version said "one pole only, and with two or more the solver comes '
+      + 'back". Too conservative. The condition is BILINEAR, so m poles want m sliders -- one twist rate per '
+      + 'point where the curve meets infinity -- and both solves stay linear (F17, measured at m = 1, 2, 3 '
+      + 'and at four (n,m) pairs). What the chart genuinely misses is the stratum A(r) = 0, where the '
+      + 'derivation divided: there the apparent pole cancels, the curve never reaches infinity, and the '
+      + 'sliders say nothing. That is the seam with the polynomial case. Measured in spinorChartDrag, '
+      + 'rationalPHOnePoleSpatial and multiPoleLinearity.',
   },
 
   // ---------------------------------------------------------------------------

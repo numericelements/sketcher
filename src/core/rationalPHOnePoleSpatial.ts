@@ -24,6 +24,12 @@
 //   r  is where the curve passes through INFINITY, since w(r) = 0. So r is the weight handle, and the
 //      family's honest limit is r entering [0,1] — a geometric event, not a solver failure.
 //
+// ONE POLE IS A CHOICE, NOT A LIMIT (F17). The condition is bilinear in (𝒜, λ), so m simple roots want m
+// sliders — one twist rate per point where the curve meets infinity — and both solves stay linear. This
+// module implements m = 1 because that is what the figure needs; extending it is more rows in the same
+// linear system, not a different method. The one thing the λ chart genuinely misses is the stratum
+// 𝒜(r) = 0, where the apparent pole CANCELS and the curve never reaches infinity at all.
+//
 // AND THE FIBER CLOSES when λ and r are HELD (onePoleLoop.test.ts): 8 parameters − 6 data conditions −
 // 1 gauge = 1 dimension, and walking it returns to the starting curve after travelling 0.61 of the
 // signature's scale. That compact direction is the Hopf phase — the same thing that closes the

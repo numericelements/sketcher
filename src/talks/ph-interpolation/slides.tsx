@@ -748,9 +748,12 @@ export const slides: SlideDefinition[] = [
       + 'A i A-bar = p-prime w - p w-prime -- so PH is a substitution, the defect sits at 1e-15, and it '
       + 'cannot do otherwise. A member costs 0.014 ms: no Newton, no cached seed. If asked what changed to '
       + 'make that possible: parametrise first, then impose the data, instead of imposing both at once. '
-      + 'THE HONEST SCOPE. This is the ONE-POLE family. With two or more poles the no-log conditions at '
-      + 'different roots couple and the closed form does not survive -- that is FOUNDATIONS F14/F16, and it '
-      + 'is why this figure sits beside the general one rather than replacing it. '
+      + 'THE SCOPE, CORRECTED. This figure is the ONE-POLE family, but that is a choice rather than a '
+      + 'limit: the no-log condition is BILINEAR, so m poles want m sliders -- one twist rate per point '
+      + 'where the curve meets infinity -- and both solves stay linear (FOUNDATIONS F17, measured at m = 1, '
+      + '2 and 3). An earlier version of this note said two or more poles bring the solver back; that was '
+      + 'wrong. What the chart genuinely misses is the stratum A(r) = 0, where the apparent pole CANCELS '
+      + 'and the curve never reaches infinity -- the seam with the polynomial case. '
       + 'core/rationalPHOnePoleSpatial, pinned in rationalPHOnePoleSpatial.test.ts, onePoleLoop.test.ts, '
       + 'spinorChartDrag.test.ts and onePoleTwist.test.ts.',
   },

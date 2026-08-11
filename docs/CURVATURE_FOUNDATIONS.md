@@ -720,15 +720,16 @@ solvable to 6e-15 (a 15×15 system); an off-form spinor leaves residue 1.3 and t
 unsolvable at 7.8e-1. The three conditions per root are independent (normalised Gram determinant
 1.0). And `‖N‖ = |𝒜|²` to 2e-16, so the recovered member is exactly PH with speed `|𝒜|²/w²`.
 
-**What it means for method.** The fiber is cut by a **determinantal/incidence** condition — "the
-spinor's logarithmic derivative lies in its own gauge plane at each root of w" — not by a generic
-nonlinear system. That is the kind of thing elimination handles well at these sizes. So the honest
-route to spatial rational-PH fibers is algebraic geometry, with 3 structured conditions per root, and
-not the linear derivation that works in 2D.
+**What it means for method — SUPERSEDED BY F17, kept for the record.** This fact concluded that the fiber
+is cut by a determinantal condition and so wants elimination. The geometry is right; the conclusion about
+method is not. Fixing one λ per root reduces it to LINEAR ALGEBRA (F17), which is strictly better than
+elimination and is what the code does. The lesson worth keeping: "quadratic" was allowed to stand in for
+"hard", and bilinear-in-two-groups is not hard at all.
 
-**REFINED BY F16 on two points.** With a SINGLE pole the condition is explicitly solvable (choose the
-base point, choose λ) rather than needing elimination — elimination is for two or more poles, where the
-conditions at different roots couple. And λ, left nameless here, is the **frame twist rate at the pole**.
+**REFINED BY F16, THEN CORRECTED BY F17.** F16 named λ — the frame twist rate at the pole — and showed
+the single-pole condition is explicitly solvable. F17 then removed the pole count entirely: the condition
+is BILINEAR in (𝒜, λ), so fixing one slider per root leaves it linear in 𝒜 at ANY number of poles. Read
+this fact for the derivation and the shape of the condition; read F17 for what it costs to solve.
 
 **Pinned by** `src/core/__tests__/rationalPHSpatialResidue.test.ts` (4 tests).
 
@@ -840,10 +841,63 @@ the far endpoint diverged 3.17 → 11.3 → 248.
 | polynomial (Hopf phases) | **twist** — an angle | **closes into a loop** |
 | rational (adds the pole) | **where the curve meets infinity** — a position | **runs, and ends when infinity reaches the curve** |
 
+**GENERALISES PER ROOT (F17).** One pole is where Σ = 0 and the algebra is cleanest, but nothing here is
+special to it: each simple root carries its own twist rate λₖ, and fixing them all leaves a linear problem.
+So the reading is "one twist rate per point where the curve meets infinity", not "one twist rate".
+
 **Pinned by** `src/core/__tests__/onePoleTwist.test.ts` (4 tests), with the counts in
 `rationalPHOnePole.test.ts`.
 
 ---
 
-*Add F17, … as we establish them. Never delete a fact that is still true; if a fact turns
+## F17 — The no-log condition is BILINEAR: one slider per root, and everything else is linear algebra. Plus the stratum the sliders miss
+
+**Why this fact exists.** F14 called the spatial condition "quadratic" and concluded that fibers with two
+or more poles need elimination. Both halves were too pessimistic. The correction arrived from a different
+session and was **checked before being believed** — which is the only reason it is in this document.
+
+**THE CONDITION IS BILINEAR IN (𝒜, λ).** At a simple root r of w,
+
+    𝒜′(r) = 𝒜(r)·(Σ + λi)
+
+is quadratic only because λ multiplies 𝒜. **Fix λ and it is LINEAR in 𝒜's coefficients** — and that does
+not care how many roots there are. Measured: doubling 𝒜 doubles the residual to **0.0e+0** (exactly linear,
+not approximately) at m = 1, 2, 3, with the assembled matrix matching the direct quaternion form to 1e-14.
+
+**So the recipe is four steps, and two of them are linear solves:**
+
+    1. choose the roots of w
+    2. choose one slider λₖ ∈ ℝ per root
+    3. LINEAR solve for 𝒜's coefficients        (4m conditions)
+    4. LINEAR solve p′w − pw′ = N for p          (the Wronskian)
+
+**THE COUNT, and it checks F14's arithmetic.** With λ FREE the condition is 3 real conditions per root
+(the residue is a vector). Fixing λ makes it **4** — the quaternion equation outright — because the
+λ-direction stops being free. So the admissible 𝒜 form a linear subspace of dimension
+
+    4(n+1) − 4m          deg 𝒜 = n, m simple roots
+
+Measured exactly at four pairs: (n,m) = (2,1) → 8, (3,2) → 8, (3,3) → 4, (4,2) → 12. And (2,1) → 8 is
+exactly the (B₀, B₂) parametrisation `rationalPHOnePoleSpatial` uses, so that module is the m = 1 case of
+this and nothing more.
+
+**END TO END AT TWO POLES**, for three λ pairs including (0,0): residues vanish (1e-12), the Wronskian
+solves (1e-14), and ‖N‖ = |𝒜|² to 3e-16 — exactly PH. No elimination anywhere.
+
+**THE STRATUM THE SLIDERS MISS, and it is the sharper half.** The derivation divides by 𝒜(r). Where
+**𝒜(r) = 0** the λ chart says nothing — and there the condition holds for FREE, because N = 𝒜i𝒜̄ picks up a
+**double** zero, so N(r) and N′(r) both vanish (measured 4e-16, 2e-16). Then N/w² is **regular**: measured
+c′(r) = (0.440, 0.020, −0.920), finite. So
+
+> **the apparent pole CANCELS — the curve does not pass through infinity there at all.**
+
+That is not a technicality. It is the **seam with the polynomial case** (F13's m = 0 corner), and it is
+precisely the complement of the slider chart: the sliders cover the variety *except* where the pole is not
+really a pole. An editor working near that stratum is working where its chart runs out.
+
+**Pinned by** `src/core/__tests__/multiPoleLinearity.test.ts` (4 tests).
+
+---
+
+*Add F18, … as we establish them. Never delete a fact that is still true; if a fact turns
 out wrong, replace it and say why (a wrong fact in here is worse than none).*
