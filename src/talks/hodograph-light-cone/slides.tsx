@@ -1295,16 +1295,151 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 23 — or build the normal instead
+  // 23 — the integration problem
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Or build the normal instead</h2>
+        <h2>Rational is not the same problem</h2>
         <p>
-          Slide 8 said PH is equivalent to a <strong>rational unit normal</strong>. So build the normal
-          and let the curve follow. The direction sphere has a rational point, so project from it:
+          The polynomial route never risked anything, and it is worth saying why:{' '}
+          <strong>polynomials integrate to polynomials.</strong> Pick a spinor, square it, integrate,
+          done.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>Rational functions do not have that courtesy:</p>
+        <Math display>
+          {'\\int \\frac{P}{Q} = (\\text{polynomial part}) + \\sum \\frac{a_k}{(t-r_k)^k} + \\sum \\underbrace{\\rho_k}_{\\text{residue}} \\log(t-r_k)'}
+        </Math>
+        <p>
+          So you <strong>cannot</strong> simply choose a rational curve on the cone. The cone gives you
+          the <em>hodograph</em>, and its antiderivative may not be rational at all — the logarithms are
+          real, and they are the generic case.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          <strong>
+            rational PH <Math>{'\\iff'}</Math> a rational curve on the cone{' '}
+            <em>whose integral is also rational</em>
+          </strong>
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          And the obstruction is exactly <strong>a residue condition</strong> — which has appeared three
+          times in this talk under three names:
+        </p>
+        <ul style={{ fontSize: '0.86em' }}>
+          <li>the <em>no-log condition</em> of the spinor construction</li>
+          <li>
+            the residue conditions on <Math>{'\\Psi'}</Math> in Altavilla–Schröcker–Šír–Vršek (2026)
+          </li>
+          <li>the partial-fraction analysis of rational PH curves</li>
+        </ul>
+        <p style={{ opacity: 0.7 }}>One obstruction. Three encounters.</p>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS WHERE THE SUBJECT DIVIDES, and Eric found it by asking the right question: how do '
+      + 'you generate RATIONAL PH curves, and what happens to the integration? The polynomial case hid '
+      + 'the difficulty completely, because integration is closed on polynomials. It is not closed on '
+      + 'rational functions, and that single failure of closure is why the rational literature looks like '
+      + 'a different subject from the polynomial one. '
+      + 'THE LOGARITHMS ARE THE GENERIC CASE, not an edge case -- say that clearly. A random rational '
+      + 'function has nonzero residues, so a random rational curve on the cone integrates to something '
+      + 'transcendental. The PH condition on the hodograph is NOT sufficient; you need the antiderivative '
+      + 'to stay rational as well. '
+      + 'AND THE THREE NAMES ARE THE SAME OBSTRUCTION, which is worth pointing at because it shows the '
+      + 'talk has been circling one thing. Our own spinor derivation produced uv = w-prime nu - w '
+      + 'nu-prime as the condition for no logarithmic term; the 2026 characterisation states residue '
+      + 'conditions on Psi; and there is a paper doing the partial-fraction bookkeeping directly. '
+      + 'Rediscovering it independently is a good sign about the derivation and a clear one about '
+      + 'priority. '
+      + 'THE NEXT SLIDE IS THE WAY OUT, and it is better than imposing the conditions.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 24 — do not integrate, differentiate
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Do not integrate. Differentiate.</h2>
+        <p>The two charts trade <em>which information is free</em>:</p>
+        <table style={{ margin: '0.5em auto', borderCollapse: 'collapse', fontSize: '0.85em' }}>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.25em 1em', textAlign: 'right', opacity: 0.7 }}>primal</td>
+              <td style={{ padding: '0.25em 1em' }}>you give the <strong>point</strong></td>
+              <td style={{ padding: '0.25em 1em', opacity: 0.7 }}>the direction costs a derivative</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.25em 1em', textAlign: 'right', opacity: 0.7 }}>dual</td>
+              <td style={{ padding: '0.25em 1em' }}>you give the <strong>direction</strong></td>
+              <td style={{ padding: '0.25em 1em', opacity: 0.7 }}>the point costs a derivative</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          And PH constrains the <strong>direction</strong>. So index by the direction, and the constraint
+          becomes free — you have not avoided the derivative, you have moved it to the harmless side.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>
+          The curve is the <strong>envelope</strong> of its tangent lines, and envelopes are differential.
+          Differentiate the family:
+        </p>
+        <Math display>{'\\mathbf{x}\\cdot\\hat{\\mathbf{n}}(\\theta) = h(\\theta) \\qquad \\mathbf{x}\\cdot\\hat{\\mathbf{n}}\'(\\theta) = h\'(\\theta)'}</Math>
+        <p>
+          Two linear equations, and <Math>{'\\hat{\\mathbf{n}}, \\hat{\\mathbf{t}}'}</Math> are
+          orthonormal, so read it off:
+        </p>
+        <Math display>{'\\mathbf{c} = h\\,\\hat{\\mathbf{n}} + h\'\\,\\hat{\\mathbf{t}} \\qquad\\text{or simply}\\qquad \\mathbf{c} = \\nabla H'}</Math>
+        <p style={{ opacity: 0.75 }}>
+          <Math>{'H'}</Math> the 1-homogeneous extension of <Math>{'h'}</Math> — the curve is the{' '}
+          <strong>gradient of its own support function</strong>.
+        </p>
+        <p style={{ marginTop: '0.9em', textAlign: 'center' }}>
+          <strong>
+            Rational functions are closed under differentiation.
+            <br />
+            They are not closed under integration.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.75 }}>
+          A chart whose reconstruction is a derivative <em>cannot</em> produce a logarithm. The residue
+          obstruction has nowhere to live.
+        </p>
+      </>
+    ),
+    notes:
+      'THE CENTRAL SLIDE OF THE ACT. Deliver the trade-off table slowly, because everything follows from '
+      + 'it: PH is a condition on the DIRECTION, so put the direction where it is free. Nobody avoided '
+      + 'work -- the derivative moved from the constrained side to the harmless side. '
+      + 'WHY THE RECONSTRUCTION IS A DERIVATIVE, if asked to justify rather than assert: the curve is the '
+      + 'ENVELOPE of its tangent lines, and an envelope is found by differentiating the family with '
+      + 'respect to its parameter. x . n = h differentiated gives x . n-prime = h-prime, two linear '
+      + 'equations in two unknowns, and since n and t are orthonormal the solution is immediate. No '
+      + 'integration is performed anywhere in the construction. '
+      + 'c = grad H IS THE CLASSICAL CONVEX-GEOMETRY FACT -- the gradient of the support function is the '
+      + 'boundary point with that outer normal. Worth stating because it is one symbol and it is exact. '
+      + 'TWO SANITY CHECKS TO OFFER IF THE ROOM WANTS THEM. First, h identically 1 gives h-prime = 0 and '
+      + 'c = n, the unit circle -- a constant support function is the unit circle, as it must be. Second, '
+      + 'the formula is LINEAR in h, so replacing h by h + epsilon gives c + epsilon n: the offset '
+      + 'relation falls out of the algebra instead of being imposed. That second one is the strongest '
+      + 'evidence you are in the right chart -- the thing you care about became addition. '
+      + 'AND IT GENERALISES TO SURFACES WITHOUT A WORD CHANGING: c = h n + grad_{S^2} h. Pick h rational '
+      + 'on S^2 and you have a PN surface. That is the next slide.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 25 — or build the normal instead
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>So here is the recipe</h2>
+        <p>
+          Concretely: the direction sphere has a rational point, so project from it and you have a
+          rational unit normal to feed the previous slide.
         </p>
         <Math display>{'t \\;\\longmapsto\\; \\Bigl(\\tfrac{1-t^2}{1+t^2},\\; \\tfrac{2t}{1+t^2}\\Bigr) \\qquad \\text{stereographic, and Pythagorean}'}</Math>
         <p>
@@ -1342,7 +1477,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 24 — or start from any rational curve at all
+  // 26 — or start from any rational curve at all
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1425,7 +1560,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 25 — the apparent conflict, and why there is none
+  // 27 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1508,7 +1643,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 26 — who established what
+  // 28 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1582,7 +1717,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 27 — the reading path
+  // 29 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
