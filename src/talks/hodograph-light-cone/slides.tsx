@@ -1232,7 +1232,190 @@ export const slides: SlideDefinition[] = [
   },
 
   // ===========================================================================
-  // ACT IV — WHOSE SUBJECT THIS IS
+  // ACT IV — HOW TO MAKE ONE
+  //
+  // The practical act, and for anyone who wants to BUILD these it is the one that matters. Everything
+  // before it says what a PH curve is and what group owns it; nothing before it says how you would
+  // produce a single example. Three routes, all closed-form, all in the literature.
+  //
+  // The organising fact is one sentence: A QUADRIC CONE IS A RATIONAL VARIETY, so it has a rational
+  // parametrisation, and once you have one, "give me a rational curve on the cone" becomes "give me any
+  // rational input at all". Every technique below is a choice of which parametrisation to use.
+  // ===========================================================================
+
+  // ---------------------------------------------------------------------------
+  // 22 — parametrize and compose
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Parametrize and compose</h2>
+        <p>
+          A quadric cone is a <strong>rational variety</strong>. So it has a parametrization — and then
+          building a curve on it is not a search, it is a substitution:
+        </p>
+        <Math display>{'\\text{plane:}\\quad (u^2 - v^2,\\; 2uv,\\; u^2 + v^2) \\qquad \\text{feed polynomials } u(t), v(t)'}</Math>
+        <Math display>{'\\text{space:}\\quad (\\mathcal{A}\\,i\\,\\bar{\\mathcal{A}},\\; |\\mathcal{A}|^2) \\qquad \\text{feed a polynomial quaternion } \\mathcal{A}(t)'}</Math>
+        <p>
+          Two things make this the <em>complete</em> method rather than one construction among many.
+        </p>
+        <p>
+          It is <strong>surjective</strong> — every point of the cone is a square — so no PH curve
+          escapes it. And the degree bookkeeping falls out: a spinor of degree <Math>{'m'}</Math> gives a
+          cone curve of degree <Math>{'2m'}</Math>, hence a PH curve of degree{' '}
+          <strong><Math>{'2m+1'}</Math></strong>.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>
+          Which is the whole reason classical PH degrees are <strong>odd</strong>: 3, 5, 7.
+        </p>
+        <p style={{ marginTop: '0.9em', opacity: 0.8 }}>
+          One caveat, and it is slide 12&apos;s <Math>{'h'}</Math>. Not every polynomial curve on the cone
+          is a bare square — <strong>Kubota</strong>: the general polynomial Pythagorean triple is
+        </p>
+        <Math display>{'\\bigl(h(u^2-v^2),\\; 2huv,\\; h(u^2+v^2)\\bigr), \\qquad h \\in \\mathbb{R}[t]'}</Math>
+        <p style={{ opacity: 0.8 }}>The perfect square is the <em>primitive</em> case.</p>
+      </>
+    ),
+    notes:
+      'THIS IS THE SLIDE FOR ANYONE WHO WANTS TO BUILD ONE, so slow down here. The message is that there '
+      + 'is no searching involved: pick any two polynomials u and v, or any quaternion polynomial A, and '
+      + 'you have a PH curve. The difficulty in this subject is never producing an example -- it is '
+      + 'producing one that meets prescribed data, which is Act III. '
+      + 'SURJECTIVITY IS WHAT MAKES IT A CLASSIFICATION rather than a recipe. Because every point of the '
+      + 'cone is a square, the parametrisation reaches every PH curve, so "PH curve" and "spinor '
+      + 'polynomial" are the same data up to the gauge. That is the content of Act III\'s Z/2 and S^1. '
+      + 'THE ODD DEGREES ARE WORTH SAYING OUT LOUD because everyone has noticed them and few can say why. '
+      + 'Spinor degree m, squared to 2m for the hodograph, integrated to 2m+1 for the curve. The planar '
+      + 'PH cubic is m = 1; the quintic is m = 2. With a factor h of degree k the degree is 2m + k + 1, '
+      + 'which is how even-degree PH curves exist at all. '
+      + 'KUBOTA (1972), Pythagorean triples in unique factorisation domains -- the classification of '
+      + 'polynomial Pythagorean triples, and the standard citation in Farouki\'s book. The h is exactly '
+      + 'the one on slide 12, met from the other direction.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 23 — or build the normal instead
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Or build the normal instead</h2>
+        <p>
+          Slide 8 said PH is equivalent to a <strong>rational unit normal</strong>. So build the normal
+          and let the curve follow. The direction sphere has a rational point, so project from it:
+        </p>
+        <Math display>{'t \\;\\longmapsto\\; \\Bigl(\\tfrac{1-t^2}{1+t^2},\\; \\tfrac{2t}{1+t^2}\\Bigr) \\qquad \\text{stereographic, and Pythagorean}'}</Math>
+        <p>
+          <strong>Any</strong> rational curve upstairs gives a rational point of{' '}
+          <Math>{'S^{n-1}'}</Math> downstairs, hence a rational unit normal, hence PH.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          And now add the support function <Math>{'h(\\hat{\\mathbf{n}})'}</Math> from slide 9. A
+          rational support function over a rational parametrization of the sphere is exactly a{' '}
+          <strong>rational curve with rational offsets</strong> — and for <Math>{'S^2'}</Math> instead of{' '}
+          <Math>{'S^1'}</Math>, exactly a <strong>PN surface</strong>. The route generalizes to surfaces
+          without changing a word.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          The class is closed under <strong>convolution, offsetting, rotations and translations</strong>,
+          so new members come from old ones for free.{' '}
+          <span className="text-slate-400">Gravesen, Jüttler &amp; Šír (2008).</span>
+        </p>
+      </>
+    ),
+    notes:
+      'THIS IS THE ROUTE TO USE IF YOU WANT SURFACES, and that is the reason it deserves its own slide. '
+      + 'The spinor route of slide 22 is beautiful for curves and awkward for surfaces; the support '
+      + 'function route does not notice the difference -- replace S^1 by S^2 and every sentence still '
+      + 'holds. PN surfaces are literally "rational support function over a rational parametrisation of '
+      + 'the sphere of directions". '
+      + 'THE STEREOGRAPHIC FORMULA IS THE PYTHAGOREAN PARAMETRISATION AGAIN, which is worth pointing at: '
+      + '((1-t^2)/(1+t^2), 2t/(1+t^2)) is (u^2-v^2, 2uv)/(u^2+v^2) with u = 1, v = t. Slide 22 and slide '
+      + '23 are the same map read once projectively and once affinely. If the room sees that, they have '
+      + 'the whole construction theory. '
+      + 'THE CLOSURE PROPERTIES ARE THE PRACTICAL PAYOFF. Convolution in particular: the Minkowski sum of '
+      + 'two shapes with rational support functions has the SUM of the support functions, so it is '
+      + 'rational too. That is how tool-path and offset computations stay inside the class. Gravesen, '
+      + 'Juttler & Sir, On rationally supported surfaces, CAGD 25:320-331 (2008).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 24 — or start from any rational curve at all
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Or start from any rational curve at all</h2>
+        <p>
+          The most surprising construction, and the reason Laguerre geometry is in this talk:
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.6em' }}>
+          <strong>
+            Take an <em>arbitrary</em> rational curve or surface. Apply the transformation between two
+            models of Laguerre geometry. Out comes a PH curve or a PN surface.
+          </strong>
+        </p>
+        <p style={{ textAlign: 'center', opacity: 0.6 }}>Peternell &amp; Pottmann (1998)</p>
+        <p style={{ marginTop: '1em' }}>
+          You do not search for PH curves. You <strong>manufacture</strong> them from anything you
+          already have. And once you have one, Act V&apos;s groups give you more: Möbius, Laguerre and
+          Lie all preserve the class, so every transform of a member is a member.
+        </p>
+        <table style={{ margin: '1.2em auto 0', borderCollapse: 'collapse', fontSize: '0.84em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>you have</th>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>you get</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>two polynomials, or a quaternion one</td>
+              <td style={{ padding: '0.3em 1em' }}>a PH curve, degree <Math>{'2m+1'}</Math></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>any rational curve on a sphere</td>
+              <td style={{ padding: '0.3em 1em' }}>a rational normal, hence PH / PN</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>any rational curve or surface at all</td>
+              <td style={{ padding: '0.3em 1em' }}>a PH curve / PN surface, by model change</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>a member, and a group element</td>
+              <td style={{ padding: '0.3em 1em' }}>another member</td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>prescribed data</td>
+              <td style={{ padding: '0.3em 1em' }}>a solve — and Act III&apos;s fiber</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ marginTop: '1em', opacity: 0.75 }}>
+          Only the last row is hard. Producing examples never was.
+        </p>
+      </>
+    ),
+    notes:
+      'THE LAST LINE IS THE POINT OF THE ACT. Four of the five rows are closed form. The difficulty in '
+      + 'this subject has never been producing PH curves -- it is producing the one that meets your data, '
+      + 'and that is the interpolation problem whose solution sets Act III is about. Saying this plainly '
+      + 'reorganises the whole field for a newcomer. '
+      + 'AND A NOTE ON OUR OWN CODE, worth raising with anyone who works on the implementation. The '
+      + 'conformal members in this repository are found by a NEWTON SOLVER -- findMember takes about 19 '
+      + 'seconds at degree 6, which is why the sextic seed is cached as data rather than solved at load. '
+      + 'If the Laguerre model change of row three reaches the CONFORMAL family and not merely the '
+      + 'classical rational PH one, then we are iterating toward something the literature constructs '
+      + 'directly, and a closed-form generator would remove both the wait and the cached seed. That has '
+      + 'NOT been checked. It is the most actionable open question this deck contains, and it is an '
+      + 'engineering question rather than a mathematical one.',
+  },
+
+  // ===========================================================================
+  // ACT V — WHOSE SUBJECT THIS IS
   //
   // The act that was going to be "the dictionary and the lattice" is instead the credit map and the
   // reading path. That is the honest ending: the theory these three acts present is published, the
@@ -1242,7 +1425,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 22 — the apparent conflict, and why there is none
+  // 25 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1325,7 +1508,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 23 — who established what
+  // 26 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1399,7 +1582,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 24 — the reading path
+  // 27 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
