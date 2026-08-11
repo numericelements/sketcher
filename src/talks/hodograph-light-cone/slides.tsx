@@ -1963,7 +1963,68 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 33 — why degree 2 is a straight line
+  // 33 — a loop times a road
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>A loop times a road</h2>
+        <p>
+          Act III said the <em>shape</em> of a solution family is inherited from the group its free
+          parameter lives in — compact closes, non-compact runs. This family has <strong>both at
+          once</strong>, and separating them is what makes it legible.
+        </p>
+        <p style={{ marginTop: '0.7em' }}>
+          <strong>Hold <Math>{'\\lambda'}</Math> and <Math>{'r'}</Math>.</strong> What is left is the{' '}
+          <strong>Hopf phase</strong>: prescribing <Math>{"\\mathbf{c}'(0)"}</Math> pins{' '}
+          <Math>{'\\mathcal{A}(0)'}</Math> only up to a circle — the same thing that closes the
+          polynomial cubic&apos;s fiber. Counting: <Math>{'8 - 6 - 1 = 1'}</Math>, and it{' '}
+          <strong>closes</strong>.
+        </p>
+        <Math display>
+          {'\\text{walked until it returned: wandered } 1.04, \\text{ closure gap } 3.9\\!\\times\\!10^{-3}'}
+        </Math>
+        <p style={{ opacity: 0.75 }}>
+          And not a gauge orbit in disguise, which would have been invisible: around the loop the
+          out-of-plane content runs 0 → 0.133 and the curvature spread 0.11 → 7.10. The curves really
+          change.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>
+          <strong>Now release them.</strong> <Math>{'\\lambda'}</Math> is a twist <em>rate</em> and{' '}
+          <Math>{'r'}</Math> is a position — neither is an angle, so neither comes back:
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.4em' }}>
+          <strong>
+            fiber = (Hopf loop) <Math>{'\\times'}</Math> (twist, pole road)
+          </strong>
+        </p>
+        <p style={{ marginTop: '0.7em', opacity: 0.8 }}>
+          So the earlier slide was right that the fiber runs — but it runs <em>along</em> a loop it never
+          leaves. One family, both halves of Act III&apos;s principle, and the road&apos;s end still has
+          its name: <strong>infinity reaches the curve</strong>.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS REFINES THE PREVIOUS SLIDE RATHER THAN REPEATING IT, and the refinement matters. "The fiber '
+      + 'does not close" is true of the WHOLE fiber and hides the structure: the fiber is a product, with '
+      + 'a compact factor and a non-compact one, and you can hold one and sweep the other. '
+      + 'THE COMPACT FACTOR IS THE SAME OBJECT AS THE POLYNOMIAL CUBIC FIBER -- a Hopf phase, because '
+      + 'prescribing the start tangent pins the spinor only up to a circle. That is why the interactive '
+      + 'figure can show a sweepable family at all, and why it looks like the polynomial one. '
+      + 'THE SHAPE-VARIATION NUMBERS ARE THE ONES TO QUOTE IF CHALLENGED. A gauge orbit would also close, '
+      + 'and would be a loop of the SAME curve -- invisible and worthless. Out-of-plane 0 to 0.133 and '
+      + 'curvature spread 0.11 to 7.10 over 240 samples says the loop is a family of genuinely different '
+      + 'curves. onePoleLoop.test.ts. '
+      + 'AND IT IS ACT III PREDICTING SOMETHING IT WAS NOT BUILT FROM, twice over: the compact direction '
+      + 'closes, the non-compact ones run, and both happen in one family at one degree. If someone asks '
+      + 'what would have falsified the principle -- a compact parameter whose family failed to close, or a '
+      + 'non-compact one that came back.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 34 — why degree 2 is a straight line
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -2012,7 +2073,82 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 34 — or start from any rational curve at all
+  // 35 — so PH stops being a constraint
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>So PH stops being a constraint</h2>
+        <p>
+          Every solver in this subject holds PH as a <em>condition</em> and reports how well it did. In
+          this chart there is nothing to hold: <Math>{'\\mathcal{A}i\\bar{\\mathcal{A}}'}</Math>{' '}
+          <em>is</em> the Wronskian, so <strong>every parameter value whatsoever is a PH curve</strong>.
+        </p>
+        <p>Same drag, same Gauss-Newton engine, only the chart differs:</p>
+        <table style={{ margin: '0.5em auto', borderCollapse: 'collapse', fontSize: '0.84em' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid currentColor', opacity: 0.7 }}>
+              <th style={{ padding: '0.3em 1em', textAlign: 'left' }}>chart</th>
+              <th style={{ padding: '0.3em 1em' }}>tracked</th>
+              <th style={{ padding: '0.3em 1em' }}>PH defect</th>
+              <th style={{ padding: '0.3em 1em' }}>time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>spinor, <strong>unconstrained</strong></td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>100%</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}><strong>1.1e-15</strong></td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}><strong>19 ms</strong></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em' }}>implicit, constrained</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>100%</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>2.1e-11</td>
+              <td style={{ padding: '0.3em 1em', textAlign: 'center' }}>216 ms</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          Both track. The difference is that one <em>cannot</em> drift and the other merely did not, and
+          that it did so eleven times faster. Building a member needs no iteration at all —{' '}
+          <strong>0.014 ms</strong>, by back-substitution.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>
+          <strong>And the control points become outputs.</strong> Five points, fifteen coordinates, over a
+          ten-parameter family: none can be prescribed exactly, and none needs to be. Drag one and the
+          nearest member appears. Nothing stalls, because nothing is being held.
+        </p>
+        <p style={{ marginTop: '0.7em', opacity: 0.8 }}>
+          The only refusal is geometric: the <b>pole</b> may not enter <Math>{'[0,1]'}</Math>, where the
+          curve would pass through the piece you are drawing. A sentence, not a tolerance.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS IS THE PAYOFF SLIDE FOR ANYONE WHO WRITES THE SOFTWARE, and it is the answer to a standing '
+      + 'question in this project rather than a general remark. CLAUDE.md keeps an open investigation into '
+      + 'why a dragged point stalls, and every previous attempt was a BETTER SOLVER for the constrained '
+      + 'problem. This is the other door: a chart with no constraint in it. Parametrise first, then impose '
+      + 'the data. '
+      + 'THE TABLE IS THE MEASUREMENT, same Gauss-Newton engine both sides so only the chart varies. Read '
+      + 'the middle column aloud: 1.1e-15 versus 2.1e-11. The second number is fine and would pass any '
+      + 'test; the point is that it is a RESULT while the first is a GUARANTEE, and a result degrades under '
+      + 'a fast drag where a guarantee does not. '
+      + 'THE 0.014 ms MATTERS FOR A DIFFERENT REASON: it retires the cached seed. findMember takes about 19 '
+      + 'seconds at degree 6 in the conformal family, which is why a member is stored as data; here a '
+      + 'member is a substitution and there is nothing to cache. '
+      + 'CONTROL POINTS AS OUTPUTS IS THE ARCHITECTURAL INVERSION, and it is worth stating as such: the '
+      + 'usual editor makes the control points primary and the invariant a constraint; this one makes the '
+      + 'spinor primary and the control points a rendering. That is why nothing can stall. '
+      + 'HONEST SCOPE, and do not let it slide: ONE POLE. With two or more the no-log conditions couple, '
+      + 'the closed form goes, and the solver comes back. F14/F16. Measured in spinorChartDrag.test.ts and '
+      + 'rationalPHOnePoleSpatial.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 36 — or start from any rational curve at all
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -2095,7 +2231,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 35 — the apparent conflict, and why there is none
+  // 37 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -2178,7 +2314,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 36 — who established what
+  // 38 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -2252,7 +2388,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 37 — the reading path
+  // 39 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
