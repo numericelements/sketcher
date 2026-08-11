@@ -673,5 +673,106 @@ curve's `g` only because the curve is genuinely PH, which A→B→C guarantee.
 
 ---
 
-*Add F14, … as we establish them. Never delete a fact that is still true; if a fact turns
+## F14 — The SPATIAL rational-PH no-log condition is QUADRATIC in the spinor, and its shape is the gauge plane
+
+**Why this fact exists.** F13 solved the 2D rational-PH Wronskian and found the residue conditions
+**linear in S** — so `rationalPHLinearD.ts` derives them rather than solving for them. The obvious
+question is whether the spatial case behaves the same way. It does not, and knowing that saves
+re-attempting a linear parametrisation that cannot exist.
+
+**Where the spinor sits.** For a rational space curve `c = p/w` (p a vector polynomial, w scalar),
+
+    c′ = N/w²,   N = p′w − pw′   (the WRONSKIAN),   ‖c′‖ = ‖N‖/w²
+
+so PH says `‖N‖` is a polynomial, and the classical theorem applies to N verbatim: **N = 𝒜 i 𝒜̄**.
+The spinor squares to the **Wronskian**, not to the derivative — and the polynomial case is the
+`w = const` corner where the two coincide. This is the spatial twin of F13's `F′D − FD′ = S²`.
+
+**The residue condition.** For a simple root r of w, write `w = (t−r)·φ`. Then `N/w² = g/(t−r)²`
+with `g = N/φ²`, so the `1/(t−r)` coefficient is `g′(r)`, and it vanishes iff
+
+    N′(r) = 2·N(r)·Σ,        Σ = φ′(r)/φ(r) = Σ_{l≠k} 1/(r_k − r_l)
+
+Substituting `N = S²` reproduces F13's 2D form `S′(r) = S(r)·Σ` **to 1.8e-15** — the cross-check that
+the derivation is right rather than merely plausible.
+
+**MEASURED: it is quadratic, not linear.** Scaling the spinor scales the residue by `s²` exactly:
+
+    𝒜 ↦ 2𝒜   → 4.0000        𝒜 ↦ 3𝒜   → 9.0000        𝒜 ↦ 0.5𝒜 → 0.2500
+
+So the 2D trick — divide out one factor of S because ℂ is a **commutative field** — does not transfer.
+**Consequences:** the spatial rational fibers are NOT linear algebra; and the spinor construction in
+`conformalPHStructure.test.ts` reaching **17 of 18** dimensions is EXPECTED, not a bookkeeping error.
+A linear parametrisation cannot cover a quadratically cut set. Stop looking for the missing index.
+
+**BUT THE SHAPE IS SPECIFIC, and this is what makes it tractable.** Divide the condition by `𝒜(r)`
+and what remains is a condition on the LOGARITHMIC derivative. Solving `Vi + iV̄ = 2Σi` for
+`V = v₀ + v` gives `v₀ = Σ`, `v₂ = v₃ = 0`, and **v₁ free**, i.e.
+
+    𝒜′(r) = 𝒜(r)·(Σ + λi),        λ ∈ ℝ free
+
+**Three conditions per root, not four** — matching the residue being a vector. And the 2-plane
+`𝒜(r)·span{1, i}` is exactly the spinor's **SCALE and GAUGE** directions, which is why the gauge keeps
+reappearing throughout this subject.
+
+**Verified end to end.** Spinors of that form kill the residue to 1e-16 and make `p′w − pw′ = N`
+solvable to 6e-15 (a 15×15 system); an off-form spinor leaves residue 1.3 and the Wronskian
+unsolvable at 7.8e-1. The three conditions per root are independent (normalised Gram determinant
+1.0). And `‖N‖ = |𝒜|²` to 2e-16, so the recovered member is exactly PH with speed `|𝒜|²/w²`.
+
+**What it means for method.** The fiber is cut by a **determinantal/incidence** condition — "the
+spinor's logarithmic derivative lies in its own gauge plane at each root of w" — not by a generic
+nonlinear system. That is the kind of thing elimination handles well at these sizes. So the honest
+route to spatial rational-PH fibers is algebraic geometry, with 3 structured conditions per root, and
+not the linear derivation that works in 2D.
+
+**Pinned by** `src/core/__tests__/rationalPHSpatialResidue.test.ts` (4 tests).
+
+---
+
+## F15 — In 2D the DUAL chart makes rational PH free and its Hermite fiber AFFINE; inflections cost the graph, not the generality
+
+**Why this fact exists.** F13/F14 are the primal story: recover the curve by integrating, and pay a
+residue condition. The dual chart avoids the integration entirely, and the difference in what the
+Hermite problem *costs* is large enough to be a standing fact rather than a rediscovery.
+
+**The chart.** With the rational circle `n̂ = (1−u², 2u)/D`, `t̂ = (−2u, 1−u²)/D`, `D = 1+u²`, and
+`dθ/du = 2/D`, a support function h gives
+
+    c = h·n̂ + (dh/dθ)·t̂,        dc/dθ = (h + h_θθ)·t̂
+
+Reconstruction is **differentiation**, and rationals are closed under it — so no residue condition can
+arise. Measured: the speed matches the closed form `2|h + h_θθ|/D` to 1e-10 for h of degrees 0–5, with
+nothing imposed.
+
+**The dimension count is arithmetic.** A degree-d support polynomial carries d+1 parameters and all
+d+1 are **effective** (full Jacobian rank at degrees 1–6, no redundancy).
+
+**And the Hermite fiber is AFFINE.** Prescribing a tangent DIRECTION fixes the parameter u;
+prescribing the POINT there gives `h(u) = c·n̂` and `dh/dθ = c·t̂`. Both are **linear** functionals on
+h — verified against the nonlinear map to 4e-16. Four conditions at two ends are independent (rank 4
+at every degree), so
+
+    fiber dimension = (d + 1) − 4 = d − 3        measured: 0, 1, 2, 3, 4 at d = 3…7
+
+Linear algebra, closed form — no solver and no rank measurement of a constraint Jacobian.
+
+**Inflections cost the GRAPH, not the generality.** Since `dc/dθ = (h + h_θθ)t̂`, a **zero** of
+`h + h_θθ` is a CUSP and an inflection needs a **pole**; measured, a graph specimen's curvature never
+changes sign. The fix is to stop requiring a graph: let the direction parameter fold, `u(τ)` with a
+critical point, so the dual datum is a rational **LEGENDRE curve** `(u(τ), H(τ))` rather than a
+function `h(u)`. Measured: one curvature sign change — a genuine inflection — and the speed is still
+the closed-form rational expression, to 2e-10.
+
+**The structural limit, and it explains why the spatial work needs a solver.** This chart exists for
+**hypersurfaces** — plane curves, surfaces in ℝ³ — because those have one tangent hyperplane per
+point. A **curve in ℝ³ has a pencil** of tangent planes, so it has no support function at all. That is
+why the planar rational case is closed-form and the spatial conformal case is a Newton solve: not a
+defect of the implementation, an absence of the chart.
+
+**Pinned by** `src/core/__tests__/dualChartRationalPH.test.ts` (4 tests).
+
+---
+
+*Add F16, … as we establish them. Never delete a fact that is still true; if a fact turns
 out wrong, replace it and say why (a wrong fact in here is worse than none).*

@@ -1477,7 +1477,132 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 26 — or start from any rational curve at all
+  // 26 — in space, the spinor squares to the Wronskian
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>In space, <Math>{'\\mathcal{A}'}</Math> squares to the Wronskian</h2>
+        <p>
+          A space curve has no support function — the tangent planes are a pencil (slide 10) — so the
+          dual escape is unavailable and we are back in the primal chart. Write{' '}
+          <Math>{'\\mathbf{c} = \\mathbf{p}/w'}</Math>:
+        </p>
+        <Math display>
+          {"\\mathbf{c}' = \\mathbf{N}/w^2, \\qquad \\mathbf{N} = \\mathbf{p}'w - \\mathbf{p}w' \\quad (\\text{the Wronskian}), \\qquad \\|\\mathbf{c}'\\| = \\|\\mathbf{N}\\|/w^2"}
+        </Math>
+        <p>
+          So PH says <Math>{'\\|\\mathbf{N}\\|'}</Math> is a polynomial — and the theorem you already
+          know applies to <Math>{'\\mathbf{N}'}</Math> verbatim:
+        </p>
+        <Math display>{'\\mathbf{N} = \\mathcal{A}\\,i\\,\\bar{\\mathcal{A}}'}</Math>
+        <p>
+          <strong>The spinor squares to the Wronskian, not to the derivative.</strong> The polynomial
+          case is the <Math>{'w = \\text{const}'}</Math> corner where the two coincide — so nothing new
+          appears, the spinor just attaches one level out. The speed is{' '}
+          <Math>{'|\\mathcal{A}|^2/w^2'}</Math>, which is why the speed <em>numerator</em> is the perfect
+          square and the weight carries the denominator.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          Recovering the curve means solving <Math>{"\\mathbf{p}'w - \\mathbf{p}w' = \\mathbf{N}"}</Math>{' '}
+          — integration again. At a simple root <Math>{'r'}</Math> of <Math>{'w'}</Math> the no-log
+          condition is
+        </p>
+        <Math display>
+          {"\\mathbf{N}'(r) = 2\\,\\mathbf{N}(r)\\,\\Sigma, \\qquad \\Sigma = \\sum_{l \\neq k} \\frac{1}{r_k - r_l}"}
+        </Math>
+        <p style={{ opacity: 0.7 }}>
+          Substituting <Math>{'\\mathbf{N} = S^2'}</Math> gives back the 2D condition{' '}
+          <Math>{"S'(r) = S(r)\\Sigma"}</Math> — the check that this is the same fact one dimension up.
+        </p>
+      </>
+    ),
+    notes:
+      'THE ANSWER TO "WHERE DOES 𝒜 COME FROM IN THE RATIONAL CASE", and it is one line: it squares to '
+      + 'the WRONSKIAN. Say that plainly, because everyone arrives knowing 𝒜 i 𝒜̄ = c-prime and wonders '
+      + 'what happens when the curve is rational. Nothing happens -- the same theorem applies to the '
+      + 'numerator of c-prime instead of to c-prime, and the polynomial case is the corner where those '
+      + 'are the same polynomial. '
+      + 'THIS IS ALSO F13 ONE DIMENSION UP. The repository already had the 2D statement F-prime D - F '
+      + 'D-prime = S squared; this is its spatial twin. The substitution N = S squared reproducing the 2D '
+      + 'residue condition to 1.8e-15 is the cross-check, and it is worth quoting if anyone doubts the '
+      + 'derivation. '
+      + 'AND NOTE WHY WE ARE BACK IN THE PRIMAL CHART: a space curve has no support function, because the '
+      + 'tangent planes form a pencil rather than a single plane. Slide 10 established that. So the dual '
+      + 'trick of slides 23-25 simply does not exist here, and that is the honest reason the spatial case '
+      + 'is harder -- an absence of a chart, not a defect of a method. '
+      + 'Recorded as FOUNDATIONS F14, pinned in rationalPHSpatialResidue.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 27 — and there the condition is quadratic
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>And there the condition is quadratic</h2>
+        <p>
+          In 2D the condition is quadratic-homogeneous in <Math>{'S'}</Math> —{' '}
+          <Math>{"2S(r)S'(r) = S(r)^2\\Sigma"}</Math> — and you can <strong>divide by{' '}
+          <Math>{'S(r)'}</Math></strong>, dropping it to <em>linear</em>. That is why F13 derives the
+          conditions rather than solving them. It works because <Math>{'\\mathbb{C}'}</Math> is a{' '}
+          <strong>commutative field</strong>.
+        </p>
+        <p>Measured in space, by scaling the spinor:</p>
+        <Math display>
+          {'\\mathcal{A} \\mapsto s\\mathcal{A} \\;\\Longrightarrow\\; \\text{residue} \\mapsto s^2\\cdot\\text{residue} \\qquad (4.0000,\\; 9.0000,\\; 0.2500)'}
+        </Math>
+        <p>
+          <strong>Quadratic, not linear.</strong> The division does not transfer, so the spatial rational
+          fibers are <em>not</em> linear algebra — and the spinor construction that reached{' '}
+          <strong>17 of 18</strong> dimensions was never going to close. A linear parametrization cannot
+          cover a quadratically cut set.
+        </p>
+        <p style={{ marginTop: '0.9em' }}>
+          But the shape is specific. Divide by <Math>{'\\mathcal{A}(r)'}</Math> and what is left is a
+          condition on the <em>logarithmic</em> derivative:
+        </p>
+        <Math display>
+          {"\\mathcal{A}'(r) = \\mathcal{A}(r)\\cdot(\\Sigma + \\lambda i), \\qquad \\lambda \\in \\mathbb{R} \\text{ free}"}
+        </Math>
+        <p>
+          <strong>Three conditions per root, not four.</strong> And that plane{' '}
+          <Math>{'\\mathcal{A}(r)\\cdot\\mathrm{span}\\{1, i\\}'}</Math> is exactly the spinor&apos;s{' '}
+          <strong>scale and gauge</strong> directions — which is why the gauge has been turning up all
+          afternoon.
+        </p>
+        <p style={{ marginTop: '0.8em', opacity: 0.75 }}>
+          So the fiber is cut by a <strong>determinantal</strong> condition — “the logarithmic derivative
+          lies in its own gauge plane” — not by a generic nonlinear system. Elimination handles that.
+          Linear derivation does not.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS IS THE SLIDE THAT SAVES SOMEBODY A MONTH. The natural thing to attempt, having seen F13, is a '
+      + 'linear derivation of the spatial conditions. It cannot work, and the reason is one algebraic '
+      + 'fact: the 2D division by S(r) needs commutativity, and the quaternion Hopf map does not offer '
+      + 'the equivalent. The s-squared measurement settles it in three numbers. '
+      + 'AND IT EXPLAINS AN OLD LOOSE END. The spinor construction in conformalPHStructure.test.ts got 17 '
+      + 'of 18 dimensions and the missing one was recorded as an open question -- possibly a miscount, '
+      + 'possibly a missing parameter. It was neither: a linear parametrisation cannot cover a '
+      + 'quadratically cut set, so 17 was the honest maximum. Retiring that question is worth as much as '
+      + 'the new fact. '
+      + 'THE POSITIVE HALF IS THE GAUGE PLANE. 𝒜′(r) = 𝒜(r)(Σ + λi) with λ free is three real conditions '
+      + 'per root, matching the residue being a vector, and span{1, i} acting on 𝒜 is precisely the scale '
+      + 'direction and the gauge direction. Verified: spinors of that form kill the residue to 1e-16 and '
+      + 'make the Wronskian solvable to 6e-15 on a 15x15 system, while an off-form spinor leaves residue '
+      + '1.3 and no solution at 7.8e-1. Three independent conditions per root, normalised Gram determinant '
+      + '1.0. '
+      + 'WHAT TO DO WITH IT: elimination, not linear algebra. Three STRUCTURED conditions per root is a '
+      + 'tractable Groebner problem at these sizes, which is the honest route to spatial rational-PH '
+      + 'fibers. Recorded as FOUNDATIONS F14.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 28 — or start from any rational curve at all
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1560,7 +1685,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 27 — the apparent conflict, and why there is none
+  // 29 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1643,7 +1768,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 28 — who established what
+  // 30 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1717,7 +1842,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 29 — the reading path
+  // 31 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
