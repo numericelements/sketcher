@@ -726,6 +726,10 @@ nonlinear system. That is the kind of thing elimination handles well at these si
 route to spatial rational-PH fibers is algebraic geometry, with 3 structured conditions per root, and
 not the linear derivation that works in 2D.
 
+**REFINED BY F16 on two points.** With a SINGLE pole the condition is explicitly solvable (choose the
+base point, choose λ) rather than needing elimination — elimination is for two or more poles, where the
+conditions at different roots couple. And λ, left nameless here, is the **frame twist rate at the pole**.
+
 **Pinned by** `src/core/__tests__/rationalPHSpatialResidue.test.ts` (4 tests).
 
 ---
@@ -774,5 +778,72 @@ defect of the implementation, an absence of the chart.
 
 ---
 
-*Add F16, … as we establish them. Never delete a fact that is still true; if a fact turns
+## F16 — λ is a TWIST RATE, the pole is where the curve meets INFINITY, and that is what the rational fiber's road runs along
+
+**Why this fact exists.** F14 established that the spatial no-log condition is quadratic and gave its
+solved form `𝒜′(r) = 𝒜(r)(Σ + λi)`. What it could not say was what λ *is*, and without that the
+rational fiber was a correct derivation with no geometric content — a count and the word "road". This
+fact closes that gap. It was found by Eric's heuristic: *if there is a problem you cannot solve, find
+the simpler one you cannot solve.*
+
+**First, the condition is simpler than F14's solved form suggests.** With ONE pole, Σ is a sum over
+the *other* roots, hence empty, so the condition is just
+
+    N′(r) = 0        "the Wronskian has a critical point at the pole"
+
+and it is obviously necessary: with `w = t − r`, `N = p′(t−r) − p`, so `N′ = p″·(t−r)`, which vanishes
+at r for **any** polynomial p. The condition says nothing more than *"N must be the Wronskian of some
+polynomial."* Say it that way; the solved form is the answer, not the question.
+
+**THE SIMPLER PROBLEM: the planar one-pole quartic is completely solvable.** F13's
+(deg S, deg D) = (2,1). One pole gives `S′(r) = 0`, so about r
+
+    S(t) = s₀ + s₂(t−r)²        — no linear term. That is the entire condition.
+
+F follows by back-substitution on `(e−1)f_e − r(e+1)f_{e+1} = (S²)_e`, and the `e = 1` row *is* the
+consistency condition. Measured: consistency at machine zero, exactly PH, for three seeds.
+
+**AND THE COMPARISON ISOLATES THE SPATIAL DIFFICULTY TO ONE PARAMETER.** How many directions can the
+spinor's derivative at the pole move in while the condition holds?
+
+    3D:  𝒜′(r) ∈ ℍ,  4 real − 3 conditions  =  1 free   (λ)
+    2D:  S′(r) ∈ ℂ,   2 real − 2 conditions  =  0 free   (no λ)
+
+The reason is that the Hopf map is a **sandwich**: with `𝒜′ = λ𝒜i`,
+
+    N′ = 𝒜′i𝒜̄ + 𝒜i𝒜̄′ = λ(𝒜i)i𝒜̄ + 𝒜i(−λi𝒜̄) = −λ𝒜𝒜̄ + λ𝒜𝒜̄ = 0
+
+because the right-hand i is conjugated and returns with a minus. In 2D, `N = S²` gives `N′ = 2SS′`, and
+`S′ = λSi` yields `2λS²i` — nonzero, since in ℂ the i simply commutes through and nothing cancels.
+Measured: the gauge direction `𝒜₀i` gives `|N′| = 4.4e-16` where a generic direction gives 2.4.
+
+**λ IS THE FRAME TWIST RATE AT THE POLE.** The kernel direction `𝒜·i` is the tangent to the gauge orbit
+`𝒜 ↦ 𝒜e^{iθ}`, which rotates the frame ABOUT the tangent and leaves the tangent alone. With
+`q = 𝒜/|𝒜|` the frame's angular velocity is `ω = 2·vec(q̇q̄)`, and `𝒜′(r) = λ𝒜(r)i` gives `q̇ = λqi`
+(|𝒜| is stationary since `Re(𝒜i𝒜̄) = 0`), hence
+
+    ω(r) = 2λ·e₁        purely tangential, magnitude 2|λ|
+
+Measured to six decimals at λ = 0.35, −0.9, 1.6 with the off-axis component at 3e-8 or below. **And 2D
+has no λ because a planar curve's normal is unique up to sign — there is no rotation about the tangent
+to be had.**
+
+**THE POLE IS WHERE THE CURVE PASSES THROUGH INFINITY**, since `w(r) = 0`. So walking the rational
+fiber MOVES that point, and the road ends when infinity arrives at the piece of curve being drawn.
+Measured in the plane: r driven from 1.7 down to 1.005 with the data held to 1e-13 while the speed at
+the far endpoint diverged 3.17 → 11.3 → 248.
+
+**So the two fibers differ in the KIND of their freedom, which is the whole content:**
+
+| | the freedom is | so the fiber |
+|---|---|---|
+| polynomial (Hopf phases) | **twist** — an angle | **closes into a loop** |
+| rational (adds the pole) | **where the curve meets infinity** — a position | **runs, and ends when infinity reaches the curve** |
+
+**Pinned by** `src/core/__tests__/onePoleTwist.test.ts` (4 tests), with the counts in
+`rationalPHOnePole.test.ts`.
+
+---
+
+*Add F17, … as we establish them. Never delete a fact that is still true; if a fact turns
 out wrong, replace it and say why (a wrong fact in here is worse than none).*

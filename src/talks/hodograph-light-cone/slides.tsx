@@ -1753,6 +1753,17 @@ export const slides: SlideDefinition[] = [
           Take <strong>one pole</strong>, <Math>{'w = t - r'}</Math>. Then the walkthrough of slide 27
           runs again — with a single new step inserted at the front, and the rest unchanged.
         </p>
+        <p style={{ marginTop: '0.4em' }}>
+          With one pole <Math>{'\\Sigma'}</Math> is a sum over the <em>other</em> roots — so it is empty,
+          and the condition is simply
+        </p>
+        <Math display>{"\\mathbf{N}'(r) = 0 \\qquad \\text{the Wronskian is stationary at the pole}"}</Math>
+        <p style={{ opacity: 0.75 }}>
+          Necessary for an obvious reason: <Math>{'\\mathbf{N} = p\'(t-r) - p'}</Math>, so{' '}
+          <Math>{"\\mathbf{N}' = p''\\cdot(t-r)"}</Math>, which vanishes at <Math>{'r'}</Math> for{' '}
+          <em>any</em> polynomial. The condition says only: <strong>N must be the Wronskian of
+          something</strong>.
+        </p>
         <ol style={{ fontSize: '0.88em', lineHeight: 1.5, marginTop: '0.5em' }}>
           <li>
             <strong style={{ color: '#b45309' }}>NEW — the no-log step.</strong> Choose{' '}
@@ -1796,7 +1807,82 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 31 — the counts, and the fiber that does not close
+  // 31 — what lambda is: the plane answers it
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>What is <Math>{'\\lambda'}</Math>? Ask the plane.</h2>
+        <p>
+          <em>If there is a problem you cannot solve, find the simpler one you cannot solve.</em> The
+          simpler one is the <strong>planar</strong> quartic with one pole — and it is completely solvable:
+        </p>
+        <Math display>{"S'(r) = 0 \\quad\\Longrightarrow\\quad S(t) = s_0 + s_2 (t-r)^2 \\quad \\text{— no linear term}"}</Math>
+        <p>
+          So the plane has <strong>no <Math>{'\\lambda'}</Math></strong>. Why not? Because
+        </p>
+        <table style={{ margin: '0.5em auto', borderCollapse: 'collapse', fontSize: '0.86em' }}>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.25em 1em', textAlign: 'right' }}>space</td>
+              <td style={{ padding: '0.25em 1em' }}><Math>{"\\mathbf{N}' = \\mathcal{A}'i\\bar{\\mathcal{A}} + \\mathcal{A}i\\bar{\\mathcal{A}}'"}</Math></td>
+              <td style={{ padding: '0.25em 1em' }}>
+                <Math>{"\\mathcal{A}' = \\lambda\\mathcal{A}i \\Rightarrow -\\lambda\\mathcal{A}\\bar{\\mathcal{A}} + \\lambda\\mathcal{A}\\bar{\\mathcal{A}} = 0"}</Math>
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.25em 1em', textAlign: 'right' }}>plane</td>
+              <td style={{ padding: '0.25em 1em' }}><Math>{"\\mathbf{N}' = 2SS'"}</Math></td>
+              <td style={{ padding: '0.25em 1em' }}>
+                <Math>{"S' = \\lambda S i \\Rightarrow 2\\lambda S^2 i \\neq 0"}</Math>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          The Hopf map is a <strong>sandwich</strong>: the right-hand <Math>{'i'}</Math> is conjugated and
+          returns with a minus, so the terms cancel. The complex square is not — the{' '}
+          <Math>{'i'}</Math> just commutes through.
+        </p>
+        <p style={{ marginTop: '0.8em' }}>
+          And the kernel direction <Math>{'\\mathcal{A}\\cdot i'}</Math> is the tangent to the gauge
+          orbit <Math>{'\\mathcal{A} \\mapsto \\mathcal{A}e^{i\\theta}'}</Math>, which rotates the
+          frame <em>about</em> the tangent. So with <Math>{'q = \\mathcal{A}/|\\mathcal{A}|'}</Math>:
+        </p>
+        <Math display>{'\\omega(r) = 2\\,\\mathrm{vec}(\\dot q \\bar q) = 2\\lambda\\,\\mathbf{e}_1'}</Math>
+        <p style={{ textAlign: 'center', marginTop: '0.5em' }}>
+          <strong>
+            <Math>{'\\lambda'}</Math> is the rate the frame <em>twists about the tangent</em>, at the
+            pole.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.7 }}>
+          Measured to six decimals, with no off-axis component. A planar curve&apos;s normal is unique up
+          to sign — no rotation about the tangent to be had, hence no <Math>{'\\lambda'}</Math>.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS THE ONE THAT MAKES THE RATIONAL HALF MEAN SOMETHING, and it exists because Eric said '
+      + 'the material gave him no understanding -- correctly. Everything before it was a derivation with a '
+      + 'number at the end. '
+      + 'THE METHOD IS THE HEADLINE AS MUCH AS THE RESULT. The spatial case was opaque; the planar case is '
+      + 'completely solvable; comparing them isolates the entire spatial difficulty to ONE parameter. Give '
+      + 'Eric the credit for the heuristic out loud -- find the simpler problem you cannot solve. '
+      + 'THE TABLE IS THE PROOF AND IT FITS IN TWO ROWS. In space the sandwich cancels, so the gauge '
+      + 'direction is free; in the plane the square does not, so the derivative must vanish outright. '
+      + 'Measured: the gauge direction gives |N-prime| = 4.4e-16 where a generic direction gives 2.4. '
+      + 'Arithmetic: 4 real minus 3 conditions is 1 free in space; 2 minus 2 is 0 in the plane. '
+      + 'AND THE NAME. omega = 2 lambda e_1, purely tangential, matched to six decimals at lambda = 0.35, '
+      + '-0.9 and 1.6 with off-axis at 3e-8. So lambda is a TWIST rate. The reason the plane has none is '
+      + 'geometric rather than algebraic: a planar normal is unique up to sign, so there is no rotation '
+      + 'about the tangent. If the room takes one thing from the rational half, this is it. '
+      + 'Recorded as FOUNDATIONS F16, pinned in onePoleTwist.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 32 — the counts, and the fiber that does not close
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1835,14 +1921,30 @@ export const slides: SlideDefinition[] = [
           through <Math>{'C^1'}</Math> data.
         </p>
         <p style={{ marginTop: '0.9em' }}>
-          But now compare the shape. The cubic&apos;s freedoms were <strong>angles</strong>, so the fiber
-          closed into a loop. Here <Math>{'\\lambda'}</Math> and the pole <Math>{'r'}</Math> are{' '}
-          <strong>not angles</strong>. Measured: <Math>{'\\lambda'}</Math> pushed by{' '}
-          <strong>16</strong> with the data held to <Math>{'1.5\\times10^{-14}'}</Math>.
+          And now the shape, which is the real difference. <Math>{'w(r) = 0'}</Math> means the curve
+          passes through <strong>infinity</strong> at <Math>{'t = r'}</Math> — so walking the fiber{' '}
+          <strong>moves that point</strong>. Measured in the plane: <Math>{'r'}</Math> driven from 1.7
+          down to 1.005 with the data held to <Math>{'10^{-13}'}</Math>, while the speed at the far
+          endpoint diverged <Math>{'3.17 \\to 11.3 \\to 248'}</Math>.
         </p>
-        <p style={{ textAlign: 'center', marginTop: '0.6em' }}>
-          <strong>a closed loop becomes an open road</strong>
-        </p>
+        <table style={{ margin: '0.7em auto 0', borderCollapse: 'collapse', fontSize: '0.85em' }}>
+          <tbody>
+            <tr>
+              <td style={{ padding: '0.3em 1em', textAlign: 'right' }}>polynomial</td>
+              <td style={{ padding: '0.3em 1em' }}>the freedom is <strong>twist</strong> — an angle</td>
+              <td style={{ padding: '0.3em 1em' }}><strong>closes into a loop</strong></td>
+            </tr>
+            <tr>
+              <td style={{ padding: '0.3em 1em', textAlign: 'right' }}>rational</td>
+              <td style={{ padding: '0.3em 1em' }}>
+                it adds <strong>where the curve meets infinity</strong> — a position
+              </td>
+              <td style={{ padding: '0.3em 1em' }}>
+                <strong>runs, and ends when infinity reaches the curve</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </>
     ),
     notes:
@@ -1861,7 +1963,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 32 — why degree 2 is a straight line
+  // 33 — why degree 2 is a straight line
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1910,7 +2012,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 33 — or start from any rational curve at all
+  // 34 — or start from any rational curve at all
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1993,7 +2095,7 @@ export const slides: SlideDefinition[] = [
   // ===========================================================================
 
   // ---------------------------------------------------------------------------
-  // 34 — the apparent conflict, and why there is none
+  // 35 — the apparent conflict, and why there is none
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -2076,7 +2178,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 35 — who established what
+  // 36 — who established what
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -2150,7 +2252,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 36 — the reading path
+  // 37 — the reading path
   // ---------------------------------------------------------------------------
   {
     type: 'content',
