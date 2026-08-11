@@ -25,6 +25,41 @@ Nothing else is allowed. A cell with no tag is a cell someone wanted to be true.
 
 ---
 
+## 0′. THE LITERATURE CHECK, and it costs us most of this page
+
+Searched 2026-08-10, at Eric's prompting ("those are known facts"). He was right, and the `[LIT]`
+rows were not merely unverified — they were **larger than this page assumed**. Three findings, all
+verified against sources:
+
+- **Choi, Han, Lee, Roh, Wee et al. (2002)**, *Clifford Algebra, Spin Representation, and Rational
+  Parameterization of Curves and Surfaces*, Adv. Comput. Math. — "unifies all known incarnations of PH
+  curves into a single coherent framework." **This is §2's spine.** The spin cover as the mechanism is
+  published, 2002.
+- **Krasauskas (2017)**, *Unifying Theory of Pythagorean-Normal Surfaces Based on Geometric Algebra*,
+  Adv. Appl. Clifford Algebras 27:491–502 — embeds the cyclographic, Blaschke-cylinder and isotropic
+  models of Laguerre geometry "into one ambient pseudo-Euclidean space **ℝ⁴˙², which is known as a
+  model for Lie sphere geometry.**" **This is the deck's Act I slide 6 punchline**, published.
+- **Peternell & Pottmann (1998)**, *A Laguerre geometric approach to rational offsets*, CAGD
+  15(3):223–249 — PH curves *and* PN surfaces built from arbitrary rational curves/surfaces by a change
+  of Laguerre model. Curves and surfaces as one theory, which is the "every dimension" Eric expected.
+- **Cecil–Chern**: any Lie sphere transformation is a composition of **two Möbius transformations and a
+  parallel transformation**; Möbius and Laguerre generate the Lie group. This CLOSES the gap flagged
+  earlier — Lie-invariance of rational PH/PN follows from the two special cases.
+
+**Consequence.** The reframing this page organises is substantially Choi et al. 2002 + Krasauskas 2017,
+with Peternell–Pottmann 1998 under the invariance argument. It remains useful as exposition and as the
+introduction to the editor. It is **not** a contribution, and the honest response to "the theory has
+little to say at the end" is that the theory was already written, properly, by others.
+
+**What plausibly survives** (and needs its own literature check): the **moduli geometry of the
+conformal PH CURVE variety** — dimension 2n+6, moduli 2n−6, the codimension-3 bendable locus, the
+singular stratum at lifted polynomials. Krasauskas does surfaces and representation-unification, not
+the stratification of a curve variety. Narrower claim, better odds.
+
+**Read before writing another slide:** Choi et al. 2002, Krasauskas 2017.
+
+---
+
 ## 0. What is actually ours
 
 Everything else on this page is somebody else's, or open. Three things are not:
