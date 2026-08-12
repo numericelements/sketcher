@@ -47,6 +47,8 @@ import RationalPHLoopFigure from './RationalPHLoopFigure'
 import RationalPHTwoPoleFigure from './RationalPHTwoPoleFigure'
 import IndicatrixFigure from './IndicatrixFigure'
 import IndicatrixTwoPoleFigure from './IndicatrixTwoPoleFigure'
+import RationalCubicFigure from './RationalCubicFigure'
+import IndicatrixCubicFigure from './IndicatrixCubicFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
@@ -885,6 +887,84 @@ export const slides: SlideDefinition[] = [
       + 'violet markers are drawn rather than left to the eye. '
       + 'The sphere itself came for free: core/tangentIndicatrix asks only for {N, sigma}, and the '
       + 'multi-pole member exposes the same shape as the one-pole one. Pinned in tangentIndicatrix.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 20 — the lowest degree there is: the published rational PH cubic
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Degree three: the smallest rational PH space curve</h2>
+        <WhenActive>
+          <RationalCubicFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'NOT OUR CURVE, and that is the point of showing it. Kozak-Krajnc-Vitrih, CAGD 31(1):43-56, 2014, Thm '
+      + '7, reconstructed as Example 5.4 of Kalkan-Scharler-Schroecker-Sir, CAGD 99, 2022 (arXiv 2111.04600): '
+      + 'c = -(t(t^2-4), 2t(3t-1), t(3t+4)) / 60(t^2+1). Verified against their coefficients rather than '
+      + 'trusted -- N = -(1/60) A i A-bar holds to the last digit for the spinor they supply, so the PH '
+      + 'readout is machine zero. Degree 3 is lower than anything else in this deck (slides 16/17 are 4, '
+      + '18/19 are 5). '
+      + 'ITS DENOMINATOR HAS COMPLEX ROOTS. w = t^2 + 1, roots +/-i, so no FINITE real parameter reaches '
+      + 'infinity and the weights on [0,1] are all positive. But count projectively and there is a THIRD '
+      + 'pole at t = infinity, because the numerator has degree 3 while w has degree 2 -- homogenised the '
+      + 'denominator is s(t^2 + s^2). The "follow it out" slider exists to show this: |c| grows like t/60, '
+      + 'slowly enough that on [-8, 8] it reads 0.165 and looks bounded. It is not. Two claims in an earlier '
+      + 'draft of this material were wrong for exactly that reason and were corrected by measurement. '
+      + 'WHY THERE IS NO DRAG HERE, which someone will ask. This curve sits on the stratum slide 16 already '
+      + 'flags as the one our chart misses: the spinor is NULL at the pole. A(i) = -2 + 3i*I + 2J + K gives '
+      + 'A A-bar = 4 - 9 + 4 + 1 = 0 while A(i) itself is nonzero -- isotropic, on the null cone of the '
+      + 'complexified quaternions. Our one-pole and multi-pole modules both assume sigma(r) is nonzero '
+      + '(sigma(1.7) = 1.29 there), so every step that divides by A(r) or sigma(r) is unavailable and there '
+      + 'is no solver to move this with. The obvious family was tried and failed: holding the shape of A '
+      + 'while sliding the pole to i*rho keeps the spinor null to 1e-16, yet the back-substitution for p '
+      + 'breaks (residuals 5e-2 to 1e-1 against 0.0e+0 at rho = 1). So nullity is strictly weaker than the '
+      + 'rationality condition, and a genuine one-parameter family here is OPEN WORK, not a port. '
+      + 'AND BECAUSE w DIVIDES sigma the arc length is not rational: sigma = (1/60)(t^2+1)(t^2+6), so the '
+      + 'speed is (1/60)(1 + 5/(t^2+1)) and the length is (t + 5 arctan t)/60 -- exact, elementary, with an '
+      + 'arctangent. That is the conformal family signature rather than the one-pole one. '
+      + 'core/rationalPHCubic, pinned in rationalPHCubic.test.ts (7 tests).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 21 — the cubic on the sphere: the cusp is at infinity
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Its cusp is at infinity</h2>
+        <WhenActive>
+          <IndicatrixCubicFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE SLIDE THAT CORRECTS THE PATTERN THE OTHER TWO SPHERES SET UP. Slides 17 and 19 cusp at finite real '
+      + 'poles, one per root of w. Here w = t^2 + 1 has only complex roots, so the natural prediction is a '
+      + 'smooth track -- and at every FINITE parameter it is smooth: the invariant speed never drops below '
+      + '0.223 over t in [-40, 40]. The cusp is at t = infinity, the third pole, the one w does not show. So '
+      + 'THE CORNER SITS EXACTLY WHERE THE LOOP CLOSES, and the point at infinity stops being a drawing '
+      + 'convenience and becomes the feature. '
+      + 'WHICH MEASURE YOU USE DECIDES WHETHER YOU SEE IT AT ALL, and this is the methodological point worth '
+      + 'making out loud. |T-prime| against t dips toward zero in the tails for EVERY rational indicatrix, '
+      + 'because t is a bad coordinate at infinity -- it cannot tell this cusp from nothing. The honest '
+      + 'instrument is the invariant speed |dT/dtheta| with t = tan theta, which is finite through infinity. '
+      + 'Measured: 8.94e-2, 8.94e-3, 8.94e-4, 8.94e-5 at t = 1e2 through 1e5 -- a decade per decade, so it '
+      + 'falls like 1/t and genuinely reaches zero. The algebraic tell is deg W against 2 deg sigma - 2 for '
+      + 'W = N-prime sigma - N sigma-prime: maximal for the other two (6 of 6, 10 of 10) and deficient here '
+      + '(5 of 6). '
+      + 'AND THE OTHER TWO WERE RE-CHECKED, because this correction could have propagated: their |dT/dtheta| '
+      + 'tends to 0.790 and 3.78, both finite, so neither has a cusp at infinity and their counts of one and '
+      + 'two stand. '
+      + 'SO THE RULE SURVIVES, once poles are counted projectively: one cusp per REAL pole, none for a '
+      + 'complex conjugate pair, and t = infinity is a real pole like any other. That is the cleanest '
+      + 'statement of the whole sphere sequence, and it needed all three curves to reach. '
+      + 'core/rationalPHCubic and core/tangentIndicatrix, pinned in rationalPHCubic.test.ts.',
   },
 
 ]
