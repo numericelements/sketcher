@@ -24,6 +24,13 @@
 //      of a curve that is inherently all over the sphere. Three great circles give the depth cue instead,
 //      and orbiting supplies the rest.
 //
+// ONE CURVE, plus those circles. A version of this figure also drew a pale ghost track per fiber member,
+// so the whole family appeared at once the way slide 16's ghost curves do. Removed on the author's call:
+// on the sphere they read as clutter rather than as a family, because unlike slide 16's curves they all
+// live on the same small surface and overlap. The fiber is now shown one member at a time, as successive
+// states under the slider. What that costs is worth knowing rather than forgetting: the family is no
+// longer visible AS a family, only as motion.
+//
 // The two readouts are the measurement, not a decoration: |T′(r)| reads ~1e-14 — the indicatrix stopping
 // dead — and ‖T‖−1 reads ~1e-14, the sphere holding without anything being normalised.
 //
@@ -31,7 +38,8 @@
 // leaves the hodograph alone, so it was worth checking whether the swept fiber is that gauge — in which
 // case every member would share ONE indicatrix and this slider would do nothing. It is not: the
 // indicatrix moves by up to 1.94 on a unit sphere across the loop while the held data moves 7.9e-14
-// (indicatrixDegree.test.ts). So the fiber is a FAMILY of tangent tracks, and the pale ones are it.
+// (indicatrixDegree.test.ts). So the fiber genuinely is a family of distinct tangent tracks — now shown
+// one at a time, as successive states under the slider rather than all at once.
 //
 // TWO TIERS, for the same reason slide 16 has them: a loop walk is ~120 ms (measured, and the `steps`
 // option does not reduce it — the walk runs until it closes), so it is rebuilt when a dial gesture ENDS.
@@ -79,15 +87,12 @@ const GREAT_CIRCLES: [number, number, number][][] = [0, 1, 2].map((axis) =>
   }),
 )
 
-/** The fiber, thinned for drawing: every few members is enough to read it as a family. */
-function familyOf(prm: OnePoleParams): { members: OnePoleParams[]; ghosts: [number, number, number][][] } {
-  const members = fiberLoop(prm, { steps: 96, stride: 0.05 })
-  const ghosts: [number, number, number][][] = []
-  for (let i = 0; i < members.length; i += 8) {
-    ghosts.push(indicatrixLoop(toMember(members[i]), 120).map(tri))
-  }
-  return { members, ghosts }
-}
+/**
+ * The fiber, walked for its MEMBERS only. The ghost tracks that used to be drawn from these are gone, but
+ * the walk itself is not optional: "around the loop" selects a member, so the list has to exist. Dropping
+ * the drawing did save the 25 extra indicatrix polylines it used to build.
+ */
+const fiberOf = (prm: OnePoleParams): OnePoleParams[] => fiberLoop(prm, { steps: 96, stride: 0.05 })
 
 export default function IndicatrixFigure() {
   /** The member on screen. Dials move it live; the loop slider picks a different one outright. */
@@ -95,7 +100,7 @@ export default function IndicatrixFigure() {
   const [at, setAt] = useState(0.35)
   const [phase, setPhase] = useState(0)
   /** Rebuilt on gesture end, not per tick — see the header on the two tiers. */
-  const [family, setFamily] = useState(() => familyOf(SEED))
+  const [fiber, setFiber] = useState<OnePoleParams[]>(() => fiberOf(SEED))
 
   const { lambda, pole } = live
   const member = useMemo(() => toMember(live), [live])
@@ -113,10 +118,9 @@ export default function IndicatrixFigure() {
   const sweep = useCallback(
     (v: number) => {
       setPhase(v)
-      const list = family.members
-      setLive(list[Math.min(list.length - 1, Math.round(v * (list.length - 1)))])
+      setLive(fiber[Math.min(fiber.length - 1, Math.round(v * (fiber.length - 1)))])
     },
-    [family],
+    [fiber],
   )
 
   /** A dial re-solves the SAME held data — cheap, so it stays live under the finger. */
@@ -129,7 +133,7 @@ export default function IndicatrixFigure() {
   )
 
   /** The expensive half, deferred to the end of the gesture. */
-  const settle = useCallback(() => setFamily(familyOf(live)), [live])
+  const settle = useCallback(() => setFiber(fiberOf(live)), [live])
 
   return (
     <Figure3D
@@ -241,8 +245,7 @@ export default function IndicatrixFigure() {
           you can point at.{' '}
           <b>And the fiber is here too.</b> <i>Around the loop</i> is the same slider as the previous
           slide and it means the same thing — it changes <b>which curve</b> you are looking at, holding
-          the interpolation data fixed. The pale tracks are the whole family at once. That this shows
-          anything at all was worth checking: the gauge 𝒜 ↦ 𝒜e^{'{iθ}'} leaves the hodograph
+          the interpolation data fixed. That this shows anything at all was worth checking: the gauge 𝒜 ↦ 𝒜e^{'{iθ}'} leaves the hodograph
           untouched, so had the fiber been that gauge, every member would share <i>one</i> indicatrix
           and the slider would be dead. Measured instead: the track moves by up to <b>1.94</b> on a unit
           sphere while the held data moves 8·10⁻¹⁴.{' '}
@@ -269,11 +272,10 @@ export default function IndicatrixFigure() {
         <Curve3D key={`gc${i}`} points={c} color={FIG.color.controlPolygon} width={1} />
       ))}
 
-      {/* the whole fiber as tangent tracks — the thing the measurement said would be there */}
-      {family.ghosts.map((g, i) => (
-        <Curve3D key={`fam${i}`} points={g} color={FIG.color.derived} width={0.8} />
-      ))}
-
+      {/*
+        ONE indicatrix. The pale half is not a different object — it is this same member outside [0,1],
+        and it has to stay: the pole sits outside [0,1] by construction, so the cusp lives on it.
+      */}
       <Curve3D points={whole} color={FIG.color.curveMuted} width={1.5} />
       <Curve3D points={used} color={FIG.color.curve} width={3.5} />
 

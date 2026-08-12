@@ -178,3 +178,104 @@ describe('the indicatrix closes over the projective line', () => {
     expect(Math.hypot(first.x - last.x, first.y - last.y, first.z - last.z)).toBe(0)
   })
 })
+
+// ============================================================================
+// WHY THE CUSP IS THERE — and it is NOT the PH condition that puts it there.
+//
+// Two separate demands are in play, and keeping them apart is the whole explanation.
+//
+//   PH (rational SPEED) is what gives the sphere a rational curve at all: ‖c′‖ = ‖N‖/w² is rational iff
+//   ‖N‖ is a polynomial, iff N = 𝒜i𝒜̄ for a quaternion polynomial 𝒜, and then ‖N‖ = |𝒜|² = σ. That
+//   fixes NOTHING about poles. Choose 𝒜 freely and the indicatrix N/σ is smooth.
+//
+//   RATIONALITY OF THE CURVE ITSELF is the extra demand, and it is what cusps the indicatrix. Having
+//   chosen a hodograph N/w², we still need a curve whose derivative it IS — we must integrate. Near a
+//   simple root r of w the partial fraction has a 1/(t−r)² term AND a 1/(t−r) term, and the second
+//   integrates to a LOGARITHM. A curve with a log in it is not rational. So the residue must vanish, and
+//   writing w = (t−r)u it is F′(r) = 0 for F = N/u², i.e.
+//
+//       N′(r) = 2Σ·N(r),        Σ = Σ_{l≠k} 1/(r_k − r_l)
+//
+//   — the no-log condition. It says N′(r) is PARALLEL to N(r), with ratio exactly 2Σ.
+//
+// AND THAT IS THE CUSP, because σ obeys the same relation for free. T′ = (N′σ − Nσ′)/σ² vanishes iff
+// N′(r) = N(r)·σ′(r)/σ(r), so the two conditions agree iff σ′(r) = 2Σσ(r). From the solved form
+// 𝒜′(r) = 𝒜(r)(Σ + λi), both drop out of one line of quaternion algebra, with the twist λ cancelling in
+// each: σ′ = 𝒜(Σ+λi)𝒜̄ + 𝒜(Σ−λi)𝒜̄ = 2Σσ, and N′ = 𝒜[(Σ+λi)i + i(Σ−λi)]𝒜̄ = 𝒜(2Σi)𝒜̄ = 2ΣN.
+//
+// THE GEOMETRIC VERSION, which needs no algebra at all and is the one to say out loud. c = p/w has a
+// SIMPLE pole at r, so c′ has a DOUBLE one — and (t−r)² is POSITIVE on both sides. The tangent therefore
+// approaches the SAME direction from the left and from the right. The indicatrix does not pass through
+// that point and continue; it arrives and comes back. That is what a cusp is. The order of the pole is
+// doing the work, and an exact identity names the direction: N = p′w − pw′ with w = t − r kills its first
+// term at t = r, leaving N(r) = ±p(r) — the sign being the projective gauge (toMember may flip (p, w) to
+// keep the weights positive), measured here as +1. Gauge-free statement: the curve runs out to infinity
+// along the LINE spanned by p(r), one way as t → r⁻ and the other as t → r⁺, and the cusp sits at one of
+// that line's two antipodes on the sphere. The cusp is the asymptotic direction.
+//
+// So the count is one cusp PER POLE, not one per curve: w = t − r gives one, the two-pole member gives
+// two, and a POLYNOMIAL PH curve has no pole, no residue to kill, and a smooth indicatrix.
+// ============================================================================
+describe('why the cusp is there', () => {
+  const R = 1.7
+  const m = toMember(seed(0.6, R))
+
+  it('N(r) = −p(r) exactly: the cusp is the direction the curve escapes to infinity', () => {
+    // N = p′w − pw′ and w = t − r, so at t = r the first term dies and N(r) = −p(r) identically.
+    const pAt = [0, 1, 2].map((c) => evalPoly(m.p[c], R))
+    const nAt = [0, 1, 2].map((c) => evalPoly(m.N[c], R))
+    const pLen = Math.hypot(...pAt)
+    const cross = [
+      pAt[1] * nAt[2] - pAt[2] * nAt[1],
+      pAt[2] * nAt[0] - pAt[0] * nAt[2],
+      pAt[0] * nAt[1] - pAt[1] * nAt[0],
+    ]
+    const dot = pAt.reduce((a, v, i) => a + v * nAt[i], 0) / (pLen * Math.hypot(...nAt))
+    console.log(
+      `    |p(r) × N(r)| / |p||N| = ${(Math.hypot(...cross) / (pLen * Math.hypot(...nAt))).toExponential(1)}` +
+        `   cos angle = ${dot.toFixed(6)}  (±1 either way: N(r) = ±p(r), sign set by the projective gauge)` +
+        `\n    and |N(r)| = ${Math.hypot(...nAt).toFixed(6)} = σ(r) = ${evalPoly(m.sigma, R).toFixed(6)},` +
+        ` so T(r) is that direction as a UNIT vector with no normalising`,
+    )
+    expect(Math.hypot(...cross) / (pLen * Math.hypot(...nAt)), 'parallel').toBeLessThan(1e-13)
+    expect(Math.abs(dot), 'and exactly antiparallel or parallel — a true identity, not a near miss').toBeCloseTo(1, 12)
+    expect(Math.abs(Math.hypot(...nAt) - evalPoly(m.sigma, R)), '|N| = σ at the pole').toBeLessThan(1e-13)
+  })
+
+  it('the tangent has the SAME limit from both sides — because the pole of c′ is even order', () => {
+    const at = indicatrixAt(m, R)
+    for (const eps of [1e-2, 1e-4, 1e-6]) {
+      const before = indicatrixAt(m, R - eps)
+      const after = indicatrixAt(m, R + eps)
+      const dBefore = Math.hypot(before.x - at.x, before.y - at.y, before.z - at.z)
+      const dAfter = Math.hypot(after.x - at.x, after.y - at.y, after.z - at.z)
+      console.log(
+        `    ε = ${eps.toExponential(0)}:  |T(r−ε) − T(r)| = ${dBefore.toExponential(2)}` +
+          `   |T(r+ε) − T(r)| = ${dAfter.toExponential(2)}   ratio ${(dBefore / dAfter).toFixed(4)}`,
+      )
+      // Both sides approach the same point, and quadratically — the signature of arriving and returning
+      // rather than passing through (a transversal crossing would be linear in ε).
+      expect(dBefore).toBeLessThan(20 * eps * eps)
+      expect(dAfter).toBeLessThan(20 * eps * eps)
+    }
+  })
+
+  it('and it REVERSES there: the two branches leave the cusp antiparallel', () => {
+    // A cusp, not merely a stationary point: the incoming and outgoing directions of the SPHERICAL curve
+    // are opposite, so the track doubles back on itself.
+    const dir = (t: number) => {
+      const a = indicatrixAt(m, t - 1e-7)
+      const b = indicatrixAt(m, t + 1e-7)
+      const v = [b.x - a.x, b.y - a.y, b.z - a.z]
+      const n = Math.hypot(...v) || 1
+      return v.map((x) => x / n)
+    }
+    for (const eps of [1e-2, 1e-3]) {
+      const before = dir(R - eps)
+      const after = dir(R + eps)
+      const cos = before.reduce((a, v, i) => a + v * after[i], 0)
+      console.log(`    ε = ${eps.toExponential(0)}:  cos(incoming, outgoing) = ${cos.toFixed(6)}`)
+      expect(cos, 'antiparallel — the indicatrix doubles back').toBeLessThan(-0.999)
+    }
+  })
+})
