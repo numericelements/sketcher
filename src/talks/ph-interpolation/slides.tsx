@@ -46,6 +46,7 @@ import SexticFivePointFigure from './SexticFivePointFigure'
 import RationalPHLoopFigure from './RationalPHLoopFigure'
 import RationalPHTwoPoleFigure from './RationalPHTwoPoleFigure'
 import IndicatrixFigure from './IndicatrixFigure'
+import IndicatrixTwoPoleFigure from './IndicatrixTwoPoleFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
@@ -844,5 +845,46 @@ export const slides: SlideDefinition[] = [
       + 'multiPoleLoop.test.ts; the bilinearity itself in multiPoleLinearity.test.ts.',
   },
 
+
+  // ---------------------------------------------------------------------------
+  // 19 — two poles on the sphere: the cusps count the poles
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Two poles, two cusps</h2>
+        <WhenActive>
+          <IndicatrixTwoPoleFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE DECK NOW ALTERNATES: curve, sphere, curve, sphere. Slide 16 is the one-pole curve, 17 the same '
+      + 'member on the sphere, 18 the two-pole curve, and this is that one on the sphere. One thing changes '
+      + 'between 17 and 19 -- the number of poles -- so the comparison is clean. '
+      + 'THE CLAIM, and it answers the question the one-pole sphere raises: being rational does NOT cost one '
+      + 'cusp, it costs one PER POLE. w is quadratic here, the curve meets infinity twice, and the '
+      + 'indicatrix stops dead twice. Both readouts are on screen. The poles are also INDEPENDENT: move one '
+      + 'dial and its own cusp walks while the other sits still, which no single-pole picture can show. '
+      + 'THE DEGREE IS 5, and the parity deserves saying out loud because it looks like an error. deg c = '
+      + '2n - m + 1, and the sweepable one-dimensional fiber forces n = m + 1, so two poles give degree 5 -- '
+      + 'a rational PH QUINTIC, with w quadratic. Since 2n is always even, THE POLE COUNT ALONE DECIDES '
+      + 'PARITY: m = 0 polynomial is odd (the classical PH cubics and quintics), m = 1 is EVEN (4, 6, 8 -- '
+      + 'the standard rational PH families, and degree 6 is exactly n = 3 there, the conformal sextic), '
+      + 'm = 2 is ODD, m = 3 EVEN again. So the common instinct that rational PH wants even degree is right '
+      + 'about the one-pole construction and this slide is not a counterexample to it. A second, independent '
+      + 'route to the same even degrees, worth mentioning if asked: a Moebius transform of a polynomial PH '
+      + 'curve is rational PH and inversion doubles degree, so the PH cubic goes to 6 and the quintic to 10. '
+      + 'Measured across m = 1, 2, 3 in rationalPHDegreeParity.test.ts. '
+      + 'ONE HONEST CAVEAT TO HAVE READY. These cusps are SHALLOWER than the one-pole one and the mechanism '
+      + 'differs. A single pole has Sigma = 0, so N-prime and sigma-prime each vanish and the corner is '
+      + 'sharp. With two, Sigma = +/-0.3846 and neither vanishes -- |N-prime|/|N| = 0.769, exactly 2|Sigma| '
+      + '-- but both equal 2 Sigma times themselves, so T-prime cancels anyway. Same geometric event, '
+      + 'gentler approach: |T-prime| reaches 0.029 near the pole against 0.207 for one pole. That is why the '
+      + 'violet markers are drawn rather than left to the eye. '
+      + 'The sphere itself came for free: core/tangentIndicatrix asks only for {N, sigma}, and the '
+      + 'multi-pole member exposes the same shape as the one-pole one. Pinned in tangentIndicatrix.test.ts.',
+  },
 
 ]
