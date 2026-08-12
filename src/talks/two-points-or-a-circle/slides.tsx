@@ -2052,7 +2052,7 @@ export const slides: SlideDefinition[] = [
         </p>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.1em' }}>
-            And the arc length is <em>rational</em> — at any number of poles.
+            And on this chart the arc length is <em>rational</em> too.
           </strong>
         </p>
         <p>
@@ -2074,9 +2074,18 @@ export const slides: SlideDefinition[] = [
             <em>arc length</em> rational.
           </strong>
         </p>
+        <p>
+          But only <em>on this chart</em>. The residue of{' '}
+          <Math>{'\\mathbf{N}/w^2'}</Math> also vanishes when{' '}
+          <Math>{'\\mathcal{A}(r) = 0'}</Math> — the pole <em>cancels</em>, the curve is rational with
+          no condition imposed at all, and the speed keeps a simple pole, so{' '}
+          <strong>the logarithm survives there</strong>. That is the stratum the{' '}
+          <Math>{'\\lambda'}</Math>-chart misses, and this is what it costs.
+        </p>
         <p style={{ opacity: 0.65 }}>
-          So exact arc-length parametrisation is available on the whole family: equal spacing and
-          constant-speed motion with no quadrature anywhere. And measured on the closed fiber, arc
+          So exact arc-length parametrisation is available wherever{' '}
+          <Math>{'\\mathcal{A}(r) \\neq 0'}</Math> and the poles are real: equal spacing and
+          constant-speed motion with no quadrature. And measured on the closed fiber, arc
           length is <strong>constant</strong> along it (spread <Math>{'5.7\\times10^{-8}'}</Math>) —
           so, exactly as in the polynomial case, <em>no functional of length can choose among these
           curves</em>.
@@ -2085,9 +2094,10 @@ export const slides: SlideDefinition[] = [
           Framework: Kalkan et al. (2022). Construction, weight progression, Hermite rank and the
           arc-length identity measured here and pinned in{' '}
           <Math>{'\\texttt{rationalPHConstruction.test.ts}'}</Math>. <strong>Rational arc length is
-          not a new class</strong> — Farouki &amp; Sakkalis, <em>Construction of rational curves with
-          rational arc lengths by direct integration</em>, CAGD 74 (2019), do exactly that. Whether
-          the primitive family gets it <em>for free</em> is unchecked against that paper.
+          not new, and not automatic</strong>: Farouki &amp; Sakkalis, CAGD <strong>74</strong> (2019),
+          state that <em>&ldquo;only a subset of the rational PH curves admits rational arc
+          lengths&rdquo;</em>. What is added here is <em>where</em> the subset ends —{' '}
+          <Math>{'\\mathcal{A}(r) = 0'}</Math>. Complex poles untested.
         </Cite>
       </>
     ),

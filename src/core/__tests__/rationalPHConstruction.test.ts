@@ -42,14 +42,28 @@
 //     Related: arc length is also CONSTANT along the closed one-pole fiber (spread 5.7e-8), so
 //     length is a blind selector here exactly as it is for the polynomial cubic.
 //
-//     ⚠ NOVELTY: ASSUME NOT, UNTIL SOMEBODY READS [13]. Rational curves with rational arc length are
-//     a studied class -- Farouki & Sakkalis, "Construction of rational curves with rational arc
-//     lengths BY DIRECT INTEGRATION", CAGD 74:101773 (2019), reference [13] of the 2022 paper -- and
-//     "by direct integration" is this route. So the CLASS is certainly not new. What may be narrower
-//     and ours is only that within the PRIMITIVE family (N = A i A*, mu = 1) the no-log condition on
-//     the CURVE already forces rational ARC LENGTH, with nothing extra imposed. Weak support: the
-//     2022 paper's own conclusion lists "connect our results with ... PH curves with rational arc
-//     length" as FUTURE work. That paper is NOT in ~/Documents/Carlotta; get it before any claim.
+//     ⚠ SCOPED, AFTER READING THE SOURCE (2026-08-11). Farouki & Sakkalis, "Construction of rational
+//     curves with rational arc lengths by direct integration", CAGD 74:101773 (2019) -- reference
+//     [13] of the 2022 paper -- states plainly in its section 1: "whereas all polynomial PH curves
+//     have polynomial arc length functions, ONLY A SUBSET of the rational PH curves admits rational
+//     arc lengths." So the unqualified claim above is too strong, and the class is certainly not new
+//     -- that paper is devoted to it. Working out WHY locates the exception exactly:
+//
+//       residue of N/w^2 at a pole  =  2*S(r)*[ S'(r) - S(r)*Sigma ] / phi(r)^2
+//
+//     which vanishes if EITHER the no-log condition holds OR S(r) = 0. The arc-length residue needs
+//     the FIRST one. So:
+//       · A(r) != 0 — condition holds, sigma' = 2*Sigma*sigma, arc length IS rational. Everything
+//         measured in this file and by the multi-pole session lives here.
+//       · A(r) = 0  — the pole CANCELS, the curve is rational with no condition imposed, but the
+//         speed numerator keeps a simple pole and the LOGARITHM SURVIVES.
+//     That second stratum is the one rationalPHOnePoleSpatial.ts already calls "the one thing the
+//     lambda chart genuinely misses". It is not merely a gap in the chart: it is where arc-length
+//     rationality breaks, which is a reason to care about it.
+//
+//     FURTHER LIMIT, unchecked: the cancellation uses conjugation commuting with evaluation, which
+//     needs REAL poles. Farouki & Sakkalis work with simple REAL OR COMPLEX CONJUGATE roots. Our
+//     poles are real; complex poles have not been tested and may behave differently.
 //
 // Measured 2026-08-11, for the deck src/talks/two-points-or-a-circle.
 //
