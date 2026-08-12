@@ -5,6 +5,10 @@
 // so you can sweep it and come back; you can see all of it at once; and it has a punchline (arc length
 // is constant on it). The rational fiber as measured so far is a ROAD — it has none of those.
 //
+// CORRECTED 2026-08-11 (rationalArcLength.test.ts): the third one it DOES have. Arc length is constant
+// along the closed loop too — measured, relative spread 5.7e-8 — so the rational fiber carries the
+// polynomial fiber's punchline as well, and the sentence above understates it.
+//
 // But the one-pole family mixes TWO kinds of freedom:
 //
 //   · a HOPF PHASE — prescribing c′(0) pins 𝒜(0) only up to a circle. COMPACT. This is the same thing

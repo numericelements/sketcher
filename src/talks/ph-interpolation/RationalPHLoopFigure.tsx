@@ -10,6 +10,11 @@
 //   · λ and r — non-compact. λ is the frame TWIST at the pole; r is where the curve passes through
 //     INFINITY. These deform the loop, and the second one has a visible end.
 //
+// AND THE LOOP HAS THE POLYNOMIAL FIBER'S PUNCHLINE TOO: arc length is CONSTANT along it (measured,
+// spread 5.7e-8), so no functional of length can select among these curves either. Arc length is also
+// exactly computable here — the integrand has a rational antiderivative at any number of poles — so
+// equal-spacing markers need no quadrature.
+//
 // SO THE THREE THINGS IT DOES THAT NO OTHER FIGURE IN THIS DECK CAN:
 //
 //   1. The PH readout NEVER MOVES. Every other figure here reports a residual that drifts as you drag,
