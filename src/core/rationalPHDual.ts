@@ -95,21 +95,25 @@ export function systemMatrix(
 }
 
 /**
- * Nullspace basis by Gauss–Jordan with a rank cut taken from the LARGEST RELATIVE GAP in the pivot
- * magnitudes, never from a fixed tolerance — the same discipline the rest of this codebase uses for rank.
+ * Nullspace basis by Gauss–Jordan.
+ *
+ * THE PIVOT TEST IS A MACHINE-ZERO TEST AND NOTHING ELSE — |pivot| against the original matrix's largest
+ * entry. An earlier version cut the rank at the "largest relative gap" in the pivot magnitudes, borrowing a
+ * habit that is right for RANKING and wrong here: dropping a pivot does not produce a nullspace vector, it
+ * produces one that violates the dropped equation. It manufactured a spurious member at deg b = 6 (b ≡ 0
+ * with μ = t³) whose residual was 12.0. Callers should still validate — `nullspaceOf` below does.
  */
 export function nullspace(rows: readonly number[][]): number[][] {
   const m = rows.length
   const n = rows[0]?.length ?? 0
   const A = rows.map((r) => [...r])
+  const scale = Math.max(...rows.flatMap((r) => r.map(Math.abs)), 1e-300)
   const pivotCols: number[] = []
-  const pivots: number[] = []
   let r = 0
   for (let c = 0; c < n && r < m; c++) {
     let best = r
     for (let i = r + 1; i < m; i++) if (Math.abs(A[i][c]) > Math.abs(A[best][c])) best = i
-    if (Math.abs(A[best][c]) < 1e-300) continue
-    pivots.push(Math.abs(A[best][c]))
+    if (Math.abs(A[best][c]) <= 1e-11 * scale) continue
     ;[A[r], A[best]] = [A[best], A[r]]
     const p = A[r][c]
     for (let j = 0; j < n; j++) A[r][j] /= p
@@ -122,27 +126,35 @@ export function nullspace(rows: readonly number[][]): number[][] {
     pivotCols.push(c)
     r++
   }
-  // Drop pivots below the largest relative gap: everything after the gap is numerical noise, not rank.
-  let cut = pivots.length
-  if (pivots.length > 1) {
-    const scale = pivots[0]
-    let bestGap = 1
-    for (let i = 1; i < pivots.length; i++) {
-      const gap = pivots[i - 1] / Math.max(pivots[i], 1e-300)
-      if (gap > bestGap && pivots[i] < 1e-6 * scale) {
-        bestGap = gap
-        cut = i
-      }
-    }
-  }
-  const usedCols = pivotCols.slice(0, cut)
-  const free = Array.from({ length: n }, (_, i) => i).filter((i) => !usedCols.includes(i))
+  const free = Array.from({ length: n }, (_, i) => i).filter((i) => !pivotCols.includes(i))
   return free.map((fc) => {
     const v = new Array<number>(n).fill(0)
     v[fc] = 1
-    usedCols.forEach((pc, i) => { v[pc] = -A[i][fc] })
+    pivotCols.forEach((pc, i) => { v[pc] = -A[i][fc] })
     return v
   })
+}
+
+/**
+ * The solution space, VALIDATED: every returned member is checked against (9) and anything that does not
+ * actually solve it is discarded rather than returned. Use this, not the raw `nullspace`, when the members
+ * are going to be combined or drawn — a single bad basis vector poisons every combination.
+ */
+export function nullspaceOf(
+  alpha: readonly number[],
+  F: readonly number[][],
+  degB: number,
+): { members: DualSolution[]; discarded: number; degMu: number } {
+  const { rows, degMu } = systemMatrix(alpha, F, degB)
+  const raw = nullspace(rows)
+  const members: DualSolution[] = []
+  let discarded = 0
+  for (const v of raw) {
+    const sol = unpack(v, degB, degMu)
+    if (residual(alpha, F, sol) < 1e-10) members.push(sol)
+    else discarded++
+  }
+  return { members, discarded, degMu }
 }
 
 /** Unpack a nullspace vector into (b, μ). */
@@ -153,7 +165,13 @@ export function unpack(v: readonly number[], degB: number, degMu: number): DualS
   return { b, mu }
 }
 
-/** Worst residual of α·b′ − α′·b = μ·F, relative — the check that a solution really solves (9). */
+/**
+ * Worst residual of α·b′ − α′·b = μ·F, relative to the size of the terms that actually appear.
+ *
+ * THE NORMALISATION MATTERS AND WAS WRONG ONCE. An earlier version scaled by μ₀, which is ZERO for perfectly
+ * good members (the degree-6 solution has μ = 3t + t³), so their relative residual blew up and they were
+ * discarded as spurious. The scale is now the largest coefficient among the three products themselves.
+ */
 export function residual(
   alpha: readonly number[],
   F: readonly number[][],
@@ -161,20 +179,22 @@ export function residual(
 ): number {
   const alphaD = dPoly(alpha)
   let worst = 0
-  let scale = 1e-300
+  let scale = 0
   for (let c = 0; c < 3; c++) {
     const bd = dPoly(sol.b[c])
     const len = alpha.length + Math.max(sol.b[c].length, bd.length) + sol.mu.length
     for (let k = 0; k < len; k++) {
-      let v = 0
-      alpha.forEach((av, i) => { if (k - i >= 0 && k - i < bd.length) v += av * bd[k - i] })
-      alphaD.forEach((av, i) => { if (k - i >= 0 && k - i < sol.b[c].length) v -= av * sol.b[c][k - i] })
-      sol.mu.forEach((mv, i) => { if (k - i >= 0 && k - i < F[c].length) v -= mv * F[c][k - i] })
-      worst = Math.max(worst, Math.abs(v))
-      scale = Math.max(scale, Math.abs(evalPoly(F[c], 1) * (sol.mu[0] ?? 1)))
+      let t1 = 0
+      let t2 = 0
+      let t3 = 0
+      alpha.forEach((av, i) => { if (k - i >= 0 && k - i < bd.length) t1 += av * bd[k - i] })
+      alphaD.forEach((av, i) => { if (k - i >= 0 && k - i < sol.b[c].length) t2 += av * sol.b[c][k - i] })
+      sol.mu.forEach((mv, i) => { if (k - i >= 0 && k - i < F[c].length) t3 += mv * F[c][k - i] })
+      worst = Math.max(worst, Math.abs(t1 - t2 - t3))
+      scale = Math.max(scale, Math.abs(t1), Math.abs(t2), Math.abs(t3))
     }
   }
-  return worst / scale
+  return worst / Math.max(scale, 1e-300)
 }
 
 /**
