@@ -45,6 +45,7 @@ import RationalPHQuarticFigure from './RationalPHQuarticFigure'
 import SexticFivePointFigure from './SexticFivePointFigure'
 import RationalPHLoopFigure from './RationalPHLoopFigure'
 import RationalPHTwoPoleFigure from './RationalPHTwoPoleFigure'
+import IndicatrixFigure from './IndicatrixFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
@@ -795,6 +796,52 @@ export const slides: SlideDefinition[] = [
       + 'admissible space, with the defect at 2e-16 throughout. '
       + 'core/rationalPHMultiPoleSpatial, pinned in rationalPHMultiPoleSpatial.test.ts (5 tests) and '
       + 'multiPoleLoop.test.ts; the bilinearity itself in multiPoleLinearity.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 18 — the pole, which has no position in space, given one on the sphere
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The same curve on the sphere: the pole is a cusp</h2>
+        <WhenActive>
+          <IndicatrixFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'WHY THIS SLIDE EXISTS. Slides 16 and 17 state the no-log condition as a formula and give you a dial '
+      + 'for it, but there is nothing on screen to POINT AT: the pole r is a parameter, and the place it '
+      + 'refers to is off at infinity. This slide gives it a position. Draw the same member through its '
+      + 'unit tangent instead of its position and the pole becomes a visible cusp. '
+      + 'THE ONE IDENTITY THE SLIDE RESTS ON: c-prime = N/w-squared and the speed is sigma/w-squared, so in '
+      + 'T = c-prime over the speed the w-SQUARED CANCELS and T = N/sigma. Being PH is exactly the '
+      + 'statement that the unit tangent is rational -- the indicatrix is a rational spherical curve. Two '
+      + 'consequences, both measured: T has no denominator w at all, so it is perfectly smooth at the pole '
+      + 'where the curve itself runs to infinity; and T closes up over the projective line through its '
+      + 'point at infinity, which is ALREADY unit because leading N = A-top i A-top-bar has norm equal to '
+      + 'leading sigma (the drawn polyline ends coincide to 0.0e+0). '
+      + 'THE CUSP. T-prime = (N-prime sigma - N sigma-prime)/sigma-squared vanishes exactly when {N, '
+      + 'N-prime} are dependent, which is what the no-log condition says. Measured: |T-prime(r)| = 1.7e-14 '
+      + 'while |T-prime| is 0.207 a step of 0.05 away -- a cusp, not a flat stretch, and it holds for '
+      + 'lambda = 0.6, -1.3, 0 and r = 1.7, -0.9, 2.4. This is Kalkan-Scharler-Schroecker-Sir Rem 4.7 read '
+      + 'in our chart. '
+      + 'WHAT TO DO ON SCREEN: drive the pole dial. Because r is required to stay OUTSIDE [0,1], the cusp '
+      + 'never sits on the bold arc the curve actually uses -- and that is worth saying out loud rather '
+      + 'than hiding, because walking r inward walks the cusp toward the arc, and the "infinity to curve" '
+      + 'readout is the same approach as a number. The family limit becomes something seen approaching. '
+      + 'Then turn twist: the whole track reshapes and the cusp stays a cusp, so it is not a property of '
+      + 'this member but of having a pole at all. '
+      + 'THE MECHANISM CHANGES WITH m, AND THE FIGURE DOES NOT SHOW THIS YET (checked before building, so '
+      + 'the scope is known): with one pole Sigma = 0 and N-prime(r), sigma-prime(r) each vanish outright; '
+      + 'with two, Sigma = +/-0.3846 and NEITHER vanishes -- |N-prime|/|N| = 0.769, which is exactly '
+      + '2|Sigma| -- but both equal 2 Sigma times themselves, so T-prime cancels. Same geometric event, '
+      + 'reached two ways: one pole kills both terms, many poles balance them. m poles give m cusps, and '
+      + 'they are SHALLOWER (0.029 against 0.207 at r +/- 0.05), which is why the two-pole version of this '
+      + 'figure is the harder drawing and is not built yet. '
+      + 'core/tangentIndicatrix, pinned in tangentIndicatrix.test.ts (7 tests).',
   },
 
 ]

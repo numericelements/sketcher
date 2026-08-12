@@ -48,6 +48,12 @@ export const FIG = {
     label: '#475569',
     /** Reserved: curvature extrema (cs2026). Do not reuse for anything else. */
     extrema: '#f59e0b',
+    /**
+     * Where the curve passes through infinity. It has no position in space — the pole is a PARAMETER —
+     * so nothing wore this colour until the tangent indicatrix gave it one: on the sphere the pole is a
+     * visible cusp. Reserved for that, so the eye learns "violet = the pole showing itself".
+     */
+    pole: '#a855f7',
   },
   size: {
     curve: 2.5,
