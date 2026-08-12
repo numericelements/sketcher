@@ -63,8 +63,16 @@ const GREAT_CIRCLES: [number, number, number][][] = [0, 1, 2].map((axis) =>
   }),
 )
 
-/** Walked for its members: "around the loop" selects one, so the list has to exist. */
-const fiberOf = (prm: MultiPoleParams): MultiPoleParams[] => fiberLoop(prm, { steps: 96, stride: 0.05 })
+/**
+ * Walked for its members: "around the loop" selects one, so the list has to exist.
+ *
+ * NOTE THE OPTION NAMES DIFFER BY MODULE, which cost a broken build. The one-pole `fiberLoop` takes
+ * `steps`; this multi-pole one takes `maxSteps` (default 900) and only `stride`. This call was written by
+ * copying the one-pole one, so it passed a `steps` that does not exist here — harmless at runtime, a type
+ * error on `tsconfig.app.json`. The sibling RationalPHTwoPoleFigure uses { stride: 0.09, maxSteps: 400 };
+ * this keeps stride 0.05 and the default cap, which is the behaviour that has been on screen.
+ */
+const fiberOf = (prm: MultiPoleParams): MultiPoleParams[] => fiberLoop(prm, { stride: 0.05 })
 
 export default function IndicatrixTwoPoleFigure() {
   const [live, setLive] = useState<MultiPoleParams>(SEED)
