@@ -49,6 +49,7 @@ import IndicatrixFigure from './IndicatrixFigure'
 import IndicatrixTwoPoleFigure from './IndicatrixTwoPoleFigure'
 import RationalCubicFigure from './RationalCubicFigure'
 import IndicatrixCubicFigure from './IndicatrixCubicFigure'
+import SharedIndicatrixFigure from './SharedIndicatrixFigure'
 import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
@@ -965,6 +966,50 @@ export const slides: SlideDefinition[] = [
       + 'complex conjugate pair, and t = infinity is a real pole like any other. That is the cleanest '
       + 'statement of the whole sphere sequence, and it needed all three curves to reach. '
       + 'core/rationalPHCubic and core/tangentIndicatrix, pinned in rationalPHCubic.test.ts.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 22 — the converse of the fiber: hold the indicatrix, move the curve
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>A whole family over one sphere</h2>
+        <WhenActive>
+          <SharedIndicatrixFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THIS IS THE CONVERSE OF SLIDE 17 AND THE PAIR IS THE POINT. There the interpolation data is held and '
+      + 'sweeping the fiber moves the indicatrix by up to 1.94 on a unit sphere. Here the SPINOR is held, so '
+      + 'the indicatrix cannot move at all and the curve moves instead. Two different freedoms; the deck '
+      + 'previously showed only one. '
+      + 'WHY IT IS TRUE IN ONE LINE: r = -2b/alpha, so r-prime = -2 mu (A i A-bar) / alpha^2, and the unit '
+      + 'tangent is +/- A i A-bar / |A|^2 for EVERY member whatever b and mu are. The tangent indicatrix is a '
+      + 'function of the SPINOR ALONE. Hold A and a whole vector space of curves sits above one fixed sphere '
+      + 'picture. The drift readout stays at the finite-difference floor while the left panel visibly changes. '
+      + 'AND IT IS THE CONSTRUCTION THAT REACHES THE NULL STRATUM. Kalkan-Scharler-Schroecker-Sir Theorem 3.6 '
+      + 'form (9): rational PH curves are exactly r = -2b/alpha subject to alpha b-prime - alpha-prime b = '
+      + 'mu (A i A-bar). It is a LINEAR system, so it divides by neither A(r) nor sigma(r) -- which is why it '
+      + 'works on the stratum where the spinor is null at the pole and slide 20 had to be a specimen with no '
+      + 'handles. That caveat is now retired: the family is real. Ported and verified in rationalPHDual.ts, '
+      + 'where the published cubic satisfies all 18 equations at residual 0.0e+0. '
+      + 'WHAT TO DO ON SCREEN. s = 0 IS the published cubic, reproduced to 0.0e+0. Any nonzero mix brings in '
+      + 'the second truly rational member of the space, of degree SIX -- the readout says so because the '
+      + 'degree jumps rather than deforming, which is honest and will otherwise look like a bug. '
+      + 'THE ONE THING TO HAVE READY IF ASKED. Below s = -1/2 the curve STOPS. |r-prime| = 2|mu| sigma / '
+      + 'alpha^2, so a real zero of mu is a genuine stationary point rather than a numerical artifact: it '
+      + 'enters at t = 1 and walks inward, is marked in amber, and |r-prime| there measures 0.0e+0. That '
+      + 'threshold is MEASURED, not derived -- normalising the basis (matching the published scale, and '
+      + 'pinning r(0) = 0 to remove the translation freedom) rescales mu, so the tidy -1/4 that the raw '
+      + 'system suggests is wrong. Both normalisations were bugs before they were features: without the '
+      + 'translation pin, s = 0 missed the published curve by 0.11. '
+      + 'TWO VIEWPORTS ON ONE SLIDE is new here and deliberate -- "the sphere does not move" only convinces '
+      + 'if both are visible at once, and a unit sphere sharing a scale with a space curve reads badly. '
+      + 'core/rationalPHCubicFamily over core/rationalPHDual, pinned in rationalPHCubicFamily.test.ts (3 '
+      + 'tests) and rationalPHDual.test.ts (6 tests).',
   },
 
 ]
