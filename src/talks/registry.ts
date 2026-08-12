@@ -11,6 +11,7 @@ import { slides as cs2026Slides } from './cs2026/slides'
 import { slides as phInterpolationSlides } from './ph-interpolation/slides'
 import { slides as hodographLightConeSlides } from './hodograph-light-cone/slides'
 import { slides as twoPointsOrACircleSlides } from './two-points-or-a-circle/slides'
+import { slides as priceOfACircleSlides } from './price-of-a-circle/slides'
 
 export const talks: TalkDefinition[] = [
   {
@@ -37,6 +38,12 @@ export const talks: TalkDefinition[] = [
     title: 'Two Points or a Circle',
     subtitle: 'What changes when a Pythagorean-hodograph curve leaves the plane',
     slides: twoPointsOrACircleSlides,
+  },
+  {
+    slug: 'price-of-a-circle',
+    title: 'The Price of a Circle',
+    subtitle: 'What rationality buys in Pythagorean-hodograph curves, and what it charges',
+    slides: priceOfACircleSlides,
   },
 ]
 

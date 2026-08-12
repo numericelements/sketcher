@@ -1,0 +1,1227 @@
+// ============================================================================
+// THE PRICE OF A CIRCLE — what rationality buys in PH curves, and what it charges.
+//
+// THE THESIS, and it took a correction to state honestly. The tempting opening is "rational PH
+// curves can be circles and polynomial ones cannot" — true, but NOT a fact about PH. No polynomial
+// CURVE of any kind is a circle; the restriction is polynomiality, and PH is innocent. The honest
+// version is sharper:
+//
+//     Polynomial PH gives the PH property on a family that is unbounded and open.
+//     Rational PH gives the SAME property on the shapes rational curves can make —
+//     circles, conics, bounded and closed curves — and charges a solvability condition
+//     plus the loss of compactness for it.
+//
+// So this deck is a LEDGER. Not "rational is better", not "rational is harder" — priced.
+//
+// WHY IT IS A SEPARATE DECK from two-points-or-a-circle. That deck's axis is PLANE versus SPACE and
+// its thesis is the invisible degree of freedom. This one's axis is POLYNOMIAL versus RATIONAL and
+// its thesis is a trade. Same objects, different question — and the two acts of the older deck are
+// this one's background, not its content. Where a derivation is needed it is CITED there rather
+// than repeated.
+//
+// AUDIENCE: someone who already knows what a PH curve is. One recap slide, then straight in.
+//
+// THE ARC (planned; nothing after slide 3 is built yet):
+//
+//   1  title, with the tag legend
+//   2  a circle is not a polynomial -- the shape, and whose fault it is        [THM]
+//   3  what polynomial PH gives you for free: every spinor works               [LIT]
+//   4  and the fiber is a torus -- compact, sweepable, length cannot choose     [LIT] [MEAS]
+//   5  weights are the missing ingredient, and weights mean POLES              [LIT]
+//   6  integration stops being a map and becomes an equation                    [LIT]
+//   7  where the condition comes from -- one pole in a line, then the general  [LIT]
+//   8  THE CIRCLE, INTEGRATED -- the whole apparatus by hand, and an arctangent [THM]
+//   9  A REAL POLE, AND A DIAL -- the circle's opposite, and lambda made visible [THM] [MEAS]
+//  10  and most spinors fail it -- the condition, and genericity                [LIT]
+//  11  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
+//  12  torus x roads -- and the roads end at cusps and pole collisions          [MEAS]
+//  13  arc length: when it survives and when it does not, from the two examples [LIT] [MEAS]
+//  14  the ledger, both columns                                                 --
+//  15  what is open, and where to go next                                       [OPEN]
+//
+// ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
+// These slides are written in conversation, and the conversation carries context the DECK DOES NOT.
+// Twice already a slide used a referent that exists only in the discussion:
+//   · sigma silently changed from "the speed" to "the speed's numerator" between two slides, invisible
+//     because w = 1 makes them the same object in the polynomial case;
+//   · a slide was titled "Where the condition comes from" when no CONDITION had ever been named on a
+//     slide -- it had been mentioned once, in a subordinate clause, and never as an object.
+// THE TEST, applied before any slide is called done: read it with NO memory of the discussion. Every
+// "the X" must have been introduced as an X on an earlier slide, and every sentence must have a
+// stated origin. A slide that only parses for someone who was in the room is not finished.
+//
+// STANDING RULE, inherited and worth repeating: every borrowed statement carries a Cite, and a
+// novelty claim is not made until the bibliography of whatever we are already citing has been
+// checked. That rule was written after three separate finds in one day turned out to have owners.
+// ============================================================================
+import type { SlideDefinition } from '../framework/types'
+import Math from '../framework/Math'
+import { Tag, Cite, TagLegend } from '../framework/SlideTag'
+
+export const slides: SlideDefinition[] = [
+  // ---------------------------------------------------------------------------
+  // 1 — title
+  // ---------------------------------------------------------------------------
+  {
+    type: 'title',
+    content: (
+      <>
+        <h1>The Price of a Circle</h1>
+        <div className="subtitle">
+          What rationality buys in Pythagorean-hodograph curves, and what it charges
+        </div>
+        <div className="author">Eric Demers</div>
+        <div className="event">Polytechnique Montréal</div>
+        <div className="event note" style={{ marginTop: '1.6em' }}>
+          A ledger, not an argument. Every claim carries its status.
+        </div>
+        <TagLegend />
+      </>
+    ),
+    notes:
+      'THIS DECK IS A LEDGER AND THE TITLE SLIDE SHOULD SAY SO. Not "rational is better", not '
+      + '"rational is harder" -- PRICED, with both columns visible at the end. A room that expects an '
+      + 'advocacy talk will misread every slide until told otherwise, so say it in the first ten '
+      + 'seconds. '
+      + 'THE COMPANION DECK IS two-points-or-a-circle, and the relationship is worth one sentence if '
+      + 'anyone asks: that one is PLANE versus SPACE and ends on the invisible degree of freedom; '
+      + 'this one is POLYNOMIAL versus RATIONAL and ends on a trade. Its two acts are this deck-s '
+      + 'background. Derivations live there and are cited, not repeated. '
+      + 'THE TAG LEGEND IS NOW SHARED CODE (framework/SlideTag). Same convention, same colours, so a '
+      + 'reader who has seen one deck reads the other without relearning it.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 2 — the shape you cannot make, and whose fault it is
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="THM" />
+        <h2>A circle is not a polynomial</h2>
+        <p>
+          Start with the shape, because it is the whole motive. Take the unit circle in its standard
+          rational form:
+        </p>
+        <Math display>
+          {"\\mathbf{c}(t) \\;=\\; \\Bigl(\\tfrac{1-t^2}{1+t^2},\\; \\tfrac{2t}{1+t^2}\\Bigr)"}
+        </Math>
+        <p>Differentiate and take the norm — three lines, and worth doing on the board:</p>
+        <Math display>
+          {"\\mathbf{c}'(t) \\;=\\; \\frac{1}{(1+t^2)^2}\\bigl(-4t,\\; 2-2t^2\\bigr), \\qquad \\|\\mathbf{c}'\\|^2 = \\frac{4(1+t^2)^2}{(1+t^2)^4}"}
+        </Math>
+        <Math display>{"\\|\\mathbf{c}'(t)\\| \\;=\\; \\frac{2}{1+t^2} \\qquad \\text{— rational.}"}</Math>
+        <p style={{ marginTop: '0.6em' }}>
+          <strong>So the circle is a Pythagorean-hodograph curve.</strong> Its speed is a rational
+          function, exactly the defining property. Nothing about PH excludes it.
+        </p>
+        <p>
+          But no <em>polynomial</em> curve is a circle, and the reason is not deep: a non-constant
+          polynomial is unbounded, so <Math>{"\\|\\mathbf{c}(t)\\| \\to \\infty"}</Math>. A circle is
+          bounded. That is the entire obstruction — and it applies to <em>every</em> polynomial curve,
+          Pythagorean or not.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.8em 0' }}>
+          <strong style={{ fontSize: '1.15em' }}>
+            The restriction is <em>polynomiality</em>. PH is innocent.
+          </strong>
+        </p>
+        <p>
+          Which sets the question this deck answers. The property you want and the shape you want are{' '}
+          <em>compatible</em> — the circle proves it. They are merely both incompatible with being a
+          polynomial. So:
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <strong>What does it cost to have the PH property on the rational shapes?</strong>
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          Everything bounded goes the same way: ellipses, conic arcs, any closed curve. And with it
+          goes the reason one wants PH in the first place — exact offsets and exact arc length on the
+          shapes CAD actually uses.
+        </p>
+        <Cite>
+          The rational parametrisation of the circle is classical (the Weierstrass or half-angle
+          substitution). The speed computation here is three lines and is done on the slide rather
+          than cited, so nobody has to take it on trust.
+        </Cite>
+      </>
+    ),
+    notes:
+      'DO THE THREE LINES. This slide asks the room to accept a claim that sounds like it should be '
+      + 'false -- a circle is a PH curve -- and the derivation is short enough to remove all doubt in '
+      + 'twenty seconds. Differentiate the standard rational circle, square, and watch (1+t^2)^2 '
+      + 'cancel out of the numerator. The speed is 2 over (1 + t squared). '
+      + 'THE CORRECTION THAT SHAPED THIS SLIDE, and it is worth having ready because the wrong '
+      + 'version is very tempting: "rational PH curves can be circles, polynomial ones cannot" is '
+      + 'TRUE but it is not a fact about PH. No polynomial curve of ANY kind is a circle. Saying it '
+      + 'the loose way invites a listener to conclude that PH is the restrictive thing, which is '
+      + 'exactly backwards and poisons the rest of the deck. Put the blame where it belongs: '
+      + 'POLYNOMIALITY. '
+      + 'WHY THIS IS THE OPENING AND NOT THE COUNTING. The counting arguments -- degrees of freedom, '
+      + 'poles, conditions -- are the body of the deck, but they answer a question nobody has asked '
+      + 'yet. A shape you cannot make is a motive; a dimension count is not. Show the thing that is '
+      + 'missing first. '
+      + 'THM is the honest tag: unbounded-ness of non-constant polynomials is a proof, and the circle '
+      + 'computation is done on screen. Nothing here is borrowed except the parametrisation itself.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 3 — what the polynomial world hands you, and hands you for nothing
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="LIT" />
+        <h2>Every spinor works</h2>
+        <p>
+          Written as a condition, PH looks forbidding — four polynomials tied by an identity, the kind
+          of thing that usually has almost no solutions:
+        </p>
+        <Math display>
+          {"x'^2 + y'^2 + z'^2 \\;=\\; \\sigma^2, \\qquad x',\\,y',\\,z',\\,\\sigma \\in \\mathbb{R}[t]"}
+        </Math>
+        <p>
+          The spinor turns it into a <em>substitution</em>. Take <strong>any</strong> quaternion
+          polynomial at all — no conditions, nothing to check:
+        </p>
+        <Math display>
+          {"\\mathbf{c}' \\;=\\; \\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}, \\qquad \\sigma \\;=\\; |\\mathcal{A}|^2"}
+        </Math>
+        <p style={{ opacity: 0.75 }}>
+          One word about <Math>{'\\sigma'}</Math>, because it changes meaning later and the change is
+          easy to miss: here it is the <em>speed itself</em>, since there is no denominator yet. Once
+          there is one it becomes the speed&rsquo;s <strong>numerator</strong>. Same symbol, and in the
+          polynomial world nothing distinguishes them.
+        </p>
+        <p>and the identity holds by construction, because the quaternion norm is multiplicative:</p>
+        <Math display>
+          {"\\bigl\\|\\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}\\bigr\\| \\;=\\; |\\mathcal{A}|\\,|\\mathbf{i}|\\,|\\mathcal{A}^{*}| \\;=\\; |\\mathcal{A}|^2"}
+        </Math>
+        <p>
+          Nothing was imposed. No system to solve, no residual to measure, no seed to hunt for. And the
+          map goes <strong>onto</strong>: every spatial PH curve arises this way. Then integrate, term
+          by term —
+        </p>
+        <Math display>
+          {"\\mathbf{c}(t) \\;=\\; \\int \\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}\\,dt"}
+        </Math>
+        <p>— which also cannot fail. One constant of integration: the point you start from.</p>
+        <p style={{ textAlign: 'center', margin: '0.8em 0' }}>
+          <strong style={{ fontSize: '1.15em' }}>PH is a substitution, not a constraint.</strong>
+        </p>
+        <p>
+          The degrees follow for free —{' '}
+          <Math>{"\\deg \\mathcal{A} = n \\;\\Longrightarrow\\; \\deg \\mathbf{c}' = 2n \\;\\Longrightarrow\\; \\deg \\mathbf{c} = 2n+1"}</Math>
+          {' '}— which is why the classical PH degrees are odd: 3, 5, 7.
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          Two caveats carried, not hidden. <Math>{'\\mathcal{A}'}</Math> is not unique:{' '}
+          <Math>{'\\mathcal{A}'}</Math> and <Math>{'\\mathcal{A}e^{i\\theta}'}</Math> give the same curve,
+          and that circle is the subject of the companion deck. And the <em>general</em> polynomial
+          hodograph carries a real factor,{' '}
+          <Math>{"h\\cdot\\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}"}</Math> — the bare sandwich is the{' '}
+          <strong>primitive</strong> case.
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.5em' }}>
+          <strong>
+            Hold on to &ldquo;nothing to check&rdquo;. It is the one thing rationality takes away.
+          </strong>
+        </p>
+        <Cite>
+          Quaternion and Hopf-map representations: Farouki &amp; Sakkalis (1994); Choi, Lee &amp; Moon
+          (2002). That the form is <em>forced</em> rather than lucky — the spin cover parametrising a
+          cone — is Choi, Han, Lee, Roh &amp; Wee (2002). The real factor <Math>{'h'}</Math> is
+          Kubota (1972).
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE RHETORICAL JOB IS TO MAKE "UNCONDITIONAL" FEEL REMARKABLE, because a room that has always '
+      + 'had it will not notice it. Frame it against the rest of geometric design: "give me a curve '
+      + 'with property X" is normally a constrained problem with a solver and a residual. This '
+      + 'repository puts it in one line -- everywhere else a PH curve is FOUND BY A SOLVER and its '
+      + 'residual is a measurement; in the polynomial world it is a SUBSTITUTION. Say that sentence. '
+      + 'DO THE MULTIPLICATIVITY LINE, it takes ten seconds and it is WHY nothing is imposed: the '
+      + 'quaternion norm is multiplicative, so the norm of the sandwich is |A| times |i| times |A|, '
+      + 'which is |A| squared, a polynomial. The Pythagorean identity is not SATISFIED here, it is '
+      + 'MANUFACTURED. '
+      + 'ONTO MATTERS AS MUCH AS EASY. It would be a far weaker slide if the construction merely '
+      + 'produced SOME PH curves. It produces all of them (primitively), so nothing is traded away '
+      + 'for the convenience -- which is precisely the trade the rest of the deck prices, and here '
+      + 'there is none to price. '
+      + 'PLANT THE LAST LINE HARD AND DO NOT ELABORATE IT. "Nothing to check" is what slide 6 removes, '
+      + 'and the removal only lands if the room was told to hold on to it. One sentence, then move on. '
+      + 'SIGMA CHANGES MEANING LATER AND THE SLIDE NOW SAYS SO. Here sigma IS the speed; from '
+      + 'slide 7 on it is the speed-s NUMERATOR, the speed being sigma over w-squared. In the '
+      + 'polynomial world w = 1, so the two are the same object and nothing distinguishes '
+      + 'them -- which is exactly why a reader sails past the change and is then confused. '
+      + 'Measured on a real reader 2026-08-12, who asked outright. The code settles which '
+      + 'convention wins: rationalPHOnePoleSpatial documents sigma as "the speed numerator". '
+      + 'DO NOT EXPLAIN THE GAUGE HERE. A and A e^{i theta} giving the same curve is a whole act of '
+      + 'the companion deck; a faded line is enough, and opening it here derails the trade this deck '
+      + 'is pricing. Same for Kubota-s h: carried, not developed. '
+      + 'LIT throughout -- none of this slide is ours.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 4 — the second gift: the answer set has a shape, and it is compact
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['LIT', 'MEAS']} />
+        <h2>And the answer set is a torus</h2>
+        <p>
+          Interpolation in this world has a shape, and it is the same shape every time. Everything
+          reduces to one equation — solve the <strong>sandwich</strong> for <Math>{'X'}</Math>:
+        </p>
+        <Math display>
+          {"X\\,\\mathbf{i}\\,X^{*} = \\mathbf{v} \\qquad\\Longrightarrow\\qquad X = \\sqrt{|\\mathbf{v}|}\\;\\, n\\, e^{\\varphi \\mathbf{i}}"}
+        </Math>
+        <p>
+          One solution from a half-way construction, and all the rest by a <em>free angle</em>. And
+          note what is <em>forced</em>: <Math>{'|X|^2 = |\\mathbf{v}|'}</Math>. The sandwich pins the
+          norm — remember that, it does all the work below.
+        </p>
+        <p>
+          A Hermite problem is a <strong>chain</strong> of these: the end tangents, then closure. Each
+          link contributes an angle, only their differences matter, and one global gauge divides out:
+        </p>
+        <Math display>
+          {"\\bigl(S^1\\bigr)^{k+1} \\big/ S^1_{\\text{diag}} \\;=\\; T^{k}"}
+        </Math>
+        <p>
+          Spatial cubic — 2 links — a <strong>circle</strong>. Spatial quintic — 3 links — a{' '}
+          <strong>torus</strong>.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            Compact. Closed in every direction. You can sweep it and come back, and see all of it at
+            once.
+          </strong>
+        </p>
+        <p>
+          Now the cost of that, and it follows from the one forced line above. Because{' '}
+          <Math>{'|X|^2 = |\\mathbf{v}|'}</Math> holds at every link, <strong>length barely sees the
+          family</strong>:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto',
+            gap: '0.3em 1.5em',
+            justifyContent: 'center',
+            margin: '0.6em 0',
+            fontSize: '0.78em',
+            lineHeight: 1.5,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }} />
+          <span style={{ opacity: 0.6 }}>the fiber</span>
+          <span style={{ opacity: 0.6 }}>arc length</span>
+          <span>spatial cubic</span>
+          <span>a circle</span>
+          <span>
+            <strong>constant</strong> on all of it
+          </span>
+          <span>spatial quintic</span>
+          <span>a torus</span>
+          <span>
+            depends on <Math>{'\\beta'}</Math> <strong>alone</strong> — blind along{' '}
+            <Math>{'\\alpha'}</Math>
+          </span>
+        </div>
+        <p>
+          The mechanism is one line: <Math>{'e^{\\theta\\mathbf{i}}'}</Math> commutes with{' '}
+          <Math>{'\\mathbf{i}'}</Math>, so <Math>{'\\alpha'}</Math> cancels out of the closure vector
+          entirely.
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <strong>You cannot pick a member by asking for the shortest.</strong>
+        </p>
+        <p>
+          Which is a genuine problem — and a <em>comfortable</em> one. Choosing inside a compact set is
+          a solved kind of difficulty: enumerate it, sample it, optimise over it, and know you have
+          seen everything there is.
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          Measured: on a traced cubic fiber the sandwich identity holds to{' '}
+          <Math>{'3.3\\times10^{-16}'}</Math> and <Math>{'|Z|^2'}</Math> is constant at the value the
+          data predicts, to every printed digit.
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.4em' }}>
+          <strong>
+            Hold on to <em>compact</em> as well. Unlike &ldquo;nothing to check&rdquo;, this one does
+            not vanish when we go rational — it survives, in a smaller form.
+          </strong>
+        </p>
+        <Cite>
+          The chain reading and every formula here: Farouki, Giannelli, Manni &amp; Sestini,{' '}
+          <em>Identification of spatial PH quintic Hermite interpolants with near-optimal shape
+          measures</em>, CAGD <strong>25</strong> (2008) 274–297 — Prop. 1, eq. (49), and the abstract
+          for arc length depending on one parameter. Worked out in{' '}
+          <Math>{'\\texttt{docs/PH\\_SANDWICH\\_CHAIN.md}'}</Math>, pinned in{' '}
+          <Math>{'\\texttt{phSandwichChain.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE WHOLE SLIDE HANGS ON ONE FORCED LINE, so do not let it slide past: |X|^2 = |v|. The '
+      + 'sandwich fixes the NORM, at every link, from the data alone. Every "arc length is constant" '
+      + 'result in this subject is that line and nothing more -- FGMS08 say as much, and the doc says '
+      + 'it in those words. If the room takes one thing, take that. '
+      + 'COMPACT IS THE WORD TO DELIVER SLOWLY. The angles are periodic, so the family closes in '
+      + 'every direction. That is what makes the polynomial selection problem comfortable: you can '
+      + 'enumerate a compact set and know you have seen everything. A room that has only ever worked '
+      + 'here will not realise this is a privilege. '
+      + 'BE PRECISE ABOUT THE TWO ROWS, they are not the same claim. On the CUBIC circle the arc '
+      + 'length is constant outright -- no two members differ in length. On the QUINTIC torus it '
+      + 'depends on beta ALONE, so it is blind along alpha but not along beta. Saying "constant on '
+      + 'the fiber" for the quintic would be wrong, and somebody who knows FGMS08 will catch it: '
+      + 'their L(beta) has four stationary points, which are the four helical interpolants. '
+      + 'THE alpha CANCELLATION IS WORTH SHOWING IF ASKED: exp(theta u) commutes with u, so in '
+      + 'A_0 u A_2-star the two exponentials combine into exp(-beta u) and alpha disappears. Hence d '
+      + 'depends only on beta, hence |d|, hence L. One line, and it explains both rows at once. '
+      + 'THE CLOSING LINE IS DELIBERATELY DIFFERENT FROM SLIDE 3-s. That one planted something that '
+      + 'gets DESTROYED (nothing to check). This one plants something that SURVIVES -- the loop '
+      + 'closes in the rational family too, and arc length is constant along it, measured. If both '
+      + 'slides ended "hold on to this", the room would expect both to be taken away and the later '
+      + 'payoff would be muddied. Say the difference out loud.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5 — the hinge: what a circle actually costs, in the currency of poles
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['LIT', 'MEAS']} />
+        <h2>Weights are poles</h2>
+        <p>
+          A circle needs a denominator. And in Bézier form the denominator is not some extra object
+          bolted on — it <em>is</em> the weights:
+        </p>
+        <Math display>
+          {"\\mathbf{c}(t) \\;=\\; \\frac{\\sum_i w_i \\mathbf{P}_i B_i(t)}{\\sum_i w_i B_i(t)}, \\qquad w(t) := \\sum_i w_i B_i(t)"}
+        </Math>
+        <p>
+          All weights equal makes <Math>{'w'}</Math> constant, and the curve polynomial. Unequal
+          weights make <Math>{'w'}</Math> non-constant — and a non-constant polynomial{' '}
+          <strong>has roots</strong>. Each root is a place the curve passes through infinity.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            The weight function and the pole set are one object, described twice.
+          </strong>
+        </p>
+        <p>So the freedom is bought at a fixed exchange rate:</p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto',
+            gap: '0.3em 1.6em',
+            justifyContent: 'center',
+            margin: '0.6em 0',
+            fontSize: '0.78em',
+            lineHeight: 1.5,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>denominator</span>
+          <span style={{ opacity: 0.6 }}>what the weights can do</span>
+          <span style={{ opacity: 0.6 }}>poles</span>
+          <span>
+            <Math>{'\\deg w = 0'}</Math>
+          </span>
+          <span>all equal — no freedom at all</span>
+          <span>none — polynomial</span>
+          <span>
+            <Math>{'\\deg w = 1'}</Math>
+          </span>
+          <span>
+            an <strong>arithmetic progression</strong> — 2 parameters
+          </span>
+          <span>1</span>
+          <span>
+            <Math>{'\\deg w = 2'}</Math>
+          </span>
+          <span>values of a quadratic — 3 parameters</span>
+          <span>2</span>
+        </div>
+        <p style={{ opacity: 0.65 }}>
+          The middle row is measured, and it surprises people: degree-elevating a <em>linear</em>{' '}
+          <Math>{'w'}</Math> to the curve degree just interpolates its two ends, so five weights carry
+          two parameters and nothing more.
+        </p>
+        <p>And the circle prices itself. Its denominator is</p>
+        <Math display>{"w(t) \\;=\\; 1 + t^2, \\qquad \\text{roots } t = \\pm i"}</Math>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            A circle costs two poles — and they are <em>complex</em>.
+          </strong>
+        </p>
+        <p>
+          Which is exactly why it is bounded. On <Math>{'\\mathbb{R}P^1'}</Math> the poles of{' '}
+          <Math>{'\\mathbf{c} = \\mathbf{p}/w'}</Math> are the roots of <Math>{'w'}</Math>,{' '}
+          <em>plus</em> <Math>{'t = \\infty'}</Math> whenever{' '}
+          <Math>{'\\deg \\mathbf{p} > \\deg w'}</Math>. A curve stays bounded on the real line precisely
+          when <strong>none of its poles is real</strong> — and the circle&rsquo;s two sit off the
+          axis, so it never runs anywhere.
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.5em' }}>
+          <strong>
+            So you cannot ask for the circle and decline the poles. The poles <em>are</em> the
+            purchase.
+          </strong>
+        </p>
+        <Cite>
+          The rational Bézier form and its weights are standard. The arithmetic-progression row is
+          measured here and pinned in{' '}
+          <Math>{'\\texttt{rationalPHConstruction.test.ts}'}</Math>. The pole at{' '}
+          <Math>{'t = \\infty'}</Math> is the ordinary projective bookkeeping, stated because it is
+          easy to forget and it is where the polynomial family sits.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS IS THE HINGE OF THE DECK. Everything before it is what you have; everything after is what '
+      + 'it costs. The turn happens on one sentence -- the weight function and the pole set are ONE '
+      + 'OBJECT -- and if that lands, the rest of the deck is consequences. Deliver it slowly. '
+      + 'THE ARGUMENT IS EMBARRASSINGLY SHORT AND THAT IS ITS STRENGTH: a non-constant polynomial has '
+      + 'roots. That is the whole thing. Nobody can dispute it and nobody can wriggle out of it, '
+      + 'which is why the price is unavoidable rather than a matter of method. '
+      + 'THE CIRCLE PRICING ITSELF IS THE BEST MOMENT ON THE SLIDE. Slide 2 asked what a circle costs; '
+      + 'here is the invoice, and it is exact: w = 1 + t squared, two poles, both complex. Point at '
+      + 'the fact that they are complex, because it explains boundedness in the same breath -- a real '
+      + 'pole is a place the curve runs to infinity, and the circle has none. '
+      + 'BE CAREFUL WITH THE BOUNDEDNESS STATEMENT, it needs both halves. No real roots of w is not '
+      + 'enough on its own: if deg p exceeds deg w the curve still runs off as t goes to infinity, '
+      + 'and that is a pole at t = infinity. On the projective line the honest statement is that '
+      + 'boundedness means NO POLE IS REAL, counting infinity among the candidates. The circle has '
+      + 'deg p = deg w = 2, so it passes both tests. Our own one-pole family fails both -- a real '
+      + 'pole, and deg p = 4 against deg w = 1. '
+      + 'THE ARITHMETIC PROGRESSION IS WORTH THE FADED LINE because it is the sharpest possible form '
+      + 'of "weight freedom is bought with poles". A reader who expects five independent weights on a '
+      + 'quartic gets two. If somebody asks why: elevating a linear w just linearly interpolates its '
+      + 'end values, and elevation is exact, so there is nothing else it could do. '
+      + 'DO NOT MENTION THE NO-LOG CONDITION YET. This slide establishes that poles are unavoidable, '
+      + 'nothing more. The difficulty they cause is the next slide, and it lands far harder if the '
+      + 'room has first accepted the poles as the price of a shape they wanted.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6 — the bill arrives, and it is narrower than people say
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="LIT" />
+        <h2>Integration stops being free</h2>
+        <p>
+          The spinor construction survives the move intact. Write the rational curve as a vector
+          polynomial over a scalar one and differentiate:
+        </p>
+        <Math display>
+          {"\\mathbf{c} = \\mathbf{p}/w \\qquad\\Longrightarrow\\qquad \\mathbf{c}' = (\\mathbf{p}'w - \\mathbf{p}w')\\big/w^2 \\;=:\\; \\mathbf{N}/w^2"}
+        </Math>
+        <p>
+          <Math>{'w^2'}</Math> is positive, so PH asks that{' '}
+          <Math>{"\\|\\mathbf{N}\\|"}</Math> be a polynomial — which is the previous condition applied to{' '}
+          <Math>{'\\mathbf{N}'}</Math> rather than to <Math>{"\\mathbf{c}'"}</Math>. The theorem
+          transfers word for word:
+        </p>
+        <Math display>{"\\mathbf{N} \\;=\\; \\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}"}</Math>
+        <p>
+          <strong>So PH is still a substitution.</strong> Choose any spinor and any weight, and{' '}
+          <Math>{'\\mathbf{N}/w^2'}</Math> is a genuine Pythagorean hodograph — rational speed{' '}
+          <Math>{'|\\mathcal{A}|^2/w^2'}</Math>, nothing imposed, exactly as before.
+        </p>
+        <p>
+          What changed is the <em>last</em> step. Before, you integrated term by term. Now you have to
+          recover <Math>{'\\mathbf{p}'}</Math> from
+        </p>
+        <Math display>{"\\mathbf{p}'w - \\mathbf{p}w' \\;=\\; \\mathbf{N}"}</Math>
+        <p>
+          — a linear system in <Math>{'\\mathbf{p}'}</Math>&rsquo;s coefficients, and one that can be{' '}
+          <strong>inconsistent</strong>. Two integrals say why:
+        </p>
+        <Math display>
+          {"\\int (t-r)^{-2}\\,dt = -(t-r)^{-1} \\;\\; \\checkmark \\qquad\\qquad \\int (t-r)^{-1}\\,dt = \\log(t-r) \\;\\; \\times"}
+        </Math>
+        <p>
+          The <em>double</em> pole that <Math>{'w^2'}</Math> hands you is harmless. The{' '}
+          <em>simple</em> pole hiding inside it is not — and no <Math>{'\\mathbf{p}/w'}</Math> is a
+          logarithm. So the curve exists only if that logarithm is <strong>absent</strong>, which is a
+          requirement on <Math>{'\\mathbf{N}'}</Math> at every pole of <Math>{'w'}</Math>.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.8em 0' }}>
+          <strong style={{ fontSize: '1.15em' }}>
+            PH is still free. It is <em>integration</em> that stopped being free.
+          </strong>
+        </p>
+        <p>
+          That distinction is worth holding. The property is not what costs — you can always build a
+          rational Pythagorean <em>hodograph</em>. What you cannot always do is integrate it back to a
+          rational <em>curve</em>. Slide 3&rsquo;s &ldquo;nothing to check&rdquo; is gone, and this is
+          the exact place it went.
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.5em' }}>
+          <strong>So: what has to hold at a pole?</strong>
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          That is the next slide. The <em>solved</em> form of the requirement, and what it means
+          geometrically, stay in the second act of the companion deck — this deck needs only the
+          requirement itself and what it costs.
+        </p>
+        <Cite>
+          Kalkan, Scharler, Schröcker &amp; Šír, <em>Rational Framing Motions and Spatial Rational
+          Pythagorean Hodograph Curves</em>, CAGD (2022), §1: the integral &ldquo;does not need to
+          produce a rational curve … a complete characterization of this subset seems to be a very
+          difficult problem.&rdquo; Derivation of the residue condition:{' '}
+          <Math>{'\\texttt{two-points-or-a-circle}'}</Math>, Act II.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE SENTENCE THIS SLIDE EXISTS FOR is narrower than the usual telling, and getting it right '
+      + 'matters: PH IS STILL FREE, INTEGRATION IS NOT. People say "rational PH is hard" and leave the '
+      + 'room believing the PYTHAGOREAN property is what costs. It is not. Pick any spinor and any '
+      + 'weight and N over w-squared has rational speed -- a perfectly good Pythagorean hodograph, '
+      + 'nothing imposed. The failure is at the LAST step, recovering the curve from its hodograph. '
+      + 'THE TWO INTEGRALS ARE THE WHOLE MECHANISM and they take fifteen seconds. A double pole '
+      + 'integrates to something rational; a simple pole integrates to a logarithm; and p over w is '
+      + 'never a logarithm. So w-squared in the denominator is NOT the problem -- the problem is the '
+      + 'simple pole hiding inside the double one. Expect that to be counterintuitive; it is the one '
+      + 'genuinely surprising step. '
+      + 'CALL BACK TO SLIDE 3 EXPLICITLY. The room was told to hold on to "nothing to check". This is '
+      + 'where it goes, and naming the moment is worth more than the mechanism -- a talk that takes '
+      + 'something away should say so out loud rather than let the audience notice later. '
+      + 'DO NOT DERIVE THE RESIDUE CONDITION HERE. The companion deck spends four slides on it and '
+      + 'this deck is pricing a trade, not deriving one. State that a condition exists, cite the '
+      + 'derivation, move to what it costs. If somebody asks for it in the room, the one-line version '
+      + 'for a single pole is N-prime(r) = 0, and it is obviously necessary because N = p-prime '
+      + '(t - r) minus p gives N-prime = p-double-prime times (t - r). '
+      + 'LIT: the setup, the obstruction and the quoted sentence are all theirs.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 7 — where the condition comes from, simplest case first
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="LIT" />
+        <h2>What has to hold at a pole</h2>
+        <p
+          style={{
+            borderLeft: '3px solid rgba(59,130,246,0.5)',
+            paddingLeft: '0.8em',
+            opacity: 0.9,
+          }}
+        >
+          <strong>What we are solving for.</strong> <Math>{'\\mathbf{N}'}</Math> has to be{' '}
+          <em>two things at once</em>:
+        </p>
+        <Math display>
+          {"\\mathbf{N} = \\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*} \\quad \\text{(you chose this)} \\qquad\\qquad \\mathbf{N} = \\mathbf{p}'w - \\mathbf{p}w' \\quad \\text{(and it must be this)}"}
+        </Math>
+        <p style={{ opacity: 0.9 }}>
+          The first is yours — pick a spinor and you have it. The second is a demand: it must be the
+          Wronskian of a numerator <Math>{'\\mathbf{p}'}</Math> you <strong>do not have yet</strong>,
+          over the denominator <Math>{'w'}</Math> you fixed. The requirement we are after is exactly
+          that those two descriptions are <strong>compatible</strong>. So the way to find it is:{' '}
+          <em>suppose <Math>{'\\mathbf{p}'}</Math> exists, and see what <Math>{'\\mathbf{N}'}</Math>{' '}
+          is forced to satisfy.</em>
+        </p>
+        <p>
+          Take the simplest case first — a <strong>single</strong> pole,{' '}
+          <Math>{'w = t - r'}</Math>. Then <Math>{'w^2 = (t-r)^2'}</Math>, so expand{' '}
+          <Math>{'\\mathbf{N}'}</Math> about <Math>{'r'}</Math> and divide:
+        </p>
+        <Math display>
+          {"\\mathbf{N}/w^2 \\;=\\; \\mathbf{N}(r)\\,(t-r)^{-2} \\;+\\; \\mathbf{N}'(r)\\,(t-r)^{-1} \\;+\\; (\\text{analytic})"}
+        </Math>
+        <p style={{ textAlign: 'center', opacity: 0.75, marginTop: '-0.2em' }}>
+          the first integrates to <Math>{'-\\mathbf{N}(r)(t-r)^{-1}'}</Math>, still rational — the
+          second to <strong>a logarithm</strong>
+        </p>
+        <p>
+          So the coefficient of <Math>{'1/(t-r)'}</Math> <em>is</em>{' '}
+          <Math>{"\\mathbf{N}'(r)"}</Math>, and killing the logarithm is exactly
+        </p>
+        <Math display>{"\\mathbf{N}'(r) \\;=\\; 0"}</Math>
+        <p>
+          And that is not an arbitrary demand — it is forced. Supposing{' '}
+          <Math>{'\\mathbf{p}'}</Math> exists, the second description of{' '}
+          <Math>{'\\mathbf{N}'}</Math> reads{' '}
+          <Math>{"\\mathbf{N} = \\mathbf{p}'(t-r) - \\mathbf{p}"}</Math>, and differentiating collapses
+          it:
+        </p>
+        <Math display>
+          {"\\mathbf{N}' = \\mathbf{p}''(t-r) + \\mathbf{p}' - \\mathbf{p}' = \\mathbf{p}''\\,(t-r) \\qquad\\Longrightarrow\\qquad \\mathbf{N}'(r) = 0"}
+        </Math>
+        <p>
+          — for <em>any</em> polynomial <Math>{'\\mathbf{p}'}</Math> whatsoever. Two routes, one
+          answer. So the requirement
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            says exactly that <em>there exists</em> a <Math>{'\\mathbf{p}'}</Math> with{' '}
+            <Math>{"\\mathbf{N} = \\mathbf{p}'w - \\mathbf{p}w'"}</Math>.
+          </strong>
+        </p>
+        <p>
+          Which is what you were after, since <Math>{'\\mathbf{p}'}</Math> <em>is</em> the
+          curve&rsquo;s numerator: <em>&ldquo;such a <Math>{'\\mathbf{p}'}</Math> exists&rdquo;</em> and{' '}
+          <em>&ldquo;the curve exists&rdquo;</em> are the same sentence. Not a hurdle on top of
+          existence — <strong>existence, rewritten</strong>, and rewritten as a test you can run on{' '}
+          <Math>{'\\mathbf{N}'}</Math> alone, without attempting the solve.
+        </p>
+        <p>
+          <strong>Now more than one pole</strong>, and only one thing changes. Splitting off the root
+          leaves a cofactor behind, <Math>{'w = (t-r)\\varphi'}</Math> with{' '}
+          <Math>{'\\varphi(r) \\neq 0'}</Math>, so the thing you expand is no longer{' '}
+          <Math>{'\\mathbf{N}'}</Math> but
+        </p>
+        <Math display>
+          {"\\mathbf{N}/w^2 \\;=\\; \\mathbf{g}\\,(t-r)^{-2}, \\qquad \\mathbf{g} := \\mathbf{N}/\\varphi^{2}"}
+        </Math>
+        <p>
+          Now expand a second time — the same two lines as before, with{' '}
+          <Math>{'\\mathbf{g}'}</Math> standing where <Math>{'\\mathbf{N}'}</Math> stood:
+        </p>
+        <Math display>
+          {"\\mathbf{N}/w^2 \\;=\\; \\mathbf{g}(r)\\,(t-r)^{-2} \\;+\\; \\mathbf{g}'(r)\\,(t-r)^{-1} \\;+\\; (\\text{analytic})"}
+        </Math>
+        <p style={{ textAlign: 'center', opacity: 0.75, marginTop: '-0.2em' }}>
+          first term still rational — second term still <strong>the logarithm</strong>
+        </p>
+        <p>
+          So the coefficient of <Math>{'1/(t-r)'}</Math> is{' '}
+          <Math>{"\\mathbf{g}'(r)"}</Math>, and the requirement is{' '}
+          <Math>{"\\mathbf{g}'(r) = 0"}</Math>. It is the identical statement — only the thing being
+          expanded has changed. Now unpack it, by the quotient rule on{' '}
+          <Math>{"\\mathbf{g} = \\mathbf{N}\\varphi^{-2}"}</Math>:
+        </p>
+        <Math display>
+          {"\\mathbf{g}' = (\\mathbf{N}'\\varphi - 2\\mathbf{N}\\varphi')\\big/\\varphi^{3} \\qquad\\Longrightarrow\\qquad \\mathbf{g}'(r) = 0 \\iff \\mathbf{N}'(r)\\,\\varphi(r) = 2\\,\\mathbf{N}(r)\\,\\varphi'(r)"}
+        </Math>
+        <p>
+          and divide through by <Math>{'\\varphi(r) \\neq 0'}</Math>:
+        </p>
+        <Math display>
+          {"\\mathbf{N}'(r) \\;=\\; 2\\,\\mathbf{N}(r)\\,\\Sigma, \\qquad \\Sigma := \\varphi'(r)/\\varphi(r) = \\sum 1/(r_k - r_l)"}
+        </Math>
+        <p>
+          <Math>{'\\Sigma'}</Math> sums over the <em>other</em> roots and knows only where the poles
+          sit — nothing about the curve enters it. And the two cases agree, which is the check worth
+          doing: one pole means <Math>{'\\varphi = 1'}</Math>, hence{' '}
+          <Math>{'\\mathbf{g} = \\mathbf{N}'}</Math> and <Math>{'\\Sigma = 0'}</Math>, and the general
+          form collapses back to <Math>{"\\mathbf{N}'(r) = 0"}</Math>.
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.4em' }}>
+          <strong>
+            <Math>{'\\mathbf{N}'}</Math> is a vector, so its residue is one too —{' '}
+            <strong>three real conditions per simple pole</strong>.
+          </strong>
+        </p>
+        <Cite>
+          The partial-fraction analysis is classical. The general form is Kalkan et al. (2022) Thm.
+          4.6, stated there as linear dependence of the Taylor coefficients. The one-line argument for
+          a single pole — that the condition merely says <Math>{'\\mathbf{N}'}</Math> is a Wronskian —
+          is <Math>{'\\texttt{FOUNDATIONS F16}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE WAS MISSING AND A READER CAUGHT IT: the next slide computes Sigma = -i/2 for the '
+      + 'circle and checks the condition by hand, and until now the audience had never seen either '
+      + 'derived. You cannot hand-check a formula you were handed. The deck traded a citation for a '
+      + 'slide and it was the right trade. '
+      + 'THE ORIENTING BOX IS THE MOST IMPORTANT THING ON THE SLIDE, and it was added after a reader '
+      + 'said the opening came from nowhere. He was right, and the diagnosis is precise: the slide '
+      + 'computed for half a screen before ever saying WHAT IT WAS SOLVING FOR. The frame is one idea -- '
+      + 'N has to be TWO THINGS AT ONCE. It is the sandwich, which you chose. It must ALSO be the '
+      + 'Wronskian of a numerator you do not have. The requirement is exactly that those two '
+      + 'descriptions agree. Say that before any algebra and both arguments below become obviously the '
+      + 'same question asked from opposite ends. '
+      + 'AND IT RESCUES THE LOGIC OF THE FIRST ARGUMENT, which is otherwise sneaky: it SUPPOSES p exists '
+      + 'in order to find out when p exists. Framed as -- assume it, and see what N is forced to satisfy '
+      + '-- that is an ordinary necessity argument. Unframed it reads as circular, and a careful '
+      + 'listener stops there rather than following. '
+      + 'THE SECOND EXPANSION IS WRITTEN OUT, NOT SUMMARISED, and that was asked for. A draft said "the '
+      + 'coefficient of 1/(t-r) is g-prime(r)" and moved on -- true, but the reader had just been shown '
+      + 'the one-pole expansion explicitly and wanted to SEE the same two lines again with g in place of '
+      + 'N. Showing it costs one display and makes the general case a substitution rather than a new '
+      + 'argument. The whole delta between the two cases is which function gets expanded. '
+      + 'THE QUOTIENT-RULE STEP IS ALSO SHOWN NOW, so Sigma arrives rather than being asserted: g-prime is '
+      + '(N-prime phi minus 2 N phi-prime) over phi-cubed, setting it to zero at r and multiplying by phi '
+      + 'cubed gives N-prime(r) phi(r) = 2 N(r) phi-prime(r), and dividing by phi(r) produces Sigma as the '
+      + 'logarithmic derivative. Every symbol on the final line has now been derived on the slide. '
+      + 'THE ORDER WAS WRONG AND A READER FOUND THE EXACT SEAM. He could see that killing g-prime(r) '
+      + 'removes the 1/(t-r) term, and could not see what N-prime(r) = 0 had to do with it -- did it kill '
+      + 'a 1/(t-r) as well? It IS the same one, and the slide never said so. With a single pole phi is '
+      + 'identically 1, so g IS N, and the coefficient of 1/(t-r) is literally N-prime(r). One sentence, '
+      + 'and it was missing. '
+      + 'SO THE SLIDE NOW EXPANDS N/w-squared DIRECTLY IN THE ONE-POLE CASE, before phi or g exist at all. '
+      + 'The residue is visible with no machinery, the condition is read straight off it, and only THEN '
+      + 'does the Wronskian argument arrive as confirmation rather than as a separate mystery. The general '
+      + 'case then changes exactly one thing -- the cofactor phi means you expand N over phi-squared '
+      + 'instead of N -- which is a small delta rather than a new derivation. '
+      + 'GENERAL LESSON, and it applies to the whole deck: when two arguments reach the same place, SHOW '
+      + 'the simplest one in a form where nothing is abstracted away, and present the other as agreement. '
+      + 'Presenting both at full generality makes them look unrelated, which is precisely what happened. '
+      + 'LEAD WITH THE ONE-POLE ARGUMENT, NOT THE PARTIAL FRACTIONS. It is one line, it needs no '
+      + 'residues, and it makes the condition feel INEVITABLE rather than technical: N = p-prime '
+      + '(t - r) minus p gives N-prime = p-double-prime times (t - r), which vanishes at r for ANY p. '
+      + 'The condition says nothing more than "N must be the Wronskian of some polynomial". A room '
+      + 'that hears that first will read the general derivation as bookkeeping rather than as magic. '
+      + 'SAY EXISTS, NOT SOME. A draft read "N must be the Wronskian of SOME polynomial" and a reader '
+      + 'took it to mean any polynomial would do -- which would make the requirement vacuous. It is an '
+      + 'EXISTENCE claim: there is a p with N = p-prime w minus p w-prime. English makes those two '
+      + 'readings of "some" equally available, so use the unambiguous word. '
+      + 'AND SAY WHY THE REPHRASING IS WORTH ANYTHING, which the draft did not. Two beats. First, p IS '
+      + 'the curve-s numerator, so "such a p exists" and "the curve exists" are the same sentence -- '
+      + 'the requirement is not an extra hurdle on top of existence, it IS existence in another form. '
+      + 'Second, and this is the practical half: it is a test on N ALONE. You can decide whether the '
+      + 'curve exists without ever attempting the solve. That is the whole reason to have a condition '
+      + 'rather than just running the linear system and seeing what happens. '
+      + 'THE GENERAL CASE IS SIX LINES AND THE ONLY SUBTLE STEP IS THE FIRST: the Laurent NUMERATOR is '
+      + 'N over phi-squared, not N. Differentiating phi-to-the-minus-two is what produces the second '
+      + 'term and hence the Sigma. Getting that wrong is a real error -- it happened in this project '
+      + 'in a related computation and survived because at one pole phi is identically 1 and the '
+      + 'mistake is invisible. '
+      + 'SIGMA KNOWS ONLY THE ROOTS. Say it plainly; it is what makes the condition tractable, and it '
+      + 'is the reason a builder can choose the pole configuration first and the spinor second. '
+      + 'THE CONSISTENCY CHECK EARNS ITS LINE. One pole gives phi = 1, Sigma = 0, and the general form '
+      + 'collapses to the one-line version. Two derivations meeting is worth more to an audience than '
+      + 'either alone.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8 — the worked case, on the curve the deck is named after
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="THM" />
+        <h2>The circle, integrated</h2>
+        <p>
+          Everything so far has been general. Take the curve we started with and run the machinery on
+          it by hand — it fits on this slide.
+        </p>
+        <Math display>{"\\mathbf{p} = (1-t^2,\\; 2t), \\qquad w = 1+t^2"}</Math>
+        <Math display>
+          {"\\mathbf{N} = \\mathbf{p}'w - \\mathbf{p}w' = (-2t-2t^3,\\; 2+2t^2) - (2t-2t^3,\\; 4t^2) = (-4t,\\; 2-2t^2)"}
+        </Math>
+        <Math display>
+          {"\\|\\mathbf{N}\\|^2 = 16t^2 + (2-2t^2)^2 = 4(1+t^2)^2 \\qquad\\Longrightarrow\\qquad \\sigma = 2(1+t^2) = 2w"}
+        </Math>
+        <p>
+          <strong>And here is where <Math>{'\\sigma'}</Math> parts company with the speed.</strong>{' '}
+          <Math>{'\\sigma = \\|\\mathbf{N}\\|'}</Math> is the speed&rsquo;s{' '}
+          <em>numerator</em>; the speed is{' '}
+          <Math>{"\\|\\mathbf{c}'\\| = \\sigma/w^2"}</Math>. On slide 3 they were the same
+          thing because <Math>{'w = 1'}</Math>, which is why nothing warned you.
+        </p>
+        <p>
+          <strong>
+            Note that: <Math>{'\\sigma = 2w'}</Math>.
+          </strong>{' '}
+          The speed numerator carries a factor of the denominator. Park it — it comes back in a
+          moment.
+        </p>
+        <p>
+          Now the condition. The poles are the roots of <Math>{'w'}</Math>, at{' '}
+          <Math>{'t = \\pm i'}</Math>. At <Math>{'t = i'}</Math> write{' '}
+          <Math>{'w = (t-i)(t+i)'}</Math>, so <Math>{'\\varphi = t+i'}</Math> and
+        </p>
+        <Math display>
+          {"\\Sigma = \\varphi'(i)/\\varphi(i) = 1/(2i) = -i/2"}
+        </Math>
+        <p>
+          and the residue condition <Math>{"\\mathbf{N}'(r) = 2\\mathbf{N}(r)\\Sigma"}</Math> is one line
+          each side:
+        </p>
+        <Math display>
+          {"\\mathbf{N}(i) = (-4i,\\; 4), \\quad \\mathbf{N}'(i) = (-4,\\; -4i), \\quad 2\\mathbf{N}(i)\\Sigma = (-i)(-4i,\\;4) = (-4,\\; -4i)"}
+        </Math>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>It holds exactly. Five lines, on paper.</strong>
+        </p>
+        <p>
+          As it must — the circle <em>is</em> a rational curve, so its hodograph integrates rationally
+          by construction. The value is not the answer; it is watching the condition confirm something
+          you already knew, which is how you learn to trust it where you do not.
+        </p>
+        <p>Now spend the observation we parked. The arc length:</p>
+        <Math display>
+          {"\\int \\sigma/w^2 \\,dt \\;=\\; \\int \\frac{2w}{w^2}\\,dt \\;=\\; \\int \\frac{2}{1+t^2}\\,dt \\;=\\; 2\\arctan t"}
+        </Math>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            The circle&rsquo;s arc length is an <em>arctangent</em> — not rational.
+          </strong>
+        </p>
+        <p>
+          Which nobody should find shocking: arc length on a circle <em>is</em> the angle, and the
+          rational parametrisation is the tangent half-angle substitution, so{' '}
+          <Math>{'\\theta = 2\\arctan t'}</Math> exactly.
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <strong>
+            So on one curve: the condition for the <em>curve</em> to be rational holds, and the
+            condition for its <em>arc length</em> to be rational fails. They are different conditions.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          And the reason is on the slide: <Math>{'\\sigma = 2w'}</Math> vanishes at the pole, so{' '}
+          <Math>{'\\sigma/w^2'}</Math> keeps a simple pole exactly where{' '}
+          <Math>{'\\mathbf{N}/w^2'}</Math> does not.
+        </p>
+        <Cite>
+          The parametrisation and the arctangent are classical. The residue condition is Kalkan et al.
+          (2022) Thm. 4.6, derived in <Math>{'\\texttt{two-points-or-a-circle}'}</Math> Act II. The
+          arithmetic here is done on the slide so nothing has to be taken on trust.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE EXISTS BECAUSE ERIC ASKED FOR A BUILD-UP FROM SIMPLE CASES, and he was right: the '
+      + 'deck had four slides of general machinery before any of it touched a curve. The circle is the '
+      + 'ideal specimen -- it is the curve the deck is NAMED after, everyone knows it, and the whole '
+      + 'apparatus fits on one screen with nothing hidden. '
+      + 'DO THE ARITHMETIC LIVE IF THE ROOM WILL SIT FOR IT. Every step is a line: the Wronskian by '
+      + 'the product rule, the norm by expanding a square, Sigma from a two-factor denominator, and '
+      + 'then the condition. Nobody has to believe anything. '
+      + 'THE POINT IS NOT THAT IT PASSES -- of course it passes, the circle is rational. The point is '
+      + 'that the machinery CONFIRMS something already known, which is the only way an audience learns '
+      + 'to trust it in a case where they do not know the answer. Say that; it is the pedagogical '
+      + 'content of the slide. '
+      + 'THE ARCTANGENT IS THE BEST MOMENT IN THE DECK SO FAR, and it works because it is not '
+      + 'surprising at all once said: arc length on a circle IS the angle, and the rational '
+      + 'parametrisation is the half-angle substitution. A listener who has been told rational PH '
+      + 'curves have awkward arc length now has the reason in a form they cannot forget. '
+      + 'AND IT SPLITS THE TWO CONDITIONS, which is the load-bearing takeaway. On this ONE curve the '
+      + 'curve-rationality condition holds and the arc-length one fails. They are not the same '
+      + 'condition, and anyone who assumed PH implies nice arc length has just watched the assumption '
+      + 'break on the friendliest possible example. sigma = 2w is why, and it is visible. '
+      + 'SIGMA = 2w IS ALSO THE SMALLEST INSTANCE OF THE (n-2)/n LAW -- deg h = n - 2 = 0, h = 2 -- '
+      + 'which is why the conformal PH members never have rational arc length either. Do not open that '
+      + 'here; it is a later slide and it lands better once this example is in the room-s memory.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 9 — the other regime, where the dials live
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['THM', 'MEAS']} />
+        <h2>A real pole, and a dial</h2>
+        <p>
+          The circle&rsquo;s poles were complex, which is why it never ran anywhere. Put one on the{' '}
+          <em>real</em> axis instead and the character changes completely. Take the pole at{' '}
+          <Math>{'t = -1'}</Math>, write <Math>{'u := t+1'}</Math> so that{' '}
+          <Math>{'w = u'}</Math>, and choose
+        </p>
+        <Math display>
+          {"\\mathcal{A}(t) \\;=\\; 1 \\;+\\; \\lambda\\,\\mathbf{i}\\,u \\;+\\; \\mathbf{j}\\,u^2"}
+        </Math>
+        <p>
+          The requirement holds <strong>by construction</strong>, for every{' '}
+          <Math>{'\\lambda'}</Math>: since <Math>{'\\mathcal{A}(r) = 1'}</Math> and{' '}
+          <Math>{"\\mathcal{A}'(r) = \\lambda\\mathbf{i}"}</Math>, the demand{' '}
+          <Math>{"\\mathcal{A}'(r) = \\lambda\\,\\mathcal{A}(r)\\,\\mathbf{i}"}</Math> is satisfied
+          outright. Nothing solved, nothing searched for — and <Math>{'\\lambda'}</Math> is left over.
+        </p>
+        <p>And it is not an idle parameter. Compute the sandwich at two values:</p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto',
+            gap: '0.3em 1.4em',
+            justifyContent: 'center',
+            margin: '0.5em 0',
+            fontSize: '0.8em',
+            alignItems: 'baseline',
+          }}
+        >
+          <span>
+            <Math>{'\\lambda = 0'}</Math>
+          </span>
+          <span>
+            <Math>{"\\mathbf{N} = (1-u^4,\\; 0,\\; -2u^2)"}</Math>
+          </span>
+          <span>
+            the <Math>{'\\mathbf{j}'}</Math>-part vanishes — <strong>planar</strong>
+          </span>
+          <span>
+            <Math>{'\\lambda = 1'}</Math>
+          </span>
+          <span>
+            <Math>{"\\mathbf{N} = (1+u^2-u^4,\\; 2u^3,\\; -2u^2)"}</Math>
+          </span>
+          <span>
+            <strong>spatial</strong>
+          </span>
+        </div>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            Turn the dial, and the curve lifts out of the plane.
+          </strong>
+        </p>
+        <p>
+          Solving <Math>{"\\mathbf{p}'w - \\mathbf{p}w' = \\mathbf{N}"}</Math> — the same linear system,
+          four lines of back-substitution — gives, at <Math>{'\\lambda = 1'}</Math>:
+        </p>
+        <Math display>
+          {"\\mathbf{c}(t) \\;=\\; \\bigl(-1/u + u - u^3/3,\\;\\; u^2,\\;\\; -2u\\bigr), \\qquad \\sigma = |\\mathcal{A}|^2 = 1 + u^2 + u^4"}
+        </Math>
+        <p>
+          A rational <strong>quartic</strong> — five control points, and the weights come out{' '}
+          <Math>{'1,\\; 1.25,\\; 1.5,\\; 1.75,\\; 2'}</Math>: slide 5&rsquo;s arithmetic progression, with
+          numbers in it.
+        </p>
+        <p>And now the arc length, which is where the two examples separate:</p>
+        <Math display>
+          {"\\int \\sigma/w^2\\,dt \\;=\\; \\int \\bigl(u^{-2} + 1 + u^2\\bigr)\\,du \\;=\\; -1/u + u + u^3/3"}
+        </Math>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>Rational. No logarithm anywhere.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto',
+            gap: '0.28em 1.6em',
+            justifyContent: 'center',
+            margin: '0.6em 0',
+            fontSize: '0.76em',
+            lineHeight: 1.5,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }} />
+          <span style={{ opacity: 0.6 }}>the circle</span>
+          <span style={{ opacity: 0.6 }}>this one</span>
+          <span>poles</span>
+          <span>
+            <Math>{'\\pm i'}</Math> — complex
+          </span>
+          <span>
+            <Math>{'-1'}</Math> — real
+          </span>
+          <span>reaches infinity?</span>
+          <span>never — bounded</span>
+          <span>
+            yes, at <Math>{'t = -1'}</Math>
+          </span>
+          <span>
+            <Math>{'\\sigma'}</Math> at the pole
+          </span>
+          <span>
+            <Math>{'\\sigma = 2w'}</Math> — vanishes
+          </span>
+          <span>
+            <Math>{'\\sigma(r) = 1'}</Math>
+          </span>
+          <span>arc length</span>
+          <span>
+            <Math>{'2\\arctan t'}</Math>
+          </span>
+          <span>
+            <strong>rational</strong>
+          </span>
+          <span>a dial?</span>
+          <span>none in this chart</span>
+          <span>
+            <Math>{'\\lambda'}</Math>, and you can see it
+          </span>
+        </div>
+        <p style={{ textAlign: 'center' }}>
+          <strong>Two examples, two regimes. Between them they carry the rest of the deck.</strong>
+        </p>
+        <Cite>
+          The closed form{' '}
+          <Math>{"\\mathcal{A} = \\mathcal{B}_0 + \\lambda(\\mathcal{B}_0\\mathbf{i})(t-r) + \\mathcal{B}_2(t-r)^2"}</Math>
+          {' '}— the requirement met by substitution rather than by solving — is{' '}
+          <Math>{'\\texttt{FOUNDATIONS F16}'}</Math>. Every number on this slide is pinned in{' '}
+          <Math>{'\\texttt{onePoleWorkedExample.test.ts}'}</Math> (6 tests).
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE ANSWERS A PROBLEM THE DECK HAD CREATED FOR ITSELF. The circle motivates everything '
+      + 'and was the only worked example -- but its poles are COMPLEX, and the lambda and r dials live '
+      + 'in the real-pole chart. Advertising those dials right after the circle would be selling '
+      + 'machinery that does not apply to the thing that motivated it. A second example fixes that '
+      + 'honestly, and it turns out to be the circle-s opposite on every axis. '
+      + 'THE REQUIREMENT IS MET BY CONSTRUCTION, AND THAT IS THE POINT. A(r) = 1 and A-prime(r) = '
+      + 'lambda i, so the demand holds for EVERY lambda with nothing solved. After two slides of '
+      + '"this is a real constraint and most things fail it", showing a family that satisfies it '
+      + 'outright is the reassurance the deck owes. '
+      + 'LAMBDA = 0 PLANAR, LAMBDA = 1 SPATIAL is the best thing on the slide. The twist rate stops '
+      + 'being an abstract parameter and becomes THE THING THAT LIFTS THE CURVE OUT OF THE PLANE, in '
+      + 'an example small enough to check by hand. Do NOT claim this holds in general -- it is a '
+      + 'property of this particular B_0 and B_2, and asserting more would be exactly the overreach '
+      + 'this deck keeps having to retract. '
+      + 'THE WEIGHTS ARE A CALLBACK WITH NUMBERS IN IT. Slide 5 said a linear denominator forces the '
+      + 'weights into an arithmetic progression; here they are, 1 to 2 in steps of a quarter. Point '
+      + 'at it -- an abstract structural claim landing as concrete arithmetic four slides later is how '
+      + 'a deck earns trust. '
+      + 'AND THE PAIR IS THE PAYOFF. The comparison table is why both examples exist: complex versus '
+      + 'real poles, bounded versus not, sigma vanishing at the pole versus not, arctangent versus '
+      + 'rational, no dial versus a visible one. Every later slide can now point at one of two curves '
+      + 'the room has actually seen, instead of at a parameter count. '
+      + 'HOW THIS WAS CHECKED, and it matters: every number was derived by hand first, then pinned. '
+      + 'The test disagreed once -- on the weights -- and the TEST was wrong, not the hand computation '
+      + '(degree elevation had been coded as a monomial-to-Bernstein conversion). Reading a red test '
+      + 'as authoritative would have put 1, 1.5, 2, 2.5, 3 on this slide.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10 — how expensive the condition actually is, which is the pricing question
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['LIT', 'MEAS']} />
+        <h2>Most spinors fail</h2>
+        <p>
+          So how expensive is that condition? The bad news first. It is{' '}
+          <strong>three real conditions per simple pole</strong> —{' '}
+          <Math>{'\\mathbf{N}'}</Math> is a vector, so its residue is one too. And the consequence is
+          put bluntly by the people who characterised it:
+        </p>
+        <p
+          style={{
+            borderLeft: '3px solid rgba(216,154,154,0.6)',
+            paddingLeft: '0.8em',
+            fontStyle: 'italic',
+          }}
+        >
+          &ldquo;rather surprisingly, for a generic choice of <Math>{'\\mathcal{A}'}</Math> and{' '}
+          <Math>{'\\alpha'}</Math> only polynomial solutions can be obtained&rdquo;
+        </p>
+        <p>
+          Read that as a warning to anyone building one:{' '}
+          <strong>
+            pick a spinor, pick a weight, and hope — and you will never produce a rational PH curve.
+          </strong>{' '}
+          Not rarely. Never.
+        </p>
+        <p>
+          But as a <em>price</em> it is far smaller than that sounds, for two reasons.
+        </p>
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>1. It prices sampling, not the family.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The statement fixes the <em>input pair</em> and asks what comes out. A curve you{' '}
+          <em>construct</em> has an input pair that is anything but generic — it was manufactured.
+          Singular matrices are measure zero too, and there is no shortage of them.
+        </p>
+        <p style={{ marginBottom: '0.15em', marginTop: '0.4em' }}>
+          <strong>2. The rarity is not even uniform.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto',
+            gap: '0.28em 1.6em',
+            justifyContent: 'center',
+            margin: '0.5em 0',
+            fontSize: '0.76em',
+            lineHeight: 1.5,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>pole multiplicity</span>
+          <span style={{ opacity: 0.6 }}>condition</span>
+          <span style={{ opacity: 0.6 }}>how rare</span>
+          <span>
+            <Math>{'n = 1'}</Math>
+          </span>
+          <span>
+            <Math>{"\\{\\mathbf{f}_0,\\mathbf{f}_1\\}"}</Math> dependent
+          </span>
+          <span>codimension 2</span>
+          <span>
+            <Math>{'n = 2'}</Math>
+          </span>
+          <span>
+            <Math>{"\\det(\\mathbf{f}_0,\\mathbf{f}_1,\\mathbf{f}_2) = 0"}</Math>
+          </span>
+          <span>codimension 1</span>
+          <span>
+            <Math>{'n \\geq 3'}</Math>
+          </span>
+          <span>
+            <em>automatic</em>
+          </span>
+          <span>
+            <strong>not rare at all</strong>
+          </span>
+        </div>
+        <p>
+          At multiplicity three or more the condition is <em>always</em> satisfiable. Nothing to pay.
+        </p>
+        <p>
+          And there is a systematic way in that costs nothing either. <strong>Invert a polynomial PH
+          curve.</strong> Möbius maps are conformal, so they scale speed by a rational factor and
+          rational speed stays rational. Measured here: the condition then holds at <em>every</em> root
+          of the denominator, not merely at the one the theorem asks for.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.15em' }}>
+            The condition taxes blind search. It does not tax the family.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          Nine Möbius specimens, dependence <Math>{'\\leq 6\\times10^{-15}'}</Math> at every root,
+          against <Math>{'0.39-0.85'}</Math> for generic pairs. Structural, not lucky: with{' '}
+          <Math>{"w = \\|\\mathbf{r} - \\mathbf{c}\\|^2"}</Math> the roots are exactly where the
+          complexified curve meets the isotropic cone at the inversion centre.
+        </p>
+        <Cite>
+          Genericity and the multiplicity cases: Kalkan et al. (2022), §1, §4, Lemmas 4.2–4.4. The
+          Möbius route is their ref. [1] (2008). The every-root measurement is ours, pinned in{' '}
+          <Math>{'\\texttt{rationalPHConstruction.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE VERDICT IS THE SLIDE, and in a pricing deck it has to be delivered as one: the condition '
+      + 'taxes BLIND SEARCH, not the family. Give the bad news first and let it sit for a beat -- '
+      + '"pick and hope" never works, which really is worth knowing -- then take it apart. A room that '
+      + 'leaves with only the first half will conclude rational PH is impractical, which is wrong. '
+      + 'THE QUANTIFIER IS THE WHOLE TRICK, and it is easy to get backwards. Their statement fixes the '
+      + 'INPUT pair and asks what comes out; it says nothing about how many rational PH curves exist. '
+      + 'The singular-matrix analogy lands it in one sentence and I would use it every time: measure '
+      + 'zero, and no shortage of them. '
+      + 'THE MULTIPLICITY TABLE IS THE MORE USEFUL FACT and it is what the word "generic" hides. At '
+      + 'multiplicity three or more the condition is AUTOMATIC (Lemma 4.4), which is why their own '
+      + 'Example 5.1 takes alpha = t cubed. Rarity is a property of the DENOMINATOR-S ROOT STRUCTURE, '
+      + 'not of rational PH curves, and a builder chooses that structure. '
+      + 'THE MOBIUS ROUTE IS OLDER THAN THE THEOREM -- it is reference [1] of the paper being cited, '
+      + 'from 2008. Do not present it as a discovery. What is measured here is only that it overshoots: '
+      + 'the theorem asks for the dependence at ONE root and inversion delivers it at ALL of them, for '
+      + 'a structural reason (w is the squared distance to the centre, so its roots are where the '
+      + 'complexified curve meets the isotropic cone there). Quote the control alongside the number or '
+      + 'neither means anything. '
+      + 'IF ASKED WHETHER THIS CONTRADICTS "MOST SPINORS FAIL": no, and the answer is the quantifier '
+      + 'again. A Mobius image is a manufactured input pair. It lands in the codimension-2 set every '
+      + 'time BY CONSTRUCTION, which is exactly what a systematic method is supposed to do.',
+  },
+]

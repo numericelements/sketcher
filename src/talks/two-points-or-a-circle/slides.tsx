@@ -183,79 +183,9 @@
 //   4. Slide 1's motivating list (arc length / offsets / sampling / frames) may be one line instead
 //      of five for an audience that already knows why PH exists. Open question, deliberately.
 // ============================================================================
-import type { ReactNode } from 'react'
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
-
-/**
- * The status tag every content slide carries. The convention is docs/THE_LATTICE.md's:
- * a slide with no tag is a slide somebody wanted to be true.
- */
-type Status = 'LIT' | 'THM' | 'MEAS' | 'OPEN'
-
-const TAG_COLOR: Record<Status, string> = {
-  LIT: '#8aa8c8',
-  THM: '#8fc99b',
-  MEAS: '#d8b978',
-  OPEN: '#d89a9a',
-}
-
-function Tag({ status }: { status: Status | Status[] }): ReactNode {
-  const all = Array.isArray(status) ? status : [status]
-  return (
-    <span
-      style={{
-        position: 'absolute',
-        top: '0.6em',
-        right: '0.9em',
-        display: 'flex',
-        gap: '0.4em',
-        fontSize: '0.42em',
-        letterSpacing: '0.18em',
-        fontWeight: 400,
-        opacity: 0.75,
-      }}
-    >
-      {all.map((s) => (
-        <span
-          key={s}
-          style={{
-            color: TAG_COLOR[s],
-            border: `1px solid ${TAG_COLOR[s]}`,
-            borderRadius: '0.25em',
-            padding: '0.15em 0.5em',
-          }}
-        >
-          {s}
-        </span>
-      ))}
-    </span>
-  )
-}
-
-/**
- * The source line at the foot of a slide. A review deck that names a fact and not its owner is the
- * failure mode docs/THE_LATTICE.md section 5 warns about, so every borrowed statement carries one.
- */
-function Cite({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: '1.4em',
-        right: '1.4em',
-        bottom: '0.5em',
-        fontSize: '0.38em',
-        lineHeight: 1.4,
-        opacity: 0.55,
-        textAlign: 'left',
-        fontStyle: 'italic',
-      }}
-    >
-      {children}
-    </div>
-  )
-}
+import { Tag, Cite, TAG_COLOR } from '../framework/SlideTag'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
