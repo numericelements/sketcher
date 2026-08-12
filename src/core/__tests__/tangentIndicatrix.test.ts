@@ -94,3 +94,73 @@ describe('the tangent indicatrix', () => {
     expect(sPrime / sScale).toBeLessThan(1e-13)
   })
 })
+
+// ============================================================================
+// AND IT SURVIVES m POLES — but by a DIFFERENT mechanism, which is the part that matters for a figure.
+//
+// With one pole Σ = 0 and the cusp comes for free: N′(r) and σ′(r) each vanish outright. With two or
+// more, Σ_k = Σ_{l≠k} 1/(r_k − r_l) ≠ 0 and NEITHER vanishes. The solved form 𝒜′(r) = 𝒜(r)(Σ + λi)
+// instead makes them PROPORTIONAL by the same factor,
+//
+//     N′(r_k) = 2Σ_k · N(r_k)        σ′(r_k) = 2Σ_k · σ(r_k)
+//
+// so T′ = (N′σ − Nσ′)/σ² = (2Σ Nσ − N 2Σ σ)/σ² = 0 by CANCELLATION. The cusp is the same geometric
+// event, reached two different ways: one pole kills both terms, many poles balance them. That is why the
+// one-pole picture generalises — and why m poles give m cusps, one per root, not one distinguished cusp.
+// ============================================================================
+import {
+  seedQuintic,
+  toMember as multiToMember,
+  type MultiPoleMember,
+} from '../rationalPHMultiPoleSpatial'
+
+const mSpeed = (m: MultiPoleMember, t: number): number => {
+  const s = evalPoly(m.sigma, t)
+  const ds = evalPoly(dPoly(m.sigma), t)
+  return Math.hypot(
+    ...[0, 1, 2].map((c) => {
+      const n = evalPoly(m.N[c], t)
+      const dn = evalPoly(dPoly(m.N[c]), t)
+      return (dn * s - n * ds) / (s * s)
+    }),
+  )
+}
+
+describe('the tangent indicatrix with several poles', () => {
+  const prm = seedQuintic()
+  const m = multiToMember(prm)
+
+  it('cusps at EVERY pole, one per root', () => {
+    console.log(`    ${prm.roots.length} poles, no-log residual ${m.noLog.toExponential(1)}`)
+    for (const r of prm.roots) {
+      const atPole = mSpeed(m, r)
+      const near = [0.05, 0.2].map((d) => Math.min(mSpeed(m, r - d), mSpeed(m, r + d)))
+      console.log(
+        `    r = ${r.toFixed(3).padStart(7)}:  |T′(r)| = ${atPole.toExponential(1)}` +
+          `   |T′| at r ± 0.05/0.2 = ${near.map((v) => v.toFixed(3)).join(' / ')}`,
+      )
+      expect(atPole, 'stops at this pole too').toBeLessThan(1e-9)
+      expect(Math.min(...near), 'and moves on either side').toBeGreaterThan(1e-3)
+    }
+  })
+
+  it('but by cancellation, not by vanishing: N′ and σ′ are both 2Σ times themselves', () => {
+    for (const r of prm.roots) {
+      const Sigma = prm.roots.reduce((a, other) => (other === r ? a : a + 1 / (r - other)), 0)
+      const nAt = [0, 1, 2].map((c) => evalPoly(m.N[c], r))
+      const nDot = [0, 1, 2].map((c) => evalPoly(dPoly(m.N[c]), r))
+      const sAt = evalPoly(m.sigma, r)
+      const sDot = evalPoly(dPoly(m.sigma), r)
+      const nErr = Math.hypot(...nDot.map((v, c) => v - 2 * Sigma * nAt[c])) / Math.hypot(...nAt)
+      const sErr = Math.abs(sDot - 2 * Sigma * sAt) / Math.abs(sAt)
+      console.log(
+        `    r = ${r.toFixed(3).padStart(7)}:  Σ = ${Sigma.toFixed(4).padStart(8)}` +
+          `   |N′ − 2ΣN|/|N| = ${nErr.toExponential(1)}   |σ′ − 2Σσ|/|σ| = ${sErr.toExponential(1)}` +
+          `   (neither term is zero: |N′|/|N| = ${(Math.hypot(...nDot) / Math.hypot(...nAt)).toFixed(3)})`,
+      )
+      expect(nErr, 'N′ is 2Σ N — parallel, not zero').toBeLessThan(1e-7)
+      expect(sErr, 'σ′ is 2Σ σ by the same factor, which is why T′ cancels').toBeLessThan(1e-7)
+      expect(Math.abs(Sigma), 'and Σ is genuinely nonzero here, unlike the one-pole case').toBeGreaterThan(0.1)
+    }
+  })
+})
