@@ -42,6 +42,15 @@
 //     Related: arc length is also CONSTANT along the closed one-pole fiber (spread 5.7e-8), so
 //     length is a blind selector here exactly as it is for the polynomial cubic.
 //
+//     ⚠ NOVELTY: ASSUME NOT, UNTIL SOMEBODY READS [13]. Rational curves with rational arc length are
+//     a studied class -- Farouki & Sakkalis, "Construction of rational curves with rational arc
+//     lengths BY DIRECT INTEGRATION", CAGD 74:101773 (2019), reference [13] of the 2022 paper -- and
+//     "by direct integration" is this route. So the CLASS is certainly not new. What may be narrower
+//     and ours is only that within the PRIMITIVE family (N = A i A*, mu = 1) the no-log condition on
+//     the CURVE already forces rational ARC LENGTH, with nothing extra imposed. Weak support: the
+//     2022 paper's own conclusion lists "connect our results with ... PH curves with rational arc
+//     length" as FUTURE work. That paper is NOT in ~/Documents/Carlotta; get it before any claim.
+//
 // Measured 2026-08-11, for the deck src/talks/two-points-or-a-circle.
 //
 // ⚠ OVERLAP, DELIBERATELY LEFT FOR NOW. core/rationalPHOnePoleSpatial.ts already builds this family,

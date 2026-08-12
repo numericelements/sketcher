@@ -2082,9 +2082,12 @@ export const slides: SlideDefinition[] = [
           curves</em>.
         </p>
         <Cite>
-          Framework: Kalkan et al. (2022). The construction, the weight progression, the square
-          Hermite rank and the arc-length identity are measured here and pinned in{' '}
-          <Math>{'\\texttt{rationalPHConstruction.test.ts}'}</Math>.
+          Framework: Kalkan et al. (2022). Construction, weight progression, Hermite rank and the
+          arc-length identity measured here and pinned in{' '}
+          <Math>{'\\texttt{rationalPHConstruction.test.ts}'}</Math>. <strong>Rational arc length is
+          not a new class</strong> — Farouki &amp; Sakkalis, <em>Construction of rational curves with
+          rational arc lengths by direct integration</em>, CAGD 74 (2019), do exactly that. Whether
+          the primitive family gets it <em>for free</em> is unchecked against that paper.
         </Cite>
       </>
     ),
@@ -2357,6 +2360,14 @@ export const slides: SlideDefinition[] = [
             <strong>○</strong> K. K. Kubota (1972) — Pythagorean polynomial triples; the real factor{' '}
             <Math>{'h'}</Math> and the primitive case. H. Hopf (1931) — the fibration{' '}
             <Math>{'S^3 \\to S^2'}</Math>.
+          </p>
+          <p>
+            <strong>○</strong> B. Kalkan, D. F. Scharler, H.-P. Schröcker, Z. Šír, refs [13] and [14]:
+            R. T. Farouki, T. Sakkalis, <em>Construction of rational curves with rational arc lengths
+            by direct integration</em>, CAGD <strong>74</strong> (2019) 101773 — the class of rational
+            curves with rational arc length, which is <em>not</em> new to this deck. And R. T. Farouki,
+            C. Giannelli, A. Sestini, <em>New developments in theory, algorithms, and applications for
+            Pythagorean-hodograph curves</em> (2019) — the survey.
           </p>
           <p style={{ marginTop: '0.6em', opacity: 0.75 }}>
             <strong>Owed, and in the folder unread:</strong> A. Altavilla, H.-P. Schröcker, Z. Šír,
