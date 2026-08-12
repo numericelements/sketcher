@@ -19,6 +19,19 @@
 // Odd rational degrees are not forbidden; they need an EVEN number of poles, and slide 18's degree 5 is
 // the smallest of them.
 //
+// SCOPE — CHECKED AGAINST THE LITERATURE AFTERWARDS, AND IT IS NARROWER THAN FIRST CLAIMED. The formula
+// above holds for SIMPLE poles, which is every member this codebase builds. It does NOT survive higher
+// multiplicity. Kalkan–Scharler–Schröcker–Šír (CAGD 99, 2022; arXiv 2111.04600) Example 5.1 takes 𝒜 of
+// degree 2 with α = t³ and the smallest non-trivial solution has degree 6, not 2n − m + 1 = 2; their
+// Example 5.3 takes α = (t+1)² and lands on degree 6, not 3. Their Theorem 4.6 is the reason: for a root of
+// multiplicity n the condition involves {f₀ … f_n} rather than just {f₀, f₁}, and is AUTOMATIC once n ≥ 3.
+// Multiple poles are a different regime, and their Remark 5.2 finds a whole nested tower of solutions of
+// increasing degree above each one — so "the" degree is not a function of (n, m) there at all.
+// Their Example 5.4 does match: 𝒜 of degree 2, α = 60(t²+1) — two SIMPLE (complex conjugate) roots — gives
+// degree 2·2 − 2 + 1 = 3, and that is the rational PH CUBIC of Kozak–Krajnc–Vitrih (CAGD 31(1):43–56,
+// 2014, Thm 7). Lower than anything in our slides, and its poles being complex is exactly why its drawn
+// indicatrix is smooth (cuspsOnRiemannSphere.test.ts).
+//
 // A SEPARATE ROUTE TO THE SAME PLACE, worth naming because it is probably where the instinct comes from:
 // a Möbius transformation of a POLYNOMIAL PH curve is a rational PH curve, and inversion doubles degree.
 // The PH cubic maps to degree 6, the PH quintic to degree 10 — even, every time, because 2 × odd is even.
