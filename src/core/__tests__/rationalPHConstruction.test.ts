@@ -19,12 +19,28 @@
 //     root-finder is needed: N x N' vanishes at every root of w, hence w divides it.
 //     A CONTROL is included; without one the assertion would be vacuous.
 //
-// (2) FOR A SINGLE POLE THE ARC LENGTH IS RATIONAL, which corrects the obvious reading of "rational
-//     PH curves typically have no rational arc-length function". The speed is |A|^2/w^2, and the
-//     coefficient of the logarithm in its integral is (|A|^2)'(r). From F14's solved form,
-//     V + V* = 2 Sigma, so (|A|^2)' = 2 Sigma |A|^2. With ONE pole Sigma is an empty sum, hence the
-//     log coefficient is exactly zero and the arc length is rational. With several poles the logs
-//     appear with coefficients 2 Sigma_k |A(r_k)|^2 -- elementary either way, never a quadrature.
+// (2) THE ARC LENGTH IS RATIONAL -- AT ANY NUMBER OF POLES, which sharpens the usual reading of
+//     "rational PH curves typically have no rational arc-length function". The speed is sigma/w^2
+//     with sigma = |A|^2. At a pole, w = (t-r_k)*phi, so the Laurent NUMERATOR is sigma/phi^2 and
+//     the coefficient of the logarithm is
+//
+//         B_k = [ sigma'(r_k) - 2*sigma(r_k)*Sigma_k ] / phi(r_k)^2
+//
+//     F14's solved form gives sigma' = 2*Sigma*sigma, so the bracket vanishes IDENTICALLY. The
+//     condition that makes the CURVE rational is the same one that makes its LENGTH rational.
+//
+//     ⚠ AN EARLIER VERSION OF THIS FILE GOT THAT WRONG and the error is instructive. It claimed the
+//     log coefficient was sigma'(r) alone -- forgetting that differentiating phi^-2 contributes the
+//     second term. At m = 1, phi is identically 1 AND Sigma = 0, so both terms vanish separately and
+//     the wrong reasoning yields the right number. The assertion below therefore passed while the
+//     argument behind it did not generalise. Corrected by another session, which measured the true
+//     coefficients at two poles as 4.6e-13 and -6.3e-13 where the old formula predicted 1.92 and
+//     -1.48, and confirmed rationality constructively at m = 2 (rational antiderivative fitting to
+//     2.4e-14). The single-pole assertion below is kept because it is true; the general claim now
+//     lives with the multi-pole work rather than here.
+//
+//     Related: arc length is also CONSTANT along the closed one-pole fiber (spread 5.7e-8), so
+//     length is a blind selector here exactly as it is for the polynomial cubic.
 //
 // Measured 2026-08-11, for the deck src/talks/two-points-or-a-circle.
 //

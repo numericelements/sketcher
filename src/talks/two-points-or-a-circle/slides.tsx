@@ -2052,22 +2052,34 @@ export const slides: SlideDefinition[] = [
         </p>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.1em' }}>
-            One last surprise: here the arc length is <em>rational</em>.
+            And the arc length is <em>rational</em> — at any number of poles.
           </strong>
         </p>
         <p>
-          The logarithm&rsquo;s coefficient in <Math>{'\\int |\\mathcal{A}|^2/w^2'}</Math> is{' '}
-          <Math>{"(|\\mathcal{A}|^2)'(r)"}</Math>, and slide 11 gives{' '}
-          <Math>{'V + V^{*} = 2\\Sigma'}</Math>, so it equals{' '}
-          <Math>{'2\\Sigma\\,|\\mathcal{A}(r)|^2'}</Math>. One pole means <Math>{'\\Sigma = 0'}</Math>{' '}
-          — the logarithm is <em>absent</em>. In general
+          Expand the speed at a pole. With <Math>{'w = (t-r_k)\\varphi'}</Math> the numerator is{' '}
+          <Math>{"\\sigma/\\varphi^2"}</Math>, not <Math>{'\\sigma'}</Math>, so the coefficient of
+          the logarithm carries two terms:
         </p>
         <Math display>
-          {"\\text{arc length} \\;=\\; (\\text{rational}) \\;+\\; \\sum_k 2\\Sigma_k |\\mathcal{A}(r_k)|^2 \\log|t - r_k|"}
+          {"B_k \\;=\\; \\bigl[\\,\\sigma'(r_k) - 2\\,\\sigma(r_k)\\,\\Sigma_k\\,\\bigr] \\big/ \\varphi(r_k)^2"}
         </Math>
+        <p>
+          And slide 12 already killed it: <Math>{"(|\\mathcal{A}|^2)' = 2\\Sigma_k|\\mathcal{A}|^2"}</Math>{' '}
+          is exactly <Math>{"\\sigma'(r_k) = 2\\Sigma_k\\sigma(r_k)"}</Math>, so the bracket
+          vanishes <strong>identically</strong> — one pole or many.
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <strong>
+            The condition that makes the <em>curve</em> rational is the same one that makes its{' '}
+            <em>arc length</em> rational.
+          </strong>
+        </p>
         <p style={{ opacity: 0.65 }}>
-          — elementary always, a quadrature never. The same <Math>{'\\Sigma'}</Math> that governs the
-          residue condition governs the logarithm.
+          So exact arc-length parametrisation is available on the whole family: equal spacing and
+          constant-speed motion with no quadrature anywhere. And measured on the closed fiber, arc
+          length is <strong>constant</strong> along it (spread <Math>{'5.7\\times10^{-8}'}</Math>) —
+          so, exactly as in the polynomial case, <em>no functional of length can choose among these
+          curves</em>.
         </p>
         <Cite>
           Framework: Kalkan et al. (2022). The construction, the weight progression, the square
@@ -2095,11 +2107,26 @@ export const slides: SlideDefinition[] = [
       + 'dimensional and that one dimension is the gauge -- which changes nothing. So lambda is '
       + 'determined by C1 Hermite data. An interactive fiber needs a cubic spinor or less prescribed '
       + 'data. That is a measurement, and it killed the figure that was planned. '
-      + 'THE ARC LENGTH RESULT CORRECTS SOMETHING I SAID IN THE ROOM. The paper notes rational PH '
-      + 'curves typically lack a rational arc-length function, and I repeated it. For the one-pole '
-      + 'family it is FALSE, and not by accident: the log coefficient is 2 Sigma |A(r)|^2 and Sigma '
-      + 'is an empty sum. The general formula is on the slide, and it is the same Sigma throughout. '
-      + 'Note the paper does say rational "only in special cases" -- this identifies which. '
+      + 'THE ARC LENGTH RESULT, AND THE MISTAKE IT COST TO GET RIGHT. A first version of this slide '
+      + 'said the log coefficient WAS sigma-prime(r), giving a general formula with nonzero terms '
+      + '2 Sigma_k sigma(r_k). That is wrong: the Laurent numerator at a pole is sigma over phi '
+      + 'squared, not sigma, and differentiating phi-to-the-minus-two adds the second term, so the '
+      + 'coefficient is [sigma-prime(r_k) - 2 sigma(r_k) Sigma_k] over phi(r_k) squared. At ONE pole '
+      + 'phi is identically 1 and Sigma is zero, so both terms vanish separately and the wrong '
+      + 'reasoning gives the right number -- which is exactly why the measurement passed and the '
+      + 'argument did not generalise. Caught by another session, measured at two poles: the true '
+      + 'coefficients are 4.6e-13 and -6.3e-13 where the wrong formula predicts 1.92 and -1.48. '
+      + 'THE CORRECTED RESULT IS STRONGER, and that is the version to present. The bracket vanishes '
+      + 'IDENTICALLY, because sigma-prime(r_k) = 2 Sigma_k sigma(r_k) is slide 12-s own identity. So '
+      + 'the arc length is rational at ANY number of poles, and the same condition buys both: the '
+      + 'curve is rational AND its length is. Verified constructively at m = 2 (a rational '
+      + 'antiderivative fits to 2.4e-14, agreeing with quadrature at 0.555996). Note the 2022 paper '
+      + 'says rational "only in special cases" -- this family is a large one, precisely characterised. '
+      + 'AND THE FIBER CARRIES THE POLYNOMIAL PUNCHLINE AFTER ALL. Arc length is CONSTANT along the '
+      + 'closed loop, spread 5.7e-8 over 13 samples. onePoleLoop.test.ts used to say the rational '
+      + 'fiber had none of the polynomial fiber-s virtues; it has this one. The consequence is the '
+      + 'one Act I already made: length is a BLIND selector, so the choice rule has to come from '
+      + 'somewhere else. '
       + 'MEAS is earned here in a way it was not earlier in the act: these numbers are not '
       + 're-verifications of somebody else-s statement. Pinned in '
       + 'core/__tests__/rationalPHConstruction.test.ts, second describe block.',
