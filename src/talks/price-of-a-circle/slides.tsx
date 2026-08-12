@@ -31,13 +31,14 @@
 //   6  integration stops being a map and becomes an equation                    [LIT]
 //   7  where the condition comes from -- one pole in a line, then the general  [LIT]
 //   8  THE CIRCLE, INTEGRATED -- the whole apparatus by hand, and an arctangent [THM]
-//   9  A REAL POLE, AND A DIAL -- the circle's opposite, and lambda made visible [THM] [MEAS]
-//  10  and most spinors fail it -- the condition, and genericity                [LIT]
-//  11  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
-//  12  torus x roads -- and the roads end at cusps and pole collisions          [MEAS]
-//  13  arc length: when it survives and when it does not, from the two examples [LIT] [MEAS]
-//  14  the ledger, both columns                                                 --
-//  15  what is open, and where to go next                                       [OPEN]
+//   9  FROM THE HODOGRAPH TO THE SPINOR -- the requirement on what you choose  [LIT]
+//  10  a real pole, and a dial -- the circle's opposite, lambda made visible    [THM] [MEAS]
+//  11  and most spinors fail it -- the condition, and genericity                [LIT]
+//  12  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
+//  13  torus x roads -- and the roads end at cusps and pole collisions          [MEAS]
+//  14  arc length: when it survives and when it does not, from the two examples [LIT] [MEAS]
+//  15  the ledger, both columns                                                 --
+//  16  what is open, and where to go next                                       [OPEN]
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
 // These slides are written in conversation, and the conversation carries context the DECK DOES NOT.
@@ -920,7 +921,156 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 9 — the other regime, where the dials live
+  // 9 — pushing the requirement onto the thing you actually choose
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="LIT" />
+        <h2>From the hodograph to the spinor</h2>
+        <p
+          style={{
+            borderLeft: '3px solid rgba(59,130,246,0.5)',
+            paddingLeft: '0.8em',
+            opacity: 0.9,
+          }}
+        >
+          <strong>Why bother.</strong> On the circle we already had the curve, so we had{' '}
+          <Math>{'\\mathbf{N}'}</Math>, and could check the requirement directly. But when you{' '}
+          <em>build</em> one you choose <Math>{'\\mathcal{A}'}</Math> —{' '}
+          <Math>{'\\mathbf{N}'}</Math> is downstream of it. A requirement on{' '}
+          <Math>{'\\mathbf{N}'}</Math> is a requirement on something you <em>compute</em>, not on
+          something you <em>pick</em>. So push it down.
+        </p>
+        <p>
+          Substitute <Math>{"\\mathbf{N} = \\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}"}</Math> and
+          differentiate by the product rule:
+        </p>
+        <Math display>
+          {"\\mathbf{N}' = \\mathcal{A}'\\,\\mathbf{i}\\,\\mathcal{A}^{*} + \\mathcal{A}\\,\\mathbf{i}\\,(\\mathcal{A}')^{*}"}
+        </Math>
+        <p>so the requirement, everything evaluated at the pole, reads</p>
+        <Math display>
+          {"\\mathcal{A}'\\,\\mathbf{i}\\,\\mathcal{A}^{*} + \\mathcal{A}\\,\\mathbf{i}\\,(\\mathcal{A}')^{*} \\;=\\; 2\\,\\bigl(\\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}\\bigr)\\,\\Sigma"}
+        </Math>
+        <p>
+          You cannot cancel one <Math>{'\\mathcal{A}'}</Math>. It stands on the{' '}
+          <strong>left</strong> of the <Math>{'\\mathbf{i}'}</Math> and its conjugate on the{' '}
+          <strong>right</strong>, and no single division reaches both. But you can strip them{' '}
+          <em>together</em> — multiply by <Math>{'\\mathcal{A}^{-1}'}</Math> on the left and{' '}
+          <Math>{'(\\mathcal{A}^{*})^{-1}'}</Math> on the right, which is legal because every nonzero
+          quaternion has an inverse.
+        </p>
+        <p>
+          Name what survives — the <strong>logarithmic derivative</strong> of the spinor, one
+          quaternion built from its value and its velocity at the pole — and use that conjugation
+          reverses products:
+        </p>
+        <Math display>
+          {"V := \\mathcal{A}^{-1}\\mathcal{A}', \\qquad (\\mathcal{A}')^{*}(\\mathcal{A}^{*})^{-1} = \\bigl(\\mathcal{A}^{-1}\\mathcal{A}'\\bigr)^{*} = V^{*}"}
+        </Math>
+        <p>
+          The right-hand side collapses too, since <Math>{'\\Sigma'}</Math> is a <em>real</em> number
+          and commutes with everything. What is left standing is
+        </p>
+        <Math display>
+          {"V\\,\\mathbf{i} \\;+\\; \\mathbf{i}\\,V^{*} \\;=\\; 2\\,\\Sigma\\,\\mathbf{i}"}
+        </Math>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            Every trace of <Math>{'\\mathcal{A}'}</Math> is gone. One quaternion equation, one
+            quaternion unknown.
+          </strong>
+        </p>
+        <p>
+          And it solves in four lines. Write{' '}
+          <Math>{'V = v_0 + v_1\\mathbf{i} + v_2\\mathbf{j} + v_3\\mathbf{k}'}</Math> and use{' '}
+          <Math>{'\\mathbf{ji} = -\\mathbf{k}'}</Math>, <Math>{'\\mathbf{ki} = \\mathbf{j}'}</Math>,{' '}
+          <Math>{'\\mathbf{ij} = \\mathbf{k}'}</Math>, <Math>{'\\mathbf{ik} = -\\mathbf{j}'}</Math>:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto',
+            gap: '0.15em 0.8em',
+            justifyContent: 'center',
+            margin: '0.5em 0',
+            alignItems: 'baseline',
+          }}
+        >
+          <span>
+            <Math>{'V\\,\\mathbf{i}'}</Math>
+          </span>
+          <span>
+            <Math>{'=\\; -v_1 + v_0\\mathbf{i} + v_3\\mathbf{j} - v_2\\mathbf{k}'}</Math>
+          </span>
+          <span>
+            <Math>{'\\mathbf{i}\\,V^{*}'}</Math>
+          </span>
+          <span>
+            <Math>{'=\\; +v_1 + v_0\\mathbf{i} + v_3\\mathbf{j} - v_2\\mathbf{k}'}</Math>
+          </span>
+          <span style={{ borderTop: '1px solid rgba(0,0,0,0.25)', paddingTop: '0.2em' }}>
+            <Math>{'\\text{sum}'}</Math>
+          </span>
+          <span style={{ borderTop: '1px solid rgba(0,0,0,0.25)', paddingTop: '0.2em' }}>
+            <Math>{'=\\; 2v_0\\mathbf{i} + 2v_3\\mathbf{j} - 2v_2\\mathbf{k}'}</Math>
+          </span>
+        </div>
+        <p>
+          Compare with <Math>{'2\\Sigma\\mathbf{i}'}</Math> and read it off:{' '}
+          <Math>{'v_0 = \\Sigma'}</Math>, <Math>{'v_2 = v_3 = 0'}</Math>, and{' '}
+          <Math>{'v_1'}</Math> <strong>free</strong> — free because the two{' '}
+          <Math>{'v_1'}</Math> terms <em>cancelled</em>, not because we chose to leave it alone.
+          Call it <Math>{'\\lambda'}</Math>. Unwinding <Math>{"V = \\mathcal{A}^{-1}\\mathcal{A}'"}</Math>:
+        </p>
+        <Math display>
+          {"\\mathcal{A}'(r) \\;=\\; \\mathcal{A}(r)\\,\\bigl(\\Sigma + \\lambda\\,\\mathbf{i}\\bigr), \\qquad \\lambda \\in \\mathbb{R}"}
+        </Math>
+        <p style={{ textAlign: 'center' }}>
+          <strong>
+            And at a single pole <Math>{'\\Sigma = 0'}</Math>, leaving{' '}
+            <Math>{"\\mathcal{A}'(r) = \\lambda\\,\\mathcal{A}(r)\\,\\mathbf{i}"}</Math> — which is what the
+            next slide builds with.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          Note what the requirement does <em>not</em> mention: where the spinor <em>is</em>. Only how
+          it is <strong>moving</strong> at the pole.
+        </p>
+        <Cite>
+          The reduction is <Math>{'\\texttt{FOUNDATIONS F14}'}</Math>, pinned in{' '}
+          <Math>{'\\texttt{rationalPHSpatialResidue.test.ts}'}</Math>; the geometry of{' '}
+          <Math>{'\\lambda'}</Math> is <Math>{'\\texttt{F16}'}</Math>. Kalkan et al. (2022) reach the
+          same conditions by a different route — framing motions and dual quaternions, Thm. 3.6.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE WAS MISSING AND A READER FOUND THE SEAM, again. Slide 7 ends on a requirement about '
+      + 'N; slide 10 builds with a requirement about A; nothing connected them. The companion deck '
+      + 'derives it across two slides and this deck had decided to cite rather than repeat -- which '
+      + 'is fine for a SOLVED FORM but not for the step that changes which variable you are talking '
+      + 'about. '
+      + 'THE MOTIVATION IS THE ORIENTING BOX AND IT IS SPECIFIC TO THIS DECK. On the circle we HAD the '
+      + 'curve, hence N, and checked directly. When you BUILD one, N is downstream of A -- so a '
+      + 'requirement on N is a requirement on a computed thing, not on a chosen thing. That is the '
+      + 'whole reason to translate, and it is worth saying before any algebra. '
+      + 'THE SIDEDNESS IS THE MECHANICAL CRUX. A on the left of the i, A-star on the right; no single '
+      + 'division reaches both, so you strip from BOTH SIDES AT ONCE, which is available only because '
+      + 'H is a division ring. Do the gesture with your hands. '
+      + 'v_1 IS FREE BECAUSE IT CANCELLED. Say it in those words. The two v_1 terms appear with '
+      + 'opposite signs and vanish from the sum, so lambda is not a parameter anyone inserted -- it is '
+      + 'what the equation failed to constrain. That is a better story than "and there is a free '
+      + 'parameter", and it is the honest one. '
+      + 'THE LAST FADED LINE PLANTS THE GEOMETRY without spending it: the requirement says nothing '
+      + 'about WHERE the spinor is, only how it MOVES at the pole. That is what makes lambda a RATE '
+      + 'rather than a position, which is the return-side story a few slides on.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10 — the other regime, where the dials live
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1090,7 +1240,7 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 10 — how expensive the condition actually is, which is the pricing question
+  // 11 — how expensive the condition actually is, which is the pricing question
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1223,5 +1373,104 @@ export const slides: SlideDefinition[] = [
       + 'IF ASKED WHETHER THIS CONTRADICTS "MOST SPINORS FAIL": no, and the answer is the quantifier '
       + 'again. A Mobius image is a manufactured input pair. It lands in the codimension-2 set every '
       + 'time BY CONSTRUCTION, which is exactly what a systematic method is supposed to do.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 12 — the return side opens: the poles come with handles
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="MEAS" />
+        <h2>What the poles hand back</h2>
+        <p>
+          The cost column is closed. Here is the return, and it is not what you would guess: the poles
+          you were <em>forced</em> to buy turn out to come with <strong>handles</strong>. Two per pole,
+          and both have geometric names rather than being coordinates on a solution set.
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.5em 1.2em',
+            margin: '0.7em 0',
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ fontSize: '1.1em' }}>
+            <Math>{'\\lambda'}</Math>
+          </span>
+          <span>
+            the frame&rsquo;s <strong>twist rate</strong> at the pole. With{' '}
+            <Math>{'q = \\mathcal{A}/|\\mathcal{A}|'}</Math> the angular velocity there is exactly{' '}
+            <Math>{'\\omega = 2\\lambda\\,\\mathbf{e}_1'}</Math> — purely about the tangent, so it spins
+            the frame and leaves the curve&rsquo;s direction alone.
+          </span>
+          <span style={{ fontSize: '1.1em' }}>
+            <Math>{'r'}</Math>
+          </span>
+          <span>
+            where the curve <strong>passes through infinity</strong>, since{' '}
+            <Math>{'w(r) = 0'}</Math>. Move it and you move that passage.
+          </span>
+        </div>
+        <p>
+          You have already watched the first one work: at <Math>{'\\lambda = 0'}</Math> the worked
+          example was <em>planar</em>, and turning the dial to <Math>{'\\lambda = 1'}</Math> lifted it
+          out of the plane.
+        </p>
+        <p>
+          And the arithmetic is more generous than one dial per pole. Hold the dials, prescribe a
+          start point and a start tangent, and the freedom left over is
+        </p>
+        <Math display>{"4n - 4m - 3 \\qquad (\\deg \\mathcal{A} = n, \\;\\; m \\text{ poles})"}</Math>
+        <p>
+          which is <strong>exactly one</strong> when <Math>{'n = m + 1'}</Math>. Read that off:
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            each extra pole buys one more <em>degree of curve</em> and one more <em>twist dial</em> —
+            and the sweepable freedom stays one-dimensional.
+          </strong>
+        </p>
+        <p>
+          Measured at <Math>{'m = 1, 2, 3'}</Math>, which is curve degrees 4, 5 and 6. Nothing is lost
+          on the way up: the loop you can walk is still a loop.
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          There is no analogue of this in the polynomial family. There the only freedom is{' '}
+          <em>phase</em>, so a higher degree simply gives a bigger torus — more angles, no new kind of
+          handle, and nothing with a name.
+        </p>
+        <Cite>
+          What <Math>{'\\lambda'}</Math> and <Math>{'r'}</Math> mean is{' '}
+          <Math>{'\\texttt{FOUNDATIONS F16}'}</Math>; the count and the{' '}
+          <Math>{'n = m+1'}</Math> relation are <Math>{'\\texttt{F17}'}</Math>, measured in{' '}
+          <Math>{'\\texttt{multiPoleLoop.test.ts}'}</Math> and implemented in{' '}
+          <Math>{'\\texttt{rationalPHMultiPoleSpatial}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS OPENS THE RETURN COLUMN and the framing matters: the poles were a COST, forced on you by '
+      + 'wanting weights, and it now turns out they came with handles. That reversal is the slide. Do '
+      + 'not present the dials as a feature somebody designed -- they are what was left over. '
+      + 'THE NAMES ARE THE POINT, NOT THE COUNT. A parameter with a geometric meaning is worth more to '
+      + 'a builder than three without one. lambda is the twist rate, and the precise statement is that '
+      + 'the angular velocity at the pole is 2 lambda times e_1 -- PURELY TANGENTIAL, so it rotates '
+      + 'the frame about the tangent and leaves the tangent itself alone. r is where the curve meets '
+      + 'infinity. Both are things you can point at on a screen. '
+      + 'AND THE ROOM HAS ALREADY SEEN LAMBDA WORK, which is why the worked example was built before '
+      + 'this slide rather than after. lambda = 0 planar, lambda = 1 spatial. Refer back to it '
+      + 'explicitly; an abstract dial two slides after a concrete one is a much easier sell. '
+      + 'THE FORMULA IS DELIBERATELY ONE LINE AND THE CONSEQUENCE IS BOLD. This deck has been concrete '
+      + 'throughout -- shapes, weights, hand-checkable conditions -- and a dimension count is a '
+      + 'different register. State 4n - 4m - 3, say what it equals at n = m + 1, and move to the '
+      + 'consequence. The derivation belongs to the companion deck and to F17. '
+      + 'THE CLOSING CONTRAST IS THE HONEST GAIN. In the polynomial family more degree means a bigger '
+      + 'torus: more angles, no new KIND of freedom, nothing with a name. Here an extra pole buys a '
+      + 'degree AND a named dial while the loop stays one-dimensional. That is a structural difference, '
+      + 'not just a bigger number, and it is the strongest thing in the return column.',
   },
 ]

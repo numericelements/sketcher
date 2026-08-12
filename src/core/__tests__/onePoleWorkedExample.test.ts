@@ -21,8 +21,10 @@
 //   5. the Bezier weights, after elevating w to the curve degree, are 1, 1.25, 1.5, 1.75, 2
 //   6. THE ARC LENGTH IS RATIONAL: -1/u + u + u^3/3, agreeing with quadrature
 //
-// Contrast with the circle, which is pinned in conformalArcLength.test.ts's reasoning and in the
-// deck: there sigma = 2w vanishes at the pole and the logarithm survives. Here sigma(r) = 1.
+// Contrast with the circle, and the second describe block below makes it exact. The circle turns
+// out to sit on the stratum A(r) = 0 -- the one this chart divides by and the one Kalkan et al.
+// assume away ("reduced with respect to i" IS f_0 nonzero, which IS A(r) nonzero). So the most
+// familiar rational PH curve in existence is NOT constructible by the method this file demonstrates.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { type Quat, QUAT_I, qconj, qmul, qvec } from '../quaternion'
@@ -174,5 +176,75 @@ describe('the worked one-pole example: A = 1 + lambda i u + j u^2', () => {
     const circleSigma: RPoly = [2, 0, 2] // 2(1 + t^2) = 2w
     const circleW: RPoly = [1, 0, 1]
     expect(pmax(padd(circleSigma, pmul(circleW, [-2])))).toBeLessThan(1e-15) // sigma = 2w exactly
+  })
+})
+
+// ---------------------------------------------------------------------------
+// THE CIRCLE IS ON THE EXCLUDED STRATUM — and that single fact explains all of it.
+//
+// The circle's planar spinor is S(t) = (1 - t) + (1 + t)i, since
+//     S^2 = (1-t)^2 - (1+t)^2 + 2(1-t^2) i = -4t + (2 - 2t^2) i = N.
+// Evaluate at the pole t = i and it VANISHES. Everything follows:
+//
+//   · N = S^2 therefore has a DOUBLE zero at i, against w^2's double pole, so N/w^2 is REGULAR --
+//     the circle has no actual poles at all, they cancel. Which is why it is bounded.
+//   · sigma = |S|^2 = 2w has only a SIMPLE zero there, against the same double pole, so sigma/w^2
+//     keeps a simple pole. That surviving residue is the arctangent.
+//
+// Curve rational, arc length not -- from one asymmetry between a double zero and a simple one.
+// Measured 2026-08-12 for the deck src/talks/price-of-a-circle.
+// ---------------------------------------------------------------------------
+type Cx = { re: number; im: number }
+const cx = (re: number, im = 0): Cx => ({ re, im })
+const cadd = (a: Cx, b: Cx): Cx => cx(a.re + b.re, a.im + b.im)
+const cmul = (a: Cx, b: Cx): Cx => cx(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re)
+const cabs = (a: Cx): number => Math.hypot(a.re, a.im)
+const cev = (p: Cx[], z: Cx): Cx => p.reduceRight((s, c) => cadd(cmul(s, z), c), cx(0, 0))
+const cder = (p: Cx[]): Cx[] => p.slice(1).map((c, k) => cx(c.re * (k + 1), c.im * (k + 1)))
+
+describe('the circle sits on the stratum every chart assumes away', () => {
+  // S(t) = (1 - t) + (1 + t) i  ->  coefficients t^0 = 1 + i, t^1 = -1 + i
+  const S: Cx[] = [cx(1, 1), cx(-1, 1)]
+  const pole = cx(0, 1) // t = i, a root of w = 1 + t^2
+  // N = S^2
+  const N: Cx[] = [cmul(S[0], S[0]), cadd(cmul(S[0], S[1]), cmul(S[1], S[0])), cmul(S[1], S[1])]
+  // sigma = S * S-with-conjugated-coefficients  =  |S|^2 for real t
+  const Sbar: Cx[] = S.map((c) => cx(c.re, -c.im))
+  const sigma: Cx[] = [
+    cmul(S[0], Sbar[0]),
+    cadd(cmul(S[0], Sbar[1]), cmul(S[1], Sbar[0])),
+    cmul(S[1], Sbar[1]),
+  ]
+
+  it('S squares to the circle hodograph numerator N = -4t + (2 - 2t^2) i', () => {
+    expect(N[0].re).toBeCloseTo(0, 14)
+    expect(N[0].im).toBeCloseTo(2, 14)
+    expect(N[1].re).toBeCloseTo(-4, 14)
+    expect(N[1].im).toBeCloseTo(0, 14)
+    expect(N[2].re).toBeCloseTo(0, 14)
+    expect(N[2].im).toBeCloseTo(-2, 14)
+  })
+
+  it('THE SPINOR VANISHES AT THE POLE: S(i) = 0', () => {
+    expect(cabs(cev(S, pole))).toBeLessThan(1e-15)
+  })
+
+  it('so N has a DOUBLE zero there — the poles CANCEL and the curve is bounded', () => {
+    expect(cabs(cev(N, pole))).toBeLessThan(1e-15)
+    expect(cabs(cev(cder(N), pole))).toBeLessThan(1e-15)
+    // second derivative does not vanish: the zero is exactly double, not higher
+    expect(cabs(cev(cder(cder(N)), pole))).toBeGreaterThan(1)
+  })
+
+  it('but sigma = 2w has only a SIMPLE zero — so the logarithm survives', () => {
+    expect(sigma.map((c) => c.re)).toEqual([2, 0, 2]) // 2 + 2t^2 = 2w exactly
+    expect(sigma.every((c) => Math.abs(c.im) < 1e-15)).toBe(true)
+    expect(cabs(cev(sigma, pole))).toBeLessThan(1e-15) // vanishes
+    expect(cabs(cev(cder(sigma), pole))).toBeGreaterThan(1) // but its derivative does not
+  })
+
+  it('CONTRAST: the one-pole example has sigma(r) = 1, nowhere near zero', () => {
+    const sig = speedNumerator(spinor(1)) // 1 + u^2 + u^4, pole at u = 0
+    expect(pev(sig, 0)).toBe(1)
   })
 })
