@@ -2201,10 +2201,28 @@ export const slides: SlideDefinition[] = [
           analogue has neither. No Hermite theory, and no criterion for picking a member.
         </p>
 
+        <p style={{ marginBottom: '0.2em', marginTop: '0.5em' }}>
+          <strong>
+            4. The stratum <Math>{'\\mathcal{A}(r) = 0'}</Math> — and what it costs.
+          </strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Every result quoted above assumes it away. Kalkan et al. require{' '}
+          <Math>{'\\mathcal{A}'}</Math> <em>reduced with respect to</em>{' '}
+          <Math>{'\\mathbf{i}'}</Math>, which is exactly{' '}
+          <Math>{'\\mathbf{f}_0 \\neq 0'}</Math>, i.e.{' '}
+          <Math>{'\\mathcal{A}(r) \\neq 0'}</Math>. But the residue of{' '}
+          <Math>{'\\mathbf{N}/w^2'}</Math> vanishes there too — the pole simply{' '}
+          <em>cancels</em> — so the curve is rational with <strong>no condition imposed at all</strong>.
+          And that is precisely where the arc length stops being rational: the speed keeps a simple
+          pole and the logarithm survives. The chart everyone uses ends exactly at the boundary of
+          arc-length rationality.
+        </p>
+
         <p style={{ textAlign: 'center', marginTop: '0.6em' }}>
           <strong>
-            Three questions, all of them theirs to have asked first. That is what a literature check
-            buys: a shorter list, and a true one.
+            Three questions theirs, one ours — and the literature check is what made the list short
+            enough to see that.
           </strong>
         </p>
         <Cite>
@@ -2237,8 +2255,17 @@ export const slides: SlideDefinition[] = [
       + 'polynomial are unique -- applied to A itself, which is precisely the untwisted use that was '
       + 'always available. The claim was not wrong, but it was answering a question nobody needed '
       + 'asked. '
+      + 'ITEM 4 IS THE ONE THAT IS OURS, and it arrived last, after reading Farouki and Sakkalis '
+      + '2019. Every result on this slide assumes A(r) is nonzero -- Kalkan et al. require A "reduced '
+      + 'with respect to i", which IS f_0 nonzero, which IS A(r) nonzero, and their Lemma 4.2 proof '
+      + 'says so explicitly. But the residue of N/w^2 vanishes on that stratum as well, because the '
+      + 'pole cancels, so the curve is rational with NOTHING imposed. And the speed keeps a simple '
+      + 'pole there, so the arc length is not. The chart everybody uses ends exactly at the boundary '
+      + 'of arc-length rationality -- that is a REASON to care about the stratum, where before it was '
+      + 'only a caveat. '
       + 'DO NOT LET THIS SLIDE DRIFT BACK. Any future addition here needs a citation showing the '
-      + 'authors left it open, or it does not go on the slide.',
+      + 'authors left it open -- or, as with item 4, an argument for why their hypothesis excludes '
+      + 'it. Otherwise it does not go on the slide.',
   },
 
   // ---------------------------------------------------------------------------
@@ -2372,12 +2399,15 @@ export const slides: SlideDefinition[] = [
             <Math>{'S^3 \\to S^2'}</Math>.
           </p>
           <p>
-            <strong>○</strong> B. Kalkan, D. F. Scharler, H.-P. Schröcker, Z. Šír, refs [13] and [14]:
-            R. T. Farouki, T. Sakkalis, <em>Construction of rational curves with rational arc lengths
-            by direct integration</em>, CAGD <strong>74</strong> (2019) 101773 — the class of rational
-            curves with rational arc length, which is <em>not</em> new to this deck. And R. T. Farouki,
-            C. Giannelli, A. Sestini, <em>New developments in theory, algorithms, and applications for
-            Pythagorean-hodograph curves</em> (2019) — the survey.
+            <strong>✓</strong> R. T. Farouki, T. Sakkalis, <em>Construction of rational curves with
+            rational arc lengths by direct integration</em>, CAGD <strong>74</strong> (2019) 101773.
+            — &ldquo;only a subset of the rational PH curves admits rational arc lengths&rdquo;; §1,
+            §2, Props. 1–3. The class is theirs; what slide 15 adds is where the subset ends.
+          </p>
+          <p>
+            <strong>○</strong> R. T. Farouki, C. Giannelli, A. Sestini, <em>New developments in theory,
+            algorithms, and applications for Pythagorean-hodograph curves</em> (2019) — the survey,
+            still unread.
           </p>
           <p style={{ marginTop: '0.6em', opacity: 0.75 }}>
             <strong>Owed, and in the folder unread:</strong> A. Altavilla, H.-P. Schröcker, Z. Šír,
