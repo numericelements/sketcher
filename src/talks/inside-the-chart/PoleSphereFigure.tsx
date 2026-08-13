@@ -24,6 +24,12 @@
 // N(r) = −p(r) exactly (tangentIndicatrix.test.ts). Same handles, same state (chartModel.ts): whatever
 // you set up here is what the next slide opens on.
 //
+// AND NO ENDPOINT MARKS EITHER. The ends of the drawn piece were once dotted on the sphere, on the
+// theory that the held data should be visible rather than asserted. They were noise: the heavy dark
+// arc already says which part of the indicatrix the drawn curve uses, and it says it along its whole
+// length instead of at two points. Two fewer marks on a picture that already carries a sphere, three
+// great circles, two curve weights and a violet strand.
+//
 // NO STRICT/FREE TOGGLE HERE, deliberately. The two modes differ only in which control points you may
 // grab, and this figure draws none — the toggle would be a handle that changes nothing visible. The
 // sliders stay, because they do act on the sphere. The curve slide carries the toggle.
@@ -132,10 +138,6 @@ export default function PoleSphereFigure() {
       {/* the corner: one strand in and out through the cusp */}
       <Curve3D points={corner} color={FIG.color.pole} width={3} />
       <Point3D position={cusp} color={FIG.color.pole} radius={0.05} />
-
-      {/* the ends of the drawn piece, so the data STRICT holds is visible rather than asserted */}
-      <Point3D position={tri(indicatrixAt(member, 0))} color={FIG.color.pinned} radius={0.035} />
-      <Point3D position={tri(indicatrixAt(member, 1))} color={FIG.color.dataPoint} radius={0.035} />
     </Figure3D>
   )
 }
