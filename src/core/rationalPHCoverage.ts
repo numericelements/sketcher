@@ -46,6 +46,7 @@
 // three-pole family is exactly such a component. So the honest deliverable is a table by component,
 // not a single verdict.
 // ============================================================================
+import { leastSquares } from './linalg'
 import { hodographNumerator, squareRootMismatch, type RationalCurve } from './rationalCurveBlend'
 import { orthonormalise } from './sp11RationalPH'
 import {
@@ -184,6 +185,27 @@ export function familyTangent(prm: MultiPoleParams, degP: number, degW: number, 
     cols.push(v)
   }
   return cols
+}
+
+/**
+ * Newton back onto the PH variety, holding the shift fixed. Used to WALK a missing direction: step off
+ * the family along it, come back down onto the variety, and look at what you have arrived at.
+ */
+export function projectToVariety(
+  x0: readonly number[], degP: number, degW: number, t0 = 0.5, iterations = 40,
+): { x: number[]; residual: number } {
+  const f = (y: readonly number[]): number[] => phEquations(y, degP, degW, t0)
+  let x = x0.slice()
+  for (let it = 0; it < iterations; it++) {
+    const F = f(x)
+    if (Math.max(...F.map(Math.abs)) < 1e-13) break
+    const J = jacobianOf(f, x, 1e-6)
+    try {
+      const step = leastSquares(J, F.map((v) => -v), 1e-10)
+      x = x.map((v, j) => v + step[j])
+    } catch { break }
+  }
+  return { x, residual: Math.max(...f(x).map(Math.abs)) }
 }
 
 export interface CoverageReport {
