@@ -50,8 +50,10 @@
 //      GAUGE artefact; the circle's exclusion was ours, not the construction's
 //  21  CAN YOU BUILD WITH IT? -- factorisation gives the group half free and    [MEAS] [OPEN]
 //      no PH; the spinor is findable by LM at 1e-16; still no coordinates
+//  22  THE VARIETY IS SMOOTH WHERE WE STALLED -- Jacobian rank 6 everywhere      [MEAS]
+//      incl. the excluded stratum; local coordinates EXIST, we lack a formula
 //
-// 18-21 are BUILT and sit at the end of the array, out of order. They were written as the work
+// 18-22 are BUILT and sit at the end of the array, out of order. They were written as the work
 // happened; 14-16 slot in ahead of them.
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
@@ -2573,5 +2575,165 @@ export const slides: SlideDefinition[] = [
       + 'for wanting a covariant chart in the first place (see "Two ways in": what a chart buys is '
       + 'that PH costs nothing inside it, and that you can DRAG along it). "The gauge came off, the '
       + 'coordinates did not come with it" is the sentence to end on.',
+  },
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "Can you build with it?")
+  // The Jacobian rank test: the variety is smooth, and the wall was the chart's
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>The variety is smooth where we stalled</h2>
+        <p>
+          The last slide ended badly on purpose: the gauge came off, the coordinates did not come
+          with it. Before hunting for coordinates it is worth asking whether anything is{' '}
+          <em>preventing</em> them — whether the set of admissible spinors is singular exactly where
+          our charts keep failing. That is a measurement, not an opinion.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>The object, with the dial eliminated.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Remove <Math>{'\\lambda'}</Math> and the residue conditions become pure{' '}
+          <strong>quadrics</strong> in the spinor:
+        </p>
+        <Math display>
+          {'F_k(\\mathcal{A}) \\;=\\; N^{\\prime}(r_k) - 2\\,N(r_k)\\,\\Sigma_k , \\qquad N = \\mathcal{A}\\,i\\,\\mathcal{A}^{*}'}
+        </Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          three real equations per real pole. For a cubic spinor and two poles that is a map{' '}
+          <Math>{'\\mathbb{R}^{16} \\to \\mathbb{R}^{6}'}</Math>, and{' '}
+          <Math>{'V = F^{-1}(0)'}</Math> is the whole admissible set. Its dimension should be{' '}
+          <strong>10</strong> — and three independent counts agree:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.1em',
+            margin: '0.35em 0 0.5em 1.2em',
+            fontSize: '0.79em',
+            alignItems: 'baseline',
+          }}
+        >
+          <span><Math>{'16 - 6'}</Math></span>
+          <span style={{ opacity: 0.8 }}>unknowns minus equations</span>
+          <span><Math>{'8 + 2'}</Math></span>
+          <span style={{ opacity: 0.8 }}>
+            the family at <em>fixed</em> dials, plus the two dials
+          </span>
+          <span><Math>{'4(n+1) - 3m'}</Math></span>
+          <span style={{ opacity: 0.8 }}>
+            the ledger from two slides ago, with <Math>{'\\lambda'}</Math> given back
+          </span>
+        </div>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>The rank, measured. Central differences are exact on a quadratic map.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto 1fr',
+            gap: '0.3em 1.2em',
+            margin: '0.4em 0 0.5em 1.2em',
+            fontSize: '0.8em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>where</span>
+          <span style={{ opacity: 0.6 }}>rank of 6</span>
+          <span style={{ opacity: 0.6 }} />
+          <span>40 samples across <Math>{'V'}</Math></span>
+          <span><strong>6</strong></span>
+          <span>full, every one</span>
+          <span>
+            <Math>{'\\mathcal{A}(r) = 0'}</Math> at both poles
+          </span>
+          <span><strong>6</strong></span>
+          <span>
+            <strong>the excluded stratum — still smooth</strong>
+          </span>
+          <span>
+            <Math>{'\\mathcal{A}'}</Math> doubly rooted at a pole
+          </span>
+          <span>3</span>
+          <span>one pole&rsquo;s three conditions dying</span>
+          <span>
+            <Math>{'\\mathcal{A} = 0'}</Math>
+          </span>
+          <span>0</span>
+          <span style={{ opacity: 0.7 }}>the origin</span>
+        </div>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>Read the second row again.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          At a real pole <Math>{'\\sigma(r) = |\\mathcal{A}(r)|^2'}</Math> vanishes exactly when{' '}
+          <Math>{'\\mathcal{A}(r) = 0'}</Math> — the stratum that holds the circle, the whole
+          conformal family, and every curve our charts have refused. The rank there is{' '}
+          <strong>full</strong>. Those are <em>ordinary smooth points</em> of the variety. The wall
+          was never in the geometry; it was in the chart, which divides by{' '}
+          <Math>{'\\mathcal{A}(r)'}</Math> and cannot.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And then the consequence that changes the problem.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Constant rank on a neighbourhood makes <Math>{'V'}</Math> a smooth{' '}
+          <Math>{'10'}</Math>-manifold there. So by the implicit function theorem a chart with honest
+          coordinates <strong>exists</strong> around every point we have visited.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            We are not blocked by the geometry. We are missing a formula.
+          </strong>
+        </p>
+        <p>
+          Which also settles a warning worth retiring. &ldquo;Not a smooth manifold everywhere&rdquo;
+          is true — but the singular locus needs{' '}
+          <Math>{'\\mathcal{A}(r) = \\mathcal{A}^{\\prime}(r) = 0'}</Math>, eight real conditions,{' '}
+          <strong>codimension 8 inside a 10-dimensional variety</strong>. Nothing this work has ever
+          touched is near it, and none of the stalls came from there.
+        </p>
+        <Cite>
+          Measured in <Math>{'\\texttt{sp11VarietyRank}'}</Math>. The rank is exact rather than
+          estimated: central differences differentiate a quadratic map with no truncation error.
+          The quadric count also reconciles with the linear ledger — a real pole costs 4 conditions
+          given <Math>{'\\lambda'}</Math>, minus 1 for <Math>{'\\lambda'}</Math>, leaving 3; a
+          conjugate pair costs 8 minus 2, leaving 6.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE ANSWERS THE PREVIOUS ONE, which ended on "the coordinates did not come with it". '
+      + 'Before hunting for coordinates, ask whether anything is PREVENTING them. That reframing is '
+      + 'the reason the slide exists -- it converts a vague discouragement into a measurable question. '
+      + 'ELIMINATE THE DIAL FIRST and the conditions become pure QUADRICS, three real equations per '
+      + 'real pole. That is the honest object: R^16 -> R^6 for a cubic spinor and two poles. Give the '
+      + 'three independent routes to dimension 10 -- unknowns minus equations, the fixed-dial family '
+      + 'plus the dials, and the ledger formula. Three agreeing counts is what makes the rest '
+      + 'trustworthy, and it costs one line. '
+      + 'SAY THAT CENTRAL DIFFERENCES ARE EXACT HERE. On a quadratic map there is no truncation error, '
+      + 'so these are true ranks, not estimates. An audience that has watched three slides of '
+      + 'measurement will want to know which numbers are exact and which are approximate. '
+      + 'THE SECOND ROW OF THE TABLE IS THE SLIDE. sigma(r) = 0 at a real pole means A(r) = 0, and '
+      + 'that is the stratum holding the circle, the conformal family, and every curve our charts '
+      + 'refused. The rank there is FULL. They are ordinary smooth points. Pause here -- three '
+      + 'earlier slides argued this on structural grounds; this measures it at the point itself. '
+      + 'THEN THE IMPLICIT FUNCTION THEOREM, and do not rush it. Constant rank means local '
+      + 'coordinates EXIST around everywhere we have been. So the failure to produce a chart is not '
+      + 'an obstruction -- it is a missing formula. That is a completely different problem from "the '
+      + 'variety is singular here", and it is a much better one to have. "We are not blocked by the '
+      + 'geometry, we are missing a formula" is the line to land. '
+      + 'CLOSE BY RETIRING THE WARNING. "Not a smooth manifold everywhere" is technically true and '
+      + 'practically irrelevant: codimension 8 inside a 10-dimensional variety. Worth saying because '
+      + 'that warning, left unqualified, would send someone looking for trouble in the wrong place.',
   },
 ]
