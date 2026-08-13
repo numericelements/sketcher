@@ -58,11 +58,22 @@ const ZERO: Quat[] = Array.from({ length: 3 }, () => ({ u: 0, v: 0, p: 0, q: 0 }
 
 /** The member both slides open on — the same seed the horizon dial has always used. */
 /**
- * THE OPENING TWIST IS NOT ZERO, and that is a measured decision. λ = 0 makes the curve EXACTLY
- * planar — off-plane distance 0.0e+0 at every fibre member tried — because λ is the frame twist rate
- * at the pole and zero twist leaves the hodograph in a plane. Opening a spatial deck on the one
- * setting of the dial that is flat would have been an unforced error; both figures opened there until
- * this was measured. λ = tan 35° ≈ 0.70.
+ * THE OPENING TWIST IS NOT ZERO, and the reason is not the one first recorded here.
+ *
+ * WHAT WAS CLAIMED AND IS FALSE: that λ = 0 makes the curve exactly planar. It was measured, four
+ * fibre members read 0.0e+0 off-plane, and it was an ARTEFACT OF THE SAMPLING. That measurement drew
+ * t over [−1, 2], which crosses the pole; near the pole c(t) ≈ p(r)/(w′(r)(t−r)), so the samples run
+ * off to infinity along the single direction p(r) and swamp the point cloud. The moment matrix goes
+ * nearly rank ONE and every curve reads as planar — most strongly at λ = 0, where the pole is most
+ * genuine, which is exactly the false signal. Sampled over the drawn piece [0,1] there is no
+ * distinguished angle: off-plane sits around 1e-4 across the whole dial.
+ *
+ * WHAT IS TRUE, and it is the better reason. At BOTH ends of the dial the pole CANCELS: |p(r)| falls
+ * from 4.35 of the coefficient scale at θ = 0 to 2.7e-5 at θ = ±89.9°, the quotient p/(t−r) is a
+ * cubic, and w/(t−r) is the constant 1. So the ends of the slider are where the rational quartic
+ * degenerates to a polynomial CUBIC — degree 4 → 3, one pole gone. Opening there would show a
+ * polynomial curve in a deck about rational ones. 35° is comfortably inside, and θ = 0 is where the
+ * pole is most genuine.
  */
 export const OPENING_THETA = 35
 
