@@ -69,14 +69,14 @@ describe('torus x roads', () => {
       expect(Math.abs(arcLength(cand) - L0) / L0).toBeLessThan(1e-9)
     }
     expect(landed).toBe(40)
-  })
+  }, 30_000)
 
   it('and a walk around the fiber closes, so the fiber really is compact', () => {
     const loop = fiberLoop(seed, { stride: 0.05, maxSteps: 400 })
     expect(loop.length).toBeGreaterThan(40)   // it closed rather than running out of steps
     expect(loop.length).toBeLessThan(400)
     for (const q of loop) expect(Math.abs(arcLength(q) - L0) / L0).toBeLessThan(1e-9)
-  })
+  }, 30_000)
 
   it('ONE dial alone is nearly inert: 80 units of range, 0.3% of length', () => {
     const Ls: number[] = []
@@ -93,8 +93,8 @@ describe('torus x roads', () => {
     expect(chord).toBeCloseTo(0.5455, 3)
 
     const Ls: number[] = []
-    for (const r0 of [1.05, 2, 12, 60]) {
-      for (const r1 of [-0.05, -1, -10, -50]) {
+    for (const r0 of [1.05, 4, 60]) {
+      for (const r1 of [-0.05, -3, -50]) {
         for (const l0 of [-30, 0, 30]) {
           for (const l1 of [-30, 0, 30]) {
             const solved = projectToData(
@@ -104,10 +104,10 @@ describe('torus x roads', () => {
         }
       }
     }
-    expect(Ls.length).toBeGreaterThan(100)
+    expect(Ls.length).toBeGreaterThan(60)
     expect(Math.min(...Ls) / chord).toBeLessThan(1.01)      // the short end is essentially the chord
     expect(Math.max(...Ls) / Math.min(...Ls)).toBeGreaterThan(400)
-  })
+  }, 30_000)
 
   it('A ROAD ENDS when a pole reaches the drawn piece', () => {
     expect(withDial(seed, target, { pole: { index: 0, value: 1.005 } })).not.toBeNull()

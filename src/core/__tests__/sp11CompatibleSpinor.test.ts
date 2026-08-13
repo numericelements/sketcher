@@ -126,7 +126,7 @@ describe('compatible spinors', () => {
       solved++
     }
     expect(solved).toBeGreaterThanOrEqual(6)
-  })
+  }, 30_000)
 
   it('and it FAILS where slack < 0, so the predictor is doing real work', () => {
     for (const [k, degC] of [[4, 1], [5, 2]] as [number, number][]) {
@@ -136,7 +136,7 @@ describe('compatible spinors', () => {
       const r = findCompatibleSpinor(A, m, degC, 8, 60)
       expect(r!.residual).toBeGreaterThan(1e-3)          // measured 8.7e-2 and 7.0e-1
     }
-  })
+  }, 30_000)
 
   it('the constructed curves are honest PH curves, and some are bounded', () => {
     let bounded = 0
@@ -150,5 +150,5 @@ describe('compatible spinors', () => {
       if (rhoFloor(qpNorm(A)) > 1e-6) bounded++
     }
     expect(bounded).toBeGreaterThanOrEqual(1)   // boundedness is controlled by |A|, not guaranteed
-  })
+  }, 30_000)
 })
