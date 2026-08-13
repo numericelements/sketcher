@@ -483,3 +483,15 @@ export function toRealDenominator(U: Column, tol = 1e-9): { p: Poly[]; w: Poly }
   // this does not do, so the degree reported here is an upper bound on the minimal one.
   return { w: qpNorm(U.A), p: [CA[1], CA[2], CA[3]] }
 }
+
+/**
+ * The ℝ^{4,1} conformal vector of the curve: Ĥ = UU† = (|A|², AC̄, |C|²), which for U = (w, p) is
+ * (w², −wp, |p|²) — the standard null lift w²·(1, x, |x|²). Möbius acts LINEARLY on this too, by
+ * H ↦ GHG†, so it is the fair comparison for the column. The point of the comparison is the DEGREE:
+ * every entry here is a product of two entries of U, so this representation is the SQUARE of the
+ * column. The column is its spinor square root, which is why Möbius never grows a degree there.
+ */
+export function conformalLift(U: Column): { h11: Poly; h12: Poly[]; h22: Poly } {
+  const h12 = qpMul(U.A, qpConj(U.C))
+  return { h11: qpNorm(U.A), h12: [h12[1], h12[2], h12[3]], h22: qpNorm(U.C) }
+}
