@@ -18,16 +18,18 @@
 // fixed pole, and that both handles TRACK — the cursor gets what it asked for, rather than the solver
 // finding some nearby member and calling it done.
 //
-// The third claim, that routing P₀ to the solver breaks things, is why this file exists at all: it
-// was draggable in free mode and wired to dragWithEndHeld, which was asked for a motion the family
-// cannot make and spent the whole admissible subspace failing to make it. On screen the control
-// points flew apart.
+// AND P₀ HAS ITS OWN GESTURE, which took two attempts. Asking the solver to move control point 0 is
+// asking for a motion the family cannot make — it spends the whole admissible subspace failing, and
+// on screen the control points fly apart. The correct call moves nothing by index: P₀ goes to the
+// cursor as a change of ORIGIN, and the family re-solves to leave c(1) where it was on screen, which
+// is dragWithEndHeld(prm, null, null, held). Pinned below, because a handle that silently does
+// nothing looks exactly like a handle that is working.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
   type MultiPoleParams,
-  controlStructure, curveAt, dataOf, derivativeAt, familyBasis, phDefect, projectToData,
-  toMember, unpackSpinor,
+  controlStructure, curveAt, dataOf, derivativeAt, dragWithEndHeld, familyBasis, phDefect,
+  projectToData, toMember, unpackSpinor,
 } from '../rationalPHMultiPoleSpatial'
 import type { Quat, Vec3 } from '../quaternion'
 
@@ -98,6 +100,23 @@ describe('the three strict handles', () => {
       expect(dist(curveAt(m, 1), want)).toBeLessThan(1e-7)
       expect(dist(derivativeAt(m, 0), { x: base[0], y: base[1], z: base[2] })).toBeLessThan(1e-6)
       expect(phDefect(m)).toBeLessThan(1e-12)
+    }
+  })
+
+  it('SLIDING P₀ IN FREE MODE: the far end can be held anywhere the picture asks for', () => {
+    // The gesture: P₀ goes to the cursor and the family re-solves so c(1) stays put ON SCREEN. In the
+    // family's own coordinates that means moving c(1) BY THE OPPOSITE of the drag, which is the call
+    // the figure makes. It has to actually land, or the handle silently does nothing.
+    const m0 = toMember(SEED)
+    const end0 = curveAt(m0, 1)
+    for (const [dx, dy, dz] of [[0.2, 0, 0], [0, -0.3, 0.1], [-0.15, 0.2, 0.25]]) {
+      const held: Vec3 = { x: end0.x - dx, y: end0.y - dy, z: end0.z - dz }
+      const solved = dragWithEndHeld(SEED, null, null, held)
+      expect(solved).not.toBeNull()
+      const m = toMember(solved!)
+      expect(dist(curveAt(m, 1), held)).toBeLessThan(1e-6)     // it lands where asked
+      expect(phDefect(m)).toBeLessThan(1e-12)                  // and is still exactly PH
+      expect(Math.hypot(...[curveAt(m, 0)].flatMap((v) => [v.x, v.y, v.z]))).toBeLessThan(1e-12)
     }
   })
 

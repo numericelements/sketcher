@@ -40,6 +40,7 @@ import type { Quat, Vec3 } from '../../core/quaternion'
 import {
   type MultiPoleParams,
   controlStructure,
+  curveAt,
   dataOf,
   derivativeAt,
   dragWithEndHeld,
@@ -160,9 +161,37 @@ export const chart = {
     emit({ phase: u, live: loop[i], stalled: false })
   },
 
-  /** P₀ is the translation gauge made visible. Nothing re-solves; the whole picture slides. */
-  translate(p: Vec3): void {
-    emit({ origin: p, stalled: false })
+  /**
+   * P₀ IS THE ORIGIN, so its world position IS the offset — pass the cursor in WORLD coordinates, not
+   * curve-local ones. p(0) = 0 puts P₀ at the family's own zero, so `origin` and P₀'s screen position
+   * are the same point; converting to local first and then assigning sets origin = cursor − origin,
+   * which is what made the handle refuse to follow the mouse.
+   *
+   * STRICT: a pure translation. The whole picture slides and the curve is unchanged, which is exactly
+   * what the three translation dimensions are.
+   */
+  translate(world: Vec3): void {
+    emit({ origin: world, stalled: false })
+  },
+
+  /**
+   * FREE: the mirror of an interior drag. There the ends hold while the middle moves; here P₀ goes to
+   * the cursor while the family re-solves to leave c(1) where it was ON SCREEN, so the curve stretches
+   * between them. Same gesture the sibling ph-interpolation figure has.
+   */
+  slideStart(world: Vec3): void {
+    const m = toMember(state.live)
+    const end = curveAt(m, 1)
+    const held = {
+      x: end.x + state.origin.x - world.x,
+      y: end.y + state.origin.y - world.y,
+      z: end.z + state.origin.z - world.z,
+    }
+    const solved = dragWithEndHeld(state.live, null, null, held)
+    if (!solved) { emit({ stalled: true }); return }
+    emit({
+      origin: world, live: solved, target: dataOf(toMember(solved)), stalled: false,
+    })
   },
 
   /**
@@ -200,7 +229,7 @@ export const chart = {
    * family cannot make, and spent the whole admissible subspace failing to make it. P₀ translates.
    */
   dragFree(index: number, p: Vec3, lastIndex: number): void {
-    if (index === 0) { chart.translate(p); return }
+    if (index === 0) { chart.slideStart(p); return }
     const end = { x: state.target[3], y: state.target[4], z: state.target[5] }
     const held = index === lastIndex ? p : end
     const next = index === lastIndex

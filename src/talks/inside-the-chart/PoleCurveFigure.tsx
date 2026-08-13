@@ -159,8 +159,14 @@ export default function PoleCurveFigure() {
             color={i === 0 ? FIG.color.pinned : FIG.color.dataPoint}
             radius={i === 0 || i === last ? 0.075 : 0.062}
             onDrag={(q) => {
+              // P₀'s handle speaks WORLD coordinates, because its world position IS the offset.
+              if (i === 0) {
+                const world = { x: q[0], y: q[1], z: q[2] }
+                if (strict) chart.translate(world)
+                else chart.slideStart(world)
+                return
+              }
               const v = local(q)
-              if (i === 0) { chart.translate(v); return }
               if (!strict) { chart.dragFree(i, v, last); return }
               if (i === last) chart.dragEnd(v)
               else chart.dragTangent(v)
