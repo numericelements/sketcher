@@ -21,7 +21,7 @@
 //
 // AUDIENCE: someone who already knows what a PH curve is. One recap slide, then straight in.
 //
-// THE ARC (built through 13; 14-16 planned; two END slides built ahead of them, see below):
+// THE ARC (built through 14; 15-17 planned; two END slides built ahead of them, see below):
 //
 //   1  title, with the tag legend
 //   2  a circle is not a polynomial -- the shape, and whose fault it is        [THM]
@@ -36,7 +36,8 @@
 //  11  and most spinors fail it -- the condition, and genericity                [LIT]
 //  12  THE FAMILY IS COMPLETELY KNOWN -- and ours is a chart on it, declared    [LIT]
 //  13  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
-//  14  torus x roads -- and the roads end at cusps and pole collisions          [MEAS]
+//  14  TORUS x ROADS -- the torus survives intact, roads bolted on; length x510  [MEAS]
+//      and the roads end at POLES, not cusps (the planned line said cusps; wrong)
 //  15  arc length: when it survives and when it does not, from the two examples [LIT] [MEAS]
 //  16  the ledger, both columns                                                 --
 //  17  what is open, and where to go next                                       [OPEN]
@@ -1632,6 +1633,155 @@ export const slides: SlideDefinition[] = [
       + 'torus: more angles, no new KIND of freedom, nothing with a name. Here an extra pole buys a '
       + 'degree AND a named dial while the loop stays one-dimensional. That is a structural difference, '
       + 'not just a bigger number, and it is the strongest thing in the return column.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 14 — the answer set, rationalised: the torus survives, and roads are bolted on
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>Torus × roads</h2>
+        <p>
+          Same interpolation problem as before, now solved in the rational family. The answer set has
+          grown, and it has grown in a very particular way: <strong>the old shape is still in it,
+          untouched, with new directions bolted on.</strong>
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>Hold the poles and the dials, and nothing has changed.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The solutions form a closed fiber over the data, and a walk around it returns after 156
+          steps. On <em>all</em> of it, arc length is <Math>{'0.555996'}</Math> — not nearly, not to
+          plotting accuracy: 200 probes out of 200, every digit. The torus came through
+          rationalisation intact, and so did its one incapacity. <strong>It still cannot choose
+          length.</strong>
+        </p>
+
+        <p style={{ marginBottom: '0.15em', marginTop: '0.5em' }}>
+          <strong>The new directions are the poles and their dials — and they are not circles.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Each <Math>{'r_k'}</Math> runs over the line minus the drawn piece; each{' '}
+          <Math>{'\\lambda_k'}</Math> over all of <Math>{'\\mathbb{R}'}</Math> — walked to{' '}
+          <Math>{'\\pm 40'}</Math> without ending. Open, unbounded. You travel and you do not come
+          back. And that is where the missing freedom turns out to live:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr auto',
+            gap: '0.3em 1.1em',
+            margin: '0.45em 0 0.5em 1.2em',
+            fontSize: '0.8em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>the same data, met by</span>
+          <span style={{ opacity: 0.6 }} />
+          <span style={{ opacity: 0.6 }}>arc length</span>
+          <span>the torus</span>
+          <span style={{ opacity: 0.8 }}>poles and dials held</span>
+          <span>
+            <strong>0.555996</strong>, exactly
+          </span>
+          <span>one dial alone</span>
+          <span style={{ opacity: 0.8 }}>
+            <Math>{'\\lambda_1'}</Math> swept across <Math>{'[-39, +41]'}</Math>
+          </span>
+          <span>0.3 % of range</span>
+          <span>poles and dials together</span>
+          <span style={{ opacity: 0.8 }}>the chord is <Math>{'0.5455'}</Math></span>
+          <span>
+            <strong>0.547 → 279</strong>
+          </span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          A factor of <strong>510</strong> — from 0.3 % above the straight line to five hundred times
+          it. Note the middle row: <em>one</em> dial is nearly inert. The freedom is in the{' '}
+          <strong>coupling</strong>, and the extremes come from a pole nearly touching the interval
+          paired with a large dial.
+        </p>
+
+        <p style={{ marginTop: '0.6em', marginBottom: '0.15em' }}>
+          <strong>Roads end. Not where a PH reflex looks for the end.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.3em 1.1em',
+            margin: '0.35em 0 0.4em 1.2em',
+            fontSize: '0.8em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>a pole reaches the piece</span>
+          <span style={{ opacity: 0.85 }}>
+            solvable down to <Math>{'r = 1.005'}</Math>, gone at <Math>{'r = 1.0000'}</Math>
+          </span>
+          <span>two poles collide</span>
+          <span style={{ opacity: 0.85 }}>
+            solvable to <Math>{'r = 2.5995'}</Math>, gone at <Math>{'2.6000'}</Math> — where{' '}
+            <Math>{'\\Sigma'}</Math> blows up
+          </span>
+          <span style={{ opacity: 0.55 }}>a cusp</span>
+          <span style={{ opacity: 0.55 }}>
+            never. Smallest speed along a whole road: <Math>{'0.445'}</Math>
+          </span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          And the last row is structural, not luck. <Math>{'\\sigma = |\\mathcal{A}|^2'}</Math> is a
+          sum of four squares, so a cusp needs all four components of <Math>{'\\mathcal{A}'}</Math> to
+          vanish at the <em>same</em> real <Math>{'t'}</Math>: four conditions against a
+          one-parameter walk. You can build a cusp. You will not drive into one.
+        </p>
+
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            The polynomial world&rsquo;s boundary is cusps. The rational world&rsquo;s boundary is
+            poles.
+          </strong>
+        </p>
+        <p>
+          The hazard moved along with the freedom, and to the same place. Length was bought from the
+          poles; so was the wall.
+        </p>
+        <Cite>
+          All figures measured in this repository on the spatial quintic seed —{' '}
+          <Math>{'\\texttt{rationalPHMultiPoleSpatial}'}</Math>, two poles at{' '}
+          <Math>{'1.7, -0.9'}</Math>, dials <Math>{'0.6, -0.35'}</Math>; pinned in{' '}
+          <Math>{'\\texttt{torusTimesRoads.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS SLIDE 4 ASKED AGAIN IN THE RATIONAL FAMILY, so open by pointing back at it. There '
+      + 'the answer set was a torus, compact, and length was constant on the cubic circle. The question '
+      + 'here is what rationalising does to that picture, and the answer has a satisfying shape: the '
+      + 'old object is still there UNCHANGED, with new directions bolted on. Nothing was deformed. '
+      + 'THE EXACTNESS IS THE POINT OF THE FIRST BLOCK and it is stronger than what slide 4 could say. '
+      + 'Slide 4 said length "barely varies" on the quintic torus. Here, with poles and dials held, it '
+      + 'is 0.555996 on 200 of 200 probes -- every digit, not a tolerance. Say "exactly" and mean it. '
+      + 'THE THREE-ROW TABLE IS THE ARGUMENT and the middle row is the one people miss. Sweeping ONE '
+      + 'dial across eighty units of range moves length by 0.3 percent -- nearly inert. It is only when '
+      + 'poles and dials move TOGETHER that the range opens to a factor of 510. The freedom is in the '
+      + 'coupling, which is why "the dial controls length" would be the wrong summary. '
+      + 'ANCHOR 510 AGAINST THE CHORD or the number is meaningless: 0.5455 is the straight line, so the '
+      + 'short end is essentially the geodesic and the long end is five hundred times it. Same six '
+      + 'numbers of data, that whole spectrum. '
+      + 'THE CUSP ROW IS A CORRECTION I MADE TO MY OWN PLAN and it is worth saying out loud rather than '
+      + 'quietly dropping. I had written "the roads end at cusps and pole collisions." Collisions, yes, '
+      + 'measured to the last solvable step. Cusps, no -- and not by luck. sigma is a sum of four '
+      + 'squares, so a cusp is four simultaneous conditions and a road is one parameter. A PH audience '
+      + 'has cusps as a REFLEX -- it is the classical hazard of the polynomial theory -- so this lands. '
+      + 'THE CLOSING LINE IS THE LEDGER ENTRY. Cusps out, poles in. The freedom and the hazard came '
+      + 'from the same place, which is exactly the kind of paired entry this deck exists to record.',
   },
 
   // ---------------------------------------------------------------------------
