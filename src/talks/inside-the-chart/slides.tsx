@@ -29,12 +29,12 @@
 // AUDIENCE: someone who knows what a PH curve is and has seen a rational one. The theory
 // is cited to price-of-a-circle and to FOUNDATIONS, never re-derived.
 //
-// STATUS: title and slide 1 built. The first figure is the horizon dial (see slide 1's
-// notes for why that one goes first, and what it corrected on the way).
+// STATUS: title, slide 1, and the first figure (the horizon dial) built.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
 import { Tag, Cite, TagLegend } from '../framework/SlideTag'
+import HorizonDialFigure from './HorizonDialFigure'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
@@ -124,7 +124,8 @@ export const slides: SlideDefinition[] = [
         <p style={{ marginLeft: '1.2em' }}>
           For the curve this deck opens with — a rational PH <strong>quartic</strong>, spinor degree
           2, one pole — that is <Math>{'8'}</Math> fibre directions and <Math>{'1'}</Math> dial.
-          Nine numbers, and the figure will let you move all nine.
+          Nine numbers. The next slide puts the <em>dial</em> on screen, because it is the one with a
+          name and the one that runs out; the fibre gets its own figure later.
         </p>
 
         <p style={{ marginTop: '0.5em' }}>
@@ -160,6 +161,10 @@ export const slides: SlideDefinition[] = [
       + 'directions, and for the quartic that opens the deck it is nine numbers total. Nine is a '
       + 'number a listener can hold, and the first figure lets them move all nine, so the count '
       + 'stops being abstract on the very next slide. '
+      + 'DO NOT PROMISE ALL NINE HANDLES HERE. The next figure exposes the DIAL only, and '
+      + 'deliberately: it is the coordinate with a name and the one that runs out, and eight fibre '
+      + 'sliders beside it would bury the two readouts that carry the argument. The fibre gets its '
+      + 'own figure, in strict mode, where the greying is the point. '
       + 'THE FIBRE BEING LINEAR IS THE PART THAT SURPRISES PEOPLE. Hold the dials and the admissible '
       + 'spinors form a VECTOR SPACE — you can add two of them. That is why the strict mode can grey '
       + 'out dependent control points honestly rather than by convention: the number of free ones is '
@@ -170,5 +175,73 @@ export const slides: SlideDefinition[] = [
       + 'about atlases is downstream of this one sentence. '
       + 'CLOSE BY POSING THE TWO QUESTIONS the deck answers, so the figures arrive as answers rather '
       + 'than demonstrations: what do the handles DO, and what happens when one stops.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 3 — the first figure: turn the dial until the chart runs out
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>Turn it until it stops</h2>
+        <HorizonDialFigure />
+        <p style={{ marginTop: '0.5em' }}>
+          One pole, one dial, a rational PH quartic — the nine coordinates of the previous slide,
+          with the dial on screen. The data is <em>held</em>: the ends never move, so everything you
+          see is motion inside a single fibre.
+        </p>
+        <p>
+          Push θ toward <Math>{'\\pm 90^{\\circ}'}</Math> and the chart&rsquo;s own coordinate{' '}
+          <Math>{'\\sigma(r)'}</Math> runs out — five orders of magnitude, smoothly, because{' '}
+          <Math>{'\\sigma(r) \\propto 1/\\lambda^2'}</Math> and{' '}
+          <Math>{'\\lambda = \\tan\\theta'}</Math>. That endpoint is the{' '}
+          <Math>{'\\sigma = 0'}</Math> stratum: the circle, and the whole conformal family. So the
+          dial is a walk toward the part of the space this chart cannot hold.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            The coordinate collapses. The cusp does not.
+          </strong>
+        </p>
+        <p>
+          <Math>{'|T^{\\prime}(r)|'}</Math> sits at machine zero the whole way, and the speed just
+          off the pole <em>grows sevenfold</em>. Which is right: at any finite{' '}
+          <Math>{'\\theta'}</Math> the pole is a real pole, so the curve does reach infinity and the
+          corner is real. It goes only <em>at</em> <Math>{'\\sigma(r) = 0'}</Math> — an angle the
+          chart does not contain.
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          So the edge is not soft. You can approach it in the coordinate and never arrive in the
+          geometry, which is why the other family needs a chart of its own rather than more of this
+          one.
+        </p>
+        <Cite>
+          <Math>{'\\sigma(r) \\propto 1/\\lambda^2'}</Math>, the angle substitution, and the cusp
+          persisting are measured in{' '}
+          <Math>{'\\texttt{stratumIsTheHorizon.test.ts}'}</Math>. That the stratum is smooth — these
+          are ordinary points of the variety, not a singularity — is{' '}
+          <Math>{'\\texttt{sp11VarietyRank.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'LET THEM TURN IT BEFORE YOU EXPLAIN IT. The two readouts move in opposite directions and that '
+      + 'contrast is the entire slide; a viewer who has watched it happen needs one sentence, and a '
+      + 'viewer told first needs three. '
+      + 'THE DIAL IS AN ANGLE FOR A MEASURED REASON, worth saying if anyone asks why not lambda. '
+      + 'sigma(r) falls off as 1/lambda^2, so a linear lambda slider can never arrive and spends '
+      + 'nearly all its travel doing nothing. lambda = tan(theta) puts the stratum at the end of a '
+      + 'finite slider. '
+      + 'THE EXPECTATION THIS FIGURE BROKE is worth ten seconds because it is the honest version. It '
+      + 'was built to show the cusp FADING as the pole stopped being a pole. It does not fade -- it '
+      + 'sharpens. At any finite theta the pole is genuinely a pole, so the cusp is genuinely there; '
+      + 'it goes only AT sigma = 0, which is not an angle the chart contains. '
+      + 'AND THAT IS WHY THERE ARE TWO CHART TYPES rather than one with a soft edge. The coordinate '
+      + 'is continuous to the boundary; the geometry is not. If someone asks whether you could just '
+      + 'extend the chart -- no, and this figure is the reason. '
+      + 'IF ASKED WHETHER THE STRATUM IS A SINGULARITY: no. Those are ordinary smooth points of the '
+      + 'variety, full Jacobian rank. It is the CHART that fails there, not the space.',
   },
 ]
