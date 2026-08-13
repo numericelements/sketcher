@@ -46,9 +46,13 @@
 //      outside, and why they are complementary rather than one being a fallback
 //  19  THE FIRST MOVE, MADE -- complex poles: bounded curves in closed form,    [MEAS]
 //      and the circle still outside, on sigma(r) = 0
+//  20  THE DENOMINATOR DID NOT HAVE TO BE REAL -- Sp(1,1), and the wall as a    [THM] [MEAS]
+//      GAUGE artefact; the circle's exclusion was ours, not the construction's
+//  21  CAN YOU BUILD WITH IT? -- factorisation gives the group half free and    [MEAS] [OPEN]
+//      no PH; the spinor is findable by LM at 1e-16; still no coordinates
 //
-// 18 and 19 are BUILT and sit at the end of the array, out of order. They were written when the
-// strategy question came up; 14-16 slot in ahead of them.
+// 18-21 are BUILT and sit at the end of the array, out of order. They were written as the work
+// happened; 14-16 slot in ahead of them.
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
 // These slides are written in conversation, and the conversation carries context the DECK DOES NOT.
@@ -2392,5 +2396,182 @@ export const slides: SlideDefinition[] = [
       + 'Sigma = 0, so the circle keeps its arctangent. Arc length is METRIC and Mobius maps are not '
       + 'isometries. Conformal covariance was never going to reach it, and saying so out loud is what '
       + 'makes the rest of the slide credible.',
+  },
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "The denominator did not have to be real")
+  // Can you build with it? The constructive half, and where it stops.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS', 'OPEN']} />
+        <h2>Can you build with it?</h2>
+        <p>
+          The previous slide said the wall was a <em>gauge</em>, not the geometry. That is a claim
+          about representation, and representation is cheap. The question that decides whether it
+          matters is whether you can <strong>construct</strong> in it.
+        </p>
+        <p>
+          One line sets the problem. Prescribe the spinor <Math>{'\\mathcal{A}'}</Math> and the first
+          entry <Math>{'A'}</Math>, and{' '}
+          <Math>{'C^{*}A^{\\prime} + A^{*}C^{\\prime} = \\mathcal{A}i\\mathcal{A}^{*}'}</Math> is{' '}
+          <strong>linear in <Math>{'C'}</Math></strong>. So the whole difficulty sits in choosing the{' '}
+          <em>pair</em> <Math>{'(A, \\mathcal{A})'}</Math>.
+        </p>
+
+        <p style={{ marginTop: '0.4em', marginBottom: '0.15em' }}>
+          <strong>The obvious attack: factor the motion.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          It is what the classical theory does, and the algebra cooperates beautifully.{' '}
+          <Math>{'\\mathfrak{sp}(1,1)'}</Math> is <Math>{'J'}</Math> times the anti-Hermitian
+          matrices, ten dimensions, and a linear factor <Math>{'F(t) = tI - H'}</Math> stays in the
+          group up to a <em>real</em> scalar exactly when <Math>{'H^2 = -d\\,I'}</Math> — giving{' '}
+          <Math>{'F^{*}JF = (t^2 + d)J'}</Math>. Products of those cost nothing:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.1em',
+            margin: '0.4em 0 0.5em 1.2em',
+            fontSize: '0.79em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>the group</span>
+          <span style={{ opacity: 0.85 }}>
+            <Math>{'\\rho = \\prod (t^2 + d_j)'}</Math>, predicted from the factors alone
+          </span>
+          <span>the null column</span>
+          <span style={{ opacity: 0.85 }}>automatic — nothing to enforce</span>
+          <span>degree</span>
+          <span style={{ opacity: 0.85 }}>
+            <Math>{'\\deg A = k'}</Math>, <Math>{'\\deg C = k-1'}</Math>, one per factor
+          </span>
+          <span>boundedness</span>
+          <span style={{ opacity: 0.85 }}>
+            every <Math>{'d_j > 0'}</Math> and <Math>{'\\rho'}</Math> has no real root
+          </span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          All of it exact, to machine zero. And <strong>none of it is PH.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.1em',
+            margin: '0.35em 0 0.4em 1.2em',
+            fontSize: '0.79em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>one factor</span>
+          <span style={{ opacity: 0.85 }}>
+            always PH, because <Math>{'\\omega_{21} = H_{21}/\\rho'}</Math> has constant direction.
+            Those curves are <em>circles and lines</em>.
+          </span>
+          <span>any elliptic or<br />hyperbolic factor</span>
+          <span style={{ opacity: 0.85 }}>
+            never, at <Math>{'k \\geq 2'}</Math> — <strong>0/103</strong> and <strong>0/114</strong>
+          </span>
+          <span>the survivors</span>
+          <span style={{ opacity: 0.85 }}>
+            all-parabolic products only, and those trace <em>straight lines</em>
+          </span>
+        </div>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.05em' }}>
+            Everything factorisation makes PH for free is degenerate.
+          </strong>
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>But the pair is findable, and not by searching.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The matrix of the linear system depends only on <Math>{'A'}</Math> and{' '}
+          <Math>{'\\deg C'}</Math> — it is <em>fixed</em>. So solvability asks only whether{' '}
+          <Math>{'\\mathcal{A}i\\mathcal{A}^{*}'}</Math> lands in its column space, and that is{' '}
+          <strong>quadratic</strong> in the spinor with an analytic derivative. Levenberg&ndash;Marquardt
+          with the real Jacobian, on the unit sphere because the problem is homogeneous, reaches{' '}
+          <Math>{'10^{-16}'}</Math>. A gradient descent had stalled at{' '}
+          <Math>{'10^{-2}'}</Math> and looked like a wall; it was the method.
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          And a <em>count</em> says in advance when to expect one. With{' '}
+          <Math>{'D'}</Math> the dimension of the achievable Wronskians and{' '}
+          <Math>{'n = \\deg \\mathcal{W}'}</Math>, a perfect square costs{' '}
+          <Math>{'n'}</Math> conditions and one dimension scales out:
+        </p>
+        <Math display>{'\\text{slack} \\;=\\; D - 1 - n .'}</Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          Machine zero at <strong>every</strong> case with <Math>{'\\text{slack} \\geq 0'}</Math>;
+          stalls at <Math>{'8.7\\cdot 10^{-2}'}</Math> and <Math>{'0.70'}</Math> where it is negative.
+          The predictor does real work — and it is <strong>not</strong> a necessary condition: the
+          bounded specimen has <Math>{'\\text{slack} = -3'}</Math> and is an exact solution, because
+          its <Math>{'A'}</Math> came from a real PH curve and is not generic. The count may suggest,
+          never veto.
+        </p>
+
+        <p style={{ marginTop: '0.6em' }}>
+          So there are <strong>three stages that work</strong>: factorisation supplies{' '}
+          <Math>{'A'}</Math> with the group structure and degree control, the solver supplies a
+          compatible spinor, the linear system supplies <Math>{'C'}</Math>. Genuine PH curves, with a
+          feasibility test you can run first.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.08em' }}>
+            What it is not is a chart. The compatible spinors are <em>found</em>, not parametrised —
+            so there are no coordinates, and nothing to drag.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          The gauge came off. The coordinates did not come with it, and that is the next problem.
+        </p>
+        <Cite>
+          Measured here: <Math>{'\\texttt{sp11Factorisation}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11CompatibleSpinor}'}</Math>. One earlier reading of the factorisation
+          result — &ldquo;never PH at <Math>{'k \\geq 2'}</Math>&rdquo; — was an artefact of a
+          square-root test that rejected every square vanishing at the origin, which is exactly what
+          the survivors do; the numbers above are the corrected ones, each verified without it.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE OPENING MOVE IS TO DISCOUNT THE PREVIOUS SLIDE, deliberately. "The wall was a gauge" is a '
+      + 'claim about REPRESENTATION, and representation is cheap. An audience should be asking "so '
+      + 'what?" and this slide asks it for them: can you CONSTRUCT in it. That framing is what keeps '
+      + 'the pair of slides from reading as a victory lap. '
+      + 'STATE THE PROBLEM AS THE PAIR. Given the spinor and A, solving for C is LINEAR -- that part '
+      + 'was already won. So every remaining difficulty is concentrated in choosing (A, spinor), and '
+      + 'saying so makes the rest of the slide a single question rather than a list of experiments. '
+      + 'FACTORISATION IS THE HONEST FAILURE AND IT SHOULD BE PRESENTED AS ONE. The algebra cooperates '
+      + 'beautifully -- group membership, null column, degree, boundedness, all free and all exact to '
+      + 'machine zero -- and then PH simply is not there. The one-factor case IS always PH, with a '
+      + 'two-line reason (omega_21 has constant direction), and the curves are circles and lines. The '
+      + 'survivors at higher k are straight lines. So the summary line is the one to land: everything '
+      + 'it makes PH for free is degenerate. '
+      + 'THE LM RESULT IS THE GOOD NEWS AND THE METHODOLOGICAL LESSON TOGETHER. The matrix is FIXED, so '
+      + 'the question is just "does the sandwich land in a fixed column space", which is quadratic '
+      + 'with an analytic derivative -- a least-squares problem, not a search. It reaches 1e-16. A '
+      + 'gradient descent had stalled at 1e-2 and I had reported that as suggestive of "no". It was '
+      + 'the method, not the mathematics. Worth saying out loud to an audience: a stalled optimiser is '
+      + 'not evidence about a variety. '
+      + 'THE COUNT IS USEFUL AND MUST NOT BE OVERSOLD. slack >= 0 predicts solvability and holds up on '
+      + 'every case tried, but the SPECIMEN has slack = -3 and is an exact solution, because its A is '
+      + 'not generic. So the count may suggest and never veto. That caveat was caught by calibrating '
+      + 'against known-solvable cases BEFORE trusting the count -- which also caught a wrong kernel '
+      + 'extraction that had made the seed itself read as unsolvable. '
+      + 'THE CLOSING IS THE HONEST STATUS AND IT IS DELIBERATELY UNRESOLVED. Three stages work and '
+      + 'produce real PH curves with a feasibility test. But the compatible spinors are FOUND, not '
+      + 'PARAMETRISED, so there are no coordinates -- and coordinates were the entire justification '
+      + 'for wanting a covariant chart in the first place (see "Two ways in": what a chart buys is '
+      + 'that PH costs nothing inside it, and that you can DRAG along it). "The gauge came off, the '
+      + 'coordinates did not come with it" is the sentence to end on.',
   },
 ]
