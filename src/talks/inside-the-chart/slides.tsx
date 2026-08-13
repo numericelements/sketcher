@@ -269,16 +269,15 @@ export const slides: SlideDefinition[] = [
         <h2>The same pole, on the curve</h2>
         <PoleCurveFigure />
         <p style={{ marginTop: '0.5em' }}>
-          Same configuration, same handles — the sphere put away and the curve drawn instead. The
-          violet ray is the <em>same violet vector</em> that was the cusp, because{' '}
-          <Math>{'N(r) = -p(r)'}</Math> exactly. The corner on the sphere <strong>is</strong> the
-          direction the curve escapes along, and the pale continuation runs out beside it and returns
-          from the other side.
+          Same configuration, same handles — the sphere put away and the curve drawn instead. Only the
+          piece you would actually edit is here, <Math>{'t \\in [0,1]'}</Math>, with the pole outside
+          it. The link to the last slide is exact and worth stating even though nothing draws it:{' '}
+          <Math>{'N(r) = -p(r)'}</Math>, so the corner on the sphere <strong>is</strong> the direction
+          the curve escapes along out past <Math>{'t = 1'}</Math>.
         </p>
         <p>
-          Push the pole toward the drawn piece. <em>Infinity to curve</em> closes, the run-out
-          reaches further before it leaves the frame, and the limit is a{' '}
-          <strong>geometric event</strong> — not a solver giving up.
+          Push the pole toward the drawn interval. <em>Infinity to curve</em> closes, and the limit is
+          a <strong>geometric event</strong> — not a solver giving up.
         </p>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.1em' }}>

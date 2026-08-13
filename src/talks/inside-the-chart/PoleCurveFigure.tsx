@@ -1,26 +1,16 @@
 // ============================================================================
 // THE SAME POLE, SEEN ON THE CURVE — second of the pair, and the same state (chartModel.ts).
 //
-// WHAT THE PREVIOUS SLIDE LEFT OWING. There the pole was a violet point on a sphere: a DIRECTION, with
-// nothing yet attached to it. Here it is the direction the curve actually leaves along. The identity
-// is exact, not approximate —
-//
-//     N(r) = −p(r)
-//
-// — measured in tangentIndicatrix.test.ts. So the violet ray drawn from the origin is the same violet
-// vector that was the cusp, and the pale continuation of the curve runs out along it. Push the pole
-// slider toward the drawn piece and the run-out reaches further before it leaves the frame; the
-// readout `infinity to curve` says how close it has come.
+// ONLY THE PIECE YOU WOULD EDIT IS DRAWN — t from 0 to 1, with the pole outside it. An earlier version
+// also drew the curve CONTINUED past the drawn piece, out toward the pole and back from beyond it,
+// with a violet stub marking the escape direction (N(r) = −p(r), so the cusp direction on the sphere
+// is where the curve is heading). It was removed: it cost a third of the frame, pulled the eye off
+// the thing being edited, and the identity it illustrated is stated on the slide anyway. The two
+// slides are paired by their shared handles and shared state, not by a drawn object.
 //
 // AND ONE MEASURED CORRECTION TO THE OBVIOUS CAPTION. Naively ‖c′(1)‖ = σ(1)/(1−r)² should grow more
-// than a thousandfold across this slider. It grows 6.6× (poleSliderHasNoHoles.test.ts), because the
+// than a thousandfold as the pole comes in. It grows 6.6× (poleSliderHasNoHoles.test.ts), because the
 // data is HELD: the solve shrinks σ(1) to compensate, so the curve reshapes rather than blowing up.
-// The blow-up is real and lives past t = 1, on the run-out — not on the drawn piece.
-//
-// AND THE TWO BRANCHES ARRIVE ANTIPARALLEL, which is why the sphere picture stops dead rather than
-// turning: the pole of c′ is of EVEN order, so the tangent has the same limit from both sides while
-// the curve itself escapes one way and returns from the other. That is the corner, seen from the
-// second side.
 //
 // THE HANDLES ARE THE SAME HANDLES, deliberately — pole, twist, fibre phase, and the mode toggle, all
 // from ChartControls. What is added here is the gestures that only make sense on a curve:
@@ -49,7 +39,6 @@ import {
   toMember,
   withDial,
 } from '../../core/rationalPHMultiPoleSpatial'
-import { indicatrixAt } from '../../core/tangentIndicatrix'
 import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 import ChartControls from './ChartControls'
@@ -60,23 +49,6 @@ const SAMPLES = 140
 
 const drawn = (m: ReturnType<typeof toMember>): [number, number, number][] =>
   Array.from({ length: SAMPLES + 1 }, (_, i) => tri(curveAt(m, i / SAMPLES)))
-
-/**
- * The run-out: sampled from the drawn piece toward the pole and stopped when it leaves the box. This is
- * the only place the figure clips anything, and it clips rather than rescales on purpose.
- */
-function runOut(
-  m: ReturnType<typeof toMember>, from: number, to: number, radius: number,
-): [number, number, number][] {
-  const out: [number, number, number][] = []
-  for (let i = 0; i <= 200; i++) {
-    const t = from + ((to - from) * i) / 200
-    const v = curveAt(m, t)
-    if (Math.hypot(v.x, v.y, v.z) > radius) break
-    out.push(tri(v))
-  }
-  return out
-}
 
 /** Framed once, from the seed across the pole slider's range. */
 const BOUNDS = (() => {
@@ -100,10 +72,6 @@ const BOUNDS = (() => {
   return { min: [x0, y0, z0] as [number, number, number], max: [x1, y1, z1] as [number, number, number] }
 })()
 
-const RADIUS = 0.5 * Math.hypot(
-  BOUNDS.max[0] - BOUNDS.min[0], BOUNDS.max[1] - BOUNDS.min[1], BOUNDS.max[2] - BOUNDS.min[2],
-)
-
 export default function PoleCurveFigure() {
   const { live, mode, theta } = useChart()
   const strict = mode === 'strict'
@@ -113,27 +81,6 @@ export default function PoleCurveFigure() {
   const curve = useMemo(() => drawn(member), [member])
   const control = useMemo(() => controlStructure(member).points, [member])
   const last = control.length - 1
-
-  /** Toward the pole from the drawn piece, and back from the far side. */
-  const outbound = useMemo(() => runOut(member, 1, pole - 1e-3, RADIUS), [member, pole])
-  const inbound = useMemo(() => runOut(member, pole + 1e-3, pole + 1.2, RADIUS), [member, pole])
-
-  /**
-   * The violet vector: the cusp on the previous slide, and the escape direction here. Drawn AT THE
-   * RUN-OUT'S EXIT, not from the origin. An earlier version put it at the origin, which happens to be
-   * c(0) because p(0) = 0 — so it read as a line attached to the start point, which is meaningless:
-   * this is a direction, and the only honest place to hang it is where the curve is actually heading.
-   */
-  const escape = useMemo(() => {
-    if (outbound.length < 2) return []
-    const tip = outbound[outbound.length - 1]
-    const prev = outbound[outbound.length - 2]
-    const T = indicatrixAt(member, pole)
-    const along = (tip[0] - prev[0]) * T.x + (tip[1] - prev[1]) * T.y + (tip[2] - prev[2]) * T.z
-    const s = along < 0 ? -1 : 1
-    const k = s * 0.32 * RADIUS
-    return [tip, [tip[0] + T.x * k, tip[1] + T.y * k, tip[2] + T.z * k]] as [number, number, number][]
-  }, [member, pole, outbound])
 
   const margin = poleMargin(live)
   const endSpeed = speedAt(member, 1)
@@ -158,14 +105,8 @@ export default function PoleCurveFigure() {
       caption={
         <>
           <b>The same configuration as the last slide, with the curve drawn instead of the sphere.</b>{' '}
-          The two pale strands leaving the far end are the curve <i>continued past</i> the drawn piece
-          — solid on the way out toward the pole, dashed on the way back from beyond it — and they are
-          clipped where they leave the frame rather than being allowed to rescale the camera. The{' '}
-          <b style={{ color: FIG.color.pole }}>violet stub</b> at the end of the outbound strand is the
-          same violet vector that was the cusp: <i>N(r) = −p(r)</i> exactly, so the corner on the
-          sphere <i>is</i> the direction the curve is heading when it runs off.{' '}
-          <b>Push the pole toward the drawn piece</b> and <i>infinity to curve</i> closes while the
-          run-out reaches further and further before it leaves the frame.{' '}
+          Only the piece you would actually edit is drawn — <i>t</i> from 0 to 1, with the pole safely
+          outside it. <b>Push the pole toward that interval</b> and <i>infinity to curve</i> closes.{' '}
           <b>But watch how little ‖c′(1)‖ moves.</b> Naively it should grow more than a thousandfold
           across this slider; it grows <b>sixfold</b>, because the data is <i>held</i> — the solve
           shrinks σ(1) to compensate and the curve <i>reshapes</i> rather than blowing up. The blow-up
@@ -182,12 +123,7 @@ export default function PoleCurveFigure() {
       }
     >
       <Curve3D points={control.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
-      <Curve3D points={outbound} color={FIG.color.curveMuted} width={1.5} />
-      <Curve3D points={inbound} color={FIG.color.curveMuted} width={1.5} dashed />
       <Curve3D points={curve} color={FIG.color.curve} width={3.5} />
-
-      {/* the pole, as a direction — the link to the previous slide */}
-      <Curve3D points={escape} color={FIG.color.pole} width={2} />
 
       {control.map((p, i) => {
         const handle = !strict || i === last
