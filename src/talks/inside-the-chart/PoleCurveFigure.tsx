@@ -73,14 +73,33 @@ const BOUNDS = (() => {
 })()
 
 export default function PoleCurveFigure() {
-  const { live, mode, theta } = useChart()
+  const { live, mode, theta, origin } = useChart()
   const strict = mode === 'strict'
   const pole = live.roots[0]
 
   const member = useMemo(() => toMember(live), [live])
+  const shift = (p: [number, number, number]): [number, number, number] =>
+    [p[0] + origin.x, p[1] + origin.y, p[2] + origin.z]
+  const local = (p: [number, number, number]): Vec3 =>
+    ({ x: p[0] - origin.x, y: p[1] - origin.y, z: p[2] - origin.z })
+
   const curve = useMemo(() => drawn(member), [member])
   const control = useMemo(() => controlStructure(member).points, [member])
   const last = control.length - 1
+
+  /**
+   * STRICT'S HANDLE SET IS DERIVED, NOT CHOSEN, and that is the point of the mode. The held data is
+   * c′(0) and c(1); in Bézier form c′(0) = 4(w₁/w₀)(P₁ − P₀), so P₁ carries the start tangent and
+   * P_last carries the endpoint. P₀ is c(0), pinned inside the family, so it is the translation.
+   * Three points, and the arithmetic closes:
+   *
+   *     P₀ (3) + P₁ (3) + P_last (3) + pole + twist + fibre phase  =  12
+   *     8 fibre (mod the Hopf gauge) + 1 dial + 1 pole + 3 translations  =  12
+   *
+   * P₂ and P₃ are outputs. Making them draggable here would be offering handles the family does not
+   * have — the count says there is nothing left for them to move.
+   */
+  const isHandle = (i: number): boolean => !strict || i === 0 || i === 1 || i === last
 
   const margin = poleMargin(live)
   const endSpeed = speedAt(member, 1)
@@ -112,40 +131,44 @@ export default function PoleCurveFigure() {
           shrinks σ(1) to compensate and the curve <i>reshapes</i> rather than blowing up. The blow-up
           is real, and it lives past <i>t</i> = 1, out on the pale continuation.{' '}
           <span className="text-slate-400">
-            In <b>strict</b> the six data numbers are held and only the far endpoint is yours; the
-            interior control points are <i>outputs</i>, drawn grey, and the three sliders are exactly
-            the coordinates left over — one dial, one pole, one fibre dimension that closes. In{' '}
-            <b>free</b> every control point is a handle, one at a time, and the ends hold each other;
-            c(0) needs no pinning because <i>p</i>(0) = 0 fixes the translation. Nothing here enforces
-            PH — inside the chart there is nothing to enforce. Drag the background to rotate.
+            <b>Strict gives you exactly three points, and the number is derived.</b> The held data is
+            c′(0) and c(1); in Bézier form c′(0) = 4(w₁/w₀)(P₁−P₀), so <b>P₁</b> is the start tangent
+            and <b>P₄</b> the endpoint, while <b>P₀</b> is c(0) — pinned inside the family by{' '}
+            <i>p</i>(0) = 0, so dragging it can only <i>translate</i>. P₂ and P₃ are outputs, drawn
+            grey. Then the arithmetic closes: 3 + 3 + 3 points plus pole, twist and fibre phase is{' '}
+            <b>twelve</b>, and the family is 8 fibre + 1 dial + 1 pole + 3 translations, also{' '}
+            <b>twelve</b>. <b>Free</b> releases the data and every point is a handle with the ends
+            holding each other. Nothing in either mode enforces PH — inside the chart there is nothing
+            to enforce. Drag the background to rotate.
           </span>
         </>
       }
     >
-      <Curve3D points={control.map(tri)} color={FIG.color.controlPolygon} width={1} dashed />
-      <Curve3D points={curve} color={FIG.color.curve} width={3.5} />
+      <Curve3D points={control.map((p) => shift(tri(p)))} color={FIG.color.controlPolygon} width={1} dashed />
+      <Curve3D points={curve.map(shift)} color={FIG.color.curve} width={3.5} />
 
       {control.map((p, i) => {
-        const handle = !strict || i === last
-        if (!handle) {
-          return <Point3D key={`cp${i}`} position={tri(p)} color={FIG.color.derived} radius={0.05} derived />
+        if (!isHandle(i)) {
+          return <Point3D key={`cp${i}`} position={shift(tri(p))} color={FIG.color.derived} radius={0.05} derived />
         }
         return (
           <DragPoint3D
             key={`cp${i}`}
-            position={tri(p)}
-            color={FIG.color.dataPoint}
+            position={shift(tri(p))}
+            // P₀ is the translation handle, so it wears the "held" colour rather than the data colour
+            color={i === 0 ? FIG.color.pinned : FIG.color.dataPoint}
             radius={i === 0 || i === last ? 0.075 : 0.062}
-            onDrag={([x, y, z]) => (strict
-              ? chart.dragEnd({ x, y, z })
-              : chart.dragFree(i, { x, y, z }, last))}
+            onDrag={(q) => {
+              const v = local(q)
+              if (i === 0) { chart.translate(v); return }
+              if (!strict) { chart.dragFree(i, v, last); return }
+              if (i === last) chart.dragEnd(v)
+              else chart.dragTangent(v)
+            }}
             onDragEnd={() => chart.settle()}
           />
         )
       })}
-
-      {/* c(0): pinned by the translation gauge, so it is a mark rather than a handle */}
-      <Point3D position={tri(curveAt(member, 0))} color={FIG.color.pinned} radius={0.07} />
     </Figure3D>
   )
 }

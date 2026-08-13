@@ -39,7 +39,9 @@ import { useSyncExternalStore } from 'react'
 import type { Quat, Vec3 } from '../../core/quaternion'
 import {
   type MultiPoleParams,
+  controlStructure,
   dataOf,
+  derivativeAt,
   dragWithEndHeld,
   familyBasis,
   fiberLoop,
@@ -96,6 +98,13 @@ export interface ChartState {
   /** The walked fibre at the last settle — expensive, so not rebuilt per frame. */
   loop: MultiPoleParams[]
   phase: number
+  /**
+   * WHERE c(0) SITS ON SCREEN. p(0) = 0 pins the curve's start to the origin inside the family, so
+   * P₀ cannot move within it — dragging P₀ can only mean "translate the picture", and the figure owns
+   * that offset rather than the core. This is a real handle, not a workaround: translations are three
+   * genuine dimensions of the space of curves, and the handle count only balances with them counted.
+   */
+  origin: Vec3
   /** Set when a gesture had no member to move to. Reported, never hidden. */
   stalled: boolean
 }
@@ -109,6 +118,7 @@ const initial = (): ChartState => ({
   theta: OPENING_THETA,
   loop: loopOf(SEED),
   phase: 0,
+  origin: { x: 0, y: 0, z: 0 },
   stalled: false,
 })
 
@@ -150,6 +160,31 @@ export const chart = {
     emit({ phase: u, live: loop[i], stalled: false })
   },
 
+  /** P₀ is the translation gauge made visible. Nothing re-solves; the whole picture slides. */
+  translate(p: Vec3): void {
+    emit({ origin: p, stalled: false })
+  },
+
+  /**
+   * STRICT: P₁ carries the start tangent, and it carries it LINEARLY — c′(0) = 4(w₁/w₀)(P₁ − P₀), and
+   * P₀ = 0 inside the family, so c′(0) = k·P₁ with k fixed by the weights (hence by the pole alone).
+   * Reading k off the current member rather than rebuilding it from the Bernstein weights keeps this
+   * exact at any pole without duplicating the weight convention.
+   */
+  dragTangent(p: Vec3): void {
+    const m = toMember(state.live)
+    const P1 = controlStructure(m).points[1]
+    const n2 = P1.x * P1.x + P1.y * P1.y + P1.z * P1.z
+    if (!(n2 > 1e-18)) { emit({ stalled: true }); return }
+    const d0 = derivativeAt(m, 0)
+    const k = (d0.x * P1.x + d0.y * P1.y + d0.z * P1.z) / n2
+    const next = [k * p.x, k * p.y, k * p.z, state.target[3], state.target[4], state.target[5]]
+    const solved = projectToData(state.live, next)
+    const err = Math.hypot(...dataOf(toMember(solved)).map((v, i) => v - next[i]))
+    if (err > 1e-7 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
+    emit({ live: solved, target: next, stalled: false })
+  },
+
   /** STRICT: c(1) is data, so dragging it moves to a DIFFERENT fibre. */
   dragEnd(p: Vec3): void {
     const next = [state.target[0], state.target[1], state.target[2], p.x, p.y, p.z]
@@ -159,8 +194,13 @@ export const chart = {
     emit({ live: solved, target: next, stalled: false })
   },
 
-  /** FREE: any control point, with the far end held. c(0) is pinned by the gauge already. */
+  /**
+   * FREE: any control point EXCEPT P₀, with the far end held. c(0) needs no holding — the gauge pins
+   * it — and routing P₀ here is what made the curve fly apart: the solver was asked for a motion the
+   * family cannot make, and spent the whole admissible subspace failing to make it. P₀ translates.
+   */
   dragFree(index: number, p: Vec3, lastIndex: number): void {
+    if (index === 0) { chart.translate(p); return }
     const end = { x: state.target[3], y: state.target[4], z: state.target[5] }
     const held = index === lastIndex ? p : end
     const next = index === lastIndex
