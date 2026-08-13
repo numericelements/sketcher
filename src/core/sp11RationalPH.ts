@@ -123,7 +123,7 @@ const coeff = (p: Poly, i: number): number => p[i] ?? 0
  */
 export function conditionSystem(
   A: QPoly, target: QPoly, degC: number,
-): { M: number[][]; rhs: number[]; unknowns: number } {
+): { M: number[][]; rhs: number[]; unknowns: number; degW: number; degN: number } {
   const unknowns = 4 * (degC + 1)
   const cols: { w: QPoly; n: Poly }[] = []
   for (let k = 0; k <= degC; k++) {
@@ -153,7 +153,7 @@ export function conditionSystem(
     M.push(cols.map((c) => coeff(c.n, e)))
     rhs.push(0)
   }
-  return { M, rhs, unknowns }
+  return { M, rhs, unknowns, degW, degN }
 }
 
 const unpackC = (x: readonly number[], degC: number): QPoly => {
@@ -211,6 +211,14 @@ export function polySqrt(poly: Poly, tol = 1e-7): Poly | null {
   const a = poly.slice()
   const s0 = pMax(a) || 1
   while (a.length > 1 && Math.abs(a[a.length - 1]) < 1e-12 * s0) a.pop()
+  // a square may vanish at 0 — strip t^{2z}, which must come in an EVEN power for a square
+  let z = 0
+  while (z < a.length && Math.abs(a[z]) < 1e-12 * s0) z++
+  if (z > 0) {
+    if (z >= a.length || z % 2 !== 0) return null
+    const inner = polySqrt(a.slice(z), tol)
+    return inner === null ? null : [...new Array<number>(z / 2).fill(0), ...inner]
+  }
   if (a.length % 2 === 0 || a[0] <= 0) return null
   const n = (a.length - 1) / 2
   const hat = a.map((c) => c / a[0])
@@ -241,71 +249,206 @@ export function phDefect(U: Column): number {
 }
 
 // --- the joint problem: which spinors are COMPATIBLE with a prescribed A? -----
-/**
- * The least-squares residual of {C̄A′ + ĀC′ = 𝒜i𝒜*, Re(ĀC) = 0} with C eliminated. A function of the
- * spinor alone, because C enters LINEARLY and can be projected out — which is what makes the joint
- * problem tractable at all: 4(m+1) unknowns instead of the full quadratic system.
- */
-export function spinorResidual(A: QPoly, spinor: QPoly, degC: number): number {
-  const { M, rhs } = conditionSystem(A, sandwich(spinor), degC)
-  const x = leastSquares(M, rhs, 1e-12)
-  const scale = Math.max(...rhs.map(Math.abs), 1e-12)
-  let res = 0
-  M.forEach((row, i) => {
-    res = Math.max(res, Math.abs(row.reduce((s, v, j) => s + v * x[j], 0) - rhs[i]))
-  })
-  return res / scale
+//
+// The system M·c = rhs(𝒜) has M depending ONLY on A and deg C — fixed. So it is solvable exactly
+// when rhs(𝒜) lands in col(M), and rhs is QUADRATIC in the spinor with an analytic derivative
+// ∂(𝒜i𝒜*)/∂e = e i 𝒜* + 𝒜 i e*. That makes this a genuine least-squares problem, not a search.
+//
+// AND A COUNT PREDICTS THE ANSWER BEFORE ANY SOLVING. Let V be the space of achievable Wronskians
+// (the image of {C : Re(ĀC) = 0} under C ↦ C̄A′ + ĀC′), of dimension D, and let n = deg Ñ. Being a
+// perfect square costs n conditions on a degree-2n polynomial, and the whole problem is homogeneous
+// so one dimension scales out. Solutions should exist generically when
+//
+//     D − 1  ≥  n .
+//
+// The count is checked below against a case known to have solutions before it is trusted anywhere.
+
+const dotv = (a: readonly number[], b: readonly number[]): number => a.reduce((s, v, i) => s + v * b[i], 0)
+
+/** Orthonormal basis of the span of the given vectors, by modified Gram-Schmidt. */
+export function orthonormalise(vectors: readonly (readonly number[])[], tol = 1e-9): number[][] {
+  const basis: number[][] = []
+  const scale = Math.max(...vectors.map((v) => Math.hypot(...v)), 1e-30)
+  for (const raw of vectors) {
+    let v = raw.slice()
+    for (const b of basis) { const d = dotv(v, b); v = v.map((q, i) => q - d * b[i]) }
+    const len = Math.hypot(...v)
+    if (len > tol * scale) basis.push(v.map((q) => q / len))
+  }
+  return basis
 }
 
-const unpackSpinorVec = (x: readonly number[], m: number): QPoly => {
-  const S: QPoly = [[], [], [], []]
-  for (let c = 0; c < 4; c++) S[c] = Array.from({ length: m + 1 }, (_, k) => x[4 * k + c])
-  return S
+/**
+ * Orthonormal basis of the nullspace of `rows`, by explicit complement: orthonormalise the row
+ * space, then project the STANDARD basis off it. Deterministic, and it returns exactly
+ * dim − rank vectors — random probes silently under-collect, which cost a calibration failure here.
+ */
+export function nullspaceBasis(rows: readonly (readonly number[])[], dim: number, tol = 1e-9): number[][] {
+  const R = orthonormalise(rows, tol)
+  const out: number[][] = []
+  for (let i = 0; i < dim; i++) {
+    let v: number[] = Array.from({ length: dim }, (_, j) => (i === j ? 1 : 0))
+    for (const b of R) { const d = dotv(v, b); v = v.map((q, k) => q - d * b[k]) }
+    for (const b of out) { const d = dotv(v, b); v = v.map((q, k) => q - d * b[k]) }
+    const len = Math.hypot(...v)
+    if (len > tol) out.push(v.map((q) => q / len))
+  }
+  return out
+}
+
+/** The columns of M, as vectors in equation-space. */
+const columnsOf = (M: readonly (readonly number[])[]): number[][] =>
+  (M[0] ?? []).map((_, j) => M.map((row) => row[j]))
+
+export interface ImageCount {
+  /** dim V — how many distinct Wronskians A can produce. */
+  readonly D: number
+  /** n = deg Ñ, hence the number of perfect-square conditions. */
+  readonly n: number
+  /** D − 1 − n. Non-negative predicts that compatible spinors exist. */
+  readonly slack: number
+}
+
+/**
+ * Dimension of the achievable-Wronskian space for a prescribed A, and the resulting prediction.
+ * Nothing is solved here — this is a rank computation, so it is exact.
+ */
+export function wronskianImage(A: QPoly, degC: number): ImageCount {
+  const unknowns = 4 * (degC + 1)
+  const nullRows: number[][] = []
+  const wronskCols: number[][] = []
+  const basisFor = (k: number, c: number): QPoly => {
+    const b: QPoly = [[0], [0], [0], [0]]
+    b[c] = new Array<number>(k + 1).fill(0)
+    b[c][k] = 1
+    return b
+  }
+  const wronskOf = (b: QPoly): QPoly =>
+    qpAdd(qpMul(qpConj(b), qpDeriv(A)), qpMul(qpConj(A), qpDeriv(b)))
+  let degN = 0
+  for (let k = 0; k <= degC; k++) for (let c = 0; c < 4; c++) {
+    degN = Math.max(degN, ...wronskOf(basisFor(k, c)).map((p) => p.length - 1))
+  }
+  for (let k = 0; k <= degC; k++) for (let c = 0; c < 4; c++) {
+    const b = basisFor(k, c)
+    const w = wronskOf(b)
+    const flat: number[] = []
+    for (let e = 0; e <= degN; e++) for (let q = 0; q < 4; q++) flat.push(w[q][e] ?? 0)
+    wronskCols.push(flat)
+    nullRows.push([])
+  }
+  // the null condition Re(ĀC) = 0 as rows over the same unknowns
+  const nullMat: number[][] = []
+  const degNull = Math.max(...Array.from({ length: unknowns }, (_, idx) => {
+    const k = Math.floor(idx / 4), c = idx % 4
+    return qpMul(qpConj(A), basisFor(k, c))[0].length - 1
+  }), 0)
+  for (let e = 0; e <= degNull; e++) {
+    const row: number[] = []
+    for (let k = 0; k <= degC; k++) for (let c = 0; c < 4; c++) {
+      row.push(qpMul(qpConj(A), basisFor(k, c))[0][e] ?? 0)
+    }
+    nullMat.push(row)
+  }
+  // basis of {C : Re(ĀC) = 0}, then its image under the Wronskian map
+  const kernel = nullspaceBasis(nullMat, unknowns)
+  const images = kernel.map((c) =>
+    wronskCols[0].map((_, e) => c.reduce((s, w, j) => s + w * wronskCols[j][e], 0)))
+  const D = orthonormalise(images, 1e-8).length
+  return { D, n: degN, slack: D - 1 - degN }
 }
 
 export interface JointResult {
   readonly spinor: QPoly
   readonly U: Column
+  /** ‖(I − P)rhs‖ / ‖rhs‖ — scale-free, so the spurious 𝒜 = 0 minimum cannot win. */
   readonly residual: number
   readonly restarts: number
 }
 
 /**
- * Given A, SEARCH for a compatible spinor — the pair (A, 𝒜) has to satisfy a condition for the
- * linear system to have a non-trivial solution at all (Kalkan et al., Thm 4.6). C is eliminated by
- * least squares, so this is a small descent on the spinor coefficients only.
+ * Find a spinor compatible with a prescribed A: Levenberg-Marquardt on the unit sphere with the
+ * ANALYTIC Jacobian, minimising the part of rhs(𝒜) that misses col(M). The spinor is normalised
+ * each step because the problem is homogeneous — 𝒜 = 0 is a global minimum and a meaningless one.
  */
 export function findCompatibleSpinor(
-  A: QPoly, m: number, degC: number, restarts = 24, iterations = 220,
+  A: QPoly, m: number, degC: number, restarts = 16, iterations = 120,
 ): JointResult | null {
-  let best: { x: number[]; r: number } | null = null
-  for (let s = 0; s < restarts; s++) {
-    let x = Array.from({ length: 4 * (m + 1) }, (_, i) =>
-      Math.sin(3.1 * s + 1.7 * i) + 0.6 * Math.cos(2.3 * i - 0.9 * s))
-    let r = spinorResidual(A, unpackSpinorVec(x, m), degC)
-    let step = 0.25
-    for (let it = 0; it < iterations && r > 1e-13; it++) {
-      const grad = x.map((_, j) => {
-        const e = 1e-6 * (Math.abs(x[j]) + 1)
-        const hi = x.slice(); hi[j] += e
-        const lo = x.slice(); lo[j] -= e
-        return (spinorResidual(A, unpackSpinorVec(hi, m), degC)
-          - spinorResidual(A, unpackSpinorVec(lo, m), degC)) / (2 * e)
-      })
-      const g = Math.hypot(...grad) || 1
-      const trial = x.map((v, j) => v - (step * grad[j]) / g)
-      const rt = spinorResidual(A, unpackSpinorVec(trial, m), degC)
-      if (rt < r) { x = trial; r = rt; step *= 1.3 } else { step *= 0.5 }
-      if (step < 1e-12) break
+  const ref: QPoly = [Array.from({ length: m + 1 }, () => 1), [0], [0], [0]]
+  const probe = conditionSystem(A, sandwich(ref), degC)
+  const degW = probe.degW      // NOT rhs.length/4 - 1: rhs also carries the null-condition rows
+  const Q = orthonormalise(columnsOf(probe.M), 1e-10)
+  const E = probe.M.length
+  const rhsOf = (S: QPoly): number[] => {
+    const t = sandwich(S)
+    const out = new Array<number>(E).fill(0)
+    for (let e = 0; e <= degW; e++) for (let q = 0; q < 4; q++) {
+      const idx = 4 * e + q
+      if (idx < E) out[idx] = t[q][e] ?? 0
     }
-    if (!best || r < best.r) best = { x, r }
+    return out
+  }
+  const project = (v: readonly number[]): number[] => {
+    const out = v.slice()
+    for (const b of Q) { const d = dotv(out, b); for (let i = 0; i < out.length; i++) out[i] -= d * b[i] }
+    return out
+  }
+  const P = 4 * (m + 1)
+  const toSpinor = (x: readonly number[]): QPoly => {
+    const S: QPoly = [[], [], [], []]
+    for (let c = 0; c < 4; c++) S[c] = Array.from({ length: m + 1 }, (_, k) => x[4 * k + c])
+    return S
+  }
+  const basisVec = (j: number): QPoly => {
+    const S: QPoly = [[0], [0], [0], [0]]
+    const k = Math.floor(j / 4), c = j % 4
+    S[c] = new Array<number>(k + 1).fill(0)
+    S[c][k] = 1
+    return S
+  }
+  const relResidual = (x: readonly number[]): { r: number[]; rel: number } => {
+    const b = rhsOf(toSpinor(x))
+    const nb = Math.hypot(...b) || 1e-30
+    const r = project(b)
+    return { r, rel: Math.hypot(...r) / nb }
+  }
+
+  let best: { x: number[]; rel: number } | null = null
+  for (let s = 0; s < restarts; s++) {
+    let x = Array.from({ length: P }, (_, i) => Math.sin(2.7 * s + 1.3 * i + 0.4) + 0.5 * Math.cos(1.1 * i - 2.2 * s))
+    const norm = (v: number[]): number[] => { const n = Math.hypot(...v) || 1; return v.map((q) => q / n) }
+    x = norm(x)
+    let { r, rel } = relResidual(x)
+    let lambda = 1e-3
+    for (let it = 0; it < iterations && rel > 1e-14; it++) {
+      const S = toSpinor(x)
+      // analytic Jacobian: ∂(𝒜i𝒜*)/∂xⱼ = eⱼ i 𝒜* + 𝒜 i eⱼ*
+      const cols = Array.from({ length: P }, (_, j) => {
+        const e = basisVec(j)
+        const d = qpAdd(qpMul(qpMul(e, qpConst(0, 1)), qpConj(S)), qpMul(qpMul(S, qpConst(0, 1)), qpConj(e)))
+        const flat = new Array<number>(E).fill(0)
+        for (let k = 0; k <= degW; k++) for (let q = 0; q < 4; q++) {
+          const idx = 4 * k + q
+          if (idx < E) flat[idx] = d[q][k] ?? 0
+        }
+        return project(flat)
+      })
+      const Jm = Array.from({ length: E }, (_, i) => cols.map((c) => c[i]))
+      let stepped = false
+      for (let attempt = 0; attempt < 8 && !stepped; attempt++) {
+        let dx: number[]
+        try { dx = leastSquares(Jm, r.map((v) => -v), lambda) } catch { lambda *= 8; continue }
+        const dproj = dx.map((v, i) => v - dotv(dx, x) * x[i])      // stay on the sphere
+        const cand = norm(x.map((v, i) => v + dproj[i]))
+        const got = relResidual(cand)
+        if (got.rel < rel) { x = cand; r = got.r; rel = got.rel; lambda = Math.max(lambda / 3, 1e-12); stepped = true }
+        else lambda *= 8
+      }
+      if (!stepped) break
+    }
+    if (!best || rel < best.rel) best = { x, rel }
   }
   if (!best) return null
-  const spinor = unpackSpinorVec(best.x, m)
-  return {
-    spinor,
-    U: solveForC(A, sandwich(spinor), degC).U,
-    residual: best.r,
-    restarts,
-  }
+  const spinor = toSpinor(best.x)
+  return { spinor, U: solveForC(A, sandwich(spinor), degC).U, residual: best.rel, restarts }
 }
