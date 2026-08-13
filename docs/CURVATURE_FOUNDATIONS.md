@@ -899,5 +899,115 @@ really a pole. An editor working near that stratum is working where its chart ru
 
 ---
 
-*Add F18, … as we establish them. Never delete a fact that is still true; if a fact turns
+## F18 — The σ = 0 stratum is ABSORBING under Möbius: you can enter it, never leave
+
+**Why this fact exists.** F17 named the stratum the λ-sliders miss (𝒜(r) = 0, equivalently σ(r) = 0 at a
+real pole) and said the chart runs out there. It did not say what the stratum *is* under the Möbius group.
+Three separate lines of work have now hit it independently — F17's sliders, the Sp(1,1) work, and a
+parallel session finding that the published rational cubic has **w | σ with a null spinor**. They are all
+the same stratum, and none of the three knew about the others. That duplication is the reason this fact
+is written down.
+
+**THE IDENTITY, and everything follows from it.** Inversion in homogeneous form is (p, w) ↦ (p·w, ⟨p,p⟩).
+The conformal factor 1/|c|² gives, with no algebra beyond it,
+
+    σ̃ / w̃² = |c̃′| = |c′|/|c|² = (σ/w²)·(w²/⟨p,p⟩) = σ/w̃      ⟹      σ̃ = σ · w̃
+
+where **w̃ = ⟨p,p⟩ is the NEW denominator**. So σ̃ vanishes at every root of w̃ — that is, at the image's
+own poles — **for any curve whatsoever**. Measured as σ̃² = σ²·w̃² to 1e-10 on a curve starting off the
+stratum and on one starting on it, and concretely on the circle, where w̃ = (1+t²)² and σ̃(i) = 0 to 1e-12.
+
+Similarities do not touch the pole structure at all: translation leaves N (hence σ) unchanged, rotation
+leaves σ unchanged, scaling multiplies σ and w by the same factor. So:
+
+> **One inversion always lands ON the stratum, and nothing ever leaves it. The stratum is absorbing
+> under the whole Möbius group.**
+
+**FIRST CONSEQUENCE — no transport trick exists.** A tempting repair is to Möbius an excluded curve into
+a chart that does cover it, edit there, and map back. That cannot work for any curve, and in particular
+the circle can never be carried into a λ-chart. This killed a proposal in the Sp(1,1) work; it is recorded
+here so it is not proposed a fourth time.
+
+**SECOND CONSEQUENCE — two chart TYPES are necessary, not one plus a repair.** The atlas is
+
+    σ(r) ≠ 0     the λ-charts, one per pole configuration      (F17, F19)
+    σ = h·w      the conformal chart, built directly in ℝ^{4,1} (`conformalPHCurve`)
+
+and they are disjoint **because** the stratum absorbs. That is why `conformalPHCurve` exists and why it
+cannot be folded into the λ machinery.
+
+**THIRD — the containment, stated carefully because the identity claim is false.** Every inversion of an
+ordinary PH curve lands in the conformal family, since σ̃ = σ·w̃ is exactly the σ = h·w signature. But the
+conformal family is **strictly bigger**: a generic conformal degree-6 member has *no* null S with
+⟨P(t),S⟩ constant, so it is not a Möbius image of *any* polynomial curve (`conformalPHStructure`). Six
+shape moduli at degree 6 against four from bending a polynomial PH cubic. An earlier version of this
+project asserted the two sets were equal; they are not.
+
+**AND THE STRATUM IS SMOOTH, which is what makes it a chart artefact rather than geometry.** At a real
+pole σ(r) = |𝒜(r)|² vanishes exactly when 𝒜(r) = 0, and the Jacobian of the defining quadrics there has
+**full rank** (6 of 6 measured). Those are ordinary smooth points of the variety. The rank only drops
+where 𝒜 has a **double** root at a pole — 𝒜(r) = 𝒜′(r) = 0, eight real conditions, codimension 8 inside a
+10-dimensional variety.
+
+**Pinned by** `src/core/__tests__/sp11StratumIsAbsorbing.test.ts` (5 tests),
+`src/core/__tests__/mobiusMovesTheStratum.test.ts` (9 tests) and
+`src/core/__tests__/sp11VarietyRank.test.ts` (5 tests).
+
+---
+
+## F19 — The admissible variety is RATIONAL: the λ-chart read forward IS the parametrisation, and codim = 3m
+
+**Why this fact exists.** F17 gives the linear fibre at fixed λ and stops there. What it does not say is
+that sweeping λ makes the *whole* variety rational — so the parametrisation everyone wanted was already
+in hand and went unrecognised. A talk in this repository asserted the opposite across three slides before
+this was checked. It also **reconciles F17's count with the other one in circulation**, which is otherwise
+a standing source of confusion.
+
+**THE FIBRE LIES INSIDE THE VARIETY, provably and with no division.** Write 𝒱 for the spinors satisfying
+the residue conditions N′(r_k) = 2N(r_k)Σ_k at fixed poles, with N = 𝒜i𝒜*. Fix λ; F17's condition
+𝒜′(r_k) = 𝒜(r_k)(Σ_k + λ_k i) is linear, so its solutions form a subspace. With Ω = 𝒜⁻¹𝒜′,
+
+    N′(r) = 𝒜(Ω i + i Ω*)𝒜*     and     Ω i + i Ω* = (Σ + λi)i + i(Σ − λi) = 2Σi
+
+so N′(r) = 2Σ N(r) — the quadric itself. **Nothing is divided by.** Measured: every member of the fibre
+satisfies the quadrics, and arbitrary linear combinations of two members do too, so it is a genuine
+subspace of 𝒱 and not a curve through it.
+
+**SO 𝒱 IS SWEPT BY LINEAR SUBSPACES, HENCE RATIONAL:**
+
+    dim 𝒱 = [4(n+1) − 4m]  +  m  =  4(n+1) − 3m
+              fibre at fixed λ    the m dials
+
+> **The λ-chart read FORWARD is a dominant rational parametrisation of 𝒱. The wall comes only from
+> running it BACKWARD** — recovering λ from a given 𝒜 needs 𝒜(r)⁻¹, which is what fails on F18's stratum.
+
+Measured: moving λ genuinely moves the fibre (the sweep does not collapse), and λ is recovered *component
+by component* wherever σ(r) ≠ 0 — the quadric plus invertibility force Ω = Σ + λi exactly, with the j and
+k parts dying.
+
+**THE COUNT RECONCILES F17.** F17's 4(n+1) − 4m is the **fibre at fixed λ**; this is the **variety**. Both
+are right and they differ by the m dials. Anyone comparing the two numbers should read them as fibre
+versus total space, not as a contradiction.
+
+**CODIMENSION IS 3m — INDEPENDENT OF THE SPINOR DEGREE.** Eliminating λ leaves three real quadrics per
+real pole (six per conjugate pair), and n only ever enlarges the fibre. Verified at seven (n, m) pairs
+from (2,2) to (6,3): fibre exactly 4(n+1) − 4m, measured Jacobian rank exactly 3m, two independent routes
+to dim 𝒱 agreeing at each. Consequently the Bézout bound on deg 𝒱 is **2^{3m}, a function of the pole
+count alone** — and witness sets measure deg 𝒱 = 64 at m = 2 (62/63/62 distinct points across three
+independent slices; 63 distinct rules out a doubled component, which would have capped the count at 32).
+𝒱 is a reduced complete intersection, and Fano.
+
+**AND IT IS FAST ENOUGH TO DRAG, which is the point.** A chart member is a nullspace plus a linear
+combination — no solver, no iteration, PH exact by construction: 0.18 ms at (deg 2, 2 poles), 0.38 at
+(3, 2), 0.98 at (5, 2), 1.57 at (6, 3). Inside a frame at every size an editor would use. **Inside the
+chart PH costs nothing**, so an optimiser there carries only the objectives actually wanted — which is
+the whole argument for preferring a chart to a constrained solve.
+
+**Pinned by** `src/core/__tests__/sp11VarietyStructure.test.ts` (6 tests),
+`src/core/__tests__/sp11VarietyRank.test.ts` (5 tests) and
+`src/core/__tests__/sp11ChartScales.test.ts` (6 tests).
+
+---
+
+*Add F20, … as we establish them. Never delete a fact that is still true; if a fact turns
 out wrong, replace it and say why (a wrong fact in here is worse than none).*
