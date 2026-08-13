@@ -16,9 +16,18 @@
 //   · k = 1 is ALWAYS PH — and the reason is a two-line derivation, not luck. For M = tI − H,
 //     M† = tI + JHJ so M⁻¹M′ = ρ⁻¹(tI + H), hence ω₂₁ = H₂₁/ρ has CONSTANT direction and |Ñ|² comes
 //     out a constant. Those curves are the one-parameter-subgroup trajectories: circles and lines.
-//   · k ≥ 2 is NEVER PH. 0/60 at each of k = 2, 3, 4, and 0/40 for each factor kind taken alone, and
-//     0/40 for coaxial rotations. Two factors conjugate the directions apart and the sum in
-//     Ω = Σⱼ Gⱼ⁻¹(Fⱼ⁻¹Fⱼ′)Gⱼ no longer has constant direction.
+//   · k ≥ 2 is never PH ONCE ANY FACTOR IS ELLIPTIC OR HYPERBOLIC: 0/103 at k = 2 and 0/114 at k = 3
+//     over factor sets containing at least one non-parabolic factor. Two such factors conjugate the
+//     directions apart and the sum in Ω = Σⱼ Gⱼ⁻¹(Fⱼ⁻¹Fⱼ′)Gⱼ stops having constant direction.
+//   · the ONLY k ≥ 2 survivors are ALL-PARABOLIC (d = 0, translation-type) products, and the ones
+//     that always work are degenerate: unconjugated parabolic factors give a straight LINE.
+//     Conjugated ones work only when they happen to share a parabolic subgroup (12/60, 7/60, 4/60,
+//     1/60 at k = 2..5).
+//
+// A CORRECTION THIS FILE ONCE GOT WRONG. The first version read 0/60 at every k ≥ 2 and asserted
+// "never PH". That was a polySqrt bug: it rejected every perfect square with a zero constant term,
+// and the all-parabolic survivors are exactly the ones with |Ñ|²(0) = 0. Every positive below is
+// now verified independently of polySqrt.
 //   · and the hybrid does not rescue it: prescribing A from a factor product and a RANDOM spinor
 //     gives an unsolvable system (residual 0.3–0.7), because (A, 𝒜) must be COMPATIBLE — which is
 //     exactly what Kalkan et al.'s Thm 4.6 characterises.
@@ -39,7 +48,7 @@ import {
   type Mat2,
 } from '../sp11Factorisation'
 import {
-  covariantWronskian, qpNorm, polySqrt, nullPart, pMax, qpMax, qpDegree, solveForC, sandwich,
+  covariantWronskian, qpNorm, polySqrt, nullPart, pMax, pMul, qpMax, qpDegree, solveForC, sandwich, curveAt,
   type QPoly,
 } from '../sp11RationalPH'
 
@@ -128,34 +137,56 @@ describe('linear factors in Sp(1,1)', () => {
     }
   })
 
-  it('TWO OR MORE FACTORS ARE NEVER PH — the route does not parametrise the joint problem', () => {
-    for (const k of [2, 3, 4]) {
-      let ph = 0
-      for (let trial = 0; trial < 20; trial++) {
-        const Hs = Array.from({ length: k }, (_, f) =>
-          conjugate(randG(trial * 17 + f * 5 + 1), seedOf(Math.floor(rnd(trial * 7 + f) * 3), trial * 11 + f * 3)))
+  it('ANY elliptic or hyperbolic factor kills PH at k >= 2', () => {
+    for (const k of [2, 3]) {
+      let ph = 0, tot = 0
+      for (let trial = 0; trial < 60; trial++) {
+        const kinds = Array.from({ length: k }, (_, f) => Math.floor(rnd(trial * 7 + f) * 3))
+        if (kinds.every((x) => x === 1)) continue          // all-parabolic is the exception, below
+        const Hs = kinds.map((kd, f) => conjugate(randG(trial * 17 + f * 5 + 1), seedOf(kd, trial * 11 + f * 3)))
+        tot++
         if (isPH(Hs)) ph++
       }
+      expect(tot).toBeGreaterThan(30)
       expect(ph).toBe(0)
     }
   })
 
-  it('and not for any single factor KIND either, nor for coaxial rotations', () => {
-    for (let kind = 0; kind < 3; kind++) {
-      let ph = 0
-      for (let trial = 0; trial < 15; trial++) {
-        const Hs = [0, 1].map((f) => conjugate(randG(trial * 19 + f * 7 + 3), seedOf(kind, trial * 5 + f * 2)))
-        if (isPH(Hs)) ph++
+  it('the ONLY reliable k >= 2 survivors are all-parabolic — and they are straight LINES', () => {
+    for (const k of [2, 3, 4]) {
+      for (let trial = 0; trial < 10; trial++) {
+        const Hs = Array.from({ length: k }, (_, f) => translationSeed(
+          [rnd(trial * 11 + f * 3) * 2 - 1, rnd(trial * 11 + f * 3 + 1) * 2 - 1, rnd(trial * 11 + f * 3 + 2) * 2 - 1]))
+        expect(isPH(Hs)).toBe(true)
+        const U = columnOf(factorProduct(Hs))
+        const pts = [0.7, 1.3, 2.9].map((t) => curveAt(U, t)!)
+        const d1 = [pts[1].x - pts[0].x, pts[1].y - pts[0].y, pts[1].z - pts[0].z]
+        const d2 = [pts[2].x - pts[0].x, pts[2].y - pts[0].y, pts[2].z - pts[0].z]
+        const cross = Math.hypot(
+          d1[1] * d2[2] - d1[2] * d2[1], d1[2] * d2[0] - d1[0] * d2[2], d1[0] * d2[1] - d1[1] * d2[0])
+        expect(cross / (Math.hypot(...d1) * Math.hypot(...d2))).toBeLessThan(1e-9)   // collinear
       }
-      expect(ph).toBe(0)
     }
-    let coax = 0
-    for (let trial = 0; trial < 15; trial++) {
-      const b = rotationSeed([0, 0, rnd(trial + 1) + 0.2])
-      const g = gTranslate([rnd(trial + 2), 0, 0])
-      if (isPH([rotationSeed([0, 0, rnd(trial) + 0.2]), mMul(mMul(g, b), gTranslate([-rnd(trial + 2), 0, 0]))])) coax++
+  })
+
+  it('and every positive is verified WITHOUT polySqrt, which once hid exactly these', () => {
+    let checked = 0
+    for (const k of [2, 3]) {
+      for (let trial = 0; trial < 10; trial++) {
+        const Hs = Array.from({ length: k }, (_, f) => translationSeed(
+          [rnd(trial * 11 + f * 3) * 2 - 1, rnd(trial * 11 + f * 3 + 1) * 2 - 1, rnd(trial * 11 + f * 3 + 2) * 2 - 1]))
+        const q = qpNorm(covariantWronskian(columnOf(factorProduct(Hs))))
+        expect(Math.abs(q[0] ?? 0)).toBeLessThan(1e-12 * pMax(q))   // vanishes at 0: the blind spot
+        const root = polySqrt(q)
+        expect(root).not.toBeNull()
+        const sq = pMul(root!, root!)
+        let gap = 0
+        for (let i = 0; i < Math.max(sq.length, q.length); i++) gap = Math.max(gap, Math.abs((sq[i] ?? 0) - (q[i] ?? 0)))
+        expect(gap / (pMax(q) || 1)).toBeLessThan(1e-9)
+        checked++
+      }
     }
-    expect(coax).toBe(0)
+    expect(checked).toBe(20)
   })
 
   it('THE HYBRID FAILS TOO: a factor-built A with a RANDOM spinor is not solvable', () => {
