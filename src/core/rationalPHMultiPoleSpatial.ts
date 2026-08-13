@@ -172,7 +172,14 @@ export function toMember(prm: MultiPoleParams): MultiPoleMember {
   }
   const w = denominatorOf(prm.roots)
   const wD = derivPoly(w)
-  const degP = deg - (w.length - 1) + 1
+  /**
+   * deg p = 2n − m + 1 from integrating N/w²… UNLESS the denominator outranks it. ∫N/w² = q/w with
+   * deg q ≤ m − 1, and the integration constant then makes p = q + Cw, of degree m. So the numerator
+   * has degree max(2n − m + 1, m), and pinning p(0) = 0 with the smaller of the two is an inconsistent
+   * system — measured: the Wronskian solve residual was 1.9e-2 at (n,m) = (3,4) where it is 1e-15
+   * everywhere else. Unchanged for m ≤ n, where 2n − m + 1 ≥ m already.
+   */
+  const degP = Math.max(deg - (w.length - 1) + 1, w.length - 1)
   // The Wronskian rows, plus one row pinning the translation: p(0) = 0.
   const rows: number[][] = []
   for (let e = 0; e <= deg; e++) {
