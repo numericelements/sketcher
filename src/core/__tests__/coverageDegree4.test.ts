@@ -11,7 +11,7 @@
 // reparametrisation is a genuine motion here and is counted. The only gauge divided out is the
 // projective scale (p,w) ↦ (cp,cw), which really is one curve.
 //
-// THE HEADLINE, at a one-pole member:
+// THE HEADLINE, at a one-pole member — and read the PROVISIONAL note at the bottom before quoting it:
 //
 //     ambient 15     family 12     GAP 3     codimension 4
 //
@@ -29,10 +29,21 @@
 // variety. Degree 4 has a second component — deg c = 2n − m + 1 = 4 forces m odd, so m = 1 (n = 2)
 // and m = 3 (n = 3) — and a tangent test says nothing about the component it is not standing on.
 //
-// AND ONE RESULT IS WITHHELD RATHER THAN REPORTED. At the three-pole member the family's own tangent
-// columns do not lie inside the ambient tangent to better than 3.6e-2, so the assembly there is bad
-// numerics rather than geometry and its gap is meaningless. The containment check exists to catch
-// exactly that, and it is asserted below as a known limitation instead of being quietly published.
+// AND THE WHOLE THING IS SEED-DEPENDENT, WHICH MAKES IT PROVISIONAL. The numbers above hold at the
+// seed below and do not hold everywhere. Sweeping the seed phase and the λ's:
+//
+//     (2,1)   codim 4 4 4        ambient 15 15 16       family 12
+//     (3,3)   codim 6 6 5 5 5    ambient 14 14 15 15 15 family 12 or 9
+//
+// A codimension that reads 5 at one seed and 6 at another is not a measurement, and the three-pole
+// containment still fails at 1.6e-2 to 1.6e-1 after the metric was corrected. The cause is the
+// instrument: phEquations divides by q(t₀) and works in a shifted basis, so its finite-difference
+// Jacobian carries the scale of both, and the rank is being decided by a tolerance rather than by the
+// geometry. The fix is to write the condition as EXACT polynomial equations — introduce σ as unknowns
+// and use |N|² − σ² = 0, thirteen equations in twenty-seven unknowns with an analytic Jacobian.
+//
+// Until that exists, treat every number in this file as "measured at this seed", not as the
+// dimension of anything.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -119,7 +130,7 @@ describe('coverage of the rational PH quartics', () => {
     }
   })
 
-  it('THE ONE-POLE CHART REACHES 12 OF 15, AND THE 3 IT MISSES ARE THE DENOMINATOR', () => {
+  it('AT THIS SEED the one-pole chart reaches 12 of 15, and the 3 it misses are the denominator', () => {
     const r = coverageAt(ONE_POLE, DEG_P, DEG_W)
     expect(r.residual).toBeLessThan(1e-10)        // standing on the variety
     expect(r.containment).toBeLessThan(1e-8)      // and the family's tangent really is inside it
@@ -138,11 +149,26 @@ describe('coverage of the rational PH quartics', () => {
     expect(Math.min(...den)).toBeGreaterThan(0.5)   // measured 0.53, 0.98, 0.99
   })
 
-  it('THE THREE-POLE COMPONENT IS NOT MEASURED YET, and the check says so rather than guessing', () => {
+  it('THE THREE-POLE COMPONENT IS STILL NOT MEASURABLE, and the check says so rather than guessing', () => {
     const r = coverageAt(THREE_POLE, DEG_P, DEG_W)
     expect(r.residual).toBeLessThan(1e-10)          // the member is fine; the TANGENT assembly is not
-    expect(r.containment).toBeGreaterThan(1e-3)     // measured 3.6e-2 — columns are not in the tangent
+    expect(r.containment).toBeGreaterThan(1e-3)     // measured 3.0e-2 after the metric was corrected
     // and the symptom of that is the incoherence the containment check exists to catch
     expect(r.missing.length).toBeGreaterThan(r.gap)
+  })
+
+  it('AND THE ONE-POLE NUMBERS ARE SEED-DEPENDENT, so they are provisional', () => {
+    // Same family, same pole, same twist — only the fibre member differs. The ambient dimension
+    // should not care, and it does. Recorded rather than hidden: a rank decided by a tolerance is
+    // not a measurement, and this is the file's own warning label.
+    const seen = new Set<number>()
+    for (const phase of [0.6, 2.2, 4.1]) {
+      const r = coverageAt(memberOf([1.7], [Math.tan((35 * Math.PI) / 180)], 2, phase), DEG_P, DEG_W)
+      expect(r.containment).toBeLessThan(1e-8)      // these columns ARE in the tangent, 2e-10
+      expect(r.codimension).toBe(4)                 // this part is stable
+      expect(r.family).toBe(12)                     // and so is this
+      seen.add(r.ambient)                           // this is not: 15, 15, 16
+    }
+    expect(seen.size).toBeGreaterThan(1)
   })
 })

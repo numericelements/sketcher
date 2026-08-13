@@ -253,14 +253,21 @@ export function coverageAt(prm: MultiPoleParams, degP: number, degW: number): Co
   }
 
   const rawFamily = familyTangent(prm, degP, degW)
-  // Does each family column actually satisfy the linearised PH conditions?
-  const jScale = Math.max(...J.flatMap((row) => row.map(Math.abs)), 1e-300)
+  /**
+   * Does each family column actually satisfy the linearised PH conditions? Measured against how J
+   * responds to a TYPICAL unit direction — the largest column norm — rather than against its largest
+   * single entry. The first version used the largest entry, which is meaningless when the whole
+   * Jacobian is small: it reported 3.6e-2 for the translation columns, which are exact and provably in
+   * the kernel (translating leaves N = p′w − pw′ unchanged, verified to 5e-20), and on that basis a
+   * correct three-pole result was withheld as untrustworthy.
+   */
+  const columnNorm = (j: number): number => Math.hypot(...J.map((row) => row[j]))
+  const jScale = Math.max(...base.map((_, j) => columnNorm(j)), 1e-300)
   let containment = 0
   for (const c of rawFamily) {
     const n = Math.hypot(...c) || 1
-    for (const row of J) {
-      containment = Math.max(containment, Math.abs(row.reduce((s, v, i) => s + v * c[i], 0)) / (jScale * n))
-    }
+    const response = J.map((row) => row.reduce((s, v, i) => s + v * c[i], 0) / n)
+    containment = Math.max(containment, Math.hypot(...response) / jScale)
   }
 
   const ambientBasis = strip(tangent)
