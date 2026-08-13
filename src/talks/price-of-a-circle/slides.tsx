@@ -8,10 +8,24 @@
 //
 //     Polynomial PH gives the PH property on a family that is unbounded and open.
 //     Rational PH gives the SAME property on the shapes rational curves can make —
-//     circles, conics, bounded and closed curves — and charges a solvability condition
-//     plus the loss of compactness for it.
+//     circles, conics, bounded and closed curves — and charges COMPACTNESS and
+//     COORDINATES for it: the torus closes, the roads do not, and one chart stops
+//     being enough.
 //
 // So this deck is a LEDGER. Not "rational is better", not "rational is harder" — priced.
+//
+// AND THE PRICE IS NOT WHAT THIS HEADER FIRST SAID, which is worth recording rather than quietly
+// overwriting. It read "charges a solvability condition plus the loss of compactness". The
+// solvability condition — the residue/no-log condition, which four slides are spent paying — turns
+// out to cost NOTHING once you are inside a chart: no constraint to enforce, no residual to drift,
+// sub-millisecond per member (27). What you actually pay is compactness and an ATLAS: one chart per
+// pole configuration with Möbius as the transition maps, plus a second chart TYPE for the σ = h·w
+// stratum, disjoint by theorem because that stratum is absorbing (26, 27).
+//
+// The short form, which is the ledger's closing line: YOU PAY IN COMPACTNESS AND IN COORDINATES,
+// NOT IN PH. "Rational PH is hard" really means "rational PH needs an atlas" — the hard part is
+// bookkeeping about poles, and the Pythagorean condition, which the name makes everyone stare at,
+// is the part that turns out to be free.
 //
 // WHY IT IS A SEPARATE DECK from two-points-or-a-circle. That deck's axis is PLANE versus SPACE and
 // its thesis is the invisible degree of freedom. This one's axis is POLYNOMIAL versus RATIONAL and
@@ -21,7 +35,7 @@
 //
 // AUDIENCE: someone who already knows what a PH curve is. One recap slide, then straight in.
 //
-// THE ARC (built through 15; 16-17 planned; two END slides built ahead of them, see below):
+// THE ARC (all built; 16-17 were re-sited as 27-28, see the note in the listing below):
 //
 //   1  title, with the tag legend
 //   2  a circle is not a polynomial -- the shape, and whose fault it is        [THM]
