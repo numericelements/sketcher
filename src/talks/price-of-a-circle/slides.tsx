@@ -21,7 +21,7 @@
 //
 // AUDIENCE: someone who already knows what a PH curve is. One recap slide, then straight in.
 //
-// THE ARC (built through 14; 15-17 planned; two END slides built ahead of them, see below):
+// THE ARC (built through 15; 16-17 planned; two END slides built ahead of them, see below):
 //
 //   1  title, with the tag legend
 //   2  a circle is not a polynomial -- the shape, and whose fault it is        [THM]
@@ -38,7 +38,8 @@
 //  13  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
 //  14  TORUS x ROADS -- the torus survives intact, roads bolted on; length x510  [MEAS]
 //      and the roads end at POLES, not cusps (the planned line said cusps; wrong)
-//  15  arc length: when it survives and when it does not, from the two examples [LIT] [MEAS]
+//  15  ARC LENGTH IS THE SAME EQUATION -- on sigma instead of N, and FREE in the [LIT] [MEAS]
+//      chart (lambda drops out: N is a pure vector). Unification is Schrocker-Sir.
 //  16  the ledger, both columns                                                 --
 //  17  what is open, and where to go next                                       [OPEN]
 //  18  TWO WAYS IN -- the strategy: more charts from inside, optimisation from  [LIT] [OPEN]
@@ -1782,6 +1783,163 @@ export const slides: SlideDefinition[] = [
       + 'has cusps as a REFLEX -- it is the classical hazard of the polynomial theory -- so this lands. '
       + 'THE CLOSING LINE IS THE LEDGER ENTRY. Cusps out, poles in. The freedom and the hazard came '
       + 'from the same place, which is exactly the kind of paired entry this deck exists to record.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 15 — arc length: the same equation, on the other half of the object
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['LIT', 'MEAS']} />
+        <h2>The length is the same equation</h2>
+        <p>
+          Two worked examples in this deck, and on arc length they came out exact opposites:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto 1fr',
+            gap: '0.3em 1.3em',
+            margin: '0.4em 0 0.6em 1.2em',
+            fontSize: '0.86em',
+            alignItems: 'baseline',
+          }}
+        >
+          <span>the circle</span>
+          <span><Math>{'s(t) = 2\\arctan t'}</Math></span>
+          <span style={{ opacity: 0.7 }}>transcendental</span>
+          <span>the one-pole curve</span>
+          <span><Math>{'s(u) = -1/u + u + u^3/3'}</Math></span>
+          <span style={{ opacity: 0.7 }}>rational, exactly</span>
+        </div>
+        <p>
+          The apparatus worked perfectly both times. So the difference is not a failure — it is a{' '}
+          <em>property</em>, and it has a criterion.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>And it is the same enemy as before.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The speed is <Math>{'\\sigma / w^2'}</Math>, so
+        </p>
+        <Math display>{'s = \\int \\sigma / w^{2}\\, dt'}</Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          which is the integral this deck already fought once, with <Math>{'\\sigma'}</Math> where{' '}
+          <Math>{'N'}</Math> stood. Logarithms are again the only obstruction, and killing them is
+          again a residue condition at each pole:
+        </p>
+        <Math display>{'\\sigma\'(r_k) = 2\\,\\sigma(r_k)\\,\\Sigma_k'}</Math>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.08em' }}>
+            Character for character the condition this deck has been enforcing on{' '}
+            <Math>{'N'}</Math>.
+          </strong>
+        </p>
+        <p>
+          So they are not two requirements. <Math>{'N'}</Math> is a vector and{' '}
+          <Math>{'\\sigma'}</Math> is a scalar, and the pair <Math>{'(N, \\sigma)'}</Math> — the
+          light-cone vector of the companion deck — obeys <em>one</em> equation:{' '}
+          <Math>{'\\gamma\'(r_k) = 2\\gamma(r_k)\\Sigma_k'}</Math>. A rational PH curve is the vector
+          half. Rational arc length is the scalar half.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>Inside the chart, the scalar half is free.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Two lines. <Math>{'\\sigma = \\mathcal{A}\\mathcal{A}^{*}'}</Math> gives{' '}
+          <Math>{'\\sigma\' = 2\\,\\mathrm{Re}(\\mathcal{A}\'\\mathcal{A}^{*})'}</Math>, and the chart
+          says <Math>{'\\mathcal{A}\'(r) = \\mathcal{A}(r)(\\Sigma + \\lambda i)'}</Math>, so
+        </p>
+        <Math display>
+          {'\\mathcal{A}\'(r)\\mathcal{A}(r)^{*} = \\Sigma\\,\\sigma(r) + \\lambda\\, N(r)'}
+        </Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          and <Math>{'N = \\mathcal{A} i \\mathcal{A}^{*}'}</Math> is a <em>pure vector</em>. It has no
+          real part. The dial contributes nothing, and{' '}
+          <Math>{'\\sigma\'(r) = 2\\Sigma\\sigma(r)'}</Math> falls out whether you asked for it or not.
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.1em',
+            margin: '0.4em 0 0.5em 1.2em',
+            fontSize: '0.78em',
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>measured, worst residue</span>
+          <span style={{ opacity: 0.6 }} />
+          <span>dials swept, poles moved</span>
+          <span><Math>{'\\leq 10^{-11}'}</Math></span>
+          <span>60 random members</span>
+          <span><Math>{'9 \\cdot 10^{-12}'}</Math></span>
+          <span>a spinor off the family</span>
+          <span><strong>0.90</strong> — so the test has teeth</span>
+        </div>
+
+        <p>
+          Which explains the circle without a new idea: it is not in the chart. Its poles are the ones
+          where <Math>{'\\sigma(i) = 0'}</Math>, and being outside is <em>why</em> its length is an
+          arctangent. And the conformal family is outside for the same reason and loses the same
+          thing: <Math>{'\\sigma = h\\,w'}</Math> forces <Math>{'h(r_k) = 0'}</Math> at every pole,
+          impossible for <Math>{'n'}</Math> roots when <Math>{'\\deg h = n-2'}</Math>.{' '}
+          <strong>No conformal PH curve has rational arc length.</strong>
+        </p>
+
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.08em' }}>
+            Two purchases that turn out to be one — in this representation, and only in this
+            representation.
+          </strong>
+        </p>
+        <Cite>
+          The residue criterion is Farouki &amp; Sakkalis, CAGD <strong>32</strong> (2015) and{' '}
+          <strong>74</strong> (2019). The unification — one quaternion representation carrying the
+          curve <em>and</em> its arc length — and the complete construction of <em>all</em> spatial
+          rational curves with rational arc length are Schröcker &amp; Šír, arXiv:2310.08047 (2023,
+          rev. 2024); their first method adapts Kalkan et al. (2022) through a linear system, which is
+          this chart&rsquo;s shape. Our contribution here is the measurement, pinned in{' '}
+          <Math>{'\\texttt{conformalArcLength.test.ts}'}</Math> and{' '}
+          <Math>{'\\texttt{rationalArcLengthInChart.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'OPEN WITH THE TWO EXAMPLES SIDE BY SIDE, because the deck earned them: the circle integrated to '
+      + '2 arctan t on slide 8, the one-pole curve to -1/u + u + u^3/3 on slide 10. Same machinery, '
+      + 'opposite outcomes. Say explicitly that neither was a failure -- both integrations were exact. '
+      + 'The difference is a PROPERTY, and that reframes it from accident to criterion. '
+      + 'THE PAYOFF LINE IS "the same enemy". This deck spent four slides killing logarithms in the '
+      + 'integral of N over w^2. Arc length is the integral of sigma over w^2. Same integral, sigma '
+      + 'where N stood, so the same residue condition drops out -- character for character. Let that '
+      + 'land before moving on; it is the slide\'s whole architecture. '
+      + 'THEN THE UNIFICATION. N is the vector part, sigma the scalar part, and the PAIR obeys one '
+      + 'equation. Point at the companion deck for the light cone rather than re-deriving it. The '
+      + 'sentence to say slowly: a rational PH curve is the vector half, rational arc length is the '
+      + 'scalar half, and they were never two conditions. '
+      + 'THE TWO-LINE PROOF IS THE BEST PART AND IT FITS ON A BREATH. sigma\' = 2 Re(A\' A*); the chart '
+      + 'says A\'(r) = A(r)(Sigma + lambda i); multiply out and you get Sigma sigma(r) + lambda N(r); '
+      + 'and N = A i A* is a PURE VECTOR with no real part, so the dial contributes NOTHING. The '
+      + 'condition holds whether or not you asked. Emphasise "whether or not you asked" -- inside the '
+      + 'chart, rational arc length is not a further purchase. It is included. '
+      + 'THE CIRCLE THEN NEEDS NO NEW IDEA, which is the sign the framing is right. It is outside the '
+      + 'chart because sigma(i) = 0, and being outside is exactly WHY its length is an arctangent. One '
+      + 'fact, two consequences the deck had been treating separately. Same for the conformal family, '
+      + 'and there the statement is absolute: NO conformal PH curve has rational arc length. '
+      + 'ATTRIBUTION IS NOT A FOOTNOTE HERE, SAY IT OUT LOUD. Schrocker and Sir (2023/24) state they '
+      + 'solve "the so far open problem of constructing ALL spatial rational curves with rational arc '
+      + 'length functions", their first method adapts Kalkan et al. through a linear system -- which is '
+      + 'this chart\'s shape -- and their three methods "share the same quaternion based representation '
+      + 'in which not only the PH curve but also its arc length function are compactly expressed." '
+      + 'That is this slide\'s unification, and it is theirs. We measured it in our own chart; we did '
+      + 'not discover it. This is the fourth time in this project that a find turned out to have '
+      + 'owners, and the deck\'s standing rule caught it before it reached a slide. Worth saying to an '
+      + 'audience: it is what makes the rest of the deck\'s claims credible.',
   },
 
   // ---------------------------------------------------------------------------
