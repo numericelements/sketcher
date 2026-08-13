@@ -57,8 +57,11 @@
 //  24  WE HAD IT BACKWARDS -- deg V = 64 by witness sets, V is swept by linear   [MEAS] [THM]
 //      8-spaces, so V IS RATIONAL and the lambda-chart WAS the parametrisation;
 //      the wall comes only from running the map backward. Coverage, not existence.
+//  25  FAST ENOUGH TO DRAG -- dim V = 4(n+1) - 3m at every size, codim independent [MEAS]
+//      of degree, sub-ms per member; the gap left is starting points, not motion.
+//      (Self-contained: written so it can be lifted into another talk.)
 //
-// 18-24 are BUILT and sit at the end of the array, out of order. They were written as the work
+// 18-25 are BUILT and sit at the end of the array, out of order. They were written as the work
 // happened; 14-16 slot in ahead of them.
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
@@ -3001,5 +3004,137 @@ export const slides: SlideDefinition[] = [
       + 'zero closed subvariety that happens to contain the circle and the conformal family. That is '
       + 'a real problem and a much smaller one, and naming it correctly is what the last several '
       + 'slides were actually for.',
+  },
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "We had it backwards")
+  // Scale and speed: the chart at working size, and the one gap that is left.
+  //
+  // DELIBERATELY SELF-CONTAINED. This slide states its own objects and carries its own numbers, so
+  // it can be lifted into a different talk (e.g. a rational-frames presentation) without dragging
+  // this deck's earlier notation with it. Only the phrase "the chart" needs one sentence of setup.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>Fast enough to drag</h2>
+        <p>
+          A rational parametrisation is only worth having if it survives past the toy size and runs
+          inside a frame. Both are measurable, and both were measured — varying the spinor degree{' '}
+          <Math>{'n'}</Math> and the pole count <Math>{'m'}</Math> independently, from{' '}
+          <Math>{'(2,2)'}</Math> to <Math>{'(6,3)'}</Math>.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>It is not a small-case accident.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          At fixed dials the conditions are <em>linear</em> — four real per real pole — so the fibre
+          is a subspace, and the dials add one dimension each:
+        </p>
+        <Math display>
+          {'\\dim \\mathcal{V} = 4(n+1) - 4m + m = 4(n+1) - 3m , \\qquad \\operatorname{codim} \\mathcal{V} = 3m'}
+        </Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          Verified at every size: the fibre is exactly <Math>{'4(n+1)-4m'}</Math>, it still lies{' '}
+          <em>inside</em> the variety, and the measured Jacobian rank is exactly{' '}
+          <Math>{'3m'}</Math>. The argument is <strong>pole by pole</strong>, so the degree never
+          enters it.
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          And note what the codimension does not contain: <Math>{'n'}</Math>. Three quadrics per
+          pole, with the degree only ever <em>enlarging the fibre</em>. So the Bézout bound{' '}
+          <Math>{'2^{3m}'}</Math> is a function of the <strong>pole count alone</strong> —{' '}
+          <Math>{'64'}</Math> at <Math>{'m=2'}</Math>, which is exactly the witness count measured
+          independently.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.06em' }}>
+            Higher degree makes the chart <em>bigger</em>, not harder. Poles are what cost.
+          </strong>
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And a point of the chart is a nullspace and a linear combination.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto 1fr',
+            gap: '0.28em 1.4em',
+            margin: '0.4em 0 0.5em 1.2em',
+            fontSize: '0.8em',
+            lineHeight: 1.4,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>degree</span>
+          <span style={{ opacity: 0.6 }}>poles</span>
+          <span style={{ opacity: 0.6 }}>dim</span>
+          <span style={{ opacity: 0.6 }}>one member</span>
+          <span>2</span><span>2</span><span>6</span><span><strong>0.18 ms</strong></span>
+          <span>3</span><span>2</span><span>10</span><span><strong>0.38 ms</strong></span>
+          <span>5</span><span>2</span><span>18</span><span><strong>0.98 ms</strong></span>
+          <span>6</span><span>3</span><span>19</span><span><strong>1.57 ms</strong></span>
+          <span>9</span><span>3</span><span>31</span><span>5.10 ms</span>
+          <span style={{ opacity: 0.6 }}>14</span><span style={{ opacity: 0.6 }}>4</span>
+          <span style={{ opacity: 0.6 }}>48</span><span style={{ opacity: 0.6 }}>21.9 ms</span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          No solver, no iteration, and PH exact by construction. Inside a frame at every size a curve
+          editor would plausibly use; only the last row, far past anything interactive, exceeds{' '}
+          <Math>{'60'}</Math> Hz.
+        </p>
+
+        <p style={{ marginTop: '0.5em' }}>
+          Which is the whole argument for wanting a chart in the first place. Inside one, <strong>PH
+          costs nothing</strong> — there is no constraint to enforce and no residual to drift, and the
+          coordinates are just the dials and the fibre. An optimiser working there carries only the
+          objectives you actually wanted: interpolation data, fairness, a curvature bound.
+        </p>
+
+        <p style={{ marginTop: '0.4em', marginBottom: '0.15em' }}>
+          <strong>One gap is left, and it is worth stating precisely.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The parametrisation misses <Math>{'\\sigma(r) = 0'}</Math>. That set is measure zero, so
+          nothing ever wanders into it — but it contains the circle and the whole conformal family.
+          So it is not a <em>dragging</em> problem. It is a{' '}
+          <strong>&ldquo;load a circle and edit it&rdquo;</strong> problem: a question about starting
+          points, not about motion.
+        </p>
+        <Cite>
+          Measured in <Math>{'\\texttt{sp11ChartScales}'}</Math> — seven{' '}
+          <Math>{'(n,m)'}</Math> combinations, with two independent routes to{' '}
+          <Math>{'\\dim \\mathcal{V}'}</Math> agreeing at each, one of them using the measured
+          Jacobian rank rather than the formula. Timings are the median of 200 repetitions after
+          warm-up.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE CASHES THE PREVIOUS ONE. Slide 24 said we have a rational parametrisation. Two '
+      + 'questions decide whether that is useful rather than merely true: does it survive past the '
+      + 'toy size, and does it run inside a frame. Both are measurable and both were measured. '
+      + 'THE SCALING ARGUMENT IS ONE SENTENCE and it is worth saying slowly: at fixed dials the '
+      + 'conditions are LINEAR, so the fibre is a subspace, and the argument is POLE BY POLE, so the '
+      + 'degree never enters. That is why dim V = 4(n+1) - 3m holds at every size rather than being '
+      + 'fitted to the case we happened to start with. '
+      + 'THE PART PEOPLE FIND SURPRISING is that the codimension does not contain n. Three quadrics '
+      + 'per pole, full stop; degree only enlarges the fibre. So the Bezout bound 2^{3m} depends on '
+      + 'the POLE COUNT alone, and at m = 2 it gives 64 — which is what the witness-set computation '
+      + 'found independently. Two different calculations agreeing is why the number is worth quoting. '
+      + 'THE HEADLINE FOR AN AUDIENCE OF PRACTITIONERS: higher degree makes the chart bigger, not '
+      + 'harder. Poles are the expensive direction. That inverts what most people expect. '
+      + 'THE TIMING TABLE IS THE POINT OF THE SLIDE for anyone thinking about tools. A chart member '
+      + 'is a nullspace plus a linear combination — no solver, no iteration, PH exact by '
+      + 'construction. Sub-millisecond through the sizes that matter. Then say the consequence out '
+      + 'loud, because it is the reason this whole line of work exists: INSIDE A CHART, PH COSTS '
+      + 'NOTHING, so an optimiser carries only the objectives you actually wanted. '
+      + 'CLOSE ON THE GAP, PRECISELY. sigma(r) = 0 is measure zero, so you never wander in; but it '
+      + 'holds the circle and the conformal family. Say the distinction plainly: it is not a dragging '
+      + 'problem, it is a starting-point problem. Being able to name what is left that precisely is '
+      + 'the real result of the last several slides.',
   },
 ]
