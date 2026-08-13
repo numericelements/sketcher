@@ -24,6 +24,10 @@
 // N(r) = −p(r) exactly (tangentIndicatrix.test.ts). Same handles, same state (chartModel.ts): whatever
 // you set up here is what the next slide opens on.
 //
+// NO STRICT/FREE TOGGLE HERE, deliberately. The two modes differ only in which control points you may
+// grab, and this figure draws none — the toggle would be a handle that changes nothing visible. The
+// sliders stay, because they do act on the sphere. The curve slide carries the toggle.
+//
 // r3f cannot be verified headlessly, so this file holds no mathematics — only marks and gestures.
 // ============================================================================
 import { useMemo } from 'react'
@@ -83,7 +87,7 @@ export default function PoleSphereFigure() {
         { label: 'λ', value: Math.abs(Math.tan((theta * Math.PI) / 180)) > 999 ? '≫' : Math.tan((theta * Math.PI) / 180).toFixed(1) },
         { label: '‖T‖ − 1', value: sphereResidual(member).toExponential(1), tone: 'ok' as const },
       ]}
-      controls={<ChartControls />}
+      controls={<ChartControls modes={false} />}
       caption={
         <>
           <b>The pole is invisible on the curve and unmistakable here.</b> The unit tangent{' '}

@@ -38,41 +38,55 @@ const Slider = ({
   </label>
 )
 
-export default function ChartControls() {
+/**
+ * `modes` is false on the SPHERE slide, and that is a considered asymmetry rather than an omission.
+ * Strict and free differ only in which control points you may grab, and the sphere draws no control
+ * points — offering the toggle there would be a handle that changes nothing you can see. The sphere
+ * keeps the sliders, which do act on it.
+ *
+ * On the curve slide, FREE hides the sliders: once every control point is a handle there is no
+ * leftover coordinate for a slider to be. The dials are held during a free drag, so a slider that
+ * still moved would be a second, contradictory way to steer.
+ */
+export default function ChartControls({ modes = true }: { modes?: boolean }) {
   const { mode, live, phase, theta, stalled } = useChart()
-  const strict = mode === 'strict'
+  const strict = !modes || mode === 'strict'
 
   return (
     <span className="flex items-center gap-3 flex-wrap justify-center">
-      <span className="inline-flex rounded overflow-hidden border border-slate-300">
-        {(['strict', 'free'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => chart.setMode(m)}
-            className={`px-2 py-[0.15em] ${mode === m ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
-          >
-            {m}
-          </button>
-        ))}
-      </span>
+      {modes ? (
+        <span className="inline-flex rounded overflow-hidden border border-slate-300">
+          {(['strict', 'free'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => chart.setMode(m)}
+              className={`px-2 py-[0.15em] ${mode === m ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'}`}
+            >
+              {m}
+            </button>
+          ))}
+        </span>
+      ) : null}
 
-      <Slider
-        label="pole r"
-        value={live.roots[0]}
-        range={RANGE.pole}
-        onChange={(v) => chart.setPole(v)}
-        onSettle={() => chart.settle()}
-      />
-      <Slider
-        label="twist θ"
-        value={theta}
-        range={RANGE.theta}
-        onChange={(v) => chart.setTheta(v)}
-        onSettle={() => chart.settle()}
-        width="w-36"
-      />
       {strict ? (
-        <Slider label="around the fibre" value={phase} range={RANGE.phase} onChange={(v) => chart.sweep(v)} />
+        <>
+          <Slider
+            label="pole r"
+            value={live.roots[0]}
+            range={RANGE.pole}
+            onChange={(v) => chart.setPole(v)}
+            onSettle={() => chart.settle()}
+          />
+          <Slider
+            label="twist θ"
+            value={theta}
+            range={RANGE.theta}
+            onChange={(v) => chart.setTheta(v)}
+            onSettle={() => chart.settle()}
+            width="w-36"
+          />
+          <Slider label="around the fibre" value={phase} range={RANGE.phase} onChange={(v) => chart.sweep(v)} />
+        </>
       ) : (
         <span className="text-slate-400">drag any control point — the ends hold each other</span>
       )}

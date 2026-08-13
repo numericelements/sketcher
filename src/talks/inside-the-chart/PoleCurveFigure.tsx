@@ -118,12 +118,22 @@ export default function PoleCurveFigure() {
   const outbound = useMemo(() => runOut(member, 1, pole - 1e-3, RADIUS), [member, pole])
   const inbound = useMemo(() => runOut(member, pole + 1e-3, pole + 1.2, RADIUS), [member, pole])
 
-  /** The violet vector: the cusp on the previous slide, and the escape direction here. */
+  /**
+   * The violet vector: the cusp on the previous slide, and the escape direction here. Drawn AT THE
+   * RUN-OUT'S EXIT, not from the origin. An earlier version put it at the origin, which happens to be
+   * c(0) because p(0) = 0 — so it read as a line attached to the start point, which is meaningless:
+   * this is a direction, and the only honest place to hang it is where the curve is actually heading.
+   */
   const escape = useMemo(() => {
+    if (outbound.length < 2) return []
+    const tip = outbound[outbound.length - 1]
+    const prev = outbound[outbound.length - 2]
     const T = indicatrixAt(member, pole)
-    const k = 0.75 * RADIUS
-    return [[0, 0, 0], [T.x * k, T.y * k, T.z * k]] as [number, number, number][]
-  }, [member, pole])
+    const along = (tip[0] - prev[0]) * T.x + (tip[1] - prev[1]) * T.y + (tip[2] - prev[2]) * T.z
+    const s = along < 0 ? -1 : 1
+    const k = s * 0.32 * RADIUS
+    return [tip, [tip[0] + T.x * k, tip[1] + T.y * k, tip[2] + T.z * k]] as [number, number, number][]
+  }, [member, pole, outbound])
 
   const margin = poleMargin(live)
   const endSpeed = speedAt(member, 1)
@@ -148,10 +158,12 @@ export default function PoleCurveFigure() {
       caption={
         <>
           <b>The same configuration as the last slide, with the curve drawn instead of the sphere.</b>{' '}
-          The <b style={{ color: FIG.color.pole }}>violet ray</b> is the same violet vector that was
-          the cusp — <i>N(r) = −p(r)</i> exactly, so the corner on the sphere <i>is</i> the direction
-          the curve escapes along. The pale continuation runs out beside it and comes back from the
-          other side.{' '}
+          The two pale strands leaving the far end are the curve <i>continued past</i> the drawn piece
+          — solid on the way out toward the pole, dashed on the way back from beyond it — and they are
+          clipped where they leave the frame rather than being allowed to rescale the camera. The{' '}
+          <b style={{ color: FIG.color.pole }}>violet stub</b> at the end of the outbound strand is the
+          same violet vector that was the cusp: <i>N(r) = −p(r)</i> exactly, so the corner on the
+          sphere <i>is</i> the direction the curve is heading when it runs off.{' '}
           <b>Push the pole toward the drawn piece</b> and <i>infinity to curve</i> closes while the
           run-out reaches further and further before it leaves the frame.{' '}
           <b>But watch how little ‖c′(1)‖ moves.</b> Naively it should grow more than a thousandfold
