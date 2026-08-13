@@ -98,6 +98,33 @@ function shiftPoly(a: readonly number[], t0: number): number[] {
 }
 
 /**
+ * THE CONDITION AS A VECTOR, with the shift supplied rather than chosen — which is what a Jacobian
+ * needs. `squareRootDefect` below picks t₀ where q is largest, and that choice JUMPS as q varies, so
+ * the defect is not differentiable and finite-differencing it silently measures the jump. Callers
+ * doing calculus must pick one t₀ and hold it across the whole difference.
+ *
+ * Given q of degree 2n, the series root fixes s's coefficients 0…n exactly; the top n coefficients of
+ * s² are then FORCED, and the n numbers returned are how far they miss q. Zero ⟺ q is a square ⟺ the
+ * curve is PH. Returned in the SHIFTED basis, which is a linear change of coordinates and so does not
+ * change the rank of anything computed from them.
+ */
+export function squareRootMismatch(q: readonly number[], n: number, t0: number): number[] {
+  const shifted = shiftPoly(q.slice(0, 2 * n + 1), t0)
+  const q0 = shifted[0]
+  if (!(q0 > 0)) return new Array<number>(n).fill(Infinity)
+  const hat = shifted.map((c) => c / q0)
+  const s = new Array<number>(n + 1).fill(0)
+  s[0] = 1
+  for (let k = 1; k <= n; k++) {
+    let acc = 0
+    for (let i = 1; i < k; i++) acc += s[i] * s[k - i]
+    s[k] = ((hat[k] ?? 0) - acc) / 2
+  }
+  const sq = pMul(s, s)
+  return Array.from({ length: n }, (_, i) => (sq[n + 1 + i] ?? 0) - (hat[n + 1 + i] ?? 0))
+}
+
+/**
  * How far q is from being the SQUARE of a polynomial of half its degree — relative, and zero exactly
  * when it is one. That is the Pythagorean condition itself, written on |c′|²·w⁴.
  */
