@@ -35,6 +35,7 @@
 // because the quadrics are what was solved and the λ-form is what is claimed.
 // ============================================================================
 import { leastSquares } from './linalg'
+import { orthonormalise } from './sp11RationalPH'
 import { QUAT_I, qconj, qmul, qvec, type Quat, type Vec3 } from './quaternion'
 import { type MultiPoleParams, unpackSpinor } from './rationalPHMultiPoleSpatial'
 
@@ -93,6 +94,53 @@ function jacobianOf(f: (x: readonly number[]) => number[], x: readonly number[])
     for (let i = 0; i < m; i++) J[i][j] = (fh[i] - fl[i]) / (2 * e)
   }
   return J
+}
+
+/**
+ * The tangent to the solved variety at 𝒜 — the directions a slider can walk. Includes the unit-norm
+ * equation, so the scale is already quotiented out: at (n,m) = (3,4) that is 16 − 12 − 1 = 3.
+ *
+ * The Hopf gauge 𝒜 ↦ 𝒜i lies inside this space and moves no curve, so one of the directions is
+ * invisible; it is left in rather than projected out, because which combination is gauge depends on 𝒜
+ * and stripping it here would make the returned basis mean something different at every point.
+ */
+export function freeLambdaTangent(x: readonly number[], roots: readonly number[]): number[][] {
+  const J = jacobianOf((y) => residueQuadrics(y, roots), x)
+  const rows = J.map((r) => {
+    const n = Math.hypot(...r)
+    return n > 0 ? r.map((v) => v / n) : r.slice()
+  })
+  const basis = orthonormalise(rows, 1e-9)
+  const out: number[][] = []
+  for (let i = 0; i < x.length; i++) {
+    let v: number[] = Array.from({ length: x.length }, (_, j) => (i === j ? 1 : 0))
+    for (const b of basis) { const d = v.reduce((s, q, k) => s + q * b[k], 0); v = v.map((q, k) => q - d * b[k]) }
+    for (const b of out) { const d = v.reduce((s, q, k) => s + q * b[k], 0); v = v.map((q, k) => q - d * b[k]) }
+    const len = Math.hypot(...v)
+    if (len > 1e-7) out.push(v.map((q) => q / len))
+  }
+  return out
+}
+
+/**
+ * Predictor–corrector: step along a tangent direction, then Newton back onto the quadrics. This is
+ * what a slider does at (n, m) where there is no linear fibre to combine — the family is curved, so
+ * moving along it costs a solve per step rather than a dot product.
+ */
+export function stepAlong(
+  x: readonly number[], roots: readonly number[], direction: readonly number[], distance: number,
+): number[] | null {
+  const f = (y: readonly number[]): number[] => residueQuadrics(y, roots)
+  let y = x.map((v, i) => v + distance * direction[i])
+  for (let it = 0; it < 60; it++) {
+    const F = f(y)
+    if (Math.max(...F.map(Math.abs)) < 1e-14) return y
+    try {
+      const step = leastSquares(jacobianOf(f, y), F.map((v) => -v), 1e-12)
+      y = y.map((v, j) => v + step[j])
+    } catch { return null }
+  }
+  return Math.max(...f(y).map(Math.abs)) < 1e-10 ? y : null
 }
 
 export interface FreeLambdaSolution {

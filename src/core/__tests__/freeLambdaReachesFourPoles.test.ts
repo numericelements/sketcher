@@ -23,10 +23,10 @@
 // unaffected.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { solveWithFreeLambda } from '../rationalPHFreeLambda'
+import { freeLambdaTangent, solveWithFreeLambda, stepAlong } from '../rationalPHFreeLambda'
 import {
   type MultiPoleParams,
-  familyBasis, phDefect, poleMargin, toMember,
+  curveAt, familyBasis, packSpinor, phDefect, poleMargin, toMember, unpackSpinor,
 } from '../rationalPHMultiPoleSpatial'
 import { jacobian, layoutFor, pack, rankOf, residual } from '../rationalPHVariety'
 import type { Quat } from '../quaternion'
@@ -98,12 +98,60 @@ describe('solving for the twist rates', () => {
   })
 
   it('the solver also reproduces the families the linear construction already had', () => {
-    for (const [roots, n] of [[[1.7], 2], [[1.7, -0.9, 2.6], 3]] as const) {
-      const sol = solveWithFreeLambda(roots as number[], n)
+    const known: [number[], number][] = [[[1.7], 2], [[1.7, -0.9, 2.6], 3]]
+    for (const [roots, n] of known) {
+      const sol = solveWithFreeLambda(roots, n)
       expect(sol).not.toBeNull()
       expect(phDefect(toMember(sol!.params))).toBeLessThan(1e-12)
       expect(sol!.lambdaFormResidual).toBeLessThan(1e-12)
     }
+  })
+
+  it('AND YOU CAN MOVE WITHIN IT: predictor–corrector walks stay exactly PH', () => {
+    // No linear fibre to combine here, so a slider costs a solve per step rather than a dot product.
+    for (const roots of FOUR_POLE_SETS.slice(0, 2)) {
+      const sol = solveWithFreeLambda(roots, 3)!
+      const x0 = packSpinor(sol.params.A)
+      const m0 = toMember(sol.params)
+      let diameter = 0
+      for (let i = 0; i <= 20; i++) for (let j = 0; j <= 20; j++) {
+        const a = curveAt(m0, i / 20), b = curveAt(m0, j / 20)
+        diameter = Math.max(diameter, Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z))
+      }
+      const signature = (x: number[]): number[] => {
+        const m = toMember({ ...sol.params, A: unpackSpinor(x) })
+        return [0.2, 0.5, 0.8].flatMap((t) => { const v = curveAt(m, t); return [v.x, v.y, v.z] })
+      }
+      const s0 = signature(x0)
+
+      let bestMove = 0
+      let landed = 0
+      const T = freeLambdaTangent(x0, roots)
+      for (const d of T) {
+        const y = stepAlong(x0, roots, d, 0.4)
+        if (!y) continue
+        landed++
+        expect(phDefect(toMember({ ...sol.params, A: unpackSpinor(y) }))).toBeLessThan(1e-12)
+        bestMove = Math.max(bestMove, Math.hypot(...signature(y).map((v, i) => v - s0[i])) / diameter)
+      }
+      expect(landed).toBeGreaterThanOrEqual(T.length - 1)   // 35 of 36 steps landed
+      expect(bestMove).toBeGreaterThan(0.3)                 // measured 0.35 … 0.54 of the curve's size
+    }
+  })
+
+  it('BUT THE TANGENT IS 6-DIMENSIONAL WHERE THE COUNT SAYS 3 — recorded, not explained', () => {
+    // dim 𝒱 = 4(n+1) − 3m = 4 at (3,4), so with the unit-norm equation the tangent should be 3. It
+    // measures 6, meaning three of the thirteen equations are dependent here. That matches the other
+    // symptom — rank 7 rather than 13 in the (p,w,σ) system — so these points are degenerate in both
+    // formulations at once, and the dimension formula is not describing them.
+    for (const roots of FOUR_POLE_SETS) {
+      const sol = solveWithFreeLambda(roots, 3)!
+      expect(freeLambdaTangent(packSpinor(sol.params.A), roots).length).toBe(6)
+    }
+    // where the linear construction works, the count and the tangent agree
+    const three = solveWithFreeLambda([1.7, -0.9, 2.6], 3)!
+    expect(freeLambdaTangent(packSpinor(three.params.A), [1.7, -0.9, 2.6]).length)
+      .toBe(familyBasis(three.params).length - 1 + 3)       // fibre 4, minus the norm, plus the λ's
   })
 
   it('every member the chart builds is a SINGULAR point of the variety — including the new ones', () => {
