@@ -21,7 +21,7 @@
 //
 // AUDIENCE: someone who already knows what a PH curve is. One recap slide, then straight in.
 //
-// THE ARC (planned; nothing after slide 3 is built yet):
+// THE ARC (built through 13; 14-16 planned; two END slides built ahead of them, see below):
 //
 //   1  title, with the tag legend
 //   2  a circle is not a polynomial -- the shape, and whose fault it is        [THM]
@@ -34,11 +34,19 @@
 //   9  FROM THE HODOGRAPH TO THE SPINOR -- the requirement on what you choose  [LIT]
 //  10  a real pole, and a dial -- the circle's opposite, lambda made visible    [THM] [MEAS]
 //  11  and most spinors fail it -- the condition, and genericity                [LIT]
-//  12  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
-//  13  torus x roads -- and the roads end at cusps and pole collisions          [MEAS]
-//  14  arc length: when it survives and when it does not, from the two examples [LIT] [MEAS]
-//  15  the ledger, both columns                                                 --
-//  16  what is open, and where to go next                                       [OPEN]
+//  12  THE FAMILY IS COMPLETELY KNOWN -- and ours is a chart on it, declared    [LIT]
+//  13  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
+//  14  torus x roads -- and the roads end at cusps and pole collisions          [MEAS]
+//  15  arc length: when it survives and when it does not, from the two examples [LIT] [MEAS]
+//  16  the ledger, both columns                                                 --
+//  17  what is open, and where to go next                                       [OPEN]
+//  18  TWO WAYS IN -- the strategy: more charts from inside, optimisation from  [LIT] [OPEN]
+//      outside, and why they are complementary rather than one being a fallback
+//  19  THE FIRST MOVE, MADE -- complex poles: bounded curves in closed form,    [MEAS]
+//      and the circle still outside, on sigma(r) = 0
+//
+// 18 and 19 are BUILT and sit at the end of the array, out of order. They were written when the
+// strategy question came up; 14-16 slot in ahead of them.
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
 // These slides are written in conversation, and the conversation carries context the DECK DOES NOT.
@@ -1376,7 +1384,159 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 12 — the return side opens: the poles come with handles
+  // 12 — the complete answer exists, and it is not ours
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="LIT" />
+        <h2>The family is completely known</h2>
+        <p>
+          Before going further it is worth saying plainly what the state of the subject is, because
+          everything so far has been a <em>construction</em>, and a construction is easily mistaken
+          for a theory. Rational PH space curves were characterised <strong>completely</strong> in
+          2022:
+        </p>
+        <p
+          style={{
+            textAlign: 'center',
+            margin: '0.5em 0 0.7em',
+            padding: '0.4em 0.8em',
+            borderTop: '1px solid rgba(0,0,0,0.15)',
+            borderBottom: '1px solid rgba(0,0,0,0.15)',
+          }}
+        >
+          <strong>Bahar Kalkan, Daniel F. Scharler, Hans-Peter Schröcker, Zbyněk Šír</strong>
+          <br />
+          <em>Rational Framing Motions and Spatial Rational Pythagorean Hodograph Curves</em>
+          <br />
+          <span style={{ opacity: 0.75 }}>Computer Aided Geometric Design (2022) · arXiv:2111.04600</span>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.55em 1.1em',
+            margin: '0.7em 0',
+            alignItems: 'baseline',
+            fontSize: '0.86em',
+          }}
+        >
+          <span style={{ opacity: 0.6, whiteSpace: 'nowrap' }}>Thm 3.5</span>
+          <span>
+            every rational PH curve <em>admits</em> a framing motion with{' '}
+            <Math>{'\\mathcal{A}'}</Math> in normal form — so the normalisation below excludes nothing.
+          </span>
+          <span style={{ opacity: 0.6, whiteSpace: 'nowrap' }}>Thm 3.6</span>
+          <span>
+            rational PH curves are <strong>precisely</strong> the trajectories of the origin under{' '}
+            <Math>{'\\mathcal{C} = (\\alpha + \\varepsilon \\mathbf{b})\\,\\mathcal{A}'}</Math> subject to a{' '}
+            <em>linear</em> condition, of which one form is
+          </span>
+          <span />
+          <Math display>
+            {"\\alpha\\mathbf{b}' - \\alpha'\\mathbf{b} \\;=\\; \\mu\\,\\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}, \\qquad \\mu \\in \\mathbb{R}[t]"}
+          </Math>
+          <span style={{ opacity: 0.6, whiteSpace: 'nowrap' }}>Thm 4.6</span>
+          <span>
+            and a truly rational (non-polynomial) solution exists <em>iff</em> the Taylor coefficients
+            of <Math>{"\\mathcal{A}\\,\\mathbf{i}\\,\\mathcal{A}^{*}"}</Math> at a root of{' '}
+            <Math>{'\\alpha'}</Math> are <strong>linearly dependent</strong> — every multiplicity, real
+            roots and complex ones alike.
+          </span>
+        </div>
+        <p>
+          That middle line is our Wronskian: <Math>{'\\alpha'}</Math> is the denominator,{' '}
+          <Math>{'\\mathbf{b}'}</Math> the numerator up to a factor, and{' '}
+          <Math>{'\\mu'}</Math> the real factor we set to 1 without saying so.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            So the set of rational PH curves is not an open question. It is known, and it is theirs.
+          </strong>
+        </p>
+        <p>
+          What this deck has built is a <strong>chart</strong> on that set — a way of writing members
+          down — and it is honest about being partial. It assumes:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.2em',
+            justifyContent: 'start',
+            margin: '0.5em 0 0.5em 1.2em',
+            fontSize: '0.78em',
+            lineHeight: 1.5,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>real poles</span>
+          <span style={{ opacity: 0.7 }}>the strip needs conjugation to commute with evaluation</span>
+          <span>simple roots</span>
+          <span style={{ opacity: 0.7 }}>the expansion assumed multiplicity one</span>
+          <span>
+            <Math>{'\\sigma(r) \\neq 0'}</Math>
+          </span>
+          <span style={{ opacity: 0.7 }}>
+            we divided by <Math>{'\\mathcal{A}(r)'}</Math>
+          </span>
+          <span>
+            <Math>{'\\mu = 1'}</Math>
+          </span>
+          <span style={{ opacity: 0.7 }}>the primitive case, taken silently</span>
+        </div>
+        <p>
+          And the circle fails the third. Its poles are complex and{' '}
+          <Math>{'\\sigma(\\pm i) = 0'}</Math> — the spinor is <em>isotropic</em> there, of vanishing
+          norm without being zero, so there is nothing to divide by. Nothing is wrong with the circle:
+          it satisfies Theorem 4.6 exactly, as it must. <strong>The chart simply does not reach it.</strong>
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          What <em>is</em> open, in the authors&rsquo; own words: the <em>dimension and basis</em> of
+          the solution space (&ldquo;will not be formally treated&rdquo;), denominators with{' '}
+          <em>several linear factors</em> (&ldquo;a topic of future research&rdquo;), and{' '}
+          <em>interpolation</em>, which they note the theory enables and do not carry out. The
+          characterisation is finished; its <strong>structure</strong> is not.
+        </p>
+        <Cite>
+          Theorems 3.5, 3.6 and 4.6; the open items are their §3 preamble and Rem. 5.2. Two of the
+          four authors are also on Altavilla–Schröcker–Šír–Vršek (2026) on PH-preserving mappings, so
+          this is one active line rather than an isolated paper.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE EXISTS TO PREVENT ONE MISREADING, and it is the misreading a deck like this invites: '
+      + 'that the construction it has been building IS the state of the art. It is not. The set of '
+      + 'rational PH space curves was completely characterised in 2022, and a listener who leaves '
+      + 'without knowing that has been misled by omission. '
+      + 'THE NORMALISATION IS NOT A RESTRICTION, and Thm 3.5 is what says so -- every rational PH '
+      + 'curve ADMITS the normal form. Worth stating, because "precisely, subject to A being reduced" '
+      + 'sounds like a hypothesis that might exclude things, and it does not. '
+      + 'THE MIDDLE LINE IS OUR WRONSKIAN IN THEIR NOTATION. alpha is w, b is p up to a factor, and mu '
+      + 'is the real factor this deck set to 1 without ever saying so. Point at it: the deck has been '
+      + 'working inside their Theorem 3.6 the whole time without the room being told. '
+      + 'THE FOUR ASSUMPTIONS ARE LISTED BECAUSE A CHART SHOULD DECLARE ITS DOMAIN. Real poles, simple '
+      + 'roots, sigma nonzero at the pole, mu = 1. Each has a one-line reason and none of them is a '
+      + 'defect -- they are the price of a parametrisation that needs no solver. '
+      + 'AND THE CIRCLE FAILS ONE, WHICH IS THE HONEST WAY TO END. sigma vanishes at its complex '
+      + 'poles: the spinor is ISOTROPIC there -- vanishing norm, NOT zero -- so A(r) is not '
+      + 'invertible. Say isotropic and not "vanishes", because an earlier version of this material '
+      + 'claimed the spinor vanished, which was a packing artefact and false; the circle satisfies '
+      + 'Thm 4.6 perfectly. Over REAL poles the two notions coincide, which is why the distinction '
+      + 'never arose until a complex pole turned up. '
+      + 'AND IF ASKED ABOUT COMPLEXIFYING THE CHART: the natural frame is H tensor C, isomorphic to '
+      + 'the two-by-two complex matrices, where quaternion conjugation is the adjugate and sigma is '
+      + 'the DETERMINANT. Then the single condition is det A(r) nonzero and real and complex poles are '
+      + 'on equal footing; lambda becomes complex, conjugate-paired across a root pair, so the '
+      + 'parameter count is unchanged. That is standard complexification, not a new idea, and Kalkan '
+      + 'et al. already handle complex roots -- it would extend OUR chart, not the theory.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 13 — the return side opens: the poles come with handles
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -1472,5 +1632,300 @@ export const slides: SlideDefinition[] = [
       + 'torus: more angles, no new KIND of freedom, nothing with a name. Here an extra pole buys a '
       + 'degree AND a named dial while the loop stays one-dimensional. That is a structural difference, '
       + 'not just a bigger number, and it is the strongest thing in the return column.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // (built out of order — belongs at the END, after the ledger)
+  // Two ways in: the strategy for reaching the rest of the family
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['LIT', 'OPEN']} />
+        <h2>Two ways in</h2>
+        <p>
+          The family is completely characterised and our construction is a patch on it. So how do you
+          reach the rest? Two attacks, and they are <em>complementary</em> — neither is the
+          other&rsquo;s fallback.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>From the inside — more charts.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          What a chart buys is not coverage, it is that <strong>PH costs nothing inside it</strong>:
+          nothing to enforce, no residual to drift, and <em>coordinates</em>, so you can drag along it.
+          Measured in this repository: <Math>{'0.016'}</Math> ms per member from the chart, against{' '}
+          <Math>{'19'}</Math> s for a solver to find one feasible seed at conformal degree 6.
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr auto',
+            gap: '0.3em 1.1em',
+            margin: '0.5em 0 0.5em 1.2em',
+            fontSize: '0.76em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>complex poles</span>
+          <span style={{ opacity: 0.8 }}>
+            complexify to <Math>{'\\mathbb{H}\\otimes\\mathbb{C} \\cong M_2(\\mathbb{C})'}</Math>, where{' '}
+            <Math>{'\\sigma = \\det\\mathcal{A}'}</Math>; the solve is already{' '}
+            <Math>{'\\mathbb{C}'}</Math>-linear, <Math>{'\\lambda'}</Math> becomes complex and
+            conjugate-paired, count unchanged
+          </span>
+          <span>
+            <strong>low</strong>
+          </span>
+          <span>
+            <Math>{'\\mu \\neq 1'}</Math>
+          </span>
+          <span style={{ opacity: 0.8 }}>one more linear unknown, as in their own system</span>
+          <span>
+            <strong>low</strong>
+          </span>
+          <span>multiplicity ≥ 2</span>
+          <span style={{ opacity: 0.8 }}>
+            re-derive the expansion; the conditions are already known, and at multiplicity 3 or more
+            there is <em>no</em> condition left
+          </span>
+          <span>
+            <strong>medium</strong>
+          </span>
+          <span>
+            <Math>{'\\sigma(r) = 0'}</Math>
+          </span>
+          <span style={{ opacity: 0.8 }}>
+            <Math>{'\\mathcal{A}(r)'}</Math> is <strong>rank one</strong> — nonzero but singular. The
+            strip has nothing to divide by, and it does not degrade, it <em>stops</em>
+          </span>
+          <span>
+            <strong>structural</strong>
+          </span>
+        </div>
+        <p style={{ marginLeft: '1.2em', opacity: 0.75 }}>
+          The last row is where charts should give way rather than be contorted — and it is not a
+          corner: the whole conformal family lives there, since{' '}
+          <Math>{'\\sigma = h\\,w'}</Math> vanishes at every pole.
+        </p>
+
+        <p style={{ marginBottom: '0.15em', marginTop: '0.5em' }}>
+          <strong>From the outside — and it is not a nonlinear problem.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Prescribe <Math>{'\\alpha'}</Math> and <Math>{'\\mathcal{A}'}</Math> and the defining
+          conditions are <strong>linear</strong> in what remains, so the solution set is a{' '}
+          <em>vector space</em>. No Newton, no seed hunt. But two traps, and both are about knowing
+          when you have failed:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.3em 1.1em',
+            margin: '0.4em 0 0.4em 1.2em',
+            fontSize: '0.78em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>
+            <strong>1</strong>
+          </span>
+          <span>
+            the system is <em>always</em> solvable — trivial solutions{' '}
+            <Math>{'\\mathbf{b} = \\alpha\\mathbf{b}_0'}</Math> exist for any input. So{' '}
+            <strong>a zero residual proves nothing.</strong>
+          </span>
+          <span>
+            <strong>2</strong>
+          </span>
+          <span>
+            the acceptance test is not convergence, it is <em>divisibility</em>: the solution is a{' '}
+            <strong>polynomial</strong> curve precisely when <Math>{'\\alpha'}</Math> divides{' '}
+            <Math>{'\\mathbf{b}'}</Math>.
+          </span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          So the outside <em>also</em> needs the characterisation — Thm 4.6 says which{' '}
+          <Math>{'(\\alpha, \\mathcal{A})'}</Math> admit non-polynomial solutions at all. Without it you
+          solve successfully, every time, and get polynomials.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            The hard part is the same on both sides: landing on the condition. A chart lands on it by
+            construction; a solver has to search for it.
+          </strong>
+        </p>
+        <p>
+          Which is why they feed each other. Charts hand the solver feasible seeds in microseconds.
+          The solver, run where no chart reaches, locates a missing stratum <em>empirically</em>. And
+          inside a chart the optimiser carries <strong>no PH constraints at all</strong> — only the
+          objectives you actually wanted.
+        </p>
+        <p style={{ opacity: 0.65 }}>
+          First move: complexify. It is the cheap one, and it brings <em>bounded</em> curves into
+          closed form for the first time. Not the circle — the next slide says why not.
+        </p>
+        <Cite>
+          Linearity of the defining conditions, the trivial solutions, and the divisibility test are
+          Kalkan et al. (2022), Thm. 3.6 conditions (7)–(9) and Lemma 4.1; the multiplicity cases are
+          Lemmas 4.3–4.4 and Thm. 4.6. The two timings are this repository&rsquo;s:{' '}
+          <Math>{'\\texttt{rationalPHOnePoleSpatial}'}</Math> and{' '}
+          <Math>{'\\texttt{conformalPHCurve.findMember}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE SLIDE EXISTS BECAUSE "WE HAVE A CHART, THE THEORY IS COMPLETE" IS A DEAD END WITHOUT A '
+      + 'PLAN. This is the plan, and its shape is the point: two attacks that are complementary '
+      + 'rather than one being a fallback for the other. '
+      + 'THE STRONGEST ARGUMENT FOR CHARTS IS NOT COVERAGE. It is that PH costs nothing inside one -- '
+      + 'no constraint to enforce, no residual to drift, and COORDINATES, which is what lets you drag. '
+      + 'The two timings make it concrete: 0.016 ms from the chart against 19 s for a solver to find '
+      + 'one seed. That is a factor of a million on the step everyone treats as setup. '
+      + 'AND THE DEEPEST ONE, worth saying slowly: inside a chart an optimiser carries NO PH '
+      + 'CONSTRAINTS. It carries only the objectives you actually wanted -- interpolation data, '
+      + 'fairness, a curvature bound. The long-running solver-quality problem in this repository is '
+      + 'about navigating a constrained landscape; in chart coordinates most of that landscape is not '
+      + 'there. That is a different problem, not a faster one. '
+      + 'THE OUTSIDE IS LINEAR AND THAT SURPRISES PEOPLE. Prescribe alpha and A and the conditions are '
+      + 'linear in the rest; the solution family is a VECTOR SPACE, which their introduction '
+      + 'advertises as the practical benefit. Nobody needs Newton for feasibility. '
+      + 'BUT THE TWO TRAPS ARE THE USEFUL PART OF THIS SLIDE, because they invert the usual habit. '
+      + 'The system is ALWAYS solvable -- trivial solutions b = alpha b_0 exist for any input -- so a '
+      + 'residual of zero is not evidence of anything. And the acceptance test is DIVISIBILITY, not '
+      + 'convergence: Lemma 4.1 says the solution is a polynomial curve exactly when alpha divides b. '
+      + 'An engineer who checks residuals and ships will ship polynomial curves and never know. '
+      + 'SO BOTH SIDES NEED THE CHARACTERISATION, which is the sentence to land. The chart satisfies '
+      + 'the condition BY CONSTRUCTION; the solver must SEARCH for it. Same difficulty, two places to '
+      + 'put it. '
+      + 'THE sigma = 0 ROW IS NOT A CORNER CASE and the faded line says so: the entire conformal '
+      + 'family lives there, because sigma = h w vanishes at every pole. That is the family the '
+      + 'interactive figures in the sibling deck are built on, so "charts give way here" is a '
+      + 'statement about real code, not about a hypothetical stratum.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "Two ways in")
+  // The first move executed: complex poles, and the shape it does NOT reach
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>The first move, made</h2>
+        <p>
+          A real pole is not a technicality. It is a place the curve <em>runs to infinity</em> — so a
+          chart built on real poles cannot produce a bounded curve at all. Push the poles off the real
+          axis, in conjugate pairs, and <Math>{'w'}</Math> has no real root: it is positive on the
+          whole line, and so is the curve finite there.
+        </p>
+        <p>
+          The move costs almost nothing, because the equation does not change shape. Complexify the
+          quaternions — <Math>{'\\mathbb{H}\\otimes\\mathbb{C} \\cong M_2(\\mathbb{C})'}</Math>, in
+          which <Math>{'\\sigma = \\det\\mathcal{A}'}</Math> — and the same line reads
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <Math display>{'\\mathcal{A}\'(r) \\;=\\; \\mathcal{A}(r)\\,(\\Sigma + \\lambda i)'}</Math>
+        </p>
+        <p>
+          with complex entries and a <strong>complex</strong> <Math>{'\\lambda'}</Math>. The dial that
+          was a twist rate on the real line becomes a twist rate <em>and</em> a scale.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>What is measured, not assumed.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.3em 1.1em',
+            margin: '0.35em 0 0.5em 1.2em',
+            fontSize: '0.78em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>one <Math>{'\\lambda'}</Math>, two poles</span>
+          <span style={{ opacity: 0.85 }}>
+            imposing the condition at <Math>{'r'}</Math> satisfies it at{' '}
+            <Math>{'r^{*}'}</Math> automatically, with <Math>{'\\lambda^{*}'}</Math>. Not arranged —
+            the residual at the partner pole is <Math>{'6{\\cdot}10^{-16}'}</Math> without anything
+            being asked of it.
+          </span>
+          <span>the count survives</span>
+          <span style={{ opacity: 0.85 }}>
+            a pair costs <strong>eight</strong> real conditions, which is still{' '}
+            <strong>four per pole</strong>. So{' '}
+            <Math>{'4(n+1) - 4\\,\\#\\text{poles}'}</Math> is unchanged — pinned at{' '}
+            <Math>{'12 - 8 = 4'}</Math> and <Math>{'20 - 16 = 4'}</Math>.
+          </span>
+          <span>the solve stays linear</span>
+          <span style={{ opacity: 0.85 }}>
+            the condition matrix is <Math>{'\\mathbb{C}'}</Math>-linear in the spinor; a member comes
+            from a null space, not a search.
+          </span>
+          <span>and it is bounded</span>
+          <span style={{ opacity: 0.85 }}>
+            <Math>{'w > 0'}</Math> on all of <Math>{'\\mathbb{R}'}</Math>, curve and speed finite far
+            outside the design interval, PH exact to <Math>{'10^{-12}'}</Math>.
+          </span>
+        </div>
+
+        <p style={{ marginTop: '0.6em' }}>
+          And the shape the deck is named after is <em>still</em> outside. The circle&rsquo;s poles are
+          a conjugate pair — <Math>{'w = 1 + t^2'}</Math>, poles at <Math>{'\\pm i'}</Math> — so it sits
+          exactly where this move was supposed to reach. It does not, and the reason is the row we
+          already flagged as structural:
+        </p>
+        <p style={{ textAlign: 'center' }}>
+          <Math display>
+            {'\\sigma(i)^2 = \\langle N(i), N(i)\\rangle = (-4i)^2 + 4^2 = 0 , \\qquad N(i) \\neq 0'}
+          </Math>
+        </p>
+        <p>
+          The pole is not a bad pole. <Math>{'N(i)'}</Math> is a perfectly good nonzero vector — it is{' '}
+          <strong>isotropic</strong>, null for the form the light cone is built from. So{' '}
+          <Math>{'\\mathcal{A}(i)'}</Math> is rank one, and the strip has nothing to divide by.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.05em' }}>
+            Complexifying moved the wall. It did not remove it — and the circle is on the far side of
+            the one that is left.
+          </strong>
+        </p>
+        <Cite>
+          Measured in this repository:{' '}
+          <Math>{'\\texttt{rationalPHComplexPoleSpatial}'}</Math> and its test. The characterisation
+          that covers the excluded stratum is Kalkan, Scharler, Schröcker &amp; Šír (2022), Thm. 3.6.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS THE PREVIOUS SLIDE\'S PROMISE, CASHED. "Complexify" was listed as the cheap first '
+      + 'move; this is what came back, with numbers, so the strategy slide is not left as a wish list. '
+      + 'LEAD WITH WHY A REAL POLE IS FATAL, because it is easy to hear "complex poles" as generality '
+      + 'for its own sake. It is not: a real pole IS the point where the curve escapes to infinity, so '
+      + 'the real-pole chart cannot make a bounded curve -- not "is bad at it", CANNOT. Off the real '
+      + 'axis, w has no real root, and boundedness is free. '
+      + 'THE ELEGANT PART IS THAT NOTHING CHANGES SHAPE. Same equation, complex entries, because '
+      + 'H tensor C is just 2x2 complex matrices and sigma is the determinant. Say that slowly -- it is '
+      + 'the reason the move was cheap. '
+      + 'THE MEASUREMENT WORTH PAUSING ON is the first row. One complex lambda handles BOTH poles: you '
+      + 'impose the condition at r and it holds at r-conjugate to 6e-16 without being asked. That is '
+      + 'the conjugate symmetry of a real-coefficient problem doing the work, and it is why the '
+      + 'condition count per pole did not go up. '
+      + 'THEN THE TURN, and do not soften it: the circle is STILL out. Its poles are +/- i, a conjugate '
+      + 'pair, precisely the case this move was built for -- and it fails anyway, on sigma(i) = 0. '
+      + 'N(i) is NOT zero. It is a nonzero ISOTROPIC vector, null for the light-cone form. This '
+      + 'distinction cost a retracted commit earlier in this work; state it carefully. '
+      + 'THE HONEST SUMMARY IS "the wall moved, it did not vanish", and that is a better result than a '
+      + 'clean win would have been, because it says exactly which stratum to attack next.',
   },
 ]
