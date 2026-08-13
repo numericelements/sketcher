@@ -2276,8 +2276,9 @@ export const slides: SlideDefinition[] = [
           <Math>{'\\sigma(r) = 0'}</Math> is exactly where the discarded six were needed. Measured:
           inversion sends a curve strictly <em>inside</em> the chart to one whose every pole is
           isotropic, because <Math>{'\\tilde\\sigma = \\sigma\\,\\tilde w'}</Math> — which is
-          the conformal family&rsquo;s own signature <Math>{'\\sigma = h\\,w'}</Math>. The conformal
-          family <em>is</em> the set of inversions of ordinary PH curves.
+          the conformal family&rsquo;s own signature <Math>{'\\sigma = h\\,w'}</Math>. So every
+          inversion of an ordinary PH curve <em>lands in</em> the conformal family — a containment,
+          and the later slides measure that the family is strictly larger than that.
         </p>
 
         <p style={{ marginBottom: '0.15em' }}>
