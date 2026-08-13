@@ -8,8 +8,9 @@
 //
 //   · poles and dials HELD  →  arc length is EXACTLY constant on the whole fiber. Not "barely
 //     varies": every probe returns the same digits. The torus kept its incapacity.
-//   · poles and dials MOVED →  a factor of 510 in length on the same six numbers of data, from 0.3%
-//     above the chord to five hundred times it. That is where the freedom lives.
+//   · poles and dials MOVED →  a factor of only 1.03. Length is NEARLY RIGID across the whole
+//     family at fixed Hermite data: exactly constant on the torus, and 3% across every pole and
+//     dial placement that solves. Measured over 698 configurations on a wide grid.
 //   · ONE dial alone is nearly inert (0.3% across eighty units of range). The freedom is in the
 //     COUPLING, which is why "the dial controls length" would be the wrong summary.
 //
@@ -88,7 +89,13 @@ describe('torus x roads', () => {
     expect(Math.max(...Ls) / Math.min(...Ls)).toBeLessThan(1.005)
   })
 
-  it('THE ROADS ARE WHERE LENGTH LIVES: poles and dials together give a factor of 510', () => {
+  it('LENGTH IS NEARLY RIGID: poles and dials together move it by only 3%', () => {
+    // CORRECTED. This test asserted a factor of 510, which was an artefact of a bug in familyBasis:
+    // at some grid points the probe-based nullspace came back SHORT, the solve had too few degrees
+    // of freedom, and it produced a spurious member of length 279 that still passed the data check.
+    // With the basis fixed (familyBasisConditioning.test.ts) the same configuration solves to 0.563
+    // with residual 1.6e-14, and the speed profile is physically right — the pole sits OUTSIDE [0,1],
+    // so the curve races only briefly and the integral stays small.
     const chord = Math.hypot(...(() => { const c = curveAt(toMember(seed), 1); return [c.x, c.y, c.z] })())
     expect(chord).toBeCloseTo(0.5455, 3)
 
@@ -105,8 +112,10 @@ describe('torus x roads', () => {
       }
     }
     expect(Ls.length).toBeGreaterThan(60)
-    expect(Math.min(...Ls) / chord).toBeLessThan(1.01)      // the short end is essentially the chord
-    expect(Math.max(...Ls) / Math.min(...Ls)).toBeGreaterThan(400)
+    expect(Math.min(...Ls) / chord).toBeLessThan(1.01)          // the short end IS the chord
+    const ratio = Math.max(...Ls) / Math.min(...Ls)
+    expect(ratio).toBeGreaterThan(1.005)                        // it does move, a little
+    expect(ratio).toBeLessThan(1.2)                             // but only a little: measured 1.03
   }, 30_000)
 
   it('A ROAD ENDS when a pole reaches the drawn piece', () => {

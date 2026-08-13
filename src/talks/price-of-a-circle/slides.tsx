@@ -50,7 +50,8 @@
 //  11  and most spinors fail it -- the condition, and genericity                [LIT]
 //  12  THE FAMILY IS COMPLETELY KNOWN -- and ours is a chart on it, declared    [LIT]
 //  13  what the poles hand back: a degree and a dial each (F16, F17)            [MEAS]
-//  14  TORUS x ROADS -- the torus survives intact, roads bolted on; length x510  [MEAS]
+//  14  TORUS x ROADS -- the torus survives intact, roads bolted on; and LENGTH IS  [MEAS]
+//      NEARLY RIGID everywhere (x1.03), which corrected an earlier x510 artefact
 //      and the roads end at POLES, not cusps (the planned line said cusps; wrong)
 //  15  ARC LENGTH IS THE SAME EQUATION -- on sigma instead of N, and FREE in the [LIT] [MEAS]
 //      chart (lambda drops out: N is a pure vector). Unification is Schrocker-Sir.
@@ -1737,14 +1738,15 @@ export const slides: SlideDefinition[] = [
           <span>poles and dials together</span>
           <span style={{ opacity: 0.8 }}>the chord is <Math>{'0.5455'}</Math></span>
           <span>
-            <strong>0.547 → 279</strong>
+            <strong>0.547 → 0.563</strong>
           </span>
         </div>
         <p style={{ marginLeft: '1.2em' }}>
-          A factor of <strong>510</strong> — from 0.3 % above the straight line to five hundred times
-          it. Note the middle row: <em>one</em> dial is nearly inert. The freedom is in the{' '}
-          <strong>coupling</strong>, and the extremes come from a pole nearly touching the interval
-          paired with a large dial.
+          A factor of <strong>1.03</strong>. The short end is the chord to within 0.3 %, and the long
+          end is barely further. So the honest reading is the opposite of what one expects:{' '}
+          <strong>length is nearly rigid across the entire family</strong> at fixed data — exactly
+          constant on the torus, and three per cent over every pole and dial placement that solves.
+          Measured over 698 configurations.
         </p>
 
         <p style={{ marginTop: '0.6em', marginBottom: '0.15em' }}>
@@ -1810,11 +1812,17 @@ export const slides: SlideDefinition[] = [
       + 'is 0.555996 on 200 of 200 probes -- every digit, not a tolerance. Say "exactly" and mean it. '
       + 'THE THREE-ROW TABLE IS THE ARGUMENT and the middle row is the one people miss. Sweeping ONE '
       + 'dial across eighty units of range moves length by 0.3 percent -- nearly inert. It is only when '
-      + 'poles and dials move TOGETHER that the range opens to a factor of 510. The freedom is in the '
-      + 'coupling, which is why "the dial controls length" would be the wrong summary. '
-      + 'ANCHOR 510 AGAINST THE CHORD or the number is meaningless: 0.5455 is the straight line, so the '
-      + 'short end is essentially the geodesic and the long end is five hundred times it. Same six '
-      + 'numbers of data, that whole spectrum. '
+      + 'poles and dials move together it opens only to 1.03. So LENGTH IS NEARLY RIGID -- exactly '
+      + 'constant on the torus and three per cent everywhere else. That is the opposite of what the '
+      + 'slide originally claimed and it is the more interesting statement: at fixed Hermite data the '
+      + 'family has almost no length freedom at all, anywhere. '
+      + 'THIS SLIDE ONCE SAID x510, AND SAYING WHY IS WORTH THIRTY SECONDS. That number came from a '
+      + 'bug in familyBasis: the probe-based nullspace sometimes came back SHORT, so the solve had too '
+      + 'few degrees of freedom and produced a spurious member of length 279 that still passed the '
+      + 'data check. It was found while designing an interactive dial -- the same bug made withDial '
+      + 'fail at scattered angles. Fixing the basis moved the maximum from 279 to 0.563. The lesson '
+      + 'is that a number can pass its own pinning test and still be an artefact of the machinery '
+      + 'underneath it. '
       + 'THE CUSP ROW IS A CORRECTION I MADE TO MY OWN PLAN and it is worth saying out loud rather than '
       + 'quietly dropping. I had written "the roads end at cusps and pole collisions." Collisions, yes, '
       + 'measured to the last solvable step. Cusps, no -- and not by luck. sigma is a sum of four '
@@ -3368,11 +3376,6 @@ export const slides: SlideDefinition[] = [
               only ever buys more angles on a bigger torus — no new <em>kind</em> of freedom.
             </p>
             <p style={{ margin: '0 0 0.35em' }}>
-              <strong>Length.</strong> On the torus arc length is <em>constant</em> — 200 probes,
-              every digit. Poles and dials together span a factor of <strong>510</strong> on the same
-              Hermite data, from the chord to five hundred times it.
-            </p>
-            <p style={{ margin: '0 0 0.35em' }}>
               <strong>Boundedness.</strong> Complex poles put <Math>{'w > 0'}</Math> on the whole
               line — unreachable with real poles, where a pole <em>is</em> an escape to infinity.
             </p>
@@ -3406,9 +3409,15 @@ export const slides: SlideDefinition[] = [
               M&ouml;bius as the transition maps — plus a second chart <em>type</em> for{' '}
               <Math>{'\\sigma = h\\,w'}</Math>, disjoint by theorem.
             </p>
-            <p style={{ margin: 0 }}>
+            <p style={{ margin: '0 0 0.35em' }}>
               <strong>Degree, if you insist on a real denominator.</strong> The same curve is degree
               2 covariantly and degree 10 in the <Math>{'p/w'}</Math> gauge.
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong>And length is <em>not</em> freed.</strong> The torus could not choose it — 200
+              probes, every digit identical — and adding poles and dials moves it by{' '}
+              <strong>1.03</strong>. At fixed data the whole family is nearly rigid in length. This
+              slide claimed a factor of 510 until the machinery under it was fixed.
             </p>
           </div>
         </div>
@@ -3465,6 +3474,10 @@ export const slides: SlideDefinition[] = [
       + 'position it could not have priced the Sp(1,1) arc, where most of the charges and all of the '
       + 'surprises are. Say the two columns at a normal pace; they are a summary and the audience has '
       + 'seen the evidence. '
+      + 'THE LENGTH ENTRY MOVED COLUMNS, and that is worth a sentence: it used to be a BUY, on a '
+      + 'measured factor of 510. The 510 was an artefact of a short nullspace basis; the true figure '
+      + 'is 1.03, so length is nearly rigid and the item belongs among the charges. An expectation '
+      + 'that rationality buys length freedom is the natural one and it is wrong. '
       + 'THE THIRD COLUMN IS THE ONE TO SLOW DOWN FOR, because it is the counter-intuitive half. PH '
       + 'itself costs NOTHING inside a chart. Cusps never happen. Rational arc length is free in the '
       + 'lambda-chart. The variety is smooth where anyone works. Every one of those is something a '

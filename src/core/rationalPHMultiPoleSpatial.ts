@@ -99,22 +99,49 @@ export function conditionMatrix(prm: MultiPoleParams): number[][] {
   return rows
 }
 
-/** An orthonormal basis for the admissible spinors — dimension 4(n+1) − 4m when the conditions are independent. */
+/**
+ * An orthonormal basis for the admissible spinors — dimension 4(n+1) − 4m when the conditions are
+ * independent.
+ *
+ * BY EXPLICIT COMPLEMENT, not by random probes, and the difference is a real bug rather than taste.
+ * The previous version drew probe vectors and projected each off the row space with `leastSquares`.
+ * At large |λ| the condition matrix is badly scaled — some rows carry λ and others do not — and that
+ * solve then either threw (returning a basis of length ZERO) or returned no correction at all
+ * (returning the whole 4(n+1)-dimensional space). Measured on the one-pole degree-2 family: length 0
+ * at λ = 57.3, 80, 573 and length 12 at λ ≈ tan 88.8°, against a true dimension of 8 everywhere. That
+ * is what made `withDial` fail at scattered angles with a data residual pinned at |target|: the solve
+ * had no directions to move in.
+ *
+ * Orthonormalising the ROWS first makes the scaling irrelevant (each row is normalised), and
+ * projecting the standard basis off that complement is deterministic and always returns exactly
+ * cols − rank vectors.
+ */
 export function familyBasis(prm: MultiPoleParams): number[][] {
   const cols = 4 * prm.A.length
   const M = conditionMatrix(prm)
-  const basis: number[][] = []
-  for (let seed = 0; seed < 2 * cols && basis.length < cols; seed++) {
-    const probe = Array.from({ length: cols }, (_, i) =>
-      Math.cos(1.3 * seed + 0.41 * i) + 0.35 * Math.sin(2.7 * i - 0.6 * seed))
-    let v: number[]
-    try {
-      const corr = leastSquares(M, M.map((row) => dot(row, probe)), 1e-13)
-      v = probe.map((q, i) => q - corr[i])
-    } catch { continue }
-    for (const b of basis) { const d = dot(v, b); v = v.map((q, i) => q - d * b[i]) }
+  // COLLIDED POLES make Σ infinite and the matrix non-finite. There is no admissible family there,
+  // and returning a basis would be worse than returning none: the old probe code happened to throw,
+  // which is why `withDial` refused a pole collision. Refuse it explicitly instead of by accident.
+  if (!M.every((row) => row.every(Number.isFinite))) return []
+  const scale = Math.max(...M.flatMap((row) => row.map(Math.abs)), 1e-300)
+
+  // orthonormal basis of the ROW space
+  const rows: number[][] = []
+  for (const raw of M) {
+    let v = raw.slice()
+    for (const b of rows) { const d = dot(v, b); v = v.map((q, i) => q - d * b[i]) }
     const len = Math.hypot(...v)
-    if (len > 1e-6) basis.push(v.map((q) => q / len))
+    if (len > 1e-9 * scale) rows.push(v.map((q) => q / len))
+  }
+
+  // its orthogonal complement, from the standard basis
+  const basis: number[][] = []
+  for (let i = 0; i < cols && basis.length < cols - rows.length; i++) {
+    let v: number[] = Array.from({ length: cols }, (_, j) => (i === j ? 1 : 0))
+    for (const b of rows) { const d = dot(v, b); v = v.map((q, k) => q - d * b[k]) }
+    for (const b of basis) { const d = dot(v, b); v = v.map((q, k) => q - d * b[k]) }
+    const len = Math.hypot(...v)
+    if (len > 1e-7) basis.push(v.map((q) => q / len))
   }
   return basis
 }
