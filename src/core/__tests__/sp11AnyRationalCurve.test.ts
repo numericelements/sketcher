@@ -27,7 +27,7 @@ import {
 } from '../sp11Factorisation'
 import {
   fromRealDenominator, toRealDenominator, conformalLift, curveAt, nullPart, qpDegree,
-  qpNorm, covariantWronskian, polySqrt, pMax, qpMax, pMul, pAdd, pSub,
+  qpNorm, covariantWronskian, polySqrt, speedSquared, pMax, qpMax, pMul, pAdd, pSub,
   type Poly, type Column,
 } from '../sp11RationalPH'
 
@@ -110,6 +110,25 @@ describe('the column as a representation, with PH set aside', () => {
     expect(checked).toBeGreaterThan(25)
     expect(polySqrt(qpNorm(covariantWronskian(V)))).toBeNull()   // still not PH, as expected
     expect(squareResidual(V)).toBeGreaterThan(1e-2)              // and genuinely so, not a guard
+  })
+
+  it('-det(H-prime) = |N-tilde|^2 is an IDENTITY, not a condition — it holds off PH too', () => {
+    // This matters for reading the equation correctly: it is true for EVERY rational curve, so it
+    // cannot be a geometric condition on one. The PH content is entirely that the square ROOT is a
+    // polynomial — an arithmetic statement, not a differential-geometric one.
+    const U = fromRealDenominator(P, W)
+    expect(squareResidual(U)).toBeGreaterThan(1e-2)          // this curve is NOT PH
+    const lhs = speedSquared(U)
+    const rhs = qpNorm(covariantWronskian(U))
+    let d = 0
+    for (let i = 0; i < Math.max(lhs.length, rhs.length); i++) d = Math.max(d, Math.abs((lhs[i] ?? 0) - (rhs[i] ?? 0)))
+    expect(d / (pMax(rhs) || 1)).toBeLessThan(1e-12)          // and the identity holds anyway
+    // and it still holds after a Mobius map, still off PH
+    const V = applyMobius(G_GENERIC, U)
+    const l2 = speedSquared(V), r2 = qpNorm(covariantWronskian(V))
+    let d2 = 0
+    for (let i = 0; i < Math.max(l2.length, r2.length); i++) d2 = Math.max(d2, Math.abs((l2[i] ?? 0) - (r2[i] ?? 0)))
+    expect(d2 / (pMax(r2) || 1)).toBeLessThan(1e-10)
   })
 
   it('THE COMPARISON: the conformal vector is the column SQUARED', () => {
