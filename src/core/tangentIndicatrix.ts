@@ -98,3 +98,72 @@ export function indicatrixLoop(m: HasHodograph, count = 480): Vec3[] {
   const inf = indicatrixAtInfinity(m)
   return [inf, ...pts, inf]
 }
+
+/** Total spherical length of the whole closed indicatrix — the scale any local budget should be read against. */
+export function indicatrixLength(m: HasHodograph, count = 480): number {
+  const pts = indicatrixLoop(m, count)
+  let s = 0
+  for (let i = 1; i < pts.length; i++) {
+    s += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y, pts[i].z - pts[i - 1].z)
+  }
+  return s
+}
+
+/**
+ * A neighbourhood of the indicatrix around t₀, measured in SPHERICAL ARC LENGTH rather than in the
+ * parameter — one polyline running in through t₀ and out the other side.
+ *
+ * WHY NOT A PARAMETER WINDOW. Two figures have now got this wrong in two different ways, and both
+ * failures are the same fact: |T′| varies by orders of magnitude along the curve, so a fixed window in
+ * t buys an unpredictable amount of arc. Take it too small near a fast stretch and the corner is three
+ * points and looks like a polygon; take it big enough for the slow stretch and it swallows the whole
+ * indicatrix and reads as a second curve drawn on top of the first. Neither is fixable by choosing a
+ * better constant, because the dial changes |T′| by sevenfold while you watch.
+ *
+ * So the step is adapted: each one advances the same small amount of ARC, dt = target/|T′| clamped, and
+ * the walk stops when the budget is spent. The result covers the same visible span of sphere at every
+ * pole position and every twist, and its segments are bounded — which is what "resolution" means here.
+ *
+ * At a cusp |T′| = 0, so the clamp is what carries the walk across it; that is correct rather than a
+ * workaround, since the curve is barely moving there and a large parameter step buys little arc.
+ *
+ * THE BUDGET IS NOT ALWAYS SPENDABLE, and callers must not assume it is. One side can reach the point
+ * at infinity — where the indicatrix stops moving — with arc left over, so the returned span is at
+ * most 2·arcBudget and sometimes much less. Scale the budget to indicatrixLength if the drawn span
+ * needs to stay a fixed FRACTION of the curve; on a short indicatrix a generous absolute budget is
+ * half of everything, which is the "second curve drawn on top" failure again.
+ */
+export function indicatrixNear(
+  m: HasHodograph, t0: number, arcBudget = 0.4, steps = 200,
+): Vec3[] {
+  const target = arcBudget / steps
+  // Generous, because it only bites where |T′| is tiny — right at the cusp, where the curve is barely
+  // moving and a big parameter step still buys almost no arc. A small cap there stalls the walk: it
+  // spends its whole iteration budget without reaching the arc budget, and one side comes out short.
+  const DT_MAX = 0.6
+  const walk = (sign: 1 | -1): Vec3[] => {
+    const out: Vec3[] = []
+    let t = t0
+    let spent = 0
+    for (let i = 0; i < steps * 20 && spent < arcBudget; i++) {
+      const a = indicatrixAt(m, t)
+      // A first guess from the speed HERE, then rejection: near a cusp |T′| climbs steeply inside a
+      // single step, so a step sized from its starting speed can overshoot by an order of magnitude.
+      // Measuring the chord and halving is what actually bounds the segment, which is the property
+      // the figure needs.
+      let dt = Math.min(DT_MAX, Math.max(1e-7, target / Math.max(indicatrixSpeedAt(m, t), 1e-9)))
+      let b = indicatrixAt(m, t + sign * dt)
+      let d = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z)
+      for (let k = 0; k < 40 && d > 2 * target && dt > 1e-7; k++) {
+        dt /= 2
+        b = indicatrixAt(m, t + sign * dt)
+        d = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z)
+      }
+      spent += d
+      t += sign * dt
+      out.push(b)
+    }
+    return out
+  }
+  return [...walk(-1).reverse(), indicatrixAt(m, t0), ...walk(1)]
+}

@@ -36,7 +36,9 @@ import { toMember } from '../../core/rationalPHMultiPoleSpatial'
 import {
   indicatrixArc,
   indicatrixAt,
+  indicatrixLength,
   indicatrixLoop,
+  indicatrixNear,
   indicatrixSpeedAt,
   sphereResidual,
 } from '../../core/tangentIndicatrix'
@@ -65,11 +67,18 @@ export default function PoleSphereFigure() {
   const pole = live.roots[0]
 
   const member = useMemo(() => toMember(live), [live])
-  const whole = useMemo(() => indicatrixLoop(member).map(tri), [member])
-  const used = useMemo(() => indicatrixArc(member, 0, 1).map(tri), [member])
-  /** The two branches meeting at the cusp — drawn separately, never as one window. */
-  const before = useMemo(() => indicatrixArc(member, pole - 1.4, pole - 1e-4, 120).map(tri), [member, pole])
-  const after = useMemo(() => indicatrixArc(member, pole + 1e-4, pole + 1.4, 120).map(tri), [member, pole])
+  const whole = useMemo(() => indicatrixLoop(member, 900).map(tri), [member])
+  const used = useMemo(() => indicatrixArc(member, 0, 1, 240).map(tri), [member])
+  /**
+   * The corner: ONE strand through the cusp, sized in spherical ARC as a tenth of the whole
+   * indicatrix. Both earlier versions used a fixed window in the PARAMETER and both were wrong — one
+   * too small (the corner rendered as a polygon) and one too large (it swallowed most of the curve
+   * and read as a second curve drawn on top). Guarded in indicatrixNeighbourhood.test.ts.
+   */
+  const corner = useMemo(
+    () => indicatrixNear(member, pole, Math.min(0.45, 0.1 * indicatrixLength(member))).map(tri),
+    [member, pole],
+  )
   const cusp = useMemo(() => tri(indicatrixAt(member, pole)), [member, pole])
 
   const atCusp = indicatrixSpeedAt(member, pole)
@@ -92,9 +101,10 @@ export default function PoleSphereFigure() {
         <>
           <b>The pole is invisible on the curve and unmistakable here.</b> The unit tangent{' '}
           <i>T = N/σ</i> has no denominator <i>w</i>, so it stays finite and smooth at the very
-          parameter where the curve runs off to infinity. Follow the two branches: they arrive at the{' '}
-          <b style={{ color: FIG.color.pole }}>violet point</b> from opposite directions and stop dead.
-          That is a <b>cusp</b>, and <b>|T′(r)|</b> reads machine zero to prove it.{' '}
+          parameter where the curve runs off to infinity. Follow the{' '}
+          <b style={{ color: FIG.color.pole }}>violet strand</b>: it runs in to the point, stops dead,
+          and comes back out the way it arrived. That is a <b>cusp</b>, and <b>|T′(r)|</b> reads
+          machine zero to prove it.{' '}
           <span className="text-slate-400">
             <b>Move the pole and the cusp goes with it.</b> There is no setting of these handles that
             gives a pole without a corner — <i>T′ = (N′σ − Nσ′)/σ²</i> vanishes exactly when{' '}
@@ -119,9 +129,8 @@ export default function PoleSphereFigure() {
       <Curve3D points={whole} color={FIG.color.curveMuted} width={1} />
       <Curve3D points={used} color={FIG.color.curve} width={3.5} />
 
-      {/* the two branches that meet at the cusp — the thing the figure exists to show */}
-      <Curve3D points={before} color={FIG.color.pole} width={2.5} />
-      <Curve3D points={after} color={FIG.color.pole} width={1.2} dashed />
+      {/* the corner: one strand in and out through the cusp */}
+      <Curve3D points={corner} color={FIG.color.pole} width={3} />
       <Point3D position={cusp} color={FIG.color.pole} radius={0.05} />
 
       {/* the ends of the drawn piece, so the data STRICT holds is visible rather than asserted */}
