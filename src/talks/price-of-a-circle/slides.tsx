@@ -54,8 +54,11 @@
 //      incl. the excluded stratum; local coordinates EXIST, we lack a formula
 //  23  ONE SQUARE, OR TWO -- Pottmann's planar dual IS a chart; the 2D/3D gap    [THM] [MEAS]
 //      is 4(u')^2 versus 4(Q2^2+Q3^2), i.e. the Pythagoras number of R[t]
+//  24  WE HAD IT BACKWARDS -- deg V = 64 by witness sets, V is swept by linear   [MEAS] [THM]
+//      8-spaces, so V IS RATIONAL and the lambda-chart WAS the parametrisation;
+//      the wall comes only from running the map backward. Coverage, not existence.
 //
-// 18-23 are BUILT and sit at the end of the array, out of order. They were written as the work
+// 18-24 are BUILT and sit at the end of the array, out of order. They were written as the work
 // happened; 14-16 slot in ahead of them.
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
@@ -2530,12 +2533,13 @@ export const slides: SlideDefinition[] = [
         </p>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.08em' }}>
-            What it is not is a chart. The compatible spinors are <em>found</em>, not parametrised —
-            so there are no coordinates, and nothing to drag.
+            What <em>this</em> route does not give is a chart. The compatible spinors are{' '}
+            <em>found</em>, not parametrised — a solver in the loop, and nothing to drag along.
           </strong>
         </p>
         <p style={{ opacity: 0.8 }}>
-          The gauge came off. The coordinates did not come with it, and that is the next problem.
+          The gauge came off; coordinates did not come with it <em>here</em>. Two slides on, they
+          turn up somewhere we had already been standing.
         </p>
         <Cite>
           Measured here: <Math>{'\\texttt{sp11Factorisation}'}</Math>,{' '}
@@ -2694,7 +2698,7 @@ export const slides: SlideDefinition[] = [
         </p>
         <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
           <strong style={{ fontSize: '1.12em' }}>
-            We are not blocked by the geometry. We are missing a formula.
+            We are not blocked by the geometry. Something exists to be written down.
           </strong>
         </p>
         <p>
@@ -2749,9 +2753,9 @@ export const slides: SlideDefinition[] = [
         <Tag status={['THM', 'MEAS']} />
         <h2>One square, or two</h2>
         <p>
-          Two slides ago the complaint was that coordinates <em>exist</em> and we do not have them.
-          There is a construction that does — Pottmann&rsquo;s dual, 1995 — and it is worth looking
-          at closely, because it is a genuine chart and because <strong>the exact step where it
+          Before going further it is worth looking at a construction that <em>is</em> a chart, and
+          has been since 1995 — Pottmann&rsquo;s dual. It is worth it twice over: because it shows
+          what having coordinates actually looks like, and because <strong>the exact step where it
           stops working in space is a single line of algebra</strong>.
         </p>
 
@@ -2870,5 +2874,132 @@ export const slides: SlideDefinition[] = [
       + 'spinors were degree 1, where A-prime is constant, Q2 and Q3 are constants, and the sum is a '
       + 'CONSTANT, trivially a square. It read as "the identity holds in 3D too" and would have '
       + 'inverted this slide. Degenerate probe data passing a test is the failure mode to fear here.',
+  },
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "One square, or two")
+  // The NAG finding, and the correction: V is rational; we had the chart already
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS', 'THM']} />
+        <h2>We had it backwards</h2>
+        <p>
+          Knowing <Math>{'\\mathcal{V}'}</Math> is smooth is not the same as knowing a chart can be{' '}
+          <em>written</em>. The question that decides it is whether{' '}
+          <Math>{'\\mathcal{V}'}</Math> is <strong>rational</strong> — whether a global rational
+          parametrisation exists at all — and that is what numerical algebraic geometry is for.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>First the degree, by witness sets.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Slice <Math>{'\\mathcal{V}'}</Math> with a generic linear space of complementary dimension
+          and count the points. Three independent slices gave{' '}
+          <strong>62, 63, 62</strong> against a Bézout bound of{' '}
+          <Math>{'2^6 = 64'}</Math>. Degree does not depend on the slice, so the spread is the
+          sampler missing basins. With codimension 6 already measured,{' '}
+          <Math>{'\\mathcal{V}'}</Math> is a <strong>complete intersection of degree 64</strong>, and
+          63 distinct points rules out a doubled component — that would have capped the count at 32.
+          Reduced, and Fano: <Math>{'12 < 16'}</Math>.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And then the thing we went looking for, which was already in the room.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Fix <Math>{'\\lambda'}</Math>. The chart equation{' '}
+          <Math>{'\\mathcal{A}^{\\prime}(r_k) = \\mathcal{A}(r_k)(\\Sigma_k + \\lambda_k i)'}</Math>{' '}
+          is <strong>linear</strong> in <Math>{'\\mathcal{A}'}</Math>, so its solutions form a linear
+          subspace — and that subspace lies <em>inside</em>{' '}
+          <Math>{'\\mathcal{V}'}</Math>. One line, with{' '}
+          <Math>{'\\Omega = \\mathcal{A}^{-1}\\mathcal{A}^{\\prime}'}</Math>:
+        </p>
+        <Math display>
+          {'\\Omega i + i\\Omega^{*} = (\\Sigma + \\lambda i)i + i(\\Sigma - \\lambda i) = 2\\Sigma i \\;\\Longrightarrow\\; N^{\\prime}(r) = 2\\Sigma N(r)'}
+        </Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          the quadric itself, and <strong>nothing was divided by</strong>. So{' '}
+          <Math>{'\\mathcal{V}'}</Math> is swept by a two-parameter family of linear{' '}
+          <Math>{'8'}</Math>-spaces:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.1em',
+            margin: '0.4em 0 0.5em 1.2em',
+            fontSize: '0.8em',
+            alignItems: 'baseline',
+          }}
+        >
+          <span><strong>2</strong></span>
+          <span style={{ opacity: 0.85 }}>the dials <Math>{'\\lambda_1, \\lambda_2'}</Math></span>
+          <span><strong>8</strong></span>
+          <span style={{ opacity: 0.85 }}>linear coordinates inside the fibre</span>
+          <span><strong>10</strong></span>
+          <span style={{ opacity: 0.85 }}>
+            <Math>{'= \\dim \\mathcal{V}'}</Math> — so the sweep is <em>dominant</em>
+          </span>
+        </div>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            <Math>{'\\mathcal{V}'}</Math> is rational, and the <Math>{'\\lambda'}</Math>-chart read
+            forward is the parametrisation. We had it all along.
+          </strong>
+        </p>
+
+        <p style={{ marginTop: '0.4em', marginBottom: '0.15em' }}>
+          <strong>So where did the wall come from?</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          From running the map <strong>backward</strong>. Recovering{' '}
+          <Math>{'\\lambda'}</Math> from a given <Math>{'\\mathcal{A}'}</Math> means solving{' '}
+          <Math>{'\\Omega = \\mathcal{A}(r)^{-1}\\mathcal{A}^{\\prime}(r)'}</Math> — and{' '}
+          <em>that</em> divides by <Math>{'\\mathcal{A}(r)'}</Math>, which is impossible exactly when{' '}
+          <Math>{'\\sigma(r) = 0'}</Math>. Everything this deck has called &ldquo;the excluded
+          stratum&rdquo; is an artefact of the inverse. Forward, the map never divides.
+        </p>
+        <p>
+          Which leaves a smaller and much more tractable problem than the one we have been describing.
+          It is not that coordinates are missing — they are written down. It is that this
+          parametrisation&rsquo;s image misses the closed subvariety{' '}
+          <Math>{'\\sigma(r) = 0'}</Math>: measure zero in <Math>{'\\mathcal{V}'}</Math>, and
+          containing the circle and the whole conformal family.{' '}
+          <strong>A coverage problem, not an existence problem.</strong>
+        </p>
+        <Cite>
+          Witness sets and the fibre structure measured in{' '}
+          <Math>{'\\texttt{sp11VarietyStructure}'}</Math>: the fibre is linear and 8-dimensional,
+          arbitrary combinations of two members stay in <Math>{'\\mathcal{V}'}</Math>, moving{' '}
+          <Math>{'\\lambda'}</Math> genuinely moves the fibre, and <Math>{'\\lambda'}</Math> is
+          recovered component by component wherever <Math>{'\\sigma(r) \\neq 0'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS AN ADMISSION, AND IT SHOULD BE DELIVERED AS ONE. Three earlier slides say we do '
+      + 'not have coordinates. We did. Saying so plainly is worth more than the degree computation '
+      + 'that led here, and an audience trusts the rest of the deck more for it, not less. '
+      + 'THE DEGREE COMES FIRST because it is what we set out to compute and it is a real number: '
+      + '62, 63, 62 across three slices against a Bezout bound of 64. Explain why the spread is not a '
+      + 'worry -- degree cannot depend on the slice, so the variation is the sampler, and 63 distinct '
+      + 'points is what rules out a doubled component. That reasoning is the whole reason the number '
+      + 'is trustworthy. '
+      + 'THEN THE TURN, and let it land. Fix lambda and the chart equation is LINEAR, so its solution '
+      + 'set is a subspace; and the subspace lies IN V by a one-line computation, Omega i + i Omega* '
+      + '= 2 Sigma i, with no division anywhere. Two dials plus eight linear coordinates is ten, the '
+      + 'dimension of V. That is a dominant rational parametrisation, which is exactly what "V is '
+      + 'rational" means. '
+      + 'THE DIAGNOSIS OF THE WALL IS THE PAYOFF. The division that creates the excluded stratum '
+      + 'appears only when the map runs BACKWARD -- recovering lambda from A needs A(r) invertible. '
+      + 'Forward, it never divides. That is the same conclusion the Sp(1,1) slides reached from the '
+      + 'gauge side, arrived at independently, which is why it is believable. '
+      + 'CLOSE ON THE RESIZED PROBLEM. Coverage, not existence. The parametrisation misses a measure-'
+      + 'zero closed subvariety that happens to contain the circle and the conformal family. That is '
+      + 'a real problem and a much smaller one, and naming it correctly is what the last several '
+      + 'slides were actually for.',
   },
 ]
