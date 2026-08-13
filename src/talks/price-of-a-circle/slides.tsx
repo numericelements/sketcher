@@ -60,8 +60,11 @@
 //  25  FAST ENOUGH TO DRAG -- dim V = 4(n+1) - 3m at every size, codim independent [MEAS]
 //      of degree, sub-ms per member; the gap left is starting points, not motion.
 //      (Self-contained: written so it can be lifted into another talk.)
+//  26  AN ATLAS, NOT A CHART -- the sigma=0 stratum is ABSORBING under Mobius,   [THM] [MEAS]
+//      so two chart types are necessary; and the conformal one is the LARGER
+//      half (deg 6: no null kernel, 6 moduli vs 4 from bending a PH cubic)
 //
-// 18-25 are BUILT and sit at the end of the array, out of order. They were written as the work
+// 18-26 are BUILT and sit at the end of the array, out of order. They were written as the work
 // happened; 14-16 slot in ahead of them.
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
@@ -3136,5 +3139,167 @@ export const slides: SlideDefinition[] = [
       + 'holds the circle and the conformal family. Say the distinction plainly: it is not a dragging '
       + 'problem, it is a starting-point problem. Being able to name what is left that precisely is '
       + 'the real result of the last several slides.',
+  },
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "Fast enough to drag")
+  // The two chart types, why they cannot merge, and what actually lives in the second
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['THM', 'MEAS']} />
+        <h2>An atlas, not a chart</h2>
+        <p>
+          The last gap looked like a hole to be patched: one chart, one excluded stratum, find a
+          trick. The obvious trick — <em>M&ouml;bius the excluded curve into a chart we have, edit,
+          map back</em> — does not work, and why it fails settles the structure.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>The stratum is absorbing.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Under inversion <Math>{'\\tilde\\sigma = \\sigma\\,\\tilde w'}</Math>, where{' '}
+          <Math>{'\\tilde w'}</Math> is the <em>new</em> denominator. So{' '}
+          <Math>{'\\tilde\\sigma'}</Math> vanishes at every root of{' '}
+          <Math>{'\\tilde w'}</Math> — at the image&rsquo;s <em>own</em> poles — for{' '}
+          <strong>any curve whatsoever</strong>. One inversion always lands on the stratum, and
+          similarities do not touch the pole structure at all.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.08em' }}>
+            You can enter it. You cannot leave. No M&ouml;bius map carries the circle into a{' '}
+            <Math>{'\\lambda'}</Math>-chart.
+          </strong>
+        </p>
+
+        <p style={{ marginTop: '0.4em', marginBottom: '0.15em' }}>
+          <strong>So there are two chart types, and both are necessary.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto 1fr',
+            gap: '0.35em 1.3em',
+            margin: '0.45em 0 0.5em 1.2em',
+            fontSize: '0.8em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>where</span>
+          <span style={{ opacity: 0.6 }}>coordinates</span>
+          <span style={{ opacity: 0.6 }} />
+          <span><Math>{'\\sigma(r) \\neq 0'}</Math></span>
+          <span>dials + fibre</span>
+          <span>
+            the <Math>{'\\lambda'}</Math>-charts, one per pole configuration, dimension{' '}
+            <Math>{'4(n+1)-3m'}</Math>; M&ouml;bius supplies the transition maps between them
+          </span>
+          <span><Math>{'\\sigma = h\\,w'}</Math></span>
+          <span>
+            <Math>{'\\mathbb{R}^{4,1}'}</Math> directly
+          </span>
+          <span>
+            the conformal chart — null and PH coefficients, no polynomial source curve and no
+            M&ouml;bius image anywhere in its construction
+          </span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          Disjoint, and disjoint <em>because</em> the stratum absorbs. That is not an awkwardness to
+          be engineered away; it is why the second chart has to exist.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And the second chart is not a container for one shape.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          At conformal degree 3 it <em>is</em> only circles, and by counting rather than accident:
+          four coefficients span at most four dimensions of{' '}
+          <Math>{'\\mathbb{R}^5'}</Math>, so the curve lies on a single sphere — and the span
+          collapses further to rank 3, which meets the null cone in a circle. That happens with the
+          PH conditions <em>removed</em>, so it is the null condition doing it.
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          From degree 4 up there is no such confinement, and three measurements say what is really
+          in there:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.28em 1.1em',
+            margin: '0.4em 0 0.4em 1.2em',
+            fontSize: '0.79em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>degree is invariant</span>
+          <span style={{ opacity: 0.85 }}>
+            a polynomial curve of degree <Math>{'d'}</Math> lifts to conformal degree{' '}
+            <em>exactly</em> <Math>{'2d'}</Math>, and <Math>{'O(4,1)'}</Math> acts linearly — so{' '}
+            <strong>odd conformal degrees are unreachable by bending anything</strong>
+          </span>
+          <span>bendability</span>
+          <span style={{ opacity: 0.85 }}>
+            a curve is a M&ouml;bius image of a polynomial one iff some null{' '}
+            <Math>{'S'}</Math> has <Math>{'\\langle P(t), S\\rangle'}</Math> constant. A generic
+            degree-6 member has <strong>no such kernel at all</strong>
+          </span>
+          <span>carrier sphere</span>
+          <span style={{ opacity: 0.85 }}>
+            rank of the span is a M&ouml;bius invariant: 3 on a circle, 4 on a sphere, 5 on none.
+            Measured <strong>5 for every member tried</strong>
+          </span>
+        </div>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.08em' }}>
+            At degree 6: <strong>6</strong> shape moduli here, against <strong>4</strong> from
+            bending a polynomial PH cubic.
+          </strong>
+        </p>
+        <p>
+          So the second chart is where the curves live that the first construction cannot reach{' '}
+          <em>by any route</em> — not a patch holding the circle, but the larger half. Which also
+          retires something said earlier in this work: the conformal family is <em>not</em> the set
+          of inversions of ordinary PH curves. Inversions land in it; the family is strictly bigger,
+          and the bendability test is what proves it.
+        </p>
+        <Cite>
+          The absorbing identity is measured in{' '}
+          <Math>{'\\texttt{sp11StratumIsAbsorbing}'}</Math>. The degree law, the bendability test and
+          the carrier-sphere rank are measured in{' '}
+          <Math>{'\\texttt{conformalPHStructure}'}</Math> — lifted polynomials give{' '}
+          <Math>{'\\langle S,S\\rangle = 0'}</Math> exactly as the control, a generic degree-4 member{' '}
+          <Math>{'2.0\\cdot 10^{-3}'}</Math>, and degree 6 no kernel.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE CLOSES THE ARC, and it does so by upgrading the object rather than solving the '
+      + 'problem as posed. The last gap looked like a hole in one chart. It is not a hole; it is the '
+      + 'boundary between two charts, and the boundary is there for a reason. '
+      + 'THE ABSORBING ARGUMENT IS ONE LINE and it should be delivered as a small surprise: sigma-'
+      + 'tilde = sigma times w-tilde means sigma vanishes at the poles of the IMAGE ITSELF, for any '
+      + 'curve at all. '
+      + 'So one inversion always lands on the stratum, and nothing ever leaves. I proposed the '
+      + 'round-trip trick myself and this is what killed it -- say so, because an audience that '
+      + 'watches a plausible idea get tested and dropped will trust the surviving ones more. '
+      + 'THE TWO-ROW TABLE IS THE STRUCTURE. sigma(r) != 0 gives the lambda-charts with dials and '
+      + 'fibre as coordinates, one chart per pole configuration, with Mobius as the transition maps. '
+      + 'sigma = h w gives the conformal chart, built directly in R^{4,1} with no polynomial source '
+      + 'curve anywhere in its construction. Disjoint BECAUSE the stratum absorbs. '
+      + 'THEN THE PART THAT SURPRISES PEOPLE, and it is the real content. The second chart is not a '
+      + 'box holding the circle. Degree 3 is circles only, forced by counting -- and note that it '
+      + 'happens with PH REMOVED, so the null condition is doing it, not PH. From degree 4 up there '
+      + 'is no confinement, and the generic degree-6 member is not a Mobius image of ANY polynomial '
+      + 'curve: the bendability test finds no null kernel. Six shape moduli against four from '
+      + 'bending a PH cubic. The second chart is the LARGER half. '
+      + 'END ON THE RETRACTION, briefly. Earlier in this work I said the conformal family IS the set '
+      + 'of inversions of ordinary PH curves. Inversions land in it, but it is strictly bigger, and '
+      + 'the bendability measurement is what settles it. Correcting that in public costs one sentence '
+      + 'and buys the audience a reason to believe the rest.',
   },
 ]
