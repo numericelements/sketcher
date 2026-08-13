@@ -12,6 +12,7 @@ import { slides as phInterpolationSlides } from './ph-interpolation/slides'
 import { slides as hodographLightConeSlides } from './hodograph-light-cone/slides'
 import { slides as twoPointsOrACircleSlides } from './two-points-or-a-circle/slides'
 import { slides as priceOfACircleSlides } from './price-of-a-circle/slides'
+import { slides as insideTheChartSlides } from './inside-the-chart/slides'
 
 export const talks: TalkDefinition[] = [
   {
@@ -44,6 +45,12 @@ export const talks: TalkDefinition[] = [
     title: 'The Price of a Circle',
     subtitle: 'What rationality buys in Pythagorean-hodograph curves, and what it charges',
     slides: priceOfACircleSlides,
+  },
+  {
+    slug: 'inside-the-chart',
+    title: 'Inside the Chart',
+    subtitle: 'What the space of rational Pythagorean-hodograph curves feels like from within',
+    slides: insideTheChartSlides,
   },
 ]
 
