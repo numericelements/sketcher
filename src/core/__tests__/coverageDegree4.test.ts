@@ -1,4 +1,10 @@
 // ============================================================================
+// SUPERSEDED by degree4IsThirteen.test.ts. Kept because the METHOD is right and the walk built on it
+// still stands; the numbers are not. The instrument here differentiates a normalised formal square
+// root, and its rank moves with the seed. Read this file for the shape of the question and that one
+// for the answer: the variety is 13-dimensional, the chart covers 12, and the "ambient 15" below is
+// an inflated tangent space at a singular point rather than a dimension.
+//
 // HOW MUCH OF THE RATIONAL PH QUARTICS DOES THE ONE-POLE CHART REACH? — measured, not counted.
 //
 // THE METHOD. At a member of the chart, compare two tangent spaces: that of ALL parametrised rational
