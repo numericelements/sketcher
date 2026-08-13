@@ -239,3 +239,73 @@ export function phDefect(U: Column): number {
   return Math.max(...Array.from({ length: Math.max(sq.length, q.length) },
     (_, i) => Math.abs(coeff(sq, i) - coeff(q, i)))) / scale
 }
+
+// --- the joint problem: which spinors are COMPATIBLE with a prescribed A? -----
+/**
+ * The least-squares residual of {C̄A′ + ĀC′ = 𝒜i𝒜*, Re(ĀC) = 0} with C eliminated. A function of the
+ * spinor alone, because C enters LINEARLY and can be projected out — which is what makes the joint
+ * problem tractable at all: 4(m+1) unknowns instead of the full quadratic system.
+ */
+export function spinorResidual(A: QPoly, spinor: QPoly, degC: number): number {
+  const { M, rhs } = conditionSystem(A, sandwich(spinor), degC)
+  const x = leastSquares(M, rhs, 1e-12)
+  const scale = Math.max(...rhs.map(Math.abs), 1e-12)
+  let res = 0
+  M.forEach((row, i) => {
+    res = Math.max(res, Math.abs(row.reduce((s, v, j) => s + v * x[j], 0) - rhs[i]))
+  })
+  return res / scale
+}
+
+const unpackSpinorVec = (x: readonly number[], m: number): QPoly => {
+  const S: QPoly = [[], [], [], []]
+  for (let c = 0; c < 4; c++) S[c] = Array.from({ length: m + 1 }, (_, k) => x[4 * k + c])
+  return S
+}
+
+export interface JointResult {
+  readonly spinor: QPoly
+  readonly U: Column
+  readonly residual: number
+  readonly restarts: number
+}
+
+/**
+ * Given A, SEARCH for a compatible spinor — the pair (A, 𝒜) has to satisfy a condition for the
+ * linear system to have a non-trivial solution at all (Kalkan et al., Thm 4.6). C is eliminated by
+ * least squares, so this is a small descent on the spinor coefficients only.
+ */
+export function findCompatibleSpinor(
+  A: QPoly, m: number, degC: number, restarts = 24, iterations = 220,
+): JointResult | null {
+  let best: { x: number[]; r: number } | null = null
+  for (let s = 0; s < restarts; s++) {
+    let x = Array.from({ length: 4 * (m + 1) }, (_, i) =>
+      Math.sin(3.1 * s + 1.7 * i) + 0.6 * Math.cos(2.3 * i - 0.9 * s))
+    let r = spinorResidual(A, unpackSpinorVec(x, m), degC)
+    let step = 0.25
+    for (let it = 0; it < iterations && r > 1e-13; it++) {
+      const grad = x.map((_, j) => {
+        const e = 1e-6 * (Math.abs(x[j]) + 1)
+        const hi = x.slice(); hi[j] += e
+        const lo = x.slice(); lo[j] -= e
+        return (spinorResidual(A, unpackSpinorVec(hi, m), degC)
+          - spinorResidual(A, unpackSpinorVec(lo, m), degC)) / (2 * e)
+      })
+      const g = Math.hypot(...grad) || 1
+      const trial = x.map((v, j) => v - (step * grad[j]) / g)
+      const rt = spinorResidual(A, unpackSpinorVec(trial, m), degC)
+      if (rt < r) { x = trial; r = rt; step *= 1.3 } else { step *= 0.5 }
+      if (step < 1e-12) break
+    }
+    if (!best || r < best.r) best = { x, r }
+  }
+  if (!best) return null
+  const spinor = unpackSpinorVec(best.x, m)
+  return {
+    spinor,
+    U: solveForC(A, sandwich(spinor), degC).U,
+    residual: best.r,
+    restarts,
+  }
+}
