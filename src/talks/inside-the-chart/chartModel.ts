@@ -54,8 +54,20 @@ export const SEED_POLE = 1.7
 const ZERO: Quat[] = Array.from({ length: 3 }, () => ({ u: 0, v: 0, p: 0, q: 0 }))
 
 /** The member both slides open on — the same seed the horizon dial has always used. */
+/**
+ * THE OPENING TWIST IS NOT ZERO, and that is a measured decision. λ = 0 makes the curve EXACTLY
+ * planar — off-plane distance 0.0e+0 at every fibre member tried — because λ is the frame twist rate
+ * at the pole and zero twist leaves the hodograph in a plane. Opening a spatial deck on the one
+ * setting of the dial that is flat would have been an unforced error; both figures opened there until
+ * this was measured. λ = tan 35° ≈ 0.70.
+ */
+export const OPENING_THETA = 35
+
+/** The member both slides open on. */
 export const SEED: MultiPoleParams = (() => {
-  const base: MultiPoleParams = { A: ZERO, roots: [SEED_POLE], lambdas: [0] }
+  const base: MultiPoleParams = {
+    A: ZERO, roots: [SEED_POLE], lambdas: [Math.tan((OPENING_THETA * Math.PI) / 180)],
+  }
   const B = familyBasis(base)
   const x = new Array<number>(12).fill(0)
   B.forEach((b, i) => {
@@ -94,7 +106,7 @@ const initial = (): ChartState => ({
   mode: 'strict',
   live: SEED,
   target: dataOf(toMember(SEED)),
-  theta: 0,
+  theta: OPENING_THETA,
   loop: loopOf(SEED),
   phase: 0,
   stalled: false,
