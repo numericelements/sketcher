@@ -22,7 +22,7 @@ import { describe, it, expect } from 'vitest'
 import {
   qpReal, qpImag, qpConst, qpAdd, qpMul, qpNorm, qpDegree, qpMax,
   sandwich, covariantWronskian, nullPart, solveForC, curveAt, phDefect, polySqrt,
-  pMax, pEval, pDeriv,
+  pMax, pDeriv,
   type QPoly, type Poly, type Column,
 } from '../sp11RationalPH'
 

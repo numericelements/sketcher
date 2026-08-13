@@ -73,7 +73,6 @@ const cqmul = (x: CQuat, y: CQuat): CQuat =>
 /** ℂ-LINEAR conjugation: negate the quaternion imaginary parts, leave the ℂ scalars untouched. */
 const cqconj = (x: CQuat): CQuat =>
   [x[0], cx(-x[1].re, -x[1].im), cx(-x[2].re, -x[2].im), cx(-x[3].re, -x[3].im)] as const
-const CQ_I: CQuat = [cx(0), cx(1), cx(0), cx(0)] as const
 
 export interface ComplexPoleParams {
   /** 𝒜's coefficients in the power basis, length n+1. REAL quaternions — the curve is real. */
@@ -204,13 +203,6 @@ export function familyBasis(prm: ComplexPoleParams): number[][] {
   })
 }
 
-const padd = (a: number[], b: number[]): number[] =>
-  Array.from({ length: Math.max(a.length, b.length) }, (_, i) => (a[i] ?? 0) + (b[i] ?? 0))
-const pmul = (a: number[], b: number[]): number[] => {
-  const o = new Array(a.length + b.length - 1).fill(0)
-  for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) o[i + j] += a[i] * b[j]
-  return o
-}
 const pder = (a: number[]): number[] => a.slice(1).map((c, i) => c * (i + 1))
 const pev = (a: readonly number[], t: number): number => a.reduceRight((s, c) => s * t + c, 0)
 

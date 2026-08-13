@@ -2236,4 +2236,161 @@ export const slides: SlideDefinition[] = [
       + 'THE HONEST SUMMARY IS "the wall moved, it did not vanish", and that is a better result than a '
       + 'clean win would have been, because it says exactly which stratum to attack next.',
   },
+
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "The first move, made")
+  // The second move: drop the real denominator. What it buys, and what it does not.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['THM', 'MEAS']} />
+        <h2>The denominator did not have to be real</h2>
+        <p>
+          Every slide so far has written the curve as <Math>{'c = p/w'}</Math> with{' '}
+          <Math>{'w'}</Math> a <strong>real</strong> polynomial. That looks like notation. It is a
+          choice, and it is the one that has been charging us.
+        </p>
+        <p>
+          Here is the price. The spinor sandwich <Math>{'\\mathcal{A} \\mapsto \\mathcal{A}v\\mathcal{A}^{*}'}</Math>{' '}
+          covers rotations and scalings — <strong>four</strong> dimensions. M&ouml;bius has{' '}
+          <strong>ten</strong>. Writing the denominator real is what cuts the group down, and{' '}
+          <Math>{'\\sigma(r) = 0'}</Math> is exactly where the discarded six were needed. Measured:
+          inversion sends a curve strictly <em>inside</em> the chart to one whose every pole is
+          isotropic, because <Math>{'\\tilde\\sigma = \\sigma\\,\\tilde w'}</Math> — which is
+          the conformal family&rsquo;s own signature <Math>{'\\sigma = h\\,w'}</Math>. The conformal
+          family <em>is</em> the set of inversions of ordinary PH curves.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>The object that does not make the choice.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          A point of <Math>{'\\mathbb{R}^3 \\cup \\{\\infty\\}'}</Math> is a null line in{' '}
+          <Math>{'\\mathbb{H}^2'}</Math>: the column <Math>{'U = (A, C)'}</Math> with{' '}
+          <Math>{'\\mathrm{Re}(A^{*}C) = 0'}</Math>, and <Math>{'x = C A^{-1}'}</Math>. Then{' '}
+          <Math>{'Sp(1,1)'}</Math> — the spin cover of the M&ouml;bius group — acts by{' '}
+          <Math>{'U \\mapsto GU'}</Math>, <strong>linearly</strong>, so a M&ouml;bius map never
+          raises a degree. And <Math>{'H = UU^{*}'}</Math> has rank one, so{' '}
+          <Math>{'\\det H \\equiv 0'}</Math>: on the light cone for free, nothing imposed.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>One condition, and it names no pole.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Write <Math>{'\\mathcal{W} = C^{*}A^{\\prime} + A^{*}C^{\\prime}'}</Math>. Then{' '}
+          <Math>{'-\\det(H^{\\prime}) = |\\mathcal{W}|^2'}</Math>, and
+        </p>
+        <Math display>{'\\text{PH} \\iff |\\mathcal{W}|^2 \\text{ is a perfect square.}'}</Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          In the real gauge <Math>{'\\mathcal{W} = wp^{\\prime} - w^{\\prime}p'}</Math> — the classical Wronskian.
+          Same condition, gauge removed. It divides by nothing, so there is no{' '}
+          <Math>{'\\sigma(r) \\neq 0'}</Math> to assume.
+        </p>
+
+        <p style={{ marginTop: '0.5em' }}>
+          And it is <strong>constructive</strong>, and it is Kalkan&rsquo;s. Prescribe{' '}
+          <Math>{'\\mathcal{A}'}</Math> and <Math>{'A'}</Math>; then{' '}
+          <Math>{'C^{*}A^{\\prime} + A^{*}C^{\\prime} = \\mathcal{A}i\\mathcal{A}^{*}'}</Math> is{' '}
+          <strong>linear in <Math>{'C'}</Math></strong>, and{' '}
+          <Math>{'\\alpha B^{\\prime} - \\alpha^{\\prime}B = \\mu\\,\\mathcal{A}i\\mathcal{A}^{*}'}</Math> is
+          the case <Math>{'A = \\alpha'}</Math> <em>real</em>. Free that one letter:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto 1fr',
+            gap: '0.3em 1.2em',
+            margin: '0.45em 0 0.5em 1.2em',
+            fontSize: '0.8em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>one spinor, <Math>{'\\deg A + \\deg C = 7'}</Math></span>
+          <span style={{ opacity: 0.6 }} />
+          <span style={{ opacity: 0.6 }}>what comes back</span>
+          <span><Math>{'A'}</Math> real, deg 2</span>
+          <span><Math>{'C'}</Math> deg 5</span>
+          <span>real poles; escapes to infinity at <Math>{'t = 1.7'}</Math></span>
+          <span><Math>{'A'}</Math> quaternion, deg 5</span>
+          <span><Math>{'C'}</Math> deg 2</span>
+          <span><strong>bounded, no poles at all</strong>, PH exact</span>
+          <span style={{ opacity: 0.75 }}>the same curve, real gauge</span>
+          <span style={{ opacity: 0.75 }}>degree 10</span>
+          <span style={{ opacity: 0.75 }}><Math>{'\\sigma = 0'}</Math> at every pole</span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          Pointwise, one is the inversion of the other. Same geometry, two representations, and the
+          covariant one is five times smaller and never reaches infinity.
+        </p>
+
+        <p style={{ marginTop: '0.6em', marginBottom: '0.15em' }}>
+          <strong>And now the correction, which is the useful part.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          We checked the circle. It drops straight out — a hand-derived degree-1 spinor,{' '}
+          <Math>{'\\mathcal{A} = (1+k) + (-1+k)t'}</Math>, and the solve returns it exactly. But it
+          needs <Math>{'A'}</Math> <strong>real</strong>. It uses none of the new freedom. So the
+          system that holds the circle is <em>Kalkan&rsquo;s, unchanged</em> — and what had been
+          refusing it all along was <strong>our chart</strong>, which divides by{' '}
+          <Math>{'\\mathcal{A}(r)'}</Math> and cannot when <Math>{'\\sigma(\\pm i) = 0'}</Math>.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.08em' }}>
+            Two things had been travelling together under &ldquo;excluded&rdquo;. The construction
+            never excluded anything. The coordinates did.
+          </strong>
+        </p>
+        <p>
+          Which fixes the ceiling honestly. Kalkan et al. is a <em>complete</em> characterisation, so
+          nothing can be newly reachable — by definition. What the covariant form buys is degree and
+          coordinates, not reach. And it does not touch arc length at all: for the circle{' '}
+          <Math>{'\\sigma^{\\prime}(i) = 4i'}</Math> while <Math>{'2\\sigma(i)\\Sigma = 0'}</Math>, so the
+          logarithm survives and <Math>{'s = 2\\arctan t'}</Math> stands. Arc length is{' '}
+          <strong>metric</strong>, and M&ouml;bius maps are not isometries.
+        </p>
+        <Cite>
+          Measured in this repository:{' '}
+          <Math>{'\\texttt{mobiusMovesTheStratum}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11ChartCondition}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11RationalPH}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11Circle}'}</Math>. The construction being reformulated is Kalkan,
+          Scharler, Schr&ouml;cker &amp; &Scaron;&iacute;r, CAGD <strong>99</strong> (2022);{' '}
+          <Math>{'Sp(1,1) \\cong \\mathrm{Spin}(4,1)'}</Math> is standard conformal geometry.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE THESIS IS ONE SENTENCE AND IT IS ABOUT NOTATION: c = p/w with w REAL is a choice, not a '
+      + 'definition, and it is the choice that has been costing us. Everyone writes it that way '
+      + 'without noticing they have chosen anything, so the slide has to make the choice visible '
+      + 'before it can price it. '
+      + 'THE DIMENSION COUNT IS THE ARGUMENT. The spinor sandwich covers rotations and scalings -- '
+      + 'FOUR dimensions. Mobius has TEN. A real denominator is what cuts the group down, and '
+      + 'sigma(r) = 0 is precisely where the missing six were needed. Say the numbers; they make an '
+      + 'abstract complaint concrete. '
+      + 'THE COVARIANT OBJECT NEEDS ONE BREATH PER CLAUSE: null column, x = C A-inverse, Sp(1,1) acts '
+      + 'LINEARLY (so degrees never grow), H = UU* is rank one (so the light cone is free). Three new '
+      + 'objects in one slide is the most this deck should ever carry -- do not add a fourth. '
+      + 'THE TABLE IS THE MEASUREMENT and the third row is the one to point at: the SAME curve is '
+      + 'degree 2 covariantly and degree 10 in the real gauge, with sigma dead at every pole. That is '
+      + 'the price of the choice, in a number. '
+      + 'THEN THE CORRECTION, AND DO NOT BURY IT -- it is the best thing on the slide. We went to '
+      + 'check the circle expecting the covariant form to rescue it. It did, but with A REAL, using '
+      + 'none of the new freedom. So Kalkan\'s own system held the circle all along and what had been '
+      + 'refusing it was OUR chart. Two different things had been travelling together in this project '
+      + 'under the phrase "the circle is excluded", and separating them is the actual result. '
+      + 'THE CEILING FOLLOWS AND MUST BE STATED. Kalkan et al. is COMPLETE, so nothing can be newly '
+      + 'reachable, by definition. The covariant form buys degree and coordinates. That is a real '
+      + 'contribution for an EDITOR and not a theorem, which is exactly the register this deck works '
+      + 'in -- and pretending otherwise would be the fourth novelty claim this project has had to '
+      + 'retract. '
+      + 'CLOSE ON WHAT IT CANNOT DO. Arc length is untouched: sigma-prime(i) = 4i against 2 sigma(i) '
+      + 'Sigma = 0, so the circle keeps its arctangent. Arc length is METRIC and Mobius maps are not '
+      + 'isometries. Conformal covariance was never going to reach it, and saying so out loud is what '
+      + 'makes the rest of the slide credible.',
+  },
 ]

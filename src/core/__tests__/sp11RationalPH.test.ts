@@ -20,7 +20,7 @@ import { seedQuintic, toMember } from '../rationalPHMultiPoleSpatial'
 import {
   qpReal, qpImag, qpConst, qpMul, qpConj, qpNorm, qpAdd, qpDegree, qpMax,
   sandwich, covariantWronskian, speedSquared, nullPart, solveForC, curveAt,
-  phDefect, polySqrt, pMul, pMax, pEval,
+  phDefect, polySqrt, pMax, pEval,
   type QPoly, type Poly, type Column,
 } from '../sp11RationalPH'
 
@@ -149,10 +149,10 @@ describe('Sp(1,1): solving for the unknown column', () => {
   })
 
   it('the two solutions are the same GEOMETRY: one is the inversion of the other', () => {
-    const o = solveForC(qpReal(wSeed), N_TARGET, 5).U
     const s = solveForC(NEG_P, qpMul(qpConst(-1), N_TARGET), 2).U
-    // pick t away from poles; inversion of the ordinary point must be the specimen point (up to
-    // the translation freedom, so compare the ordinary curve rebuilt with the specimen's own C)
+    // Compare against the HAND-BUILT ordinary column, not the solved one: the solve returns C only
+    // up to the 3-dimensional translation freedom, and a translation does not commute with
+    // inversion, so the solved column would not match pointwise.
     for (const t of [0.2, 0.55, 0.9, -3, 7]) {
       const a = curveAt({ A: qpReal(wSeed), C: qpImag(pSeed) }, t)!
       const b = curveAt(s, t)!
