@@ -22,12 +22,24 @@
 //
 // AND IT FIXES THE COORDINATE. A linear λ slider can never reach the stratum and spends almost all
 // of its travel doing nothing — which is why λ felt like a badly scaled handle. The right coordinate
-// is an ANGLE: λ = tan θ puts the stratum at θ = ±90°, reachable at the end of a finite slider, with
-// σ(r) ∝ cos²θ going to zero smoothly as you arrive. The conformal family is literally the horizon
-// of the λ-chart, and on that slider you can walk to it.
+// is an ANGLE: λ = tan θ puts the stratum at θ = ±90°, with σ(r) ∝ cos²θ going to zero smoothly.
+//
+// BUT THE GEOMETRY DOES NOT FOLLOW THE COORDINATE, and this is the sharper half — it was found by
+// asking what the approach would LOOK like and it contradicted the expectation. The pole shows on the
+// tangent indicatrix as a CUSP, and one might expect the cusp to fade as the pole stops being a pole.
+// It does not. Measured across the whole sweep, |T′| at the pole stays at machine zero — the cusp is
+// present at EVERY θ — and the indicatrix speed just off the pole GROWS by a factor of seven, so the
+// corner gets sharper, not gentler, as the horizon is approached.
+//
+// That is consistent and it is the real structure: at any finite θ, σ(r) ≠ 0, so it IS a genuine pole,
+// the curve does reach infinity, and the cusp is there. The cusp disappears only AT σ(r) = 0, which
+// the chart never attains. So the coordinate approaches the boundary continuously while the geometry
+// changes discontinuously at it. You can walk toward the horizon forever and the cusp never softens;
+// arriving means being in the other chart.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { seedQuintic, toMember, withDial, dataOf } from '../rationalPHMultiPoleSpatial'
+import { indicatrixSpeedAt } from '../tangentIndicatrix'
 import type { Quat } from '../quaternion'
 
 const evalQuat = (A: readonly Quat[], t: number): [number, number, number, number] => {
@@ -88,6 +100,23 @@ describe('the stratum is the horizon of the lambda-chart', () => {
     // slider that stops short of its own endpoint.
     expect(seen[0] / seen[seen.length - 1]).toBeGreaterThan(1e4)
     expect(seen[seen.length - 1]).toBeLessThan(1e-4)
+  })
+
+  it('BUT THE CUSP DOES NOT FADE: it is present at every angle, and it sharpens', () => {
+    // The pole shows on the tangent indicatrix as a cusp — |T′| = 0 there. Expectation was that it
+    // would soften as sigma(r) collapsed. It does not: at any finite theta the pole is still a pole.
+    const atPole: number[] = []
+    const offPole: number[] = []
+    for (const deg of [0, 45, 75, 84, 89, 89.9]) {
+      const out = withDial(seed, target, { lambda: { index: 0, value: Math.tan((deg * Math.PI) / 180) } })
+      expect(out).not.toBeNull()
+      const m = toMember(out!)
+      atPole.push(indicatrixSpeedAt(m, R))
+      offPole.push(indicatrixSpeedAt(m, R + 0.05))
+    }
+    for (const v of atPole) expect(v).toBeLessThan(1e-8)          // a cusp at EVERY angle
+    // and it gets SHARPER: the indicatrix moves faster just off the pole as the horizon nears
+    expect(offPole[offPole.length - 1] / offPole[0]).toBeGreaterThan(4)
   })
 
   it('the limit point is F17s stratum, NOT the singular locus: a SIMPLE root of the spinor', () => {
