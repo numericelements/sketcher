@@ -29,14 +29,16 @@
 // AUDIENCE: someone who knows what a PH curve is and has seen a rational one. The theory
 // is cited to price-of-a-circle and to FOUNDATIONS, never re-derived.
 //
-// STATUS: title, slide 1, and two figures built — the horizon dial (the edge) and the straight line
-// (the coordinates). Next: the quintic with two poles, where "two of everything" is the point.
+// STATUS: title, slide 1, and THE PAIR — the pole on the sphere (slide 3) and the same pole on the
+// curve (slide 4). They share one state and one control strip (chartModel.ts, ChartControls.tsx), so
+// the handles carry across and the two views are two views of one configuration rather than two
+// demonstrations. Next: the quintic with two poles, where "two of everything" is the point.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
 import { Tag, Cite, TagLegend } from '../framework/SlideTag'
-import HorizonDialFigure from './HorizonDialFigure'
-import StraightLineFigure from './StraightLineFigure'
+import PoleCurveFigure from './PoleCurveFigure'
+import PoleSphereFigure from './PoleSphereFigure'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
@@ -180,147 +182,148 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 3 — the first figure: turn the dial until the chart runs out
+  // 3 — the pole, seen on the sphere. First half of a pair; the second half is the
+  //     SAME state (chartModel.ts), so the handles carry across.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <Tag status={['MEAS']} />
-        <h2>Turn it until it stops</h2>
-        <HorizonDialFigure />
+        <Tag status={['THM', 'MEAS']} />
+        <h2>Where the pole shows itself</h2>
+        <PoleSphereFigure />
         <p style={{ marginTop: '0.5em' }}>
-          One pole, one dial, a rational PH quartic — the nine coordinates of the previous slide,
-          with the dial on screen. The data is <em>held</em>: the ends never move, so everything you
-          see is motion inside a single fibre.
+          A pole is where the curve runs to infinity — and on the curve you cannot see it, because it
+          happens off the piece you drew. On the <strong>tangent indicatrix</strong> you cannot miss
+          it. Since <Math>{'T = N/\\sigma'}</Math>, the denominator <Math>{'w'}</Math> cancels
+          outright, so this spherical curve stays finite and smooth exactly where the space curve
+          does not.
         </p>
         <p>
-          Push θ toward <Math>{'\\pm 90^{\\circ}'}</Math> and the chart&rsquo;s own coordinate{' '}
-          <Math>{'\\sigma(r)'}</Math> runs out — five orders of magnitude, smoothly, because{' '}
-          <Math>{'\\sigma(r) \\propto 1/\\lambda^2'}</Math> and{' '}
-          <Math>{'\\lambda = \\tan\\theta'}</Math>. That endpoint is the{' '}
-          <Math>{'\\sigma = 0'}</Math> stratum: the circle, and the whole conformal family. So the
-          dial is a walk toward the part of the space this chart cannot hold.
+          Follow the two branches into the violet point. They arrive from opposite directions and
+          stop dead — <Math>{'|T^{\\prime}(r)|'}</Math> reads machine zero. That is a{' '}
+          <strong>cusp</strong>, and <em>moving the pole moves it</em>.
         </p>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.1em' }}>
-            The coordinate collapses. The cusp does not.
+            No pole without a corner. It is an <em>if and only if</em>.
           </strong>
         </p>
         <p>
-          <Math>{'|T^{\\prime}(r)|'}</Math> sits at machine zero the whole way, and the speed just
-          off the pole <em>grows sevenfold</em>. Which is right: at any finite{' '}
-          <Math>{'\\theta'}</Math> the pole is a real pole, so the curve does reach infinity and the
-          corner is real. It goes only <em>at</em> <Math>{'\\sigma(r) = 0'}</Math> — an angle the
-          chart does not contain.
+          <Math>{'T^{\\prime} = (N^{\\prime}\\sigma - N\\sigma^{\\prime})/\\sigma^2'}</Math> vanishes
+          exactly when <Math>{'\\{N, N^{\\prime}\\}'}</Math> are linearly dependent — which is the
+          no-log condition, the thing the whole chart is built to satisfy. So the corner is not a
+          feature of our seed. It is the pole, wearing its other face.
         </p>
         <p style={{ opacity: 0.8 }}>
-          So the edge is not soft. You can approach it in the coordinate and never arrive in the
-          geometry, which is why the other family needs a chart of its own rather than more of this
-          one.
+          The <strong>twist</strong> dial is the chart&rsquo;s own coordinate:{' '}
+          <Math>{'\\lambda = \\tan\\theta'}</Math>, so the <Math>{'\\sigma = 0'}</Math> stratum — the
+          circle and the whole conformal family — sits at <Math>{'\\pm 90^{\\circ}'}</Math> rather
+          than at infinity. Turn it all the way and the corner does <em>not</em> soften; at any
+          finite angle the pole is a genuine pole, so the cusp is genuinely there.
         </p>
         <Cite>
-          <Math>{'\\sigma(r) \\propto 1/\\lambda^2'}</Math>, the angle substitution, and the cusp
-          persisting are measured in{' '}
-          <Math>{'\\texttt{stratumIsTheHorizon.test.ts}'}</Math>. That the stratum is smooth — these
-          are ordinary points of the variety, not a singularity — is{' '}
-          <Math>{'\\texttt{sp11VarietyRank.test.ts}'}</Math>.
+          The <em>iff</em> is Kalkan, Scharler, Schr&ouml;cker &amp; &Scaron;&iacute;r (CAGD 2022),
+          Rem. 4.7, in our chart. Measured here in{' '}
+          <Math>{'\\texttt{tangentIndicatrix.test.ts}'}</Math> — a cusp at every pole, one per root,
+          by cancellation rather than by vanishing. The dial&rsquo;s{' '}
+          <Math>{'\\sigma(r) \\propto 1/\\lambda^2'}</Math> is{' '}
+          <Math>{'\\texttt{stratumIsTheHorizon.test.ts}'}</Math>; that the slider has no dead
+          positions is <Math>{'\\texttt{poleSliderHasNoHoles.test.ts}'}</Math>.
         </Cite>
       </>
     ),
     notes:
-      'LET THEM TURN IT BEFORE YOU EXPLAIN IT. The two readouts move in opposite directions and that '
-      + 'contrast is the entire slide; a viewer who has watched it happen needs one sentence, and a '
-      + 'viewer told first needs three. '
-      + 'THE DIAL IS AN ANGLE FOR A MEASURED REASON, worth saying if anyone asks why not lambda. '
-      + 'sigma(r) falls off as 1/lambda^2, so a linear lambda slider can never arrive and spends '
-      + 'nearly all its travel doing nothing. lambda = tan(theta) puts the stratum at the end of a '
-      + 'finite slider. '
-      + 'THE EXPECTATION THIS FIGURE BROKE is worth ten seconds because it is the honest version. It '
-      + 'was built to show the cusp FADING as the pole stopped being a pole. It does not fade -- it '
-      + 'sharpens. At any finite theta the pole is genuinely a pole, so the cusp is genuinely there; '
-      + 'it goes only AT sigma = 0, which is not an angle the chart contains. '
-      + 'AND THAT IS WHY THERE ARE TWO CHART TYPES rather than one with a soft edge. The coordinate '
-      + 'is continuous to the boundary; the geometry is not. If someone asks whether you could just '
-      + 'extend the chart -- no, and this figure is the reason. '
-      + 'IF ASKED WHETHER THE STRATUM IS A SINGULARITY: no. Those are ordinary smooth points of the '
-      + 'variety, full Jacobian rank. It is the CHART that fails there, not the space.',
+      'THIS SLIDE AND THE NEXT ARE ONE FIGURE IN TWO VIEWS, and it is worth saying so before you '
+      + 'touch anything: the handles are the same handles and the state carries across, so whatever '
+      + 'you set up here is what the next slide opens on. '
+      + 'LEAD WITH THE ASYMMETRY. On the curve the pole is invisible -- it happens past the drawn '
+      + 'piece. On the sphere it is the most obvious thing in the picture. That is because T = N/sigma '
+      + 'has no w in it at all: the denominator cancels, which is the PH property seen on the sphere. '
+      + 'THEN LET THEM MOVE THE POLE and watch the violet point travel. The claim to make is the '
+      + 'strong one, because it is a theorem rather than an observation about our seed: there is no '
+      + 'setting of any handle here that gives a pole without a corner. T-prime vanishes exactly when '
+      + '{N, N-prime} are dependent, and that IS the no-log condition. Kalkan-Scharler-Schroecker-Sir '
+      + 'Rem 4.7. '
+      + 'THE TWIST DIAL IS SECONDARY HERE and can be left for questions. lambda = tan(theta) puts the '
+      + 'sigma = 0 stratum -- the circle, the conformal family -- at the end of a finite slider rather '
+      + 'than at infinity. Turning it does not soften the corner, and that is the right answer: at any '
+      + 'finite angle the pole is genuine. '
+      + 'IF ASKED WHY THE CORNER IS DRAWN AS TWO BRANCHES: an earlier version highlighted a fixed '
+      + 'parameter window either side of the pole, and since the indicatrix speed near the pole grows '
+      + 'as the dial turns, that window swept an ever-longer arc and the corner LOOKED like it was '
+      + 'opening up and going away -- the opposite of what the slide says. Branches have no window to '
+      + 'get wrong. Worth admitting if the room is technical; it is the same class of error as the '
+      + 'retracted arc-length number on the title slide.',
   },
 
   // ---------------------------------------------------------------------------
-  // 4 — the fibre, in strict mode: a straight line that stays, and one that leaves
+  // 4 — the same pole, on the curve. Same state, same controls; what changes is
+  //     which of the two objects is drawn and which gestures make sense.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
         <Tag status={['MEAS']} />
-        <h2>Two straight lines</h2>
-        <StraightLineFigure />
+        <h2>The same pole, on the curve</h2>
+        <PoleCurveFigure />
         <p style={{ marginTop: '0.5em' }}>
-          The last slide pushed a coordinate until it ran out. This one asks the ordinary question
-          instead: what it is like to just <em>move</em>, well inside the chart. Hold the pole and the
-          twist rate and what is left is the <strong>fibre</strong> — and it is a{' '}
-          <strong>linear subspace</strong>, because{' '}
-          <Math>{'\\mathcal{A}^{\\prime}(r) = \\mathcal{A}(r)(\\Sigma + \\lambda i)'}</Math> is linear
-          in <Math>{'\\mathcal{A}'}</Math> once <Math>{'\\lambda'}</Math> is fixed. A straight line in
-          those coordinates cannot leave. Slide along any of the eight and the Pythagorean readout does
-          not converge, drift or recover — nothing is being solved.
+          Same configuration, same handles — the sphere put away and the curve drawn instead. The
+          violet ray is the <em>same violet vector</em> that was the cusp, because{' '}
+          <Math>{'N(r) = -p(r)'}</Math> exactly. The corner on the sphere <strong>is</strong> the
+          direction the curve escapes along, and the pale continuation runs out beside it and returns
+          from the other side.
         </p>
         <p>
-          The two ends of that slide are two PH curves over the <em>same</em> denominator. So the
-          obvious alternative — move every control point straight from one to the other — is a rational
-          curve of the same degree with the same pole. Those are the grey tracks. The chart&rsquo;s
-          control points are not on them.
+          Push the pole toward the drawn piece. <em>Infinity to curve</em> closes, the run-out
+          reaches further before it leaves the frame, and the limit is a{' '}
+          <strong>geometric event</strong> — not a solver giving up.
         </p>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.1em' }}>
-            Both paths are straight. Only one is straight in the right coordinates.
+            But the drawn piece barely notices. It <em>reshapes</em>.
           </strong>
         </p>
         <p>
-          And the size of the miss is the part worth keeping. The naive blend is <em>close</em> — a
-          part in fifty thousand to a part in a thousand — and it never lands, eleven to thirteen
-          orders above the floor the same measure reads on the chart&rsquo;s own curves. You cannot
-          reach this set by interpolating between points of it, and you cannot see the difference by
-          looking at the curve.
+          <Math>{'\\|c^{\\prime}(1)\\|'}</Math> ought to grow more than a thousandfold across that
+          slider. It grows <strong>sixfold</strong>: the data is held, so the solve shrinks{' '}
+          <Math>{'\\sigma(1)'}</Math> to compensate and the curve absorbs the pole&rsquo;s approach by
+          changing shape. The blow-up is real and it lives past <Math>{'t = 1'}</Math>.
         </p>
         <p style={{ opacity: 0.8 }}>
-          The last slider is there to keep the count honest, and it does nothing.{' '}
-          <Math>{'\\mathcal{A} \\mapsto \\mathcal{A}e^{i\\theta}'}</Math> lies in the same subspace and
-          leaves both <Math>{'N = \\mathcal{A}i\\mathcal{A}^{*}'}</Math> and{' '}
-          <Math>{'\\sigma = |\\mathcal{A}|^{2}'}</Math> alone: the spinor moves, the curve does not.
-          Eight coordinates, seven curves.
+          <strong>Strict</strong> holds the six data numbers: only the far endpoint is yours, the
+          interior control points are outputs, and the three sliders are exactly what is left over —
+          one dial, one pole, one fibre dimension that closes. <strong>Free</strong> makes every
+          control point a handle, one at a time, with the ends holding each other. Nothing in either
+          mode enforces the Pythagorean condition, because inside the chart there is nothing to
+          enforce.
         </p>
         <Cite>
-          The fibre being linear is <Math>{'\\texttt{FOUNDATIONS F17}'}</Math>; the gauge direction{' '}
-          <Math>{'\\mathcal{A}i'}</Math> is <Math>{'\\texttt{F16}'}</Math>. Every number on the figure
-          — the eight directions, the walk to <Math>{'\\pm 4'}</Math>, the blend&rsquo;s residual and
-          the measure&rsquo;s own floor — is pinned in{' '}
-          <Math>{'\\texttt{theChartIsStraight.test.ts}'}</Math>.
+          <Math>{'N(r) = -p(r)'}</Math>, and that the two branches leave the cusp antiparallel, are
+          measured in <Math>{'\\texttt{tangentIndicatrix.test.ts}'}</Math>. The slider having no dead
+          positions, the sixfold figure, and every member on it being exactly PH with the data still
+          held are <Math>{'\\texttt{poleSliderHasNoHoles.test.ts}'}</Math>.
         </Cite>
       </>
     ),
     notes:
-      'THIS IS THE SLIDE THAT MAKES "THE FIBRE IS LINEAR" INTO SOMETHING FELT, and slide 1 promised '
-      + 'it. Eight directions, pick one, slide. The PH readout does not move -- not "converges", does '
-      + 'NOT MOVE -- because membership here is a linear combination and there is no solver behind the '
-      + 'slider at all. '
-      + 'LET THEM SEE THE TRACKS BEFORE YOU NAME THEM. The grey lines are the obvious path: drag every '
-      + 'control point straight from one end curve to the other. That is what anyone would try, it '
-      + 'produces a rational curve of the same degree with the same pole, and the dark points -- where '
-      + 'the CHART puts them -- are visibly not on it. Two straight lines between the same two curves. '
-      + 'THE SMALL NUMBER IS THE INTERESTING NUMBER and do not apologise for it. The naive blend misses '
-      + 'by a part in a thousand or less. It is CLOSE. That is the point: the PH curves are not visibly '
-      + 'special, the set is thin, and you cannot land on it by eye or by interpolation. If someone '
-      + 'asks whether 1e-3 is just numerical error -- the same measure reads 1e-16 on the chart\'s own '
-      + 'curves, which is why the floor is pinned in the same test file. '
-      + 'THE PHASE SLIDER IS THE COUNT, not a curiosity. Eight fibre coordinates, one of which moves no '
-      + 'curve, so at a fixed dial you are steering seven dimensions of curve. It also answers the '
-      + 'question the previous slide raises for anyone who knows Hopf: yes, the phase is in here too, '
-      + 'and no, it does not cost you anything. '
-      + 'IF ASKED WHY NOTHING IS DRAGGABLE: the sibling ph-interpolation deck already has the '
-      + 'drag-anything rational figure. Here the handles are the coordinates themselves, which is the '
-      + 'whole idea of the deck.',
+      'OPEN BY POINTING AT THE VIOLET RAY and saying it is the same vector as the last slide. Not '
+      + 'analogous, not corresponding -- the same one, because N(r) = -p(r) exactly. The sphere said '
+      + '"here is a direction"; this says "here is what escapes along it". '
+      + 'THEN THE POLE SLIDER, which is the shared handle and the reason the two slides are a pair. '
+      + 'Walk it in and the run-out reaches further and further; infinity-to-curve is the number '
+      + 'saying how close it has come. Stress that this is geometry: nothing is failing, the curve '
+      + 'genuinely passes through infinity there. '
+      + 'THE MEASURED SURPRISE IS THE THIRD PARAGRAPH and it corrects the obvious caption. Everyone '
+      + 'expects the speed at the end to explode as the pole arrives -- sigma(1)/(1-r)^2, a factor of '
+      + 'about 1340 across this slider. It is 6.6, because the DATA IS HELD and the solve shrinks '
+      + 'sigma(1) to compensate. The curve reshapes rather than blowing up. That is worth dwelling on '
+      + 'because it is exactly what an editor wants: the constraint absorbs the motion. '
+      + 'THE TWO MODES ARE THE DECK GRAMMAR. Strict = the honest coordinates, derived points grey, '
+      + 'sliders for what is left. Free = drag anything, ends held. Say the punchline once: neither '
+      + 'mode enforces PH, because inside a chart there is nothing to enforce. '
+      + 'IF YOU HAVE TIME, go back one slide and forward again with a different pole set -- the state '
+      + 'persists, and seeing the sphere and the curve agree twice is what makes the pairing land.',
   },
 ]
