@@ -161,3 +161,35 @@ export const rhoFloor = (rho: Poly, lo = -50, hi = 50, n = 4000): number => {
 }
 
 export { pAdd, qpNorm }
+
+// --- applying a Möbius transformation ----------------------------------------
+
+/** U ↦ GU. A constant matrix times a polynomial column: LINEAR, so no degree ever grows. */
+export const applyMobius = (G: Mat2, U: Column): Column => ({
+  A: qpAdd(qpMul(G[0][0], U.A), qpMul(G[0][1], U.C)),
+  C: qpAdd(qpMul(G[1][0], U.A), qpMul(G[1][1], U.C)),
+})
+
+/**
+ * The same map applied POINTWISE, x ↦ (g₂₁ + g₂₂x)(g₁₁ + g₁₂x)⁻¹ — used to check that the column
+ * form really does transport the geometry, rather than merely staying self-consistent.
+ */
+export function mobiusPoint(G: Mat2, x: readonly [number, number, number]): [number, number, number] | null {
+  const at0 = (q: QPoly): [number, number, number, number] => [q[0][0] ?? 0, q[1][0] ?? 0, q[2][0] ?? 0, q[3][0] ?? 0]
+  const mul = (a: readonly number[], b: readonly number[]): [number, number, number, number] => [
+    a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+    a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+    a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+    a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+  ]
+  const add = (a: readonly number[], b: readonly number[]): [number, number, number, number] =>
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]]
+  const X: [number, number, number, number] = [0, x[0], x[1], x[2]]
+  const num = add(at0(G[1][0]), mul(at0(G[1][1]), X))
+  const den = add(at0(G[0][0]), mul(at0(G[0][1]), X))
+  const n2 = den[0] ** 2 + den[1] ** 2 + den[2] ** 2 + den[3] ** 2
+  if (n2 < 1e-14) return null                                   // the point went to infinity
+  const inv: [number, number, number, number] = [den[0] / n2, -den[1] / n2, -den[2] / n2, -den[3] / n2]
+  const r = mul(num, inv)
+  return Math.abs(r[0]) > 1e-6 * (1 + Math.hypot(r[1], r[2], r[3])) ? null : [r[1], r[2], r[3]]
+}

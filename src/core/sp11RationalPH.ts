@@ -452,3 +452,34 @@ export function findCompatibleSpinor(
   const spinor = toSpinor(best.x)
   return { spinor, U: solveForC(A, sandwich(spinor), degC).U, residual: best.rel, restarts }
 }
+
+// --- moving between the two representations ----------------------------------
+//
+// PRACTICAL SUMMARY. Going INTO the covariant form is free: any rational curve written p/w with w
+// real is already the column (w, p). Coming BACK out costs a gauge fixing U ↦ U·Ā, and that is where
+// the degree doubles — deg w = 2·deg A — because ā is a zero divisor exactly on the isotropic locus.
+// A Möbius map applied in between is a constant matrix times the column: linear, degree-preserving.
+
+/** Any curve written p/w with w REAL, as a column. Free — no computation at all. */
+export const fromRealDenominator = (p: readonly Poly[], w: Poly): Column =>
+  ({ A: qpReal(w.slice()), C: qpImag(p) })
+
+/**
+ * Back to a real denominator, by the gauge fixing U ↦ U·Ā. THIS is the step that costs: the
+ * denominator becomes |A|², of degree 2·deg A. Returns null if the column is not null (Re(ĀC) ≠ 0),
+ * because then it does not represent a curve in ℝ³ at all.
+ */
+export function toRealDenominator(U: Column, tol = 1e-9): { p: Poly[]; w: Poly } | null {
+  const scale = (qpMax(U.A) * qpMax(U.C)) || 1
+  if (pMax(nullPart(U)) > tol * scale) return null
+  // If A is ALREADY real there is nothing to fix, and multiplying by Ā would pointlessly square the
+  // denominator — the gauge U ↦ U·w leaves the curve alone and inflates the representation.
+  if (Math.max(pMax(U.A[1]), pMax(U.A[2]), pMax(U.A[3])) <= tol * qpMax(U.A)) {
+    return { w: U.A[0].slice(), p: [U.C[1].slice(), U.C[2].slice(), U.C[3].slice()] }
+  }
+  const CA = qpMul(U.C, qpConj(U.A))
+  if (pMax(CA[0]) > tol * pMax(qpNorm(U.A))) return null   // the real part must die
+  // NOTE: not reduced. |A|² and CĀ can share a factor; removing it needs a polynomial gcd, which
+  // this does not do, so the degree reported here is an upper bound on the minimal one.
+  return { w: qpNorm(U.A), p: [CA[1], CA[2], CA[3]] }
+}
