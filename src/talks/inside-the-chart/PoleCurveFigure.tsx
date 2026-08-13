@@ -90,7 +90,8 @@ export default function PoleCurveFigure() {
   /**
    * STRICT'S HANDLE SET IS DERIVED, NOT CHOSEN, and that is the point of the mode. The held data is
    * c′(0) and c(1); in Bézier form c′(0) = 4(w₁/w₀)(P₁ − P₀), so P₁ carries the start tangent and
-   * P_last carries the endpoint. P₀ is c(0), pinned inside the family, so it is the translation.
+   * P_last carries the endpoint. P₀ is c(0), which the family pins at its own zero — dragging it moves
+   * the ORIGIN while the other two handles hold their screen positions, so the curve reshapes.
    * Three points, and the arithmetic closes:
    *
    *     P₀ (3) + P₁ (3) + P_last (3) + pole + twist + fibre phase  =  12
@@ -134,7 +135,8 @@ export default function PoleCurveFigure() {
             <b>Strict gives you exactly three points, and the number is derived.</b> The held data is
             c′(0) and c(1); in Bézier form c′(0) = 4(w₁/w₀)(P₁−P₀), so <b>P₁</b> is the start tangent
             and <b>P₄</b> the endpoint, while <b>P₀</b> is c(0) — pinned inside the family by{' '}
-            <i>p</i>(0) = 0, so dragging it can only <i>translate</i>. P₂ and P₃ are outputs, drawn
+            <i>p</i>(0) = 0 — dragging it moves the origin while <b>P₁</b> and <b>P₄</b> hold their
+            places on screen, so the curve reshapes rather than sliding. P₂ and P₃ are outputs, drawn
             grey. Then the arithmetic closes: 3 + 3 + 3 points plus pole, twist and fibre phase is{' '}
             <b>twelve</b>, and the family is 8 fibre + 1 dial + 1 pole + 3 translations, also{' '}
             <b>twelve</b>. <b>Free</b> releases the data and every point is a handle with the ends
@@ -155,8 +157,7 @@ export default function PoleCurveFigure() {
           <DragPoint3D
             key={`cp${i}`}
             position={shift(tri(p))}
-            // P₀ is the translation handle, so it wears the "held" colour rather than the data colour
-            color={i === 0 ? FIG.color.pinned : FIG.color.dataPoint}
+            color={FIG.color.dataPoint}
             radius={i === 0 || i === last ? 0.075 : 0.062}
             onDrag={(q) => {
               // P₀'s handle speaks WORLD coordinates, because its world position IS the offset.

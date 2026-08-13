@@ -167,11 +167,31 @@ export const chart = {
    * are the same point; converting to local first and then assigning sets origin = cursor − origin,
    * which is what made the handle refuse to follow the mouse.
    *
-   * STRICT: a pure translation. The whole picture slides and the curve is unchanged, which is exactly
-   * what the three translation dimensions are.
+   * STRICT: NOT a rigid slide. The other two handles — P₁ and c(1) — hold their positions ON SCREEN
+   * while P₀ goes to the cursor, so the curve RESHAPES rather than translating. In the family's own
+   * coordinates that is "move both data items by −δ", which is six conditions against the fibre's
+   * seven effective dimensions, so it is underdetermined and minimum norm spends the rest.
+   *
+   * A rigid translation was the first version and it is the less interesting gesture: it moves the
+   * picture without moving the curve, so nothing is learned by doing it.
    */
   translate(world: Vec3): void {
-    emit({ origin: world, stalled: false })
+    const m = toMember(state.live)
+    const P1 = controlStructure(m).points[1]
+    const n2 = P1.x * P1.x + P1.y * P1.y + P1.z * P1.z
+    if (!(n2 > 1e-18)) { emit({ stalled: true }); return }
+    const d0 = derivativeAt(m, 0)
+    const k = (d0.x * P1.x + d0.y * P1.y + d0.z * P1.z) / n2
+    const d = { x: world.x - state.origin.x, y: world.y - state.origin.y, z: world.z - state.origin.z }
+    const end = curveAt(m, 1)
+    const next = [
+      k * (P1.x - d.x), k * (P1.y - d.y), k * (P1.z - d.z),
+      end.x - d.x, end.y - d.y, end.z - d.z,
+    ]
+    const solved = projectToData(state.live, next)
+    const err = Math.hypot(...dataOf(toMember(solved)).map((v, i) => v - next[i]))
+    if (err > 1e-7 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
+    emit({ origin: world, live: solved, target: next, stalled: false })
   },
 
   /**

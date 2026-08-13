@@ -6,7 +6,8 @@
 //
 //     P₁  carries the start tangent, LINEARLY
 //     Pₙ  carries the endpoint
-//     P₀  cannot move inside the family at all — dragging it is a translation of the picture
+//     P₀  cannot move inside the family at all — dragging it moves the ORIGIN, and the other two
+//         handles hold their screen places while it does, so the curve RESHAPES
 //
 // which is three draggable points, and the count then closes exactly against the family:
 //
@@ -18,12 +19,17 @@
 // fixed pole, and that both handles TRACK — the cursor gets what it asked for, rather than the solver
 // finding some nearby member and calling it done.
 //
-// AND P₀ HAS ITS OWN GESTURE, which took two attempts. Asking the solver to move control point 0 is
+// AND P₀ HAS ITS OWN GESTURE, which took three attempts. Asking the solver to move control point 0 is
 // asking for a motion the family cannot make — it spends the whole admissible subspace failing, and
 // on screen the control points fly apart. The correct call moves nothing by index: P₀ goes to the
-// cursor as a change of ORIGIN, and the family re-solves to leave c(1) where it was on screen, which
-// is dragWithEndHeld(prm, null, null, held). Pinned below, because a handle that silently does
-// nothing looks exactly like a handle that is working.
+// cursor as a change of ORIGIN while the family re-solves to leave the OTHER handles where they were
+// on screen. Free holds c(1) alone; strict holds both P₁ and c(1), which is six conditions against
+// the fibre's seven effective dimensions — underdetermined, so it lands, and the curve reshapes
+// instead of sliding. A rigid slide was attempt two and is the less interesting gesture: it moves the
+// picture without moving the curve.
+//
+// All of it is pinned below, because a handle that silently does nothing looks exactly like a handle
+// that is working.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -117,6 +123,45 @@ describe('the three strict handles', () => {
       expect(dist(curveAt(m, 1), held)).toBeLessThan(1e-6)     // it lands where asked
       expect(phDefect(m)).toBeLessThan(1e-12)                  // and is still exactly PH
       expect(Math.hypot(...[curveAt(m, 0)].flatMap((v) => [v.x, v.y, v.z]))).toBeLessThan(1e-12)
+    }
+  })
+
+  it('DRAGGING P₀ IN STRICT RESHAPES: P₁ and c(1) hold their SCREEN places, and the curve changes', () => {
+    // Moving the origin by δ while both other handles stay put on screen means, in the family's own
+    // coordinates, moving BOTH data items by −δ. Six conditions against the fibre's seven effective
+    // dimensions, so it is underdetermined and lands. The alternative — a rigid slide — moves the
+    // picture without moving the curve, and is the gesture this replaced.
+    const m0 = toMember(SEED)
+    const P1 = controlStructure(m0).points[1]
+    const d0 = derivativeAt(m0, 0)
+    const n2 = P1.x * P1.x + P1.y * P1.y + P1.z * P1.z
+    const k = (d0.x * P1.x + d0.y * P1.y + d0.z * P1.z) / n2
+    const end0 = curveAt(m0, 1)
+
+    for (const [dx, dy, dz] of [[0.12, 0, 0], [0, -0.18, 0.08], [-0.1, 0.14, 0.16]]) {
+      const target = [
+        k * (P1.x - dx), k * (P1.y - dy), k * (P1.z - dz),
+        end0.x - dx, end0.y - dy, end0.z - dz,
+      ]
+      const solved = projectToData(SEED, target)
+      const m = toMember(solved)
+      // both other handles are where they were ON SCREEN: local position + the new origin δ
+      const P1n = controlStructure(m).points[1]
+      expect(dist({ x: P1n.x + dx, y: P1n.y + dy, z: P1n.z + dz }, P1)).toBeLessThan(1e-6)
+      const endN = curveAt(m, 1)
+      expect(dist({ x: endN.x + dx, y: endN.y + dy, z: endN.z + dz }, end0)).toBeLessThan(1e-6)
+      expect(phDefect(m)).toBeLessThan(1e-12)
+
+      // AND IT IS NOT A RIGID MOTION, by a wide margin: the interior control points depart from the
+      // rigid prediction by ABOUT THE SIZE OF THE DRAG (measured 0.117 against δ = 0.120, 0.245
+      // against 0.197, 0.212 against 0.235). A slide would leave them exactly on it.
+      const step = Math.hypot(dx, dy, dz)
+      for (const i of [2, 3]) {
+        const before = controlStructure(m0).points[i]
+        const after = controlStructure(m).points[i]
+        const rigid = { x: before.x - dx, y: before.y - dy, z: before.z - dz }
+        expect(dist(after, rigid)).toBeGreaterThan(0.8 * step)
+      }
     }
   })
 
