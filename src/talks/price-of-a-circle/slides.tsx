@@ -40,8 +40,8 @@
 //      and the roads end at POLES, not cusps (the planned line said cusps; wrong)
 //  15  ARC LENGTH IS THE SAME EQUATION -- on sigma instead of N, and FREE in the [LIT] [MEAS]
 //      chart (lambda drops out: N is a pure vector). Unification is Schrocker-Sir.
-//  16  the ledger, both columns                                                 --
-//  17  what is open, and where to go next                                       [OPEN]
+//  16  (was: the ledger)      -- MOVED to 27; see the note below
+//  17  (was: what is open)     -- MOVED to 28
 //  18  TWO WAYS IN -- the strategy: more charts from inside, optimisation from  [LIT] [OPEN]
 //      outside, and why they are complementary rather than one being a fallback
 //  19  THE FIRST MOVE, MADE -- complex poles: bounded curves in closed form,    [MEAS]
@@ -63,6 +63,14 @@
 //  26  AN ATLAS, NOT A CHART -- the sigma=0 stratum is ABSORBING under Mobius,   [THM] [MEAS]
 //      so two chart types are necessary; and the conformal one is the LARGER
 //      half (deg 6: no null kernel, 6 moduli vs 4 from bending a PH cubic)
+//  27  THE LEDGER -- both columns, plus the third: what it does NOT charge       [MEAS]
+//  28  WHAT IS OPEN -- one mathematical gap, one integration job, Lie sphere     [OPEN]
+//  29  REFERENCES                                                               [LIT]
+//
+// THE LEDGER AND "WHAT IS OPEN" WERE PLANNED AS 16 AND 17 and are built as 27 and 28. At their
+// planned position they could not have priced the Sp(1,1) arc, which is where most of the charges
+// and all of the surprises are. Moving them to the end is not drift; it is the ledger being able
+// to do its job.
 //
 // 18-26 are BUILT and sit at the end of the array, out of order. They were written as the work
 // happened; 14-16 slot in ahead of them.
@@ -2227,7 +2235,7 @@ export const slides: SlideDefinition[] = [
         </p>
         <Cite>
           Measured in this repository:{' '}
-          <Math>{'\\texttt{rationalPHComplexPoleSpatial}'}</Math> and its test. The characterisation
+          <Math>{'\\texttt{rationalPHComplexPoleSpatial.test.ts}'}</Math>. The characterisation
           that covers the excluded stratum is Kalkan, Scharler, Schröcker &amp; Šír (2022), Thm. 3.6.
         </Cite>
       </>
@@ -2372,10 +2380,10 @@ export const slides: SlideDefinition[] = [
         </p>
         <Cite>
           Measured in this repository:{' '}
-          <Math>{'\\texttt{mobiusMovesTheStratum}'}</Math>,{' '}
-          <Math>{'\\texttt{sp11ChartCondition}'}</Math>,{' '}
-          <Math>{'\\texttt{sp11RationalPH}'}</Math>,{' '}
-          <Math>{'\\texttt{sp11Circle}'}</Math>. The construction being reformulated is Kalkan,
+          <Math>{'\\texttt{mobiusMovesTheStratum.test.ts}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11ChartCondition.test.ts}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11RationalPH.test.ts}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11Circle.test.ts}'}</Math>. The construction being reformulated is Kalkan,
           Scharler, Schr&ouml;cker &amp; &Scaron;&iacute;r, CAGD <strong>99</strong> (2022);{' '}
           <Math>{'Sp(1,1) \\cong \\mathrm{Spin}(4,1)'}</Math> is standard conformal geometry.
         </Cite>
@@ -2549,8 +2557,8 @@ export const slides: SlideDefinition[] = [
           turn up somewhere we had already been standing.
         </p>
         <Cite>
-          Measured here: <Math>{'\\texttt{sp11Factorisation}'}</Math>,{' '}
-          <Math>{'\\texttt{sp11CompatibleSpinor}'}</Math>. One earlier reading of the factorisation
+          Measured here: <Math>{'\\texttt{sp11Factorisation.test.ts}'}</Math>,{' '}
+          <Math>{'\\texttt{sp11CompatibleSpinor.test.ts}'}</Math>. One earlier reading of the factorisation
           result — &ldquo;never PH at <Math>{'k \\geq 2'}</Math>&rdquo; — was an artefact of a
           square-root test that rejected every square vanishing at the origin, which is exactly what
           the survivors do; the numbers above are the corrected ones, each verified without it.
@@ -2716,7 +2724,7 @@ export const slides: SlideDefinition[] = [
           touched is near it, and none of the stalls came from there.
         </p>
         <Cite>
-          Measured in <Math>{'\\texttt{sp11VarietyRank}'}</Math>. The rank is exact rather than
+          Measured in <Math>{'\\texttt{sp11VarietyRank.test.ts}'}</Math>. The rank is exact rather than
           estimated: central differences differentiate a quadratic map with no truncation error.
           The quadric count also reconciles with the linear ledger — a real pole costs 4 conditions
           given <Math>{'\\lambda'}</Math>, minus 1 for <Math>{'\\lambda'}</Math>, leaving 3; a
@@ -2851,7 +2859,7 @@ export const slides: SlideDefinition[] = [
           Pottmann, <em>Rational curves and surfaces with rational offsets</em>, CAGD{' '}
           <strong>12</strong> (1995) 175–192; the spatial generalisation is Schröcker &amp; Šír&rsquo;s
           third method (arXiv:2310.08047). Both identities measured in{' '}
-          <Math>{'\\texttt{planarDualChart}'}</Math> — the planar chart on twelve{' '}
+          <Math>{'\\texttt{planarDualChart.test.ts}'}</Math> — the planar chart on twelve{' '}
           <Math>{'(u,h)'}</Math> pairs with offsets, and the spatial one verified coefficient by
           coefficient against <Math>{'4(Q_2^2+Q_3^2)'}</Math>.
         </Cite>
@@ -2979,7 +2987,7 @@ export const slides: SlideDefinition[] = [
         </p>
         <Cite>
           Witness sets and the fibre structure measured in{' '}
-          <Math>{'\\texttt{sp11VarietyStructure}'}</Math>: the fibre is linear and 8-dimensional,
+          <Math>{'\\texttt{sp11VarietyStructure.test.ts}'}</Math>: the fibre is linear and 8-dimensional,
           arbitrary combinations of two members stay in <Math>{'\\mathcal{V}'}</Math>, moving{' '}
           <Math>{'\\lambda'}</Math> genuinely moves the fibre, and <Math>{'\\lambda'}</Math> is
           recovered component by component wherever <Math>{'\\sigma(r) \\neq 0'}</Math>.
@@ -3109,7 +3117,7 @@ export const slides: SlideDefinition[] = [
           points, not about motion.
         </p>
         <Cite>
-          Measured in <Math>{'\\texttt{sp11ChartScales}'}</Math> — seven{' '}
+          Measured in <Math>{'\\texttt{sp11ChartScales.test.ts}'}</Math> — seven{' '}
           <Math>{'(n,m)'}</Math> combinations, with two independent routes to{' '}
           <Math>{'\\dim \\mathcal{V}'}</Math> agreeing at each, one of them using the measured
           Jacobian rank rather than the formula. Timings are the median of 200 repetitions after
@@ -3270,9 +3278,9 @@ export const slides: SlideDefinition[] = [
         </p>
         <Cite>
           The absorbing identity is measured in{' '}
-          <Math>{'\\texttt{sp11StratumIsAbsorbing}'}</Math>. The degree law, the bendability test and
+          <Math>{'\\texttt{sp11StratumIsAbsorbing.test.ts}'}</Math>. The degree law, the bendability test and
           the carrier-sphere rank are measured in{' '}
-          <Math>{'\\texttt{conformalPHStructure}'}</Math> — lifted polynomials give{' '}
+          <Math>{'\\texttt{conformalPHStructure.test.ts}'}</Math> — lifted polynomials give{' '}
           <Math>{'\\langle S,S\\rangle = 0'}</Math> exactly as the control, a generic degree-4 member{' '}
           <Math>{'2.0\\cdot 10^{-3}'}</Math>, and degree 6 no kernel.
         </Cite>
@@ -3302,5 +3310,351 @@ export const slides: SlideDefinition[] = [
       + 'of inversions of ordinary PH curves. Inversions land in it, but it is strictly bigger, and '
       + 'the bendability measurement is what settles it. Correcting that in public costs one sentence '
       + 'and buys the audience a reason to believe the rest.',
+  },
+  // ---------------------------------------------------------------------------
+  // 27 — THE LEDGER. The deck's title made literal, and the slide it is named for.
+  //
+  // Planned as 16, built last and placed last on purpose: at position 16 it could not have priced
+  // anything from the Sp(1,1) arc, which is where most of the charges and all of the surprises are.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>The ledger</h2>
+        <p>
+          The deck is named for a price. Here it is, both columns — and a third that matters as much,
+          because it lists what everyone expects to pay and does not.
+        </p>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '0.5em 2em',
+            margin: '0.6em 0',
+            fontSize: '0.79em',
+            lineHeight: 1.5,
+            alignItems: 'start',
+          }}
+        >
+          <div>
+            <p style={{ margin: '0 0 0.3em', fontSize: '1.1em' }}>
+              <strong>What rationality buys</strong>
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>The shapes.</strong> Circles, conics, bounded and closed curves. And the
+              restriction it lifts was never PH&rsquo;s fault — no polynomial <em>curve</em> of any
+              kind is a circle.
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>A named handle per pole.</strong> Each pole returns a degree{' '}
+              <em>and</em> a dial <Math>{'\\lambda'}</Math>, the frame twist rate. Polynomial degree
+              only ever buys more angles on a bigger torus — no new <em>kind</em> of freedom.
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>Length.</strong> On the torus arc length is <em>constant</em> — 200 probes,
+              every digit. Poles and dials together span a factor of <strong>510</strong> on the same
+              Hermite data, from the chord to five hundred times it.
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>Boundedness.</strong> Complex poles put <Math>{'w > 0'}</Math> on the whole
+              line — unreachable with real poles, where a pole <em>is</em> an escape to infinity.
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong>M&ouml;bius.</strong> In the column form it acts <em>linearly</em>, so a chain
+              of maps costs nothing and no degree grows.
+            </p>
+          </div>
+
+          <div>
+            <p style={{ margin: '0 0 0.3em', fontSize: '1.1em' }}>
+              <strong>What it charges</strong>
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>Integration stops being free.</strong> The residue condition{' '}
+              <Math>{'N^{\\prime}(r) = 2N(r)\\Sigma'}</Math> at every pole. This is the central
+              charge and four slides of this deck are about paying it.
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>Compactness.</strong> The torus was closed — sweep it and come back. The roads
+              are open and they <em>end</em>: at a pole collision, and at a pole reaching the drawn
+              piece.
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>Genericity.</strong> Most spinors fail the condition. Prescribing a
+              spinor and a denominator independently does not work; the pair must be{' '}
+              <em>compatible</em> before any solve.
+            </p>
+            <p style={{ margin: '0 0 0.35em' }}>
+              <strong>An atlas, not a chart.</strong> One chart per pole configuration, with
+              M&ouml;bius as the transition maps — plus a second chart <em>type</em> for{' '}
+              <Math>{'\\sigma = h\\,w'}</Math>, disjoint by theorem.
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong>Degree, if you insist on a real denominator.</strong> The same curve is degree
+              2 covariantly and degree 10 in the <Math>{'p/w'}</Math> gauge.
+            </p>
+          </div>
+        </div>
+
+        <p style={{ marginTop: '0.3em', marginBottom: '0.15em' }}>
+          <strong>And what it does not charge — the column people expect and never get billed for.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.1em',
+            margin: '0.35em 0 0.5em 1.2em',
+            fontSize: '0.79em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>PH itself</span>
+          <span style={{ opacity: 0.85 }}>
+            <strong>nothing</strong>, inside a chart. No constraint to enforce, no residual to drift,
+            sub-millisecond per member
+          </span>
+          <span>cusps</span>
+          <span style={{ opacity: 0.85 }}>
+            never. <Math>{'\\sigma = |\\mathcal{A}|^2'}</Math> is a sum of four squares, so a cusp is
+            four simultaneous conditions against a one-parameter walk
+          </span>
+          <span>rational arc length</span>
+          <span style={{ opacity: 0.85 }}>
+            free inside the <Math>{'\\lambda'}</Math>-chart — the same equation on{' '}
+            <Math>{'\\sigma'}</Math> that PH is on <Math>{'N'}</Math>, and the dial drops out of it
+          </span>
+          <span>smoothness</span>
+          <span style={{ opacity: 0.85 }}>
+            the variety is smooth where anyone works; the singular locus is codimension 8
+          </span>
+        </div>
+
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            You pay in compactness and in coordinates. You do not pay in PH.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          Which is not the trade the subject&rsquo;s reputation suggests. &ldquo;Rational PH is
+          hard&rdquo; is really &ldquo;rational PH needs an atlas&rdquo; — and the hard part is
+          bookkeeping about poles, not the Pythagorean condition at all.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS IS THE SLIDE THE DECK IS NAMED FOR and it was built last on purpose — at its planned '
+      + 'position it could not have priced the Sp(1,1) arc, where most of the charges and all of the '
+      + 'surprises are. Say the two columns at a normal pace; they are a summary and the audience has '
+      + 'seen the evidence. '
+      + 'THE THIRD COLUMN IS THE ONE TO SLOW DOWN FOR, because it is the counter-intuitive half. PH '
+      + 'itself costs NOTHING inside a chart. Cusps never happen. Rational arc length is free in the '
+      + 'lambda-chart. The variety is smooth where anyone works. Every one of those is something a '
+      + 'practitioner would budget for and never be billed. '
+      + 'THE CLOSING LINE IS THE THESIS: you pay in compactness and in coordinates, not in PH. And '
+      + 'the sentence after it is the one worth leaving in the room — "rational PH is hard" really '
+      + 'means "rational PH needs an atlas". The difficulty is bookkeeping about poles, and the '
+      + 'Pythagorean condition, which is what the name makes everyone stare at, is the part that '
+      + 'turns out to be free.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 28 — WHAT IS OPEN. Written last, and it reads very differently from the plan:
+  // most of what it was going to list got answered while the deck was being built.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['OPEN']} />
+        <h2>What is open</h2>
+        <p>
+          This slide was planned early and would have been a long list. Most of it got answered while
+          the deck was being written, which is worth saying out loud: what follows is short, and
+          three of the four items are <em>engineering</em>.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>1 — Coverage of the second chart, in practice.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The <Math>{'\\lambda'}</Math>-charts and the conformal chart are both built and both work;
+          nothing connects them in a running editor. Since the stratum is absorbing, there is no
+          transport trick — a user who wants to start from a circle has to <em>start</em> in the
+          other chart. That is a UI and state problem, not a mathematical one.
+        </p>
+
+        <p style={{ marginTop: '0.4em', marginBottom: '0.15em' }}>
+          <strong>2 — The joint problem, still.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          In the covariant column form, <Math>{'A'}</Math> is prescribed and the compatible spinor is{' '}
+          <em>found</em> by a solver rather than parametrised. Factorisation was tried and does not
+          supply it — everything it makes PH for free is degenerate. This is the one genuinely
+          mathematical gap left.
+        </p>
+
+        <p style={{ marginTop: '0.4em', marginBottom: '0.15em' }}>
+          <strong>3 — The spatial dual.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Pottmann&rsquo;s planar construction is a real chart; the spatial version needs{' '}
+          <Math>{'|b^{\\prime}|^2'}</Math> to be a perfect square, which is a sum of two squares
+          rather than one. Whether that condition is chart-able in its own right is unexamined here,
+          and Schr&ouml;cker &amp; &Scaron;&iacute;r&rsquo;s third method is the place to look.
+        </p>
+
+        <p style={{ marginTop: '0.4em', marginBottom: '0.15em' }}>
+          <strong>4 — Everything above is for curves.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The natural home of &ldquo;rational offsets&rdquo; is <strong>Laguerre</strong> geometry
+          and the natural objects there are <em>surfaces</em> — PN surfaces, Pottmann&rsquo;s other
+          half. Curves are the one-dimensional shadow. In <strong>Lie sphere</strong> geometry,{' '}
+          <Math>{'\\mathbb{R}^{4,2}'}</Math>, M&ouml;bius and Laguerre are both subgroups, which is
+          the first framing in which the two obstructions this deck kept trading against each other
+          are not in tension by construction.
+        </p>
+
+        <p style={{ textAlign: 'center', margin: '0.7em 0' }}>
+          <strong style={{ fontSize: '1.08em' }}>
+            One open mathematical question, one integration job, and a bigger geometry waiting.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.75 }}>
+          And a note on method, since it produced more corrections than results. Four claims in this
+          deck were retracted after being measured, three of them mine, and every retraction came
+          from pinning a number rather than from re-reading an argument. The habit is the finding.
+        </p>
+      </>
+    ),
+    notes:
+      'OPEN BY SAYING THE LIST GOT SHORTER. This slide was planned early and would have been long; '
+      + 'most of it was answered while the deck was written. Saying that plainly sets up the real '
+      + 'point, which is that only ONE of the four remaining items is mathematics. '
+      + 'ITEM 2 IS THE HONEST GAP and should be named as such: in the covariant form the compatible '
+      + 'spinor is FOUND, not parametrised, and factorisation was tried and does not supply it. '
+      + 'Everything factorisation makes PH for free turns out to be degenerate — circles at one '
+      + 'factor, straight lines beyond. '
+      + 'ITEM 4 IS THE ONE TO END ON if the audience is thinking about where this goes. Offsets are '
+      + 'Laguerre-natural and Laguerre is about SURFACES; curves are the shadow. Lie sphere geometry '
+      + 'in R^{4,2} is the first place where Mobius and Laguerre are both subgroups, so the two '
+      + 'obstructions this deck kept trading against each other stop being in tension by '
+      + 'construction. Offer it as an address, not a result. '
+      + 'THE CLOSING NOTE ON METHOD IS NOT MODESTY, it is the most transferable thing here. Four '
+      + 'claims were retracted after measurement, and every retraction came from pinning a NUMBER '
+      + 'rather than from re-reading an argument. That is worth more to a listener than any single '
+      + 'result on the preceding slides.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 29 — REFERENCES. The deck had none; the companion deck does.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['LIT']} />
+        <h2>References</h2>
+        <p style={{ marginBottom: '0.4em' }}>
+          The construction problem this deck is about is <em>solved</em> in the literature. What is
+          ours is measurement, and the coordinates.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>The complete characterisations — the two that matter most here.</strong>
+        </p>
+        <div style={{ marginLeft: '1.2em', fontSize: '0.79em', lineHeight: 1.5, marginBottom: '0.5em' }}>
+          <p style={{ margin: '0 0 0.25em' }}>
+            B. Kalkan, D. F. Scharler, H.-P. Schr&ouml;cker, Z. &Scaron;&iacute;r,{' '}
+            <em>Rational framing motions and spatial rational Pythagorean hodograph curves</em>,
+            CAGD <strong>99</strong> (2022) 102080. arXiv:2111.04600. — the complete
+            characterisation; our <Math>{'\\lambda'}</Math>-chart is a coordinate patch on it.
+          </p>
+          <p style={{ margin: 0 }}>
+            H.-P. Schr&ouml;cker, Z. &Scaron;&iacute;r, <em>Three paths to rational curves with
+            rational arc length</em>, arXiv:2310.08047 (2023, rev. 2024). — &ldquo;We solve the so
+            far open problem of constructing <em>all</em> spatial rational curves with rational arc
+            length functions.&rdquo; Their first method adapts Kalkan et al. through a linear system,
+            which is this chart&rsquo;s shape; their third generalises Pottmann&rsquo;s dual.
+          </p>
+        </div>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>Arc length, offsets, and the dual.</strong>
+        </p>
+        <div style={{ marginLeft: '1.2em', fontSize: '0.79em', lineHeight: 1.5, marginBottom: '0.5em' }}>
+          <p style={{ margin: '0 0 0.25em' }}>
+            H. Pottmann, <em>Rational curves and surfaces with rational offsets</em>, CAGD{' '}
+            <strong>12</strong> (1995) 175&ndash;192. — the dual/envelope construction; the planar
+            chart of slide 23, and the <em>surfaces</em> half that this deck does not touch.
+          </p>
+          <p style={{ margin: '0 0 0.25em' }}>
+            R. T. Farouki, T. Sakkalis, <em>Arc lengths of rational Pythagorean&ndash;hodograph
+            curves</em>, CAGD <strong>32</strong> (2015) 1&ndash;16.
+          </p>
+          <p style={{ margin: 0 }}>
+            R. T. Farouki, T. Sakkalis, <em>Construction of rational curves with rational arc lengths
+            by direct integration</em>, CAGD <strong>74</strong> (2019) 101773. — the residue
+            criterion; and the sentence that retracted a novelty claim of ours, that only a{' '}
+            <em>subset</em> of rational PH curves admits rational arc length.
+          </p>
+        </div>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>The machinery, and where to read further.</strong>
+        </p>
+        <div style={{ marginLeft: '1.2em', fontSize: '0.79em', lineHeight: 1.5, marginBottom: '0.5em' }}>
+          <p style={{ margin: '0 0 0.25em' }}>
+            R. T. Farouki, <em>Pythagorean&ndash;Hodograph Curves: Algebra and Geometry
+            Inseparable</em>, Springer (2008). — the standard reference for everything before Act II.
+          </p>
+          <p style={{ margin: '0 0 0.25em', opacity: 0.85 }}>
+            U. Hertrich-Jeromin, <em>Introduction to M&ouml;bius Differential Geometry</em>, LMS
+            Lecture Notes <strong>300</strong>, CUP (2003). — quaternionic M&ouml;bius geometry,{' '}
+            <Math>{'Sp(1,1)'}</Math> and the <Math>{'\\mathbb{R}^{4,1}'}</Math> model. A pointer: we
+            used the machinery, not this text.
+          </p>
+          <p style={{ margin: 0, opacity: 0.85 }}>
+            J. W. S. Cassels (1964) and A. Pfister, on sums of squares over{' '}
+            <Math>{'\\mathbb{R}[t]'}</Math>: the Pythagoras number is <strong>2</strong>, which is
+            slide 23&rsquo;s punchline; and Hurwitz&rsquo;s theorem on composition algebras, which is
+            why the sandwich exists in dimensions 1, 2, 4, 8 and nowhere else.
+          </p>
+        </div>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>Measured in this repository.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em', fontSize: '0.79em', opacity: 0.85 }}>
+          Every number on these slides is pinned by a test named in its own{' '}
+          <em>Cite</em>. The durable facts are written up as{' '}
+          <Math>{'\\texttt{docs/CURVATURE\\_FOUNDATIONS.md}'}</Math> F13&ndash;F19 — most recently
+          F18 (the absorbing stratum) and F19 (the variety is rational, codimension{' '}
+          <Math>{'3m'}</Math>).
+        </p>
+      </>
+    ),
+    notes:
+      'THE FIRST LINE IS THE POINT OF THE SLIDE: the construction problem is SOLVED in the '
+      + 'literature, and what is ours is measurement and coordinates. Saying that before listing '
+      + 'anything sets the register for the whole bibliography and pre-empts the question an expert '
+      + 'in the room is already forming. '
+      + 'KALKAN ET AL. AND SCHROCKER-SIR ARE THE TWO THAT MATTER. The first is the complete '
+      + 'characterisation our chart is a patch on; the second says outright that it solves the open '
+      + 'problem of constructing ALL rational curves with rational arc length, and its three methods '
+      + 'map onto three things in this deck — the linear system, the residue conditions, and '
+      + 'Pottmann. Quoting their own sentence is more honest than paraphrasing it. '
+      + 'THE FAROUKI-SAKKALIS 2019 ENTRY CARRIES A RETRACTION and should be read that way: it is the '
+      + 'paper whose one sentence killed a novelty claim of ours. Leaving that visible in the '
+      + 'bibliography is cheaper than a slide about it and does the same work. '
+      + 'THE LAST TWO ENTRIES ARE MARKED AS POINTERS, deliberately. We used quaternionic Mobius '
+      + 'machinery without reading Hertrich-Jeromin, and we used the Pythagoras number without '
+      + 'reading Cassels. Marking them as addresses rather than sources is the honest thing and it '
+      + 'tells a listener where to go rather than implying we have been there.',
   },
 ]
