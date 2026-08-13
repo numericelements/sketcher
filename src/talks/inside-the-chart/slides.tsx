@@ -29,12 +29,14 @@
 // AUDIENCE: someone who knows what a PH curve is and has seen a rational one. The theory
 // is cited to price-of-a-circle and to FOUNDATIONS, never re-derived.
 //
-// STATUS: title, slide 1, and the first figure (the horizon dial) built.
+// STATUS: title, slide 1, and two figures built — the horizon dial (the edge) and the straight line
+// (the coordinates). Next: the quintic with two poles, where "two of everything" is the point.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
 import { Tag, Cite, TagLegend } from '../framework/SlideTag'
 import HorizonDialFigure from './HorizonDialFigure'
+import StraightLineFigure from './StraightLineFigure'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
@@ -125,7 +127,7 @@ export const slides: SlideDefinition[] = [
           For the curve this deck opens with — a rational PH <strong>quartic</strong>, spinor degree
           2, one pole — that is <Math>{'8'}</Math> fibre directions and <Math>{'1'}</Math> dial.
           Nine numbers. The next slide puts the <em>dial</em> on screen, because it is the one with a
-          name and the one that runs out; the fibre gets its own figure later.
+          name and the one that runs out; the fibre gets the slide after that.
         </p>
 
         <p style={{ marginTop: '0.5em' }}>
@@ -243,5 +245,82 @@ export const slides: SlideDefinition[] = [
       + 'extend the chart -- no, and this figure is the reason. '
       + 'IF ASKED WHETHER THE STRATUM IS A SINGULARITY: no. Those are ordinary smooth points of the '
       + 'variety, full Jacobian rank. It is the CHART that fails there, not the space.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 4 — the fibre, in strict mode: a straight line that stays, and one that leaves
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>Two straight lines</h2>
+        <StraightLineFigure />
+        <p style={{ marginTop: '0.5em' }}>
+          The last slide pushed a coordinate until it ran out. This one asks the ordinary question
+          instead: what it is like to just <em>move</em>, well inside the chart. Hold the pole and the
+          twist rate and what is left is the <strong>fibre</strong> — and it is a{' '}
+          <strong>linear subspace</strong>, because{' '}
+          <Math>{'\\mathcal{A}^{\\prime}(r) = \\mathcal{A}(r)(\\Sigma + \\lambda i)'}</Math> is linear
+          in <Math>{'\\mathcal{A}'}</Math> once <Math>{'\\lambda'}</Math> is fixed. A straight line in
+          those coordinates cannot leave. Slide along any of the eight and the Pythagorean readout does
+          not converge, drift or recover — nothing is being solved.
+        </p>
+        <p>
+          The two ends of that slide are two PH curves over the <em>same</em> denominator. So the
+          obvious alternative — move every control point straight from one to the other — is a rational
+          curve of the same degree with the same pole. Those are the grey tracks. The chart&rsquo;s
+          control points are not on them.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            Both paths are straight. Only one is straight in the right coordinates.
+          </strong>
+        </p>
+        <p>
+          And the size of the miss is the part worth keeping. The naive blend is <em>close</em> — a
+          part in fifty thousand to a part in a thousand — and it never lands, eleven to thirteen
+          orders above the floor the same measure reads on the chart&rsquo;s own curves. You cannot
+          reach this set by interpolating between points of it, and you cannot see the difference by
+          looking at the curve.
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          The last slider is there to keep the count honest, and it does nothing.{' '}
+          <Math>{'\\mathcal{A} \\mapsto \\mathcal{A}e^{i\\theta}'}</Math> lies in the same subspace and
+          leaves both <Math>{'N = \\mathcal{A}i\\mathcal{A}^{*}'}</Math> and{' '}
+          <Math>{'\\sigma = |\\mathcal{A}|^{2}'}</Math> alone: the spinor moves, the curve does not.
+          Eight coordinates, seven curves.
+        </p>
+        <Cite>
+          The fibre being linear is <Math>{'\\texttt{FOUNDATIONS F17}'}</Math>; the gauge direction{' '}
+          <Math>{'\\mathcal{A}i'}</Math> is <Math>{'\\texttt{F16}'}</Math>. Every number on the figure
+          — the eight directions, the walk to <Math>{'\\pm 4'}</Math>, the blend&rsquo;s residual and
+          the measure&rsquo;s own floor — is pinned in{' '}
+          <Math>{'\\texttt{theChartIsStraight.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS IS THE SLIDE THAT MAKES "THE FIBRE IS LINEAR" INTO SOMETHING FELT, and slide 1 promised '
+      + 'it. Eight directions, pick one, slide. The PH readout does not move -- not "converges", does '
+      + 'NOT MOVE -- because membership here is a linear combination and there is no solver behind the '
+      + 'slider at all. '
+      + 'LET THEM SEE THE TRACKS BEFORE YOU NAME THEM. The grey lines are the obvious path: drag every '
+      + 'control point straight from one end curve to the other. That is what anyone would try, it '
+      + 'produces a rational curve of the same degree with the same pole, and the dark points -- where '
+      + 'the CHART puts them -- are visibly not on it. Two straight lines between the same two curves. '
+      + 'THE SMALL NUMBER IS THE INTERESTING NUMBER and do not apologise for it. The naive blend misses '
+      + 'by a part in a thousand or less. It is CLOSE. That is the point: the PH curves are not visibly '
+      + 'special, the set is thin, and you cannot land on it by eye or by interpolation. If someone '
+      + 'asks whether 1e-3 is just numerical error -- the same measure reads 1e-16 on the chart\'s own '
+      + 'curves, which is why the floor is pinned in the same test file. '
+      + 'THE PHASE SLIDER IS THE COUNT, not a curiosity. Eight fibre coordinates, one of which moves no '
+      + 'curve, so at a fixed dial you are steering seven dimensions of curve. It also answers the '
+      + 'question the previous slide raises for anyone who knows Hopf: yes, the phase is in here too, '
+      + 'and no, it does not cost you anything. '
+      + 'IF ASKED WHY NOTHING IS DRAGGABLE: the sibling ph-interpolation deck already has the '
+      + 'drag-anything rational figure. Here the handles are the coordinates themselves, which is the '
+      + 'whole idea of the deck.',
   },
 ]
