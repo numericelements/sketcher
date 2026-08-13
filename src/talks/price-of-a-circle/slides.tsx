@@ -52,8 +52,10 @@
 //      no PH; the spinor is findable by LM at 1e-16; still no coordinates
 //  22  THE VARIETY IS SMOOTH WHERE WE STALLED -- Jacobian rank 6 everywhere      [MEAS]
 //      incl. the excluded stratum; local coordinates EXIST, we lack a formula
+//  23  ONE SQUARE, OR TWO -- Pottmann's planar dual IS a chart; the 2D/3D gap    [THM] [MEAS]
+//      is 4(u')^2 versus 4(Q2^2+Q3^2), i.e. the Pythagoras number of R[t]
 //
-// 18-22 are BUILT and sit at the end of the array, out of order. They were written as the work
+// 18-23 are BUILT and sit at the end of the array, out of order. They were written as the work
 // happened; 14-16 slot in ahead of them.
 //
 // ⚠ THE FAILURE MODE THIS DECK IS MOST PRONE TO, named after it happened twice on 2026-08-12.
@@ -2735,5 +2737,138 @@ export const slides: SlideDefinition[] = [
       + 'CLOSE BY RETIRING THE WARNING. "Not a smooth manifold everywhere" is technically true and '
       + 'practically irrelevant: codimension 8 inside a 10-dimensional variety. Worth saying because '
       + 'that warning, left unqualified, would send someone looking for trouble in the wrong place.',
+  },
+  // ---------------------------------------------------------------------------
+  // (built out of order — follows "The variety is smooth where we stalled")
+  // The planar dual is a chart; the 2D/3D gap is one square versus a sum of two
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['THM', 'MEAS']} />
+        <h2>One square, or two</h2>
+        <p>
+          Two slides ago the complaint was that coordinates <em>exist</em> and we do not have them.
+          There is a construction that does — Pottmann&rsquo;s dual, 1995 — and it is worth looking
+          at closely, because it is a genuine chart and because <strong>the exact step where it
+          stops working in space is a single line of algebra</strong>.
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>Describe the curve by its tangent lines, not its points.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          A rational unit normal <Math>{'n'}</Math> and a rational support function{' '}
+          <Math>{'h'}</Math> — the signed distance of the tangent line from the origin. The curve is
+          the envelope, so it satisfies the line and its derivative, and those two solve at once.
+          Clear to a common denominator with <Math>{'\\nu = (1-u^2,\\,2u)'}</Math>,{' '}
+          <Math>{'\\delta = 1+u^2'}</Math>, <Math>{'\\mu = (-2u,\\,1-u^2)'}</Math>:
+        </p>
+        <Math display>
+          {'p = 2u^{\\prime}h\\,\\nu + \\delta h^{\\prime}\\mu , \\qquad w = 2u^{\\prime}\\delta'}
+        </Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          Polynomial in, polynomial out. <strong>Two free rational functions</strong>,{' '}
+          <Math>{'u'}</Math> and <Math>{'h'}</Math>, nothing solved, no residue conditions, no
+          integration. That is what a chart is, and this deck has not had one until now.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And it works for exactly one reason.</strong>
+        </p>
+        <Math display>
+          {'|\\mu|^2 = \\delta^2 \\quad\\text{for every } u \\qquad\\Longrightarrow\\qquad |n^{\\prime}|^2 = 4(u^{\\prime})^2 / \\delta^2'}
+        </Math>
+        <p style={{ marginLeft: '1.2em' }}>
+          A perfect square <em>identically</em> — an identity, not a condition. So{' '}
+          <Math>{'|n^{\\prime}|'}</Math> is rational, the unit tangent is rational, and PH is
+          automatic. Recall the criterion: for a rational curve, PH holds exactly when the unit
+          tangent is rational.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>Now run the same computation in space.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          For a rational unit vector built from a spinor, <Math>{'b = N/\\sigma'}</Math> with{' '}
+          <Math>{'N = \\mathcal{A}i\\mathcal{A}^{*}'}</Math> and{' '}
+          <Math>{'\\sigma = |\\mathcal{A}|^2'}</Math>, the same quantity comes out as — writing{' '}
+          <Math>{'Q = \\mathcal{A}^{*}\\mathcal{A}^{\\prime}'}</Math> —
+        </p>
+        <Math display>
+          {'|N^{\\prime}|^2 - (\\sigma^{\\prime})^2 \\;=\\; 4\\bigl(Q_2^{\\,2} + Q_3^{\\,2}\\bigr)'}
+        </Math>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto 1fr',
+            gap: '0.3em 1.3em',
+            margin: '0.5em 0 0.5em 1.2em',
+            fontSize: '0.82em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span>the plane</span>
+          <span><Math>{'4(u^{\\prime})^2'}</Math></span>
+          <span>
+            <strong>one square</strong> — always a square
+          </span>
+          <span>space</span>
+          <span><Math>{'4(Q_2^{\\,2} + Q_3^{\\,2})'}</Math></span>
+          <span>
+            <strong>a sum of two</strong> — a square only when{' '}
+            <Math>{'Q_2'}</Math> and <Math>{'Q_3'}</Math> are proportional
+          </span>
+        </div>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            The whole difference between a chart and no chart is one square against two.
+          </strong>
+        </p>
+
+        <p>
+          And that has a name. The <strong>Pythagoras number</strong> of{' '}
+          <Math>{'\\mathbb{R}[t]'}</Math> is <strong>2</strong>: every non-negative polynomial in one
+          variable is a sum of two squares, and generically needs both. So the plane sits on the{' '}
+          <em>special</em> case where one suffices, and space sits on the <em>generic</em> case where
+          it does not. The obstruction was never differential geometry. It is arithmetic, it is
+          classical, and it says the planar construction was lucky in a way that does not repeat.
+        </p>
+        <Cite>
+          Pottmann, <em>Rational curves and surfaces with rational offsets</em>, CAGD{' '}
+          <strong>12</strong> (1995) 175–192; the spatial generalisation is Schröcker &amp; Šír&rsquo;s
+          third method (arXiv:2310.08047). Both identities measured in{' '}
+          <Math>{'\\texttt{planarDualChart}'}</Math> — the planar chart on twelve{' '}
+          <Math>{'(u,h)'}</Math> pairs with offsets, and the spatial one verified coefficient by
+          coefficient against <Math>{'4(Q_2^2+Q_3^2)'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE FINALLY SHOWS A CHART, after two slides of not having one — so lead with that. '
+      + 'Pottmann 1995 is a genuine chart: two free rational functions in, a PH curve out, nothing '
+      + 'solved. Show the cleared formula, because "p = 2u-prime h nu + delta h-prime mu" being '
+      + 'entirely polynomial is the whole claim and it fits on a line. '
+      + 'THEN THE REASON, WHICH IS ONE IDENTITY. |mu|^2 = delta^2 for EVERY u -- an identity, not a '
+      + 'condition -- so |n-prime|^2 is a perfect square automatically and the unit tangent is '
+      + 'rational. Recall the criterion out loud: for a rational curve, PH holds exactly when the '
+      + 'unit tangent is rational. Without that recall the identity looks like a coincidence. '
+      + 'THE SPATIAL LINE IS THE POINT OF THE SLIDE, and it is worth writing on the board: the same '
+      + 'quantity is 4(Q2^2 + Q3^2) with Q = A* A-prime. One square in the plane, a sum of TWO in '
+      + 'space. And a^2 + b^2 is a perfect square only when a and b are proportional. That single '
+      + 'step is the entire difference between having a chart and not having one -- there is no '
+      + 'deeper obstruction hiding behind it. '
+      + 'CLOSE ON THE PYTHAGORAS NUMBER, because it turns an accident into a theorem. The Pythagoras '
+      + 'number of R[t] is 2: every psd polynomial in one variable is a sum of two squares and '
+      + 'generically needs both. So the plane is the SPECIAL case and space is the GENERIC one. The '
+      + 'obstruction is arithmetic and classical, not differential-geometric, which is the same '
+      + 'conclusion the square-class slide reached from the other direction. '
+      + 'IF ASKED HOW SURE WE ARE: the spatial identity was checked coefficient by coefficient, and '
+      + 'the first version of that check was WRONG in an instructive way -- two of three probe '
+      + 'spinors were degree 1, where A-prime is constant, Q2 and Q3 are constants, and the sum is a '
+      + 'CONSTANT, trivially a square. It read as "the identity holds in 3D too" and would have '
+      + 'inverted this slide. Degenerate probe data passing a test is the failure mode to fear here.',
   },
 ]
