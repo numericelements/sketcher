@@ -348,12 +348,13 @@ picture is worth drawing — sweep the configuration numerically and look at the
 
 ---
 
-## 9.6 The next pair — agreed design
+## 9.6 The degree-6 pair — BUILT (slides 5 and 6)
 
-`inside-the-chart` currently has: title, slide 1 (what a chart is), **slide 3** (the pole on the
-sphere), **slide 4** (the same pole on the curve).
+`inside-the-chart` has: title, slide 1 (what a chart is), **slides 3–4** (the degree-4 pole pair) and
+**slides 5–6** (the degree-6 Hermite pair, `hermiteModel.ts` / `HermiteControls.tsx` /
+`HermiteSphereFigure.tsx` / `HermiteCurveFigure.tsx`).
 
-The agreed next pair: **degree 6, one pole, C¹ Hermite held**, same grammar throughout.
+The pair as built: **degree 6, one pole, C¹ Hermite held**, same grammar throughout.
 
 ```
 STRICT                              handles
@@ -387,7 +388,7 @@ situation slide 4's `dragTangent` already lives with, and the reason `strictHand
 8, 4 and 0, so they cannot share a held-data convention; a selector wants to be its own slide, whose
 punchline is that three of its seven buttons are empty by a parity theorem (§2).
 
-**The pre-figure gate is PASSED** (`degree6HandlesTrack.test.ts`). All four handles track:
+**Both pre-figure gates PASSED.** Strict (`degree6HandlesTrack.test.ts`) — all four handles track:
 
 ```
 P₁ (start tangent)   lands to 5.0e-14 of the cursor, the rest held to 2.8e-14
@@ -398,6 +399,20 @@ P₀ (origin)          RESHAPES: the other three hold their SCREEN places to 1e-
 
 and the handles are **exactly** linear, not linearised: `w = ∏(t − r_k)` depends only on the poles, the
 poles are held during a fibre motion, so `w₁/w₀` and `w₅/w₆` move by *exactly 0* across a drag.
+
+Free (`degree6FreeDrag.test.ts`) — all seven gestures: the five interior points land to 3.2e-14 with
+`c(1)` held to 6.5e-14 and `c(0)` at 1.4e-14, and the far endpoint lands to 2.4e-14. `P₀` is not in
+that file on purpose: its gesture is a change of *origin*, not a motion in the family, and routing it
+to the solver is the trap the degree-4 pair paid for once.
+
+**Two figure lessons from looking at slide 5**, both recorded because they generalise:
+- *A fan of ten members* made the pinning visible in a still frame and was removed anyway — with ten
+  arcs there is nowhere to rest the eye. Turning ψ **is** the answer set, and it keeps the focus.
+- *Sample in arc, not in the parameter.* The pale full indicatrix drew one chord of **0.166** on a unit
+  sphere at the closest pole — a visible polygon — and 3000 uniform points only reached 0.050, because
+  the ratio grows as the pole approaches. `indicatrixArcSmooth` / `indicatrixLoopSmooth` bound every
+  chord for 1000–2100 points. The drawn piece `t ∈ [0,1]` was never the problem (gain there: 1.2–1.5×).
+  → `indicatrixArcSmooth.test.ts`
 
 `projectOnto(prm, readout, target)` is the generic form — any smooth readout a handle can hold;
 `projectToData` is now the `dataOf` case of it, and `fiberClosure`/`fiberTangent` take the readout too,

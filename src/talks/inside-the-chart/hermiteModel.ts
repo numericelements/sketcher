@@ -38,6 +38,10 @@ import { useSyncExternalStore } from 'react'
 import type { Quat, Vec3 } from '../../core/quaternion'
 import {
   type MultiPoleParams,
+  controlStructure,
+  curveAt,
+  derivativeAt,
+  dragWithEndHeld,
   familyBasis,
   fiberRoad,
   hermiteOf,
@@ -192,8 +196,114 @@ export const hermiteChart = {
     })
   },
 
+  /**
+   * STRICT: P₁ carries c′(0) and P₅ carries c′(1), both EXACTLY — c′(0) = 6(w₁/w₀)(P₁ − P₀) and
+   * c′(1) = 6(w₅/w₆)(P₆ − P₅), and w = ∏(t − r) depends only on the poles, which are held during a
+   * handle drag. So the weight ratios do not move and these are identities, not linearisations
+   * (degree6HandlesTrack pins them at exactly 0 drift). Read k off the current member rather than
+   * rebuilding it from the Bernstein weights, so it stays right at any pole.
+   */
+  dragStartTangent(p: Vec3): void {
+    const m = toMember(state.live)
+    const P = controlStructure(m).points
+    const n2 = P[1].x * P[1].x + P[1].y * P[1].y + P[1].z * P[1].z
+    if (!(n2 > 1e-18)) { emit({ stalled: true }); return }
+    const d0 = derivativeAt(m, 0)
+    const k = (d0.x * P[1].x + d0.y * P[1].y + d0.z * P[1].z) / n2
+    const next = state.target.slice()
+    next[0] = k * p.x; next[1] = k * p.y; next[2] = k * p.z
+    hermiteChart.solveTo(next)
+  },
+
+  /** STRICT: P₅ carries c′(1). Its handle is P₆ − P₅, so the target is built from the current P₆. */
+  dragEndTangent(p: Vec3): void {
+    const m = toMember(state.live)
+    const P = controlStructure(m).points
+    const last = P.length - 1
+    const v = { x: P[last].x - P[last - 1].x, y: P[last].y - P[last - 1].y, z: P[last].z - P[last - 1].z }
+    const n2 = v.x * v.x + v.y * v.y + v.z * v.z
+    if (!(n2 > 1e-18)) { emit({ stalled: true }); return }
+    const d1 = derivativeAt(m, 1)
+    const k = (d1.x * v.x + d1.y * v.y + d1.z * v.z) / n2
+    const next = state.target.slice()
+    next[3] = k * (P[last].x - p.x); next[4] = k * (P[last].y - p.y); next[5] = k * (P[last].z - p.z)
+    hermiteChart.solveTo(next)
+  },
+
+  /** STRICT: P₆ IS c(1), so dragging it moves the displacement — a different fibre. */
+  dragEnd(p: Vec3): void {
+    const next = state.target.slice()
+    next[6] = p.x; next[7] = p.y; next[8] = p.z
+    hermiteChart.solveTo(next)
+  },
+
+  /**
+   * STRICT P₀: a change of ORIGIN, not a motion inside the family — p(0) = 0 pins c(0). The other
+   * three handles hold their SCREEN places while P₀ goes to the cursor, which in the family's own
+   * coordinates means moving every held point by −δ. The tangents are directions and do not shift;
+   * only the displacement does. That RESHAPES rather than sliding, which is the whole point: a rigid
+   * translation moves the picture without moving the curve.
+   */
+  translate(world: Vec3): void {
+    const d = { x: world.x - state.origin.x, y: world.y - state.origin.y, z: world.z - state.origin.z }
+    const next = state.target.slice()
+    next[6] -= d.x; next[7] -= d.y; next[8] -= d.z
+    const solved = projectOnto(state.live, hermiteOf, next, 40)
+    const err = Math.hypot(...hermiteOf(toMember(solved)).map((v, i) => v - next[i]))
+    if (err > 1e-6 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
+    emit({ origin: world, live: solved, target: next, anchor: solved, psi: 0, stalled: false })
+  },
+
+  /** Shared tail of the strict handles: solve the nine numbers, or report the stall. */
+  solveTo(next: readonly number[]): void {
+    const solved = projectOnto(state.live, hermiteOf, next, 40)
+    const err = Math.hypot(...hermiteOf(toMember(solved)).map((v, i) => v - next[i]))
+    if (err > 1e-6 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
+    emit({ live: solved, target: next.slice(), anchor: solved, psi: 0, stalled: false })
+  },
+
+  /**
+   * FREE: any control point except P₀, with the far end held. c(0) needs no holding — p(0) = 0 fixes
+   * it — and routing P₀ here is the trap the degree-4 pair paid for once: the solver is asked for a
+   * motion the family cannot make and spends the whole subspace failing, and the points fly apart.
+   */
+  dragFree(index: number, p: Vec3, lastIndex: number): void {
+    if (index === 0) { hermiteChart.slideStart(p); return }
+    const end = curveAt(toMember(state.live), 1)
+    const next = index === lastIndex
+      ? dragWithEndHeld(state.live, null, null, p)
+      : dragWithEndHeld(state.live, index, p, end)
+    if (!next) { emit({ stalled: true }); return }
+    emit({
+      live: next, target: hermiteOf(toMember(next)), anchor: next, psi: 0, stalled: false,
+    })
+  },
+
+  /** FREE P₀: the mirror of an interior drag — P₀ goes to the cursor, c(1) holds its SCREEN place. */
+  slideStart(world: Vec3): void {
+    const end = curveAt(toMember(state.live), 1)
+    const held = {
+      x: end.x + state.origin.x - world.x,
+      y: end.y + state.origin.y - world.y,
+      z: end.z + state.origin.z - world.z,
+    }
+    const solved = dragWithEndHeld(state.live, null, null, held)
+    if (!solved) { emit({ stalled: true }); return }
+    emit({
+      origin: world, live: solved, target: hermiteOf(toMember(solved)), anchor: solved, psi: 0,
+      stalled: false,
+    })
+  },
+
   setMode(mode: Mode): void {
-    emit({ mode, stalled: false })
+    if (mode === 'strict') {
+      emit({
+        mode, target: hermiteOf(toMember(state.live)), anchor: state.live, psi: 0,
+        road: [state.live], roadAt: 0, stalled: false,
+      })
+    } else {
+      emit({ mode, stalled: false })
+    }
   },
 
   reset(): void {

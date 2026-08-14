@@ -31,14 +31,19 @@
 //
 // STATUS: title, slide 1, THE DEGREE-4 PAIR — the pole on the sphere (slide 3) and the same pole on
 // the curve (slide 4), sharing chartModel.ts and ChartControls.tsx — and the first half of the
-// DEGREE-6 PAIR (slide 5), which holds full C¹ Hermite data and shows the answer set rather than one
-// answer. That pair has its own state and strip (hermiteModel.ts, HermiteControls.tsx): it is a
-// different family holding different data, and one store with a degree switch would make every handle
-// in both conditional. Next: slide 6, the same configuration drawn as the curve, with strict/free.
+// DEGREE-6 PAIR — the indicatrix with both ends of the arc pinned (slide 5) and the same configuration
+// drawn as the curve, with the strict/free toggle (slide 6). That pair has its own state and strip
+// (hermiteModel.ts, HermiteControls.tsx): it is a different family holding different data, and one
+// store with a degree switch would make every handle in both conditional.
+//
+// The degree-6 pair holds full C¹ Hermite data — the first rational degree at which that is posable at
+// all — so its leftover is two-dimensional where the degree-4 pair's is one. Both of those dimensions
+// are circles; only one of them is cheap enough to drive all the way round.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
 import { Tag, Cite, TagLegend } from '../framework/SlideTag'
+import HermiteCurveFigure from './HermiteCurveFigure'
 import HermiteSphereFigure from './HermiteSphereFigure'
 import PoleCurveFigure from './PoleCurveFigure'
 import PoleSphereFigure from './PoleSphereFigure'
@@ -399,5 +404,71 @@ export const slides: SlideDefinition[] = [
       + 'escaped a compact fibre -- |A| grew sixfold. It had not. The monomial spinor norm is a bad '
       + 'proxy; the Bernstein coefficients barely moved and every invariant held to 1e-14. The control '
       + 'that caught it was running the same walk on the polynomial quintic, where the answer is known.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6 — the same degree-6 configuration, drawn as the curve. Same state, same
+  //     strip; what is added is the four strict handles and the free mode.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>The same two, on the curve</h2>
+        <HermiteCurveFigure />
+        <p style={{ marginTop: '0.5em' }}>
+          The sphere carried the <em>directions</em> of the two end tangents — four of the nine held
+          numbers. Their magnitudes and the displacement were held just as firmly and were invisible
+          there. That is why this pair is a pair.
+        </p>
+        <p>
+          <strong>Strict gives you four control points, and the count is derived rather than
+          chosen.</strong> <Math>{'P_1'}</Math> carries <Math>{'c^{\\prime}(0)'}</Math>,{' '}
+          <Math>{'P_5'}</Math> carries <Math>{'c^{\\prime}(1)'}</Math>, <Math>{'P_6'}</Math> is{' '}
+          <Math>{'c(1)'}</Math>, and <Math>{'P_0'}</Math> is <Math>{'c(0)'}</Math> — pinned inside the
+          family by <Math>{'p(0) = 0'}</Math>, so dragging it changes the origin while the others hold
+          their places on screen. Twelve numbers in the handles plus{' '}
+          <Math>{'\\psi, s, \\lambda, r'}</Math> is <strong>sixteen</strong>, which is the
+          chart&rsquo;s dimension. <Math>{'P_2, P_3, P_4'}</Math> are outputs.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            Turn ψ and the four handles do not move — they <em>are</em> the data.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          The relation <Math>{'c^{\\prime}(0) = 6(w_1/w_0)(P_1 - P_0)'}</Math> is an{' '}
+          <em>identity</em> here, not a linearisation: <Math>{'w = \\prod(t - r_k)'}</Math> depends
+          only on the poles, and the poles are held while a handle moves, so the weight ratio drifts
+          by exactly zero. <strong>Free</strong> releases the nine numbers and all seven points become
+          handles, one at a time, with the ends holding each other.
+        </p>
+        <Cite>
+          The four strict handles tracking, and the zero weight drift, are{' '}
+          <Math>{'\\texttt{degree6HandlesTrack.test.ts}'}</Math>; the seven free gestures are{' '}
+          <Math>{'\\texttt{degree6FreeDrag.test.ts}'}</Math>. Both land to{' '}
+          <Math>{'10^{-14}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'START BY SAYING WHAT THE SPHERE COULD NOT SHOW. The indicatrix is c-prime over its norm, so it '
+      + 'carries the DIRECTIONS of the two end tangents and nothing else -- four of the nine numbers. '
+      + 'The magnitudes and the displacement were held just as firmly and were invisible. That is the '
+      + 'reason for a pair rather than a single slide. '
+      + 'THEN TURN PSI WITH THE CONTROL POLYGON IN VIEW. The interior points rearrange and the four '
+      + 'handles do not move. That is the cleanest statement of what a fibre IS: everything that can '
+      + 'change while the data does not. '
+      + 'THE HANDLE COUNT IS THE HONESTY OF THE MODE. Four points is 12 numbers; plus psi, s, lambda '
+      + 'and r that is 16, and 16 is the chart dimension we measured. Offering P2, P3 or P4 would be '
+      + 'offering motions the family does not have. Say it once, do not belabour it. '
+      + 'IF ASKED ABOUT THE WEIGHTS: on a rational Bezier P1 does not carry c-prime(0) by position '
+      + 'alone -- the weight is in it too. It costs nothing here because w depends only on the poles '
+      + 'and the poles are held during a handle drag, so the ratio drifts by exactly zero. Measured, '
+      + 'not assumed. '
+      + 'FREE MODE IS WORTH TEN SECONDS AT THE END. Seven handles, ends holding each other, nothing '
+      + 'enforcing PH -- because inside a chart there is nothing to enforce. That is the deck thesis '
+      + 'and this is the last place it shows up.',
   },
 ]
