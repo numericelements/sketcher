@@ -578,6 +578,14 @@ export const slides: SlideDefinition[] = [
       + 'And psi is still a solver target, so half the torus is derived and half is projected. Saying '
       + 'that costs nothing and it is the difference between a talk people trust and one they do not. '
       + 'IF SOMEONE ASKS WHY NOT JUST WALK IT: 2180 steps, 109 seconds, once round. The formula is not a '
-      + 'speedup, it is the difference between a slider and a slideshow.',
+      + 'speedup, it is the difference between a slider and a slideshow. '
+      + 'THE CLOSING MOVE IS THE POLYNOMIAL LIMIT and it is the strongest evidence the theory is right. '
+      + 'Turn the twist dial to its end, the pole cancels, and our circle converges to the polynomial '
+      + 'quintic circle -- linearly in the cancellation, constant 1.67. Go BACK to slide 5 or 6 and do '
+      + 'it live if there is time: the rational family contains the classical one and the dial is the '
+      + 'road between them. '
+      + 'DO NOT CLAIM SYMMETRY. Two attempts were withdrawn. A one-pole rational curve cannot be '
+      + 't -> 1-t symmetric at all, because the pole would have to sit at r = 1/2, inside the drawn '
+      + 'piece. The polynomial case can be symmetric precisely because it has no pole to move.',
   },
 ]

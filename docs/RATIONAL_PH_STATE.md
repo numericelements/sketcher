@@ -229,7 +229,23 @@ Hold both end spinors; the variations are `{X·u(t)}` for one **complex** cubic 
 `u(0)=u(1)=0` and `u′(r)=λi·u(r)`. Because `u` is complex, `u i ū = i|u|²`, so
 `(Xu)i(Xu)* = |u|²·X i X̄` — **the Hopf map a second time** — and completing the square gives
 `Y i Ȳ = T`, i.e. `𝒜(θ) = 𝒜₀ + (X₀e^{iθ} − X₀)u`. No solver; closes because `e^{2πi} = 1`. It replaced
-a 2180-step walk. `hermiteChart` does the same for ψ, so the whole fibre is closed form.
+a 2180-step walk. `hermiteChart` does the same for ψ — a *linear* solve for a particular member with both end spinors
+prescribed, then the same completed square, with `quatFromSandwich(T)` as a canonical θ origin so the
+particular solution's arbitrariness cancels. **The whole fibre is closed form, and both sliders are
+wired to it** (`hermiteModel.ts`). The chart is *anchored* on the member it was built from, so
+`at(0,0)` is that member: canonical is not the same as "where the user is", and an unanchored chart
+would snap the curve to the canonical point every time a handle drag rebuilt it.
+
+```
+s + 360° returns, at every ψ    7.7e-15      ψ + 360° returns       8.0e-12
+at(0,0) is the seed             8.0e-12      Hermite held on grid   8.0e-11
+same cell by two routes         0            → it addresses a cell, not a history
+```
+
+**And a test shape worth reusing.** "Is the ψ sweep continuous?" cannot be answered by *largest step* —
+the largest 1° step here is 17× the median, which reads as a jump and is not one. It is answered by
+**refinement**: a fast region's step shrinks in proportion to the sampling (measured 1.44e-1 → 1.44e-3
+for 100× the resolution), a discontinuity's does not shrink at all.
 
 **AND IT RESTRICTS TO THE CLASSICAL CASE** (`polynomialLimitOfTheCircle.test.ts`), which is the test any
 generalisation owes. Both ends of the twist dial cancel the pole (`|𝒜(r)|/scale` 2.75 → 7.8e-3), and

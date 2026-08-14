@@ -17,10 +17,11 @@
 // (§9.4's "no endpoint dots on the sphere" still holds, and for its original reason. The ends staying
 // put under a moving slider says "held" better than two marks would, and it says it while you watch.)
 //
-// BOTH FIBRE SLIDERS ARE CIRCLES. ψ turns 𝒜(1) on its Hopf fibre over c′(1) and returns at 360° to
-// 2.4e-16. The second, s, is the fibre at FIXED 𝒜(0) and 𝒜(1), and it has a closed form — the rational
-// completed square, `rationalHermiteCircles.ts` — so it returns because e^{2πi} = 1 rather than because
-// a solver came home. It replaced a 2180-step continuation that took 109 s to traverse.
+// BOTH FIBRE SLIDERS ARE CIRCLES AND BOTH ARE CLOSED FORM — one chart drives them (`hermiteChart`).
+// ψ is the phase of 𝒜(1) against 𝒜(0); s is the middle circle, the rational completed square. Neither
+// makes a minimum-norm choice, and both return because e^{2πi} = 1 rather than because a solver came
+// home. s replaced a 2180-step continuation that took 109 s to traverse; ψ replaced a Gauss-Newton
+// target. → rationalHermiteCircles.ts, slide 7.
 //
 // The pole still cusps the indicatrix, exactly as on the degree-4 slide — that is a theorem about
 // simple poles (Kalkan–Scharler–Schröcker–Šír, Rem. 4.7), not a feature of degree 4.
@@ -113,11 +114,12 @@ export default function HermiteSphereFigure() {
           ends not moving is that data; everything between them is the two-dimensional set of answers
           to it.{' '}
           <span className="text-slate-400">
-            <b>Both fibre sliders are circles.</b> ψ turns <i>𝒜(1)</i> on its Hopf fibre over{' '}
-            <i>c′(1)</i>; <b>s</b> is the fibre at both end spinors fixed, and it has a closed form — so
-            it returns at 360° because <i>e</i><sup>2πi</sup> = 1, not because a solver came home.
-            Between them they reach the whole two-dimensional answer set, with the nine numbers held to
-            1e-12 everywhere on it.{' '}
+            <b>Both fibre sliders are circles, and both are formulas.</b> ψ turns <i>𝒜(1)</i> on its
+            Hopf fibre over <i>c′(1)</i>; <b>s</b> is the fibre at both end spinors fixed. Neither
+            solves anything, so both return at 360° because <i>e</i><sup>2πi</sup> = 1. Between them
+            they reach the whole two-dimensional answer set, with the nine numbers held to 1e-10
+            everywhere on it — <b>and turning the twist dial to its end makes them the polynomial
+            deck&rsquo;s.</b>{' '}
             <b>The pole still cusps the indicatrix</b> — follow the{' '}
             <b style={{ color: FIG.color.pole }}>violet strand</b> in to the corner and back out. That
             is a theorem about simple poles, not a feature of degree 4. Drag the background to rotate.

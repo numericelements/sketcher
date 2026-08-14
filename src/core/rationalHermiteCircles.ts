@@ -244,8 +244,19 @@ function displacementOf(A: readonly Quat[], r: number): Vec3 {
 }
 
 export interface HermiteChart {
-  /** The member at end-phase ψ and circle angle θ. Both return exactly at 2π. */
+  /**
+   * The member at end-phase ψ and circle angle θ. Both return exactly at 2π, and `at(0, 0)` is the
+   * member the chart was built from — see the θ-anchoring note below.
+   */
   at: (psi: number, theta: number) => MultiPoleParams | null
+}
+
+/** The X with 𝒜 − 𝒜ₚ = X·u, recovered from whichever coefficient of u is largest. */
+function recoverX(A: readonly Quat[], Ap: readonly Quat[], u: readonly Quat[]): Quat {
+  let bi = 0, best = 0
+  u.forEach((c, k) => { const n = qnormSq(c); if (n > best) { best = n; bi = k } })
+  const d = qadd(A[bi], qscale(Ap[bi], -1))
+  return qscale(qmul(d, qconj(u[bi])), 1 / qnormSq(u[bi]))
 }
 
 /**
@@ -267,34 +278,64 @@ export function hermiteChart(seed: MultiPoleParams): HermiteChart | null {
   const mu = integralOverW2(polyMul(u, uBar).map((q) => q.u), r)
   if (!Number.isFinite(mu) || Math.abs(mu) < 1e-300) return null
 
+  /**
+   * THE θ ORIGIN HAS TO BE ANCHORED ON THE SEED, or every handle drag makes the curve jump.
+   *
+   * `quatFromSandwich(T)` is canonical — it depends only on T — which is exactly what makes the
+   * particular solution's arbitrariness cancel. But canonical is not the same as "where the user
+   * currently is": the seed sits at some angle θ₀ on its own circle, and a chart whose θ = 0 is the
+   * canonical point would snap the curve there the moment the chart is rebuilt. So θ₀ is measured once
+   * and folded in, and `at(0, 0)` returns the seed.
+   */
+  const anchor = (): number => {
+    const Ap = particularWithEnds(r, lambda, a, b0)
+    if (!Ap) return 0
+    const parts = circleParts(Ap, r, uBar, mu, wanted)
+    if (!parts) return 0
+    const Yseed = qadd(recoverX(A, Ap, u), parts.X0)
+    // Yseed = Y0·e^{iθ₀}  ⟹  e^{iθ₀} = Y0⁻¹·Yseed, and Y0⁻¹ = Ȳ0/|Y0|²
+    const e = qmul(qscale(qconj(parts.Y0), 1 / qnormSq(parts.Y0)), Yseed)
+    return Math.atan2(e.v, e.u)
+  }
+  const theta0 = anchor()
+
   return {
-    at: (psi: number, theta: number): MultiPoleParams | null => {
+    at: (psi: number, thetaIn: number): MultiPoleParams | null => {
+      const theta = thetaIn + theta0
       const b = qadd(qscale(b0, Math.cos(psi)), qscale(qmul(b0, QUAT_I), Math.sin(psi)))
       const Ap = particularWithEnds(r, lambda, a, b)
       if (!Ap) return null
 
-      const gPoly = polyMul(polyMul(Ap, [QUAT_I]), uBar)
-      const G: Quat = {
-        u: integralOverW2(gPoly.map((q) => q.u), r),
-        v: integralOverW2(gPoly.map((q) => q.v), r),
-        p: integralOverW2(gPoly.map((q) => q.p), r),
-        q: integralOverW2(gPoly.map((q) => q.q), r),
-      }
-      if (!Number.isFinite(G.u + G.v + G.p + G.q)) return null
-      const X0 = qscale(qmul(G, QUAT_I), -1 / mu)
-
-      const d0 = displacementOf(Ap, r)
-      const s0 = qmul(qmul(X0, QUAT_I), qconj(X0))          // X₀ i X₀*, a vector
-      const T: Vec3 = {
-        x: (wanted.x - d0.x) / mu + s0.v,
-        y: (wanted.y - d0.y) / mu + s0.p,
-        z: (wanted.z - d0.z) / mu + s0.q,
-      }
-      const Y0 = quatFromSandwich(T)                        // canonical: depends only on T
-      if (!Y0) return null
+      const parts = circleParts(Ap, r, uBar, mu, wanted)
+      if (!parts) return null
+      const { X0, Y0 } = parts
       const Y = qadd(qscale(Y0, Math.cos(theta)), qscale(qmul(Y0, QUAT_I), Math.sin(theta)))
       const X = qadd(Y, qscale(X0, -1))
       return { ...seed, A: Ap.map((c, k) => qadd(c, qmul(X, u[k] ?? ZQ))) }
     },
   }
+}
+
+/** X₀ and the canonical Y₀ for a particular solution — the completed square, once. */
+function circleParts(
+  Ap: readonly Quat[], r: number, uBar: readonly Quat[], mu: number, wanted: Vec3,
+): { X0: Quat; Y0: Quat } | null {
+  const gPoly = polyMul(polyMul(Ap, [QUAT_I]), uBar)
+  const G: Quat = {
+    u: integralOverW2(gPoly.map((q) => q.u), r),
+    v: integralOverW2(gPoly.map((q) => q.v), r),
+    p: integralOverW2(gPoly.map((q) => q.p), r),
+    q: integralOverW2(gPoly.map((q) => q.q), r),
+  }
+  if (!Number.isFinite(G.u + G.v + G.p + G.q)) return null
+  const X0 = qscale(qmul(G, QUAT_I), -1 / mu)
+  const d0 = displacementOf(Ap, r)
+  const s0 = qmul(qmul(X0, QUAT_I), qconj(X0))
+  const T: Vec3 = {
+    x: (wanted.x - d0.x) / mu + s0.v,
+    y: (wanted.y - d0.y) / mu + s0.p,
+    z: (wanted.z - d0.z) / mu + s0.q,
+  }
+  const Y0 = quatFromSandwich(T)
+  return Y0 ? { X0, Y0 } : null
 }
