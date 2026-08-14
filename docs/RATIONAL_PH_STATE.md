@@ -225,8 +225,20 @@ past a pole.
 **Still open: is the degree-6 C¹ Hermite fibre a torus?** The instrument is now trustworthy, but this
 question is *not* answered by the above. That fibre is **2**-dimensional, and a walk along a generic
 tangent on a torus never closes. It needs two *coordinates*, each returning at a full turn — which is
-also exactly what the two fibre sliders of the next slide pair must be. Measure the two directions'
-independence first (§9.5), then close each one.
+also exactly what the two fibre sliders of the next slide pair must be.
+
+The §9.5 pre-measurement is **done** (`degree6FibreDirections.test.ts`): rank 9 of 9 and kernel 3 (two
+fibre + the gauge) at every configuration swept — λ at 5°/35°/70°, r at 1.15/1.7/4 — so the fibre is
+2-dimensional everywhere the slide would put the user, and both directions move both the sphere and the
+curve. What remains is to *close* each of the two into a circle.
+
+**And a measure that misleads, recorded so it is not re-invented.** The differential ratio σ₂/σ₁ of the
+map (fibre plane) → (indicatrix motion) is 0.093 for the rational sextic — but the **classical torus
+control measures 0.069**, so that is roughly what a balanced two-slider family looks like, not evidence
+of a weak slider. The ratio is taken in `familyBasis`'s coordinate metric, which carries no geometry,
+whereas a slider is driven around its own *circle*. On the control, where both circles are known in
+closed form, the full-turn travels are 16.80 and 20.68 — **ratio 0.812**, twelve times more balanced
+than the differential ratio suggests. The predictive number needs the circles.
 
 **Why is every chart member a singular point of the variety?** Rank deficit 2 at degree 4, 4 at degree
 6, at every family tried. Not the gauge, not pole reality, not the pole count, not `deg w`. Unexplained.
