@@ -538,9 +538,53 @@ slider 2:   0.000  0.000  0.579  0.151  0.000  0.000     mirror images to 1.8e-1
 did not. → `mirroredSliderPair.test.ts`
 
 **Scope:** σ must act on the *fibre*, which needs symmetric C¹ data (`d₁ = −R d₀`, `Δc ⊥ axis`) and no
-pole to move. Exact for the polynomial case; approximate for a rational member, degrading with pole
-distance. Note the symmetric-data condition is `d₁ = −R d₀` and **not** `d₁ = R d₀` — using the latter
-cost a round of measuring the wrong configuration and reporting a real number about it.
+pole to move. Note the symmetric-data condition is `d₁ = −R d₀` and **not** `d₁ = R d₀` — using the
+latter cost a round of measuring the wrong configuration and reporting a real number about it.
+
+### On the rational side: exact in the limit, and controlled before it
+
+`sliderPairAcrossThePole.test.ts`. The **data half** of σ is exact at every pole (1e-14) — the map
+`(d₀,d₁,Δc) ↦ (−d₁,−d₀,−Δc)` composed with the rotation is the identity on symmetric data,
+algebraically and independent of `r`. Only the **pole half** is approximate, because σ sends `r ↦ 1−r`
+and that is a *different chart*. So the error is exactly the gap between the chart at `r` and the chart
+at `1−r`, and it closes as both run off to infinity:
+
+```
+r        σ(ψ) vs the ψ+s LOOP     control: vs the ψ loop      |A₃|/scale
+1.7        4.0e-2                   2.0e-1                      0.32
+5          1.7e-2                   2.4e-1                      —
+20         3.7e-3                   2.4e-1                      0.045
+100        3.3e-3                   2.4e-1                      0.0091
+1000       —                        —                           0.00091
+```
+
+A 12× improvement with the control flat throughout, so which loop σ lands on is never ambiguous.
+
+**Both ends of the usable range are real.** Below `r ≈ 20` the pole asymmetry shows; above `r ≈ 100` the
+CHART degenerates — `|A₃| → 0` like `1/r`, because the `r → ∞` limit of a degree-6 one-pole family is
+the polynomial **quintic** (a degree-6 polynomial PH curve cannot exist, PH polynomials having odd
+degree). Past that the solve stops holding the handles. **Sweet spot `r ∈ [20, 100]`.**
+
+### The three symmetric configurations, and what each costs
+
+```
+r = 1/2          divisor ½ + 5·∞          symmetric ✓   pole INSIDE [0,1]     undrawable
+r → ∞            divisor 6·∞              symmetric ✓   A₃ → 0, degenerates   no longer rational
+{r, 1−r}, deg 7  divisor r+(1−r)+5·∞      symmetric ✓   poles straddle [0,1]  drawable AND rational
+```
+
+The first two are the two ways of giving up rationality — put the pole where you are looking, or push it
+away until the spinor collapses. **Degree 7 with a mirror-paired pole set is the only configuration
+where the mirror partner of the pole has somewhere to go that is neither inside the curve nor at
+infinity**, and it carries full C¹ Hermite data with a 2-dimensional fibre (rank 9/9, fibre 12, leftover
+2, measured). Its extra condition: `λ₁ = λ₂`, equal twists at the two mirrored poles.
+
+**And there are TWO roads to the polynomial quintic, by different mechanisms:**
+
+```
+twist θ → ±90°    𝒜(r) → 0    the pole CANCELS          degree 6 → 5
+pole   r → ∞      A₃ → 0      the SPINOR degenerates    degree 6 → 5
+```
 
 ---
 
