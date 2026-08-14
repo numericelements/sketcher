@@ -118,8 +118,9 @@ export default function HermiteSphereFigure() {
             Hopf fibre over <i>c′(1)</i>; <b>s</b> is the fibre at both end spinors fixed. Neither
             solves anything, so both return at 360° because <i>e</i><sup>2πi</sup> = 1. Between them
             they reach the whole two-dimensional answer set, with the nine numbers held to 1e-10
-            everywhere on it — <b>and turning the twist dial to its end makes them the polynomial
-            deck&rsquo;s.</b>{' '}
+            everywhere on it. <b>Push the twist dial to either extreme</b> — not to zero, which is
+            where the pole is most genuine — and the pole <i>cancels</i>: the family becomes the
+            polynomial PH quintic and these two circles become the ones the sibling deck sweeps.{' '}
             <b>The pole still cusps the indicatrix</b> — follow the{' '}
             <b style={{ color: FIG.color.pole }}>violet strand</b> in to the corner and back out. That
             is a theorem about simple poles, not a feature of degree 4. Drag the background to rotate.

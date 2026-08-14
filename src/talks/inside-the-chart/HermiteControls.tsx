@@ -77,8 +77,14 @@ export default function HermiteControls({ modes = true }: { modes?: boolean }) {
             onChange={(v) => hermiteChart.setS(v)}
             width="w-36"
           />
+          {/*
+            THE ENDS OF THIS SLIDER ARE THE POLYNOMIAL LIMIT, and the natural guess is backwards: θ = 0
+            is where the pole is MOST genuine, not least. Pushing to ±89.9° cancels it — |𝒜(r)|/scale
+            falls 2.75 → 0.0078 — and the family becomes the polynomial PH quintic, the subject of the
+            sibling deck. Labelled so nobody has to be told. → polynomialLimitOfTheCircle.test.ts
+          */}
           <Slider
-            label="twist θ"
+            label="twist θ → polynomial"
             value={theta}
             range={RANGE.theta}
             onChange={(v) => hermiteChart.setTheta(v)}

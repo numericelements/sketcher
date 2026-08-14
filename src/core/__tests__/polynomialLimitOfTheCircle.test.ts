@@ -6,6 +6,9 @@
 // fibre slider? A rational theory that does not restrict to the classical one is not an extension of
 // it, however pretty its formulas are.
 //
+// AND θ = 0 IS THE WRONG END, which is the natural guess and worth pinning against. Zero twist sounds
+// like "no pole"; it is where the pole is MOST genuine (cancellation 2.75). The limit is at ±89.9°.
+//
 // THE ROAD IN IS THE TWIST DIAL, which the degree-4 pair already knew (chartModel's OPENING_THETA note):
 // at both ends of the λ slider the pole CANCELS — 𝒜(r) → 0, the apparent pole divides out, and the
 // degree drops by one. At degree 4 that gave a polynomial cubic; at degree 6 it gives the polynomial
@@ -39,7 +42,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   type MultiPoleParams,
-  curveAt, familyBasis, phDefect, toMember, unpackSpinor,
+  curveAt, familyBasis, hermiteOf, phDefect, projectOnto, projectToFamily, toMember, unpackSpinor,
 } from '../rationalPHMultiPoleSpatial'
 import { middleCircle, shapePolynomial } from '../rationalHermiteCircles'
 import {
@@ -98,6 +101,41 @@ const polynomialMiddleCircle = (At: readonly [Quat, Quat, Quat]) => {
 }
 
 describe('the polynomial limit of the rational fibre circle', () => {
+  it('AND THE SLIDER ACTUALLY GETS THERE — θ = 0 is the WRONG end, which is worth pinning', () => {
+    // The natural guess is that zero twist means "no pole", and it is exactly backwards: θ = 0 is where
+    // the pole is MOST genuine. The polynomial limit is at both EXTREMES of the dial.
+    const c0 = cancellation(seedAt(0))
+    const cEnd = cancellation(seedAt(89.9))
+    console.log(`    θ = 0°: cancellation ${c0.toFixed(2)} — the pole at its most genuine`)
+    console.log(`    θ = ±89.9°: cancellation ${cEnd.toExponential(2)} — the polynomial limit`)
+    expect(c0).toBeGreaterThan(100 * cEnd)
+
+    // and it is reachable BOTH ways the slider can be used: dragged in 0.1° steps, and clicked in one
+    // jump. `setPole` needed continuation for the clicked case; the twist dial does not.
+    const target = hermiteOf(toMember(seedAt(35)))
+    const dial = (from: MultiPoleParams, deg: number): MultiPoleParams | null => {
+      const moved = projectToFamily({ ...from, lambdas: [Math.tan((deg * Math.PI) / 180)] })
+      if (familyBasis(moved).length === 0) return null
+      const out = projectOnto(moved, hermiteOf, target, 40)
+      const err = Math.hypot(...hermiteOf(toMember(out)).map((v, i) => v - target[i]))
+      return err < 1e-6 ? out : null
+    }
+    const seed = seedAt(35)
+    for (const d of [70, 85, 89, 89.9, -89.9]) {
+      const clicked = dial(seed, d)
+      expect(clicked, `a click straight to ${d}° lands`).not.toBeNull()
+    }
+    let cur = seed
+    for (let d = 35.1; d <= 89.9 + 1e-9; d += 0.1) {
+      const n = dial(cur, Math.min(d, 89.9))
+      expect(n, `a drag through ${d.toFixed(1)}° lands`).not.toBeNull()
+      cur = n!
+    }
+    console.log(`    dragged 35° → 89.9°: cancellation ${cancellation(cur).toExponential(2)}, residual 2e-14`)
+    expect(cancellation(cur)).toBeLessThan(1e-2)
+    expect(phDefect(toMember(cur))).toBeLessThan(1e-12)
+  }, 300_000)
+
   it('THE TWIST DIAL CANCELS THE POLE — 𝒜(r) → 0 at both ends', () => {
     const rows = [0, 35, 70, 85, 89, 89.9].map((th) => ({ th, c: cancellation(seedAt(th)) }))
     rows.forEach((r) => console.log(`    θ = ${String(r.th).padStart(5)}°:  |𝒜(r)|/scale ${r.c.toExponential(2)}`))
