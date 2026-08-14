@@ -6,12 +6,22 @@
 // lift doubles the degree, so a Möbius image always has EVEN conformal degree, and the odd
 // degrees are unreachable by bending anything.
 //
-// HOW MUCH ROOM. Measured at verified non-planar members: dimension 2n+5, of which 9 are
-// Möbius MOTIONS, leaving 2n−4 genuine shape moduli.
+// HOW MUCH ROOM. Dimension 2n+5 with the scale divided out, and the symmetry group is TEN-
+// dimensional — the whole Möbius group of ℝ³ ∪ {∞}, with no stabiliser at a generic member. So the
+// shape moduli are 2n − 5.
 //
-//     degree      3      5      7          Möbius orbit of a polynomial PH cubic: 13
-//     dimension  11     15     19          (degree 6, where the two constructions meet:
-//     moduli      2      6     10           direct 17 against 13 — 8 moduli against 4)
+//     conformal degree    3     5     6
+//     dimension          11    15    17       (2n+5, scale divided out)
+//     SHAPE MODULI        1     5     7       (2n−5)
+//
+// AN EARLIER VERSION OF THIS BLOCK SAID 2n−4, on the strength of "9 are Möbius motions". The Möbius
+// group of ℝ³ is ten-dimensional and the orbit is measured at ten here, so that subtracted one too
+// few. Slide 26 of price-of-a-circle made the opposite error and subtracted eleven, taking the scale
+// off twice and reaching 6. Measured in conformalModuli.test.ts, where every symmetry direction is
+// also verified to lie in the kernel of the defining Jacobian rather than assumed to.
+//
+// The comparison figure — the Möbius orbit of a polynomial PH cubic, quoted here as 13 with 4 moduli
+// — is NOT measured and should not be quoted until it is. By hand it looks like 13 with 3 moduli.
 //
 // Read that table with the PARITY THEOREM in hand (block near the bottom of this file): the ODD
 // columns count representations of LOWER-degree curves, because an odd-degree member always

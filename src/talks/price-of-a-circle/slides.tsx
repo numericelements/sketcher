@@ -3287,8 +3287,8 @@ export const slides: SlideDefinition[] = [
         </div>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.08em' }}>
-            At degree 6: <strong>6</strong> shape moduli here, against <strong>4</strong> from
-            bending a polynomial PH cubic.
+            At conformal degree 6: <strong>7</strong> shape moduli here, and the count is{' '}
+            <Math>{'2n-5'}</Math>.
           </strong>
         </p>
         <p>
@@ -3326,8 +3326,13 @@ export const slides: SlideDefinition[] = [
       + 'box holding the circle. Degree 3 is circles only, forced by counting -- and note that it '
       + 'happens with PH REMOVED, so the null condition is doing it, not PH. From degree 4 up there '
       + 'is no confinement, and the generic degree-6 member is not a Mobius image of ANY polynomial '
-      + 'curve: the bendability test finds no null kernel. Six shape moduli against four from '
-      + 'bending a PH cubic. The second chart is the LARGER half. '
+      + 'curve: the bendability test finds no null kernel. SEVEN shape moduli at conformal degree 6, '
+      + 'and the count is 2n-5 -- measured in conformalModuli.test.ts, where the symmetry group is '
+      + 'built explicitly as the ten generators of o(4,1) plus the scale gauge and each one is checked '
+      + 'to lie in the kernel of the defining Jacobian. Two earlier numbers were wrong in opposite '
+      + 'directions: this slide said 6 (subtracting the scale twice) and the module header said 8 '
+      + '(subtracting nine for a group that is ten-dimensional). The comparison against bending a PH '
+      + 'cubic is NOT yet measured -- do not quote a number for it. '
       + 'END ON THE RETRACTION, briefly. Earlier in this work I said the conformal family IS the set '
       + 'of inversions of ordinary PH curves. Inversions land in it, but it is strictly bigger, and '
       + 'the bendability measurement is what settles it. Correcting that in public costs one sentence '
