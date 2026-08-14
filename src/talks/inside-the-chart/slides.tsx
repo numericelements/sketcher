@@ -40,6 +40,12 @@
 // all — so its leftover is two-dimensional where the degree-4 pair's is one. Both of those dimensions
 // are circles, and SLIDE 7 derives the second one in closed form. That slide is the deck's one
 // exception to "nothing here is proved": it exists because it is what makes slides 5 and 6 honest.
+//
+// SLIDE 8 is a DECISION RECORD rather than an argument — which basis the two fibre sliders should use.
+// The fibre is a torus, so that is a choice, and the mirror makes it non-arbitrary without settling it:
+// the two eigendirections are the self-mirror circle and the isometric circle, and their determinant is
+// 2, so they cannot both be sliders. Any two of {lattice basis, self-mirror axis, isometric axis}.
+// Written down so it can be decided later without re-deriving anything.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
@@ -587,5 +593,149 @@ export const slides: SlideDefinition[] = [
       + 'DO NOT CLAIM SYMMETRY. Two attempts were withdrawn. A one-pole rational curve cannot be '
       + 't -> 1-t symmetric at all, because the pole would have to sit at r = 1/2, inside the drawn '
       + 'piece. The polynomial case can be symmetric precisely because it has no pole to move.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8 — a DECISION RECORD, not an argument. The fibre's two sliders can be chosen
+  //     in several ways and the choice is not forced; this slide states what each
+  //     one buys and what the arithmetic forbids, so it can be settled later
+  //     without re-deriving anything.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['OPEN', 'MEAS']} />
+        <h2>Which two circles?</h2>
+        <p>
+          The fibre is a torus, so &ldquo;the two sliders&rdquo; is a <em>choice of basis</em>, not a
+          fact. Different choices are all correct and they feel completely different. The mirror is
+          what makes the choice non-arbitrary: with <Math>{'\\psi'}</Math> the end phase and{' '}
+          <Math>{'s'}</Math> the middle circle, reversal acts as
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <Math display>
+            {'\\sigma(\\psi, s) = (\\psi,\\; \\psi - s), \\qquad M = \\begin{pmatrix} 1 & 0 \\\\ 1 & -1\\end{pmatrix}, \\qquad M^2 = I, \\quad \\det M = -1'}
+          </Math>
+        </p>
+        <p>
+          An involution of a torus has two eigendirections, and here <strong>both are geometrically
+          meaningful</strong> rather than merely convenient:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto 1fr',
+            gap: '0.35em 1.2em',
+            margin: '0.5em 0 0.6em 1.2em',
+            fontSize: '0.85em',
+            lineHeight: 1.45,
+            alignItems: 'baseline',
+          }}
+        >
+          <span><Math>{'(2,1) = 2\\psi + s'}</Math></span>
+          <span><strong>the fixed circle</strong></span>
+          <span>
+            <Math>{'\\sigma'}</Math> fixes it pointwise, since <Math>{'\\psi - s \\equiv s'}</Math>{' '}
+            means <Math>{'\\psi \\equiv 2s'}</Math>. Every curve on it is <em>its own mirror</em> —
+            measured self-mirror to <strong>3e-3</strong> at <Math>{'r = 20'}</Math>, against{' '}
+            <strong>2e-1</strong> anywhere off it
+          </span>
+          <span><Math>{'(0,1) = s'}</Math></span>
+          <span><strong>the isometric circle</strong></span>
+          <span>
+            <Math>{'\\sigma'}</Math> reverses it, and it preserves <em>arc length</em> —{' '}
+            <strong>1e-9</strong>, while every loop containing <Math>{'\\psi'}</Math> moves the length
+            by 0.6&ndash;2 %
+          </span>
+        </div>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.05em' }}>
+            But the two eigendirections are not a lattice basis:{' '}
+            <Math>{'\\det\\begin{pmatrix} 2 & 0 \\\\ 1 & 1\\end{pmatrix} = 2'}</Math>
+          </strong>
+        </p>
+        <p>
+          They generate an <strong>index-2 sublattice</strong>, so as sliders they double-cover: two
+          settings give the same curve. Each still closes at <Math>{'2\\pi'}</Math> and together they
+          still reach everything — it is redundancy, not error — but it is a real wart on a handle. So
+          you may have <strong>any two of three</strong>, never all:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto auto',
+            gap: '0.3em 1.1em',
+            margin: '0.5em 0 0.5em 1.2em',
+            fontSize: '0.82em',
+            lineHeight: 1.4,
+            alignItems: 'baseline',
+          }}
+        >
+          <span><strong>basis</strong></span>
+          <span><strong>lattice</strong></span>
+          <span><strong>self-mirror axis</strong></span>
+          <span><strong>isometric axis</strong></span>
+          <span><Math>{'(\\psi,\\; \\psi + s)'}</Math> &mdash; shipped</span>
+          <span>yes</span>
+          <span>no (they swap)</span>
+          <span>no</span>
+          <span><Math>{'(\\psi,\\; s)'}</Math></span>
+          <span>yes</span>
+          <span>no</span>
+          <span><strong>yes</strong></span>
+          <span><Math>{'(2\\psi + s,\\; \\psi)'}</Math></span>
+          <span>yes</span>
+          <span><strong>yes</strong></span>
+          <span>no</span>
+          <span><Math>{'(2\\psi + s,\\; s)'}</Math></span>
+          <span><strong>no</strong> (index 2)</span>
+          <span><strong>yes</strong></span>
+          <span><strong>yes</strong></span>
+        </div>
+        <p style={{ opacity: 0.85 }}>
+          <strong>A fourth option, and possibly the best one.</strong> The fixed circle may be worth
+          more as a <em>place to be</em> than as an axis: a <strong>button</strong> — &ldquo;go to the
+          symmetric member&rdquo; — leaving the sliders as <Math>{'(\\psi, s)'}</Math> with its
+          isometric second handle. That gets all three properties, at the cost of one of them being a
+          destination rather than a direction.
+        </p>
+        <p style={{ opacity: 0.85 }}>
+          <strong>And two conditions gate all of it.</strong> The mirror only acts on the fibre when the
+          held data admits one — watch <em>symmetry defect</em> — and only exactly when the pole has
+          nowhere to move: exact in the polynomial limit, and improving 12× as{' '}
+          <Math>{'r'}</Math> goes out (4.0e-2 at <Math>{'r = 1.7'}</Math>, 3.3e-3 at{' '}
+          <Math>{'r = 100'}</Math>). The isometric property, by contrast, needs neither: it holds at
+          every pole and for any data.
+        </p>
+        <Cite>
+          The mirror&rsquo;s action and the exchanged pair are{' '}
+          <Math>{'\\texttt{mirroredSliderPair.test.ts}'}</Math>; its behaviour at a genuine pole is{' '}
+          <Math>{'\\texttt{sliderPairAcrossThePole.test.ts}'}</Math>. That the middle circle is
+          isometric — and why, the same <Math>{'3/4'}</Math> that completes the square killing the
+          linear term in <Math>{'\\int|\\mathcal{A}|^2'}</Math> — is{' '}
+          <Math>{'\\texttt{hermiteFibreArcLength.test.ts}'}</Math>, which also records that the arc
+          length is <em>rational</em>, with no log and no arctan, even at complex poles.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE IS A DECISION RECORD, not an argument, and it is fine to say so. The point is that '
+      + 'the fibre is a torus, so "the two sliders" is a choice of basis rather than a fact, and the '
+      + 'choice changes how the figure FEELS without changing any mathematics. '
+      + 'THE ONE THING TO LAND: an involution of a torus has two eigendirections, and here both mean '
+      + 'something. The +1 direction is the FIXED CIRCLE -- curves that are their own mirror, which is '
+      + 'where a symmetric curve actually lives. The -1 direction preserves ARC LENGTH exactly. Those '
+      + 'are not two arbitrary loops; they are the two things the symmetry hands you. '
+      + 'THE OBSTRUCTION IS ARITHMETIC AND WORTH STATING PLAINLY: det = 2, so the two eigendirections '
+      + 'generate only half the lattice and cannot both be sliders without double-covering. Any two of '
+      + 'three. That is a fact about the matrix, not a defect of the construction. '
+      + 'IF ASKED WHAT I WOULD PICK: the button. Sliders (psi, s) so one handle provably changes shape '
+      + 'and not length, plus a button that jumps to the self-mirror member. Then the symmetric curve '
+      + 'is somewhere you GO rather than an axis you ride, and nothing is redundant. '
+      + 'DO NOT OVERSELL THE MIRROR. It only acts on the fibre when the data admits one -- that is what '
+      + 'the symmetry-defect readout is for -- and it is exact only where the pole cannot move. The '
+      + 'ISOMETRIC property is the robust one: it needs neither condition. If only one thing survives '
+      + 'to the final deck, it should be that one.',
   },
 ]
