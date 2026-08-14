@@ -282,8 +282,55 @@ export function hermiteOf(m: MultiPoleMember): number[] {
   return [d0.x, d0.y, d0.z, d1.x, d1.y, d1.z, e.x - s.x, e.y - s.y, e.z - s.z]
 }
 
-/** Any smooth readout of a member that a handle can be asked to hold. */
-export type Readout = (m: MultiPoleMember) => number[]
+/**
+ * Any smooth readout a handle can be asked to hold. It gets the params as well as the member because
+ * 𝒜 is NOT recoverable from a member — and the two fiber circles below are conditions on 𝒜 itself.
+ */
+export type Readout = (m: MultiPoleMember, prm: MultiPoleParams) => number[]
+
+/** 𝒜 evaluated at t, in this module's monomial basis. */
+export const spinorAt = (A: readonly Quat[], t: number): Quat =>
+  A.reduce((s, a, k) => qadd(s, qscale(a, Math.pow(t, k))), Q(0, 0, 0, 0))
+
+/** q ↦ q e^{iψ}. The Hopf gauge, applied to one quaternion. */
+export const phaseRotate = (q: Quat, psi: number): Quat =>
+  qadd(qscale(q, Math.cos(psi)), qscale(qmul(q, QUAT_I), Math.sin(psi)))
+
+/**
+ * ELEVEN numbers: 𝒜(0), 𝒜(1) and c(1) − c(0). This is the readout that makes the degree-6 fiber
+ * SLIDERS honest, and the reason is worth stating because it took a wrong turn to find.
+ *
+ * The Hermite fiber at degree 6 is 2-dimensional, and a slider defined as "walk along a tangent
+ * direction" is WRONG there: on a 2-torus a generic direction winds forever without closing, so the
+ * handle would never come home. Measured — and measured on the polynomial quintic too, whose fiber is
+ * a PROVABLE torus, where the same walk also failed to close. That is the geometry, not a bug.
+ *
+ * The way out is to take the circles the Hopf map already gives:
+ *
+ *     c′(0) = 𝒜(0) i 𝒜(0)* / w(0)²     ⟹ 𝒜(0) is free on a circle over c′(0)
+ *     c′(1) = 𝒜(1) i 𝒜(1)* / w(1)²     ⟹ so is 𝒜(1)
+ *
+ * Pinning 𝒜(0) EXACTLY uses up the global gauge (𝒜 ↦ 𝒜e^{iθ} moves 𝒜(0)), and then the phase of 𝒜(1)
+ * against it is a genuine circle coordinate: at ψ = 2π the target is identical, so the slider returns
+ * to the same member by construction rather than by luck. Eleven conditions against a 12-dimensional
+ * fiber leave ONE dimension — and one-dimensional fibers are what `fiberClosure` is verified to close.
+ *
+ * So the two sliders are: the phase ψ, and the leftover loop. Which is exactly the polynomial quintic's
+ * three Hopf circles mod the diagonal gauge (`spatialQuinticTorus.test.ts`), rediscovered in the form
+ * this chart can actually drive.
+ */
+export const spinorEndsAndSpan: Readout = (m, prm) => {
+  const a0 = spinorAt(prm.A, 0), a1 = spinorAt(prm.A, 1)
+  const s = curveAt(m, 0), e = curveAt(m, 1)
+  return [a0.u, a0.v, a0.p, a0.q, a1.u, a1.v, a1.p, a1.q, e.x - s.x, e.y - s.y, e.z - s.z]
+}
+
+/** The `spinorEndsAndSpan` target with 𝒜(1) turned by ψ — the first fiber slider's whole definition. */
+export function phaseTarget(prm: MultiPoleParams, psi: number): number[] {
+  const base = spinorEndsAndSpan(toMember(prm), prm)
+  const a1 = phaseRotate(spinorAt(prm.A, 1), psi)
+  return [base[0], base[1], base[2], base[3], a1.u, a1.v, a1.p, a1.q, base[8], base[9], base[10]]
+}
 
 /** How close the nearest pole is to the drawn piece. Zero means infinity has reached the curve. */
 export const poleMargin = (prm: MultiPoleParams): number =>
@@ -299,7 +346,8 @@ function readoutJacobian(
   const at = (c: readonly number[]): number[] => {
     const x = new Array<number>(4 * prm.A.length).fill(0)
     basis.forEach((b, i) => { for (let j = 0; j < x.length; j++) x[j] += c[i] * b[j] })
-    return readout(toMember(withSpinor(prm, x)))
+    const q = withSpinor(prm, x)
+    return readout(toMember(q), q)
   }
   return at(coord).map((_, k) => coord.map((_, j) => {
     const e = 1e-6
@@ -329,7 +377,8 @@ export function projectOnto(
   const basis = familyBasis(prm)
   let c = coordsOf(prm, basis)
   for (let it = 0; it < iterations; it++) {
-    const r = readout(toMember(fromCoords(prm, basis, c))).map((v, i) => v - target[i])
+    const q = fromCoords(prm, basis, c)
+    const r = readout(toMember(q), q).map((v, i) => v - target[i])
     if (Math.hypot(...r) < 1e-13) break
     try {
       const step = leastSquares(readoutJacobian(prm, basis, c, readout), r.map((v) => -v), 1e-12)
@@ -359,7 +408,12 @@ export function fiberTangent(
   const J = readoutJacobian(prm, basis, coord, readout)
   const gi = prm.A.flatMap((q) => parts(qmul(q, QUAT_I)))
   const g = basis.map((b) => dot(gi, b))
-  const gn = Math.hypot(...g)
+  // STRIP THE GAUGE ONLY WHERE IT IS IN THE KERNEL. It always is for readouts of the CURVE (the gauge
+  // moves no curve), but `spinorEndsAndSpan` pins 𝒜(0) itself, which the gauge does move — there the
+  // gauge is not a kernel direction, and subtracting it would push the tangent OUT of the kernel.
+  const jScale = Math.max(...J.map((row) => Math.hypot(...row)), 1e-300)
+  const gDir = Math.hypot(...g) > 0 ? g.map((v) => v / Math.hypot(...g)) : g
+  const gn = Math.hypot(...J.map((row) => dot(row, gDir))) < 1e-7 * jScale ? Math.hypot(...g) : 0
   const probes = orient ? [orient, ...basis.map((_, i) => basis.map((__, j) => (i === j ? 1 : 0)))]
     : basis.map((_, i) => basis.map((__, j) => (i === j ? 1 : 0)))
   for (const probe of probes) {
@@ -445,14 +499,23 @@ export function indicatrixDistance(
  */
 export function fiberClosure(
   prm: MultiPoleParams,
-  options: { stride?: number; maxSteps?: number; readout?: Readout } = {},
+  options: {
+    stride?: number; maxSteps?: number; readout?: Readout
+    /**
+     * Which way to set off. Only meaningful when the fiber has more than one dimension — there
+     * `fiberTangent` picks whichever probe survives first, which is arbitrary, and the two degree-6
+     * fiber sliders each need a road of their OWN. The walk then transports this direction: each step
+     * projects the previous one onto the new fiber tangent space.
+     */
+    direction?: readonly number[]
+  } = {},
 ): { loop: MultiPoleParams[]; gap: number; closed: boolean } {
   const stride = options.stride ?? 0.05
   const maxSteps = options.maxSteps ?? 900
   const readout = options.readout ?? dataOf
-  const target = readout(toMember(prm))
+  const target = readout(toMember(prm), prm)
   const holds = (q: MultiPoleParams): boolean =>
-    Math.hypot(...readout(toMember(q)).map((v, i) => v - target[i])) <= 1e-8
+    Math.hypot(...readout(toMember(q), q).map((v, i) => v - target[i])) <= 1e-8
 
   /** One step of size h along t, then back onto the data. h may be negative or fractional. */
   const advance = (cur: MultiPoleParams, t: readonly number[], h: number): MultiPoleParams => {
@@ -464,7 +527,7 @@ export function fiberClosure(
   const tans: (readonly number[])[] = []
   const dist: number[] = [0]
   let cur = prm
-  let t = fiberTangent(cur, undefined, readout)
+  let t = fiberTangent(cur, options.direction, readout)
   let far = 0
   let closed = false
   for (let step = 1; step <= maxSteps && t; step++) {
@@ -503,6 +566,45 @@ export function fiberClosure(
     if (holds(landing)) out.push(landing)
   }
   return { loop: out, gap: gaugeDistance(prm.A, out[out.length - 1].A), closed }
+}
+
+/**
+ * A BOUNDED road through the fiber: `steps` strides each way along the one transported direction the
+ * readout leaves free, centred on `prm`. Used where a loop is not available or not affordable — at
+ * degree 6 the leftover fiber at fixed 𝒜(0), 𝒜(1) has not been walked round (`degree6TwoCircles`), so
+ * the second slider is a road with no full-turn claim rather than a circle pretending to be one.
+ *
+ * Returns the members in order, so index 0 is one end and the last is the other; `steps` is the index
+ * of the member passed in.
+ */
+export function fiberRoad(
+  prm: MultiPoleParams,
+  options: { stride?: number; steps?: number; readout?: Readout } = {},
+): MultiPoleParams[] {
+  const stride = options.stride ?? 0.08
+  const steps = options.steps ?? 30
+  const readout = options.readout ?? dataOf
+  const target = readout(toMember(prm), prm)
+  const holds = (q: MultiPoleParams): boolean =>
+    Math.hypot(...readout(toMember(q), q).map((v, i) => v - target[i])) <= 1e-7
+
+  const half = (sign: number): MultiPoleParams[] => {
+    const out: MultiPoleParams[] = []
+    let cur = prm
+    let t = fiberTangent(cur, undefined, readout)
+    if (t && sign < 0) t = t.map((v) => -v)
+    for (let k = 0; k < steps && t; k++) {
+      const basis = familyBasis(cur)
+      const next = projectOnto(
+        fromCoords(cur, basis, coordsOf(cur, basis).map((v, i) => v + stride * t![i])), readout, target)
+      if (!holds(next)) break
+      out.push(next)
+      cur = next
+      t = fiberTangent(cur, t, readout)
+    }
+    return out
+  }
+  return [...half(-1).reverse(), prm, ...half(1)]
 }
 
 /** Walk the fiber all the way round with the λ's and roots held. See `fiberClosure` for the rule. */

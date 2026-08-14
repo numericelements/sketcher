@@ -29,14 +29,17 @@
 // AUDIENCE: someone who knows what a PH curve is and has seen a rational one. The theory
 // is cited to price-of-a-circle and to FOUNDATIONS, never re-derived.
 //
-// STATUS: title, slide 1, and THE PAIR — the pole on the sphere (slide 3) and the same pole on the
-// curve (slide 4). They share one state and one control strip (chartModel.ts, ChartControls.tsx), so
-// the handles carry across and the two views are two views of one configuration rather than two
-// demonstrations. Next: the quintic with two poles, where "two of everything" is the point.
+// STATUS: title, slide 1, THE DEGREE-4 PAIR — the pole on the sphere (slide 3) and the same pole on
+// the curve (slide 4), sharing chartModel.ts and ChartControls.tsx — and the first half of the
+// DEGREE-6 PAIR (slide 5), which holds full C¹ Hermite data and shows the answer set rather than one
+// answer. That pair has its own state and strip (hermiteModel.ts, HermiteControls.tsx): it is a
+// different family holding different data, and one store with a degree switch would make every handle
+// in both conditional. Next: slide 6, the same configuration drawn as the curve, with strict/free.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
 import { Tag, Cite, TagLegend } from '../framework/SlideTag'
+import HermiteSphereFigure from './HermiteSphereFigure'
 import PoleCurveFigure from './PoleCurveFigure'
 import PoleSphereFigure from './PoleSphereFigure'
 
@@ -324,5 +327,74 @@ export const slides: SlideDefinition[] = [
       + 'mode enforces PH, because inside a chart there is nothing to enforce. '
       + 'IF YOU HAVE TIME, go back one slide and forward again with a different pole set -- the state '
       + 'persists, and seeing the sphere and the curve agree twice is what makes the pairing land.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5 — degree 6, one pole, full C¹ Hermite. The first rational family in which
+  //     the classical interpolation problem is posable at all, and the sphere
+  //     shows its answer set with both ends of the arc pinned.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>Nine numbers held, two left over</h2>
+        <HermiteSphereFigure />
+        <p style={{ marginTop: '0.5em' }}>
+          The last pair held six numbers — <Math>{'c^{\\prime}(0)'}</Math> and{' '}
+          <Math>{'c(1)'}</Math>. The classical Hermite problem asks for more: <em>both</em> end
+          tangents and the displacement between the ends. Nine. Degree 4 cannot answer it — its fibre
+          is eight-dimensional and the map to those nine numbers has <strong>rank seven</strong>, so
+          two of them are simply unreachable.
+        </p>
+        <p>
+          <strong>Degree 6 with one pole is the first rational family where the question can be
+          asked.</strong> Fibre twelve, the map full rank nine, and what is left over is
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.4em 0' }}>
+          <Math>{'12 - 9 - 1 = 2'}</Math>
+        </p>
+        <p>
+          — the same two dimensions the polynomial PH quintic has, plus two roads the polynomial case
+          does not have: the twist <Math>{'\\lambda'}</Math> at the pole, and where the pole sits.
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          The two leftover dimensions are both circles, and we can drive one of them. Pinning{' '}
+          <Math>{'\\mathcal{A}(0)'}</Math> exactly spends the Hopf gauge; the phase of{' '}
+          <Math>{'\\mathcal{A}(1)'}</Math> against it is then a coordinate that returns at{' '}
+          <Math>{'2\\pi'}</Math> <em>by construction</em>. The other closes too — after 2180 steps —
+          so the slider drives a stretch of it rather than the whole turn.
+        </p>
+        <Cite>
+          The rank, the two circles and the 2180-step closure are{' '}
+          <Math>{'\\texttt{degree6TwoCircles.test.ts}'}</Math>; that all four handles track is{' '}
+          <Math>{'\\texttt{degree6HandlesTrack.test.ts}'}</Math>. That the walk finding them is
+          trustworthy at all rests on a control it can fail —{' '}
+          <Math>{'\\texttt{fiberClosure.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THE POINT OF THE FAN IS THE CONVERGENCE AT THE TWO ENDS. Say it before anything else: every '
+      + 'pale arc is a different rational PH sextic, all of them through the same C1 Hermite data, and '
+      + 'they all leave the sphere at the same two points. That is what "the data is held" looks like. '
+      + 'WHY DEGREE 6 AND NOT DEGREE 4. Degree 4 cannot interpolate C1 Hermite data at all -- rank 7 of '
+      + '9, two numbers unreachable. This is not a preference for a bigger example; it is the first one '
+      + 'that exists. Worth saying because the previous pair held six numbers and someone will ask why '
+      + 'the convention changed. '
+      + 'THE TWO FIBRE SLIDERS ARE DIFFERENT KINDS OF HANDLE and it is worth being straight about it. '
+      + 'psi is a genuine circle: it turns A(1) on its Hopf fibre and comes home at 360 degrees to '
+      + '2.4e-16 -- by construction, not by luck, because the target at 2pi IS the target at 0. The '
+      + 'other coordinate closes too but its loop is 2180 steps, about two minutes to walk, so the '
+      + 'slider drives a bounded road along it. '
+      + 'IF ASKED WHETHER IT IS A TORUS: what is measured is that psi closes and that the fibre of psi '
+      + 'closes -- a circle bundle over a circle. That is a torus or a Klein bottle; orientability was '
+      + 'not measured, so do not say torus. On the polynomial quintic the same structure IS the '
+      + 'classical torus. '
+      + 'ONE WRONG ALARM WORTH TELLING IF THE ROOM IS TECHNICAL: the first walk we tried looked like it '
+      + 'escaped a compact fibre -- |A| grew sixfold. It had not. The monomial spinor norm is a bad '
+      + 'proxy; the Bernstein coefficients barely moved and every invariant held to 1e-14. The control '
+      + 'that caught it was running the same walk on the polynomial quintic, where the answer is known.',
   },
 ]

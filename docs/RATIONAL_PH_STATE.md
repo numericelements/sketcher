@@ -222,10 +222,31 @@ V-shaped at a true return). `indicatrixDistance` exposes the sphere-picture meas
 over `t ∈ [−2,2]`: `T = c′/‖c′‖` is a unit vector everywhere, so it is the one quantity safe to sample
 past a pole.
 
-**Still open: is the degree-6 C¹ Hermite fibre a torus?** The instrument is now trustworthy, but this
-question is *not* answered by the above. That fibre is **2**-dimensional, and a walk along a generic
-tangent on a torus never closes. It needs two *coordinates*, each returning at a full turn — which is
-also exactly what the two fibre sliders of the next slide pair must be.
+**~~Is the degree-6 C¹ Hermite fibre a torus?~~ — ANSWERED as far as numbers go: it is a CIRCLE BUNDLE
+OVER A CIRCLE.** A walk along a generic tangent never closes there — and *neither does it on the
+polynomial-quintic control*, whose fibre is a provable torus, because on a 2-torus a generic direction
+winds forever. The fix is to use the circles the Hopf map already supplies:
+
+```
+c′(0) = 𝒜(0)i𝒜(0)*/w(0)²   ⟹  𝒜(0) free on a Hopf circle;  likewise 𝒜(1) over c′(1)
+```
+
+Pinning `𝒜(0)` **exactly** spends the global gauge, and the phase ψ of `𝒜(1)` against it is then a
+coordinate that returns at 2π **by construction** — measured 2.4e-16, nine Hermite numbers held to
+5.6e-13, indicatrix moving ≥1.74 on a unit sphere. Eleven conditions against a 12-dimensional fibre
+leave one dimension, and *that* closes too: 648 steps on the control, **2180 steps / gap 1.7e-9** on the
+rational sextic. So ψ closes and the fibre of ψ closes.
+
+That is a torus **or a Klein bottle** — orientability was not measured, so the docs and the slide say
+"fibred in circles over a circle" and stop. On the polynomial control the same structure *is* the
+classical torus. → `degree6TwoCircles.test.ts`
+
+**A wrong alarm worth not repeating:** along the failing walk `|𝒜|` grows 3.12 → 18.65, which reads as
+escaping a compact fibre. It is not — all nine numbers hold to 6e-14 and the closed form's own
+`|Y|² = |T|` holds exactly at every step. `|T|` is *not* constant (it depends on the end spinors' phase
+difference, which is one of the torus coordinates) and the monomial coefficients amplify what the
+Bernstein ones do (`|B₁|` only 2.52 → 5.61). **The monomial spinor norm is a bad proxy for position on
+the fibre.**
 
 The §9.5 pre-measurement is **done** (`degree6FibreDirections.test.ts`): rank 9 of 9 and kernel 3 (two
 fibre + the gauge) at every configuration swept — λ at 5°/35°/70°, r at 1.15/1.7/4 — so the fibre is
