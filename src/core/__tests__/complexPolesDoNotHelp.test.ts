@@ -1,4 +1,7 @@
 // ============================================================================
+// RESOLVED — see onBranchTheChartCovers12Of13.test.ts. The baseline objection was answered by
+// continuation, so the real-versus-complex comparison here reads as originally written.
+//
 // READ sigmaKeepsItsSign.test.ts FIRST for the same caveat about the "generic" baseline. The result
 // that survives it is the REAL-versus-COMPLEX equality — 27 and 27 — which compares two members of our
 // own construction against each other and needs no baseline.

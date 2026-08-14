@@ -1,4 +1,8 @@
 // ============================================================================
+// RESOLVED — see onBranchTheChartCovers12Of13.test.ts, which redoes this ON our branch by continuation
+// and reaches the same verdict: 13-dimensional, our members singular, the chart covering 12. The caveat
+// below stands as history; the conclusion is restored.
+//
 // READ sigmaKeepsItsSign.test.ts FIRST. The "generic" points this file compares against are reached by
 // Newton on |N|^2 = sigma^2, which does not constrain sigma's SIGN — and measured, they change sign or
 // are negative throughout, while our sigma = |A|^2 cannot. So the two sets are on different branches

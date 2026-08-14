@@ -1,4 +1,7 @@
 // ============================================================================
+// RESOLVED — onBranchTheChartCovers12Of13.test.ts confirms by on-branch continuation that our members
+// really are singular points of their own component, so the contrast drawn here holds after all.
+//
 // READ sigmaKeepsItsSign.test.ts FIRST — the "generic" baseline used here is on a different branch of
 // the variety (its sigma changes sign; ours cannot). What survives unshaken is the EQUALITY of the two
 // deficits, which is a comparison of our members against themselves in two formulations and does not

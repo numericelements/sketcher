@@ -2,6 +2,10 @@
 // THE "GENERIC" POINTS WERE ON A DIFFERENT BRANCH — so the smooth-versus-singular comparison was not
 // comparing like with like.
 //
+// ANSWERED — onBranchTheChartCovers12Of13.test.ts does the comparison by continuation that never
+// leaves σ > 0, and gets the same verdict the off-branch baseline had suggested. The objection this
+// file raises was correct and the conclusion it downgraded turned out to survive it.
+//
 // TWO FILES BUILT ON A COMPARISON that this one shows was mis-posed. degree4IsThirteen and
 // covariantIsSingularToo both contrast members of our construction (rank-deficient) against "generic"
 // points reached by Newton on |N|² = σ² (full rank), and conclude that the spinor construction lands
