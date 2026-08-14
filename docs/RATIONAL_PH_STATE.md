@@ -565,6 +565,31 @@ CHART degenerates — `|A₃| → 0` like `1/r`, because the `r → ∞` limit o
 the polynomial **quintic** (a degree-6 polynomial PH curve cannot exist, PH polynomials having odd
 degree). Past that the solve stops holding the handles. **Sweet spot `r ∈ [20, 100]`.**
 
+### Arc length: rational always, constant never (on this fibre)
+
+`hermiteFibreArcLength.test.ts`. Two questions with different answers.
+
+**Rational, including at COMPLEX poles.** An explicit `S(t) = u(t)/w(t) + v(t)` fits `σ/w²` to 1e-15 and
+matches 200 000-point quadrature to nine digits — for the degree-6 one-pole curve the slides draw, and
+for complex conjugate poles with complex λ, which is exactly where an **arctan** would appear if one
+were going to. The mechanism is stronger than "Σ is an empty sum at one pole": the log coefficient is
+`Bₖ = [σ′(rₖ) − 2σ(rₖ)Σₖ]/φₖ(rₖ)²`, and the residue condition forces the bracket to vanish **at every
+root**, because
+
+```
+σ′ = 2Re(𝒜′𝒜̄) = 2Σ·Re(𝒜𝒜̄) + 2λ·Re(𝒜i𝒜̄) = 2Σσ + 0
+```
+
+`𝒜i𝒜̄` being a *pure vector* — the Hopf map doing a third job, after making PH free and making the
+interpolation fibre a circle.
+
+**NOT constant along the fibre sliders — 0.6 % to 1.6 %**, identically along A alone, B alone and the
+whole grid. This contradicts nothing, but it must not be carried over from the sibling deck:
+`torusTimesRoads` measures arc length *exactly* constant (1e-9) on a **different fibre** — degree 5, two
+poles, **six** numbers held (`c′(0)`, `c(1)`), 1-dimensional. The degree-6 pair holds **nine** and its
+fibre is 2-dimensional, and there the length moves. **"The torus kept its incapacity" is not a fact
+about this pair.**
+
 ### The three symmetric configurations, and what each costs
 
 ```
