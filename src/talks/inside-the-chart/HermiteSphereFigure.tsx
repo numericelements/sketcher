@@ -133,8 +133,17 @@ export default function HermiteSphereFigure() {
         <Curve3D key={`gc${i}`} points={c} color={FIG.color.controlPolygon} width={1} />
       ))}
 
-      {/* the live member: its whole indicatrix pale, the drawn piece heavy */}
-      <Curve3D points={whole} color={FIG.color.controlPolygon} width={1} />
+      {/*
+        The live member: whole indicatrix pale, drawn piece heavy — the same two weights and the same
+        two colours as the degree-4 sphere slide, deliberately.
+
+        `curveMuted` and NOT `controlPolygon`. While the fan existed the pale loop wore the great
+        circles' grey so the fan could own curveMuted, and that left the loop the SAME colour as the
+        scaffolding it is drawn on top of — it vanished. The palette already separates these: the
+        great circles are furniture (controlPolygon), the pale loop is the curve where the drawn piece
+        is not (curveMuted). With the fan gone there is nothing to yield to.
+      */}
+      <Curve3D points={whole} color={FIG.color.curveMuted} width={1} />
       <Curve3D points={used} color={FIG.color.curve} width={3.5} />
 
       {/* the corner: one strand in and out through the cusp */}
