@@ -496,6 +496,52 @@ hunting the nearest angle floored at **2.2e-4** and stayed there under refinemen
 real disagreement and was not. The circle *is* the Hopf fibre over `T`, so the exact question is whether
 `Y i Ȳ = T`: that is 1.7e-13 and needs no grid. **A sharper criterion beat a finer grid.**
 
+### The mirrored slider pair — symmetry used to DEFINE a coordinate
+
+Eric's requirement, heard correctly on the third attempt: not two sliders each individually symmetric,
+but a **pair the mirror EXCHANGES** — turn slider 1, mirror the picture, and it should look like you
+turned slider 2.
+
+Working out how reversal acts on the three Hopf phases (ends swapped, each phase negated) gives
+
+```
+σ: (ψ, s) ↦ (ψ, ψ − s)      M = [1 0; 1 −1],  M² = I,  det = −1
+```
+
+and that matrix **is** conjugate to the swap over `ℤ`, with `e₁ = (1,0) = ψ` and `e₂ = Me₁ = (1,1) =
+ψ + s`. The linear part checks out exactly — each phase picks up `−0.70` for a `+0.70` input. **But the
+exact exchange came out only to 2.3e-3 and stayed there under refinement**, because `s` is measured from
+`Y₀ = quatFromSandwich(T)` and `T` depends on ψ: the s-origin drifts and the chart is not quite affine.
+
+**The fix is to stop coordinatising and let the symmetry define the second slider:**
+
+```
+slider 1 = the ψ loop        slider 2 := σ(slider 1)
+```
+
+Exchanged by construction, since `σ² = I` — no coordinate left to drift.
+
+```
+σ² = identity                    0.00e+0        σ(s₁)=s₂ and σ(s₂)=s₁     0.00e+0
+both loops close at 2π           5e-16          C¹ data held on both      7.6e-15
+the loops are distinct           separation 8.2e-2 on a span of 1.65
+```
+
+**And the picture is the point** — orbit radius of each control point over a full turn:
+
+```
+slider 1:   0.000  0.000  0.151  0.579  0.000  0.000
+slider 2:   0.000  0.000  0.579  0.151  0.000  0.000     mirror images to 1.8e-14
+```
+
+*"It turns about one control point, and then about the other"* — what the polynomial deck does and ours
+did not. → `mirroredSliderPair.test.ts`
+
+**Scope:** σ must act on the *fibre*, which needs symmetric C¹ data (`d₁ = −R d₀`, `Δc ⊥ axis`) and no
+pole to move. Exact for the polynomial case; approximate for a rational member, degrading with pole
+distance. Note the symmetric-data condition is `d₁ = −R d₀` and **not** `d₁ = R d₀` — using the latter
+cost a round of measuring the wrong configuration and reporting a real number about it.
+
 ---
 
 ## 10. How this work goes wrong, and the habits that catch it
