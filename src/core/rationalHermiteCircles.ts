@@ -59,8 +59,9 @@
 // Everything here is pinned in `rationalMiddleCircle.test.ts`, including the control that matters: the
 // 2180-step continuation walk that found this loop the slow way lies ON it, to 1.4e-14.
 // ============================================================================
+import { leastSquares } from './linalg'
 import {
-  QUAT_I, qadd, qconj, qmul, qnormSq, qscale, type Quat,
+  QUAT_I, qadd, qconj, qmul, qnormSq, qscale, quatFromSandwich, type Quat, type Vec3,
 } from './quaternion'
 import type { MultiPoleParams } from './rationalPHMultiPoleSpatial'
 
@@ -152,6 +153,148 @@ export function middleCircle(base: MultiPoleParams): MiddleCircle | null {
       const Y = qadd(qscale(X0, Math.cos(theta)), qscale(qmul(X0, QUAT_I), Math.sin(theta)))
       const X = qadd(Y, qscale(X0, -1))
       return { ...base, A: (base.A as Quat[]).map((c, k) => qadd(c, qmul(X, u[k] ?? ZQ))) }
+    },
+  }
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// THE WHOLE FIBRE IN CLOSED FORM — both coordinates, no solver anywhere.
+//
+// `middleCircle` above gives the second coordinate at a member you already have. This gives the first
+// one too, and the reason to want it is not speed.
+//
+// ψ USED TO BE A SOLVER TARGET. Rotating 𝒜(1) by e^{iψ} and chasing the displacement with minimum-norm
+// Gauss–Newton returns a member, and it returns the SAME member at 2π, so as a handle it was honest.
+// But minimum norm is taken in the monomial coefficient basis {1, t, t², t³}, which is violently
+// asymmetric under t ↦ 1−t, and that choice drags ψ's landing point along the s circle. Measured
+// consequence: driving ψ alone moved the three interior control points by 0.554, 3.785, 3.590 —
+// lopsided by a factor of seven — while the combination ψ + s moved them 0.589, 0.532, 0.503. The
+// shear was the solver's, not the geometry's.
+//
+// Here every step is algebra:
+//
+//   1. 𝒜(0) = a and 𝒜(1) = b together with the residue condition are LINEAR in 𝒜 — twelve real
+//      equations on sixteen unknowns, leaving exactly the {X·u} space. Any particular solution will do,
+//      because step 3 re-anchors on the circle itself.
+//   2. μ, G and X₀ as above, and Δc of the particular solution, all by exact integration.
+//   3. T = (Δc_wanted − Δc_particular)/μ + X₀ i X₀*, and Y = quatFromSandwich(T)·e^{iθ}. That
+//      representative depends only on T — which depends only on the DATA — so θ = 0 is canonical and
+//      the arbitrariness of step 1 cancels.
+//
+// SO (ψ, θ) IS A CHART ON THE TORUS, not a pair of trails. → hermiteClosedChart.test.ts
+// ---------------------------------------------------------------------------------------------
+
+/** Right multiplication by i, as a 4×4 real matrix: (u,v,p,q) ↦ (−v, u, q, −p). */
+const R_I: number[][] = [
+  [0, -1, 0, 0],
+  [1, 0, 0, 0],
+  [0, 0, 0, 1],
+  [0, 0, -1, 0],
+]
+
+/**
+ * A particular 𝒜 with 𝒜(0) = a, 𝒜(1) = b and the residue condition 𝒜′(r) = 𝒜(r)λi. Twelve real
+ * equations on sixteen unknowns; min-norm least squares picks one, and which one does not matter —
+ * the solution set is 𝒜_p + {X·u} and `hermiteChart` re-anchors on the circle.
+ */
+function particularWithEnds(
+  r: number, lambda: number, a: Quat, b: Quat,
+): Quat[] | null {
+  const rows: number[][] = []
+  const rhs: number[] = []
+  const push = (row: number[], v: number): void => { rows.push(row); rhs.push(v) }
+  const zero = (): number[] => new Array<number>(16).fill(0)
+
+  // 𝒜(0) = a
+  const av = [a.u, a.v, a.p, a.q]
+  for (let c = 0; c < 4; c++) { const row = zero(); row[c] = 1; push(row, av[c]) }
+  // 𝒜(1) = b
+  const bv = [b.u, b.v, b.p, b.q]
+  for (let c = 0; c < 4; c++) {
+    const row = zero()
+    for (let k = 0; k < 4; k++) row[4 * k + c] = 1
+    push(row, bv[c])
+  }
+  // 𝒜′(r) − 𝒜(r)λi = 0 : block for A_k is k·r^{k−1}·I − λ·r^k·R_i
+  for (let c = 0; c < 4; c++) {
+    const row = zero()
+    for (let k = 0; k < 4; k++) {
+      const d = k === 0 ? 0 : k * Math.pow(r, k - 1)
+      const m = lambda * Math.pow(r, k)
+      for (let j = 0; j < 4; j++) row[4 * k + j] = (c === j ? d : 0) - m * R_I[c][j]
+    }
+    push(row, 0)
+  }
+  try {
+    const x = leastSquares(rows, rhs, 1e-12)
+    if (!x.every(Number.isFinite)) return null
+    return Array.from({ length: 4 }, (_, k) => ({ u: x[4 * k], v: x[4 * k + 1], p: x[4 * k + 2], q: x[4 * k + 3] }))
+  } catch { return null }
+}
+
+/** ∫₀¹ (𝒜 i 𝒜*)/w² dt — the displacement, exactly. */
+function displacementOf(A: readonly Quat[], r: number): Vec3 {
+  const N = polyMul(polyMul(A, [QUAT_I]), A.map(qconj))
+  return {
+    x: integralOverW2(N.map((q) => q.v), r),
+    y: integralOverW2(N.map((q) => q.p), r),
+    z: integralOverW2(N.map((q) => q.q), r),
+  }
+}
+
+export interface HermiteChart {
+  /** The member at end-phase ψ and circle angle θ. Both return exactly at 2π. */
+  at: (psi: number, theta: number) => MultiPoleParams | null
+}
+
+/**
+ * Both fibre coordinates of `seed`'s C¹ Hermite fibre, in closed form. ψ turns 𝒜(1) on its Hopf circle;
+ * θ runs the middle circle. Null out of scope (one pole, spinor degree 3) or where T degenerates.
+ */
+export function hermiteChart(seed: MultiPoleParams): HermiteChart | null {
+  if (seed.roots.length !== 1 || seed.A.length !== 4) return null
+  const r = seed.roots[0], lambda = seed.lambdas[0]
+  if (!Number.isFinite(r) || !Number.isFinite(lambda) || Math.abs(r * r - r) < 1e-12) return null
+
+  const A = seed.A as Quat[]
+  const a = A[0]
+  const b0 = A.reduce((s, c) => qadd(s, c), ZQ)
+  const wanted = displacementOf(A, r)
+
+  const u = shapePolynomial(r, lambda)
+  const uBar = u.map(qconj)
+  const mu = integralOverW2(polyMul(u, uBar).map((q) => q.u), r)
+  if (!Number.isFinite(mu) || Math.abs(mu) < 1e-300) return null
+
+  return {
+    at: (psi: number, theta: number): MultiPoleParams | null => {
+      const b = qadd(qscale(b0, Math.cos(psi)), qscale(qmul(b0, QUAT_I), Math.sin(psi)))
+      const Ap = particularWithEnds(r, lambda, a, b)
+      if (!Ap) return null
+
+      const gPoly = polyMul(polyMul(Ap, [QUAT_I]), uBar)
+      const G: Quat = {
+        u: integralOverW2(gPoly.map((q) => q.u), r),
+        v: integralOverW2(gPoly.map((q) => q.v), r),
+        p: integralOverW2(gPoly.map((q) => q.p), r),
+        q: integralOverW2(gPoly.map((q) => q.q), r),
+      }
+      if (!Number.isFinite(G.u + G.v + G.p + G.q)) return null
+      const X0 = qscale(qmul(G, QUAT_I), -1 / mu)
+
+      const d0 = displacementOf(Ap, r)
+      const s0 = qmul(qmul(X0, QUAT_I), qconj(X0))          // X₀ i X₀*, a vector
+      const T: Vec3 = {
+        x: (wanted.x - d0.x) / mu + s0.v,
+        y: (wanted.y - d0.y) / mu + s0.p,
+        z: (wanted.z - d0.z) / mu + s0.q,
+      }
+      const Y0 = quatFromSandwich(T)                        // canonical: depends only on T
+      if (!Y0) return null
+      const Y = qadd(qscale(Y0, Math.cos(theta)), qscale(qmul(Y0, QUAT_I), Math.sin(theta)))
+      const X = qadd(Y, qscale(X0, -1))
+      return { ...seed, A: Ap.map((c, k) => qadd(c, qmul(X, u[k] ?? ZQ))) }
     },
   }
 }

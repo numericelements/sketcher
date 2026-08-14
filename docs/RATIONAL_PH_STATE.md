@@ -184,6 +184,8 @@ ones the control's answer is known for. Here that was one line of arithmetic: `1
 | "complex poles will fix it" | at the same `(n,m)` a conjugate pair is exactly as singular — 27 of 30 both |
 | "the missing freedom is Kalkan's non-constant μ" | `N` is primitive (its three components share no roots), so there is no common factor to be μ |
 | `deg 𝒱 = 64` by witness sets | the computation is **not in the repo**; and 62/63/62 does not prove 64 — the invariance being invoked is contradicted by the data |
+| "the (1,1) combination of the two fibre sliders is the symmetric one" | measured at asym 0.005–0.10 against 0.27+ for every other basis, and swept across six configurations — but it was a property of the SOLVER's landing, not of the torus. With ψ given a closed form the winner wanders (3,2), (1,2), (1,1) and the best asymmetry is 0.17–0.27 |
+| "ψ's lopsided motion is the min-norm solver's basis dependence" | falsifiable, and falsified by the test proposed for it: with every step closed form, ψ alone gives 0.578 / 3.397 / 3.731 against the solver's 0.554 / 3.785 / 3.590. The shear is geometry — ψ turns the spinor AT AN END, and that is an end-weighted motion however it is computed |
 | conformal moduli 6 (slide) / 8 (module) | both wrong; it is **7**, and the formula is `2n−5`. The module subtracted 9 for a 10-dimensional group; the slide subtracted the scale twice |
 | "the run-out diverges" as the pole approaches | `‖c′(1)‖` grows 6.6×, not ~1340× — the data is held, so the curve *reshapes* |
 
@@ -221,6 +223,26 @@ start*, and refines the final step onto it by golden section (bracketing, becaus
 V-shaped at a true return). `indicatrixDistance` exposes the sphere-picture measure separately, sampled
 over `t ∈ [−2,2]`: `T = c′/‖c′‖` is a unit vector everywhere, so it is the one quantity safe to sample
 past a pole.
+
+**THE SECOND CIRCLE HAS A CLOSED FORM** (`rationalHermiteCircles.ts`, `rationalMiddleCircle.test.ts`).
+Hold both end spinors; the variations are `{X·u(t)}` for one **complex** cubic `u` with
+`u(0)=u(1)=0` and `u′(r)=λi·u(r)`. Because `u` is complex, `u i ū = i|u|²`, so
+`(Xu)i(Xu)* = |u|²·X i X̄` — **the Hopf map a second time** — and completing the square gives
+`Y i Ȳ = T`, i.e. `𝒜(θ) = 𝒜₀ + (X₀e^{iθ} − X₀)u`. No solver; closes because `e^{2πi} = 1`. It replaced
+a 2180-step walk. `hermiteChart` does the same for ψ, so the whole fibre is closed form.
+
+**AND IT RESTRICTS TO THE CLASSICAL CASE** (`polynomialLimitOfTheCircle.test.ts`), which is the test any
+generalisation owes. Both ends of the twist dial cancel the pole (`|𝒜(r)|/scale` 2.75 → 7.8e-3), and
+there the shape polynomial becomes `u → i·t(t−1)(t−r)` — the pole's own factor made explicit, and
+exactly the factor that divides out of `𝒜`. So the rational middle circle **converges to the polynomial
+quintic's**, linearly in the cancellation with a settled constant of 1.67:
+
+```
+θ = 70°   cancellation 1.4      circle gap 2.65     ratio 1.88
+θ = 85°   cancellation 0.39     circle gap 0.65     ratio 1.68
+θ = 89°   cancellation 0.078    circle gap 0.130    ratio 1.67
+θ = 89.9° cancellation 0.0078   circle gap 0.0130   ratio 1.67
+```
 
 **~~Is the degree-6 C¹ Hermite fibre a torus?~~ — ANSWERED as far as numbers go: it is a CIRCLE BUNDLE
 OVER A CIRCLE.** A walk along a generic tangent never closes there — and *neither does it on the
