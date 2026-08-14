@@ -366,9 +366,26 @@ situation slide 4's `dragTangent` already lives with, and the reason `strictHand
 8, 4 and 0, so they cannot share a held-data convention; a selector wants to be its own slide, whose
 punchline is that three of its seven buttons are empty by a parity theorem (§2).
 
-Before writing any figure code: verify the Hermite projection **tracks** — nine conditions against a
-twelve-dimensional fibre — the way `strictHandlesTrack.test.ts` pins the current six-against-eight. A
-handle that silently does not track looks exactly like one that works.
+**The pre-figure gate is PASSED** (`degree6HandlesTrack.test.ts`). All four handles track:
+
+```
+P₁ (start tangent)   lands to 5.0e-14 of the cursor, the rest held to 2.8e-14
+P₅ (end tangent)     lands to 9.3e-14        ← a handle degree 4 could not offer at all
+P₆ (endpoint)        lands to 5.1e-14, both tangents held to 7.1e-15
+P₀ (origin)          RESHAPES: the other three hold their SCREEN places to 1e-8
+```
+
+and the handles are **exactly** linear, not linearised: `w = ∏(t − r_k)` depends only on the poles, the
+poles are held during a fibre motion, so `w₁/w₀` and `w₅/w₆` move by *exactly 0* across a drag.
+
+`projectOnto(prm, readout, target)` is the generic form — any smooth readout a handle can hold;
+`projectToData` is now the `dataOf` case of it, and `fiberClosure`/`fiberTangent` take the readout too,
+so the closure instrument works on the nine-number fibre as well.
+
+**One number to keep an eye on: 9 ms per projection**, against a 16.7 ms frame — it fits, without room
+to spare, and is ~3× the degree-4 cost. The lever, if needed: `readoutJacobian` rebuilds a 9×12
+finite-difference Jacobian every Gauss–Newton iteration (24 member evaluations each) and the readout is
+smooth enough to reuse it. Recorded so the cause is known before anyone hunts for it elsewhere.
 
 ## 10. How this work goes wrong, and the habits that catch it
 

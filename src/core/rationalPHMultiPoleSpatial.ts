@@ -271,6 +271,20 @@ export function dataOf(m: MultiPoleMember): number[] {
   return [d0.x, d0.y, d0.z, e1.x, e1.y, e1.z]
 }
 
+/**
+ * The nine C¹ Hermite numbers: c′(0), c′(1), c(1) − c(0). Posable only where the fiber can supply them
+ * — 4(n+1) − 4m must exceed 9 after the gauge, which at one pole first happens at DEGREE 6. The quartic
+ * family has fiber 8 and the map has rank 7 of 9, which is why slides 3–4 hold `dataOf`'s six instead.
+ */
+export function hermiteOf(m: MultiPoleMember): number[] {
+  const d0 = derivativeAt(m, 0), d1 = derivativeAt(m, 1)
+  const s = curveAt(m, 0), e = curveAt(m, 1)
+  return [d0.x, d0.y, d0.z, d1.x, d1.y, d1.z, e.x - s.x, e.y - s.y, e.z - s.z]
+}
+
+/** Any smooth readout of a member that a handle can be asked to hold. */
+export type Readout = (m: MultiPoleMember) => number[]
+
 /** How close the nearest pole is to the drawn piece. Zero means infinity has reached the curve. */
 export const poleMargin = (prm: MultiPoleParams): number =>
   Math.min(...prm.roots.map((r) => (r > 1 ? r - 1 : r < 0 ? -r : 0)))
@@ -279,11 +293,13 @@ export const poleMargin = (prm: MultiPoleParams): number =>
 const withSpinor = (prm: MultiPoleParams, x: readonly number[]): MultiPoleParams =>
   ({ ...prm, A: unpackSpinor(x) })
 
-function dataJacobian(prm: MultiPoleParams, basis: readonly number[][], coord: readonly number[]): number[][] {
+function readoutJacobian(
+  prm: MultiPoleParams, basis: readonly number[][], coord: readonly number[], readout: Readout,
+): number[][] {
   const at = (c: readonly number[]): number[] => {
     const x = new Array<number>(4 * prm.A.length).fill(0)
     basis.forEach((b, i) => { for (let j = 0; j < x.length; j++) x[j] += c[i] * b[j] })
-    return dataOf(toMember(withSpinor(prm, x)))
+    return readout(toMember(withSpinor(prm, x)))
   }
   return at(coord).map((_, k) => coord.map((_, j) => {
     const e = 1e-6
@@ -303,21 +319,31 @@ const fromCoords = (prm: MultiPoleParams, basis: readonly number[][], c: readonl
   return withSpinor(prm, x)
 }
 
-/** Min-norm Gauss-Newton back onto prescribed data, within the admissible subspace. */
-export function projectToData(
-  prm: MultiPoleParams, target: readonly number[], iterations = 30,
+/**
+ * Min-norm Gauss-Newton back onto prescribed values of ANY readout, within the admissible subspace.
+ * The λ's and roots are held, so this only ever moves 𝒜 — every iterate is exactly PH by construction.
+ */
+export function projectOnto(
+  prm: MultiPoleParams, readout: Readout, target: readonly number[], iterations = 30,
 ): MultiPoleParams {
   const basis = familyBasis(prm)
   let c = coordsOf(prm, basis)
   for (let it = 0; it < iterations; it++) {
-    const r = dataOf(toMember(fromCoords(prm, basis, c))).map((v, i) => v - target[i])
+    const r = readout(toMember(fromCoords(prm, basis, c))).map((v, i) => v - target[i])
     if (Math.hypot(...r) < 1e-13) break
     try {
-      const step = leastSquares(dataJacobian(prm, basis, c), r.map((v) => -v), 1e-12)
+      const step = leastSquares(readoutJacobian(prm, basis, c, readout), r.map((v) => -v), 1e-12)
       c = c.map((v, j) => v + step[j])
     } catch { break }
   }
   return fromCoords(prm, basis, c)
+}
+
+/** Min-norm Gauss-Newton back onto prescribed `dataOf` — c′(0) and c(1). */
+export function projectToData(
+  prm: MultiPoleParams, target: readonly number[], iterations = 30,
+): MultiPoleParams {
+  return projectOnto(prm, dataOf, target, iterations)
 }
 
 /**
@@ -325,10 +351,12 @@ export function projectToData(
  * preserves the subspace (i commutes with Σ + λi), moves no curve, and would otherwise make the walk
  * drift invisibly. A single probe can land inside gauge-plus-rowspace, so each coordinate is tried.
  */
-export function fiberTangent(prm: MultiPoleParams, orient?: readonly number[]): number[] | null {
+export function fiberTangent(
+  prm: MultiPoleParams, orient?: readonly number[], readout: Readout = dataOf,
+): number[] | null {
   const basis = familyBasis(prm)
   const coord = coordsOf(prm, basis)
-  const J = dataJacobian(prm, basis, coord)
+  const J = readoutJacobian(prm, basis, coord, readout)
   const gi = prm.A.flatMap((q) => parts(qmul(q, QUAT_I)))
   const g = basis.map((b) => dot(gi, b))
   const gn = Math.hypot(...g)
@@ -416,25 +444,27 @@ export function indicatrixDistance(
  * actually measuring. → `fiberClosure.test.ts`
  */
 export function fiberClosure(
-  prm: MultiPoleParams, options: { stride?: number; maxSteps?: number } = {},
+  prm: MultiPoleParams,
+  options: { stride?: number; maxSteps?: number; readout?: Readout } = {},
 ): { loop: MultiPoleParams[]; gap: number; closed: boolean } {
   const stride = options.stride ?? 0.05
   const maxSteps = options.maxSteps ?? 900
-  const target = dataOf(toMember(prm))
+  const readout = options.readout ?? dataOf
+  const target = readout(toMember(prm))
   const holds = (q: MultiPoleParams): boolean =>
-    Math.hypot(...dataOf(toMember(q)).map((v, i) => v - target[i])) <= 1e-8
+    Math.hypot(...readout(toMember(q)).map((v, i) => v - target[i])) <= 1e-8
 
   /** One step of size h along t, then back onto the data. h may be negative or fractional. */
   const advance = (cur: MultiPoleParams, t: readonly number[], h: number): MultiPoleParams => {
     const basis = familyBasis(cur)
-    return projectToData(fromCoords(cur, basis, coordsOf(cur, basis).map((v, i) => v + h * t[i])), target)
+    return projectOnto(fromCoords(cur, basis, coordsOf(cur, basis).map((v, i) => v + h * t[i])), readout, target)
   }
 
   const out: MultiPoleParams[] = [prm]
   const tans: (readonly number[])[] = []
   const dist: number[] = [0]
   let cur = prm
-  let t = fiberTangent(cur)
+  let t = fiberTangent(cur, undefined, readout)
   let far = 0
   let closed = false
   for (let step = 1; step <= maxSteps && t; step++) {
@@ -451,7 +481,7 @@ export function fiberClosure(
     out.push(next)
     dist.push(d)
     cur = next
-    t = fiberTangent(cur, t)
+    t = fiberTangent(cur, t, readout)
     if (turned) { closed = true; break }
   }
 
@@ -477,7 +507,8 @@ export function fiberClosure(
 
 /** Walk the fiber all the way round with the λ's and roots held. See `fiberClosure` for the rule. */
 export function fiberLoop(
-  prm: MultiPoleParams, options: { stride?: number; maxSteps?: number } = {},
+  prm: MultiPoleParams,
+  options: { stride?: number; maxSteps?: number; readout?: Readout } = {},
 ): MultiPoleParams[] {
   return fiberClosure(prm, options).loop
 }
