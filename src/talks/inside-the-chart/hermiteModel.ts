@@ -30,8 +30,6 @@
 //
 // COST, and why the split. A projection is ~9 ms, so ψ, λ, r and the handles run live. The ROAD is
 // ~52 projections, so it is built on first touch and rebuilt when a gesture settles, never per frame.
-// The FAN — the pale arcs that show the answer set — is 10 projections and is cheap enough to rebuild
-// whenever ψ's anchor moves.
 //
 // No mathematics lives here, only state. Everything it calls is pinned in
 // core/__tests__/degree6TwoCircles.test.ts and degree6HandlesTrack.test.ts.
@@ -98,18 +96,12 @@ export interface HermiteState {
   /** The bounded road along the leftover direction, and where on it we are. */
   road: MultiPoleParams[]
   roadAt: number
-  /** Members spread around the ψ circle — the answer set, drawn pale. */
-  fan: MultiPoleParams[]
   origin: Vec3
   stalled: boolean
 }
 
-const FAN = 10
 const atPhase = (anchor: MultiPoleParams, psiDeg: number): MultiPoleParams =>
   projectOnto(anchor, spinorEndsAndSpan, phaseTarget(anchor, (psiDeg * Math.PI) / 180), 40)
-
-const fanOf = (anchor: MultiPoleParams): MultiPoleParams[] =>
-  Array.from({ length: FAN }, (_, i) => atPhase(anchor, (360 * i) / FAN))
 
 const roadOf = (prm: MultiPoleParams): MultiPoleParams[] =>
   fiberRoad(prm, { stride: 0.08, steps: 26, readout: spinorEndsAndSpan })
@@ -123,7 +115,6 @@ const initial = (): HermiteState => ({
   psi: 0,
   road: [SEED],
   roadAt: 0,
-  fan: fanOf(SEED),
   origin: { x: 0, y: 0, z: 0 },
   stalled: false,
 })
@@ -190,12 +181,11 @@ export const hermiteChart = {
     emit(next ? { live: next, stalled: false } : { stalled: true })
   },
 
-  /** Rebuild the anchor, the fan and the road around wherever the gesture left us. On settle only. */
+  /** Rebuild the anchor and the road around wherever the gesture left us. On settle only. */
   settle(): void {
     emit({
       anchor: state.live,
       psi: 0,
-      fan: fanOf(state.live),
       road: roadOf(state.live),
       roadAt: 0.5,
       target: hermiteOf(toMember(state.live)),

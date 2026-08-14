@@ -7,15 +7,15 @@
 // one pole is the first rational family where that is even posable (degree 4's map to those nine has
 // rank 7 of 9), and what is left over is 12 − 9 − 1 = 2.
 //
-// SO THE FIGURE DRAWS THE ANSWER SET, not one answer. The PALE FAN is ten members spread around the ψ
-// circle — ten different rational PH sextics through the SAME C¹ Hermite data — and every one of them
-// leaves the sphere at the same two points. That convergence is the held data made visible, and it is
-// why there are no endpoint dots: the fan says "pinned" along its whole length and at both ends at
-// once, which two marks cannot.
+// ONE INDICATRIX, NOT A FAN. A first version drew ten members of the fibre at once — the answer set,
+// all through the same data, all leaving the sphere at the same two points. It made the pinning
+// visible in a still frame, and it was removed anyway: with ten arcs on the sphere there is nowhere to
+// rest the eye, and the thing this slide is actually for is watching ONE indicatrix move while its
+// ends stay put. The fan showed the answer set; turning ψ IS the answer set, and it does not cost the
+// picture its focus.
 //
-// (§9.4 rules out endpoint dots on the sphere, and the reason given there was that the heavy arc
-// already says which piece is drawn. The rule survives here for a second reason: the fan says it
-// better. A dot would assert the pinning; the fan shows it.)
+// (§9.4's "no endpoint dots on the sphere" still holds, and for its original reason. The ends staying
+// put under a moving slider says "held" better than two marks would, and it says it while you watch.)
 //
 // THE TWO FIBRE SLIDERS ARE NOT THE SAME KIND OF HANDLE, and the caption says so rather than hiding it.
 // ψ is a CIRCLE — 𝒜(1) turning on its Hopf fibre over c′(1), returning to the same curve at 360° to
@@ -34,10 +34,10 @@ import { useMemo } from 'react'
 import type { Vec3 } from '../../core/quaternion'
 import { hermiteOf, toMember } from '../../core/rationalPHMultiPoleSpatial'
 import {
-  indicatrixArc,
+  indicatrixArcSmooth,
   indicatrixAt,
   indicatrixLength,
-  indicatrixLoop,
+  indicatrixLoopSmooth,
   indicatrixNear,
   sphereResidual,
 } from '../../core/tangentIndicatrix'
@@ -61,24 +61,26 @@ const GREAT_CIRCLES: [number, number, number][][] = [0, 1, 2].map((axis) =>
   }),
 )
 
+/**
+ * Segment length on a unit sphere. Both curves are sampled to hold every chord under this, rather than
+ * to a fixed point count: |T′| varies by orders of magnitude along the indicatrix, so a uniform count
+ * renders the fast stretches as a polygon. At the closest pole the old uniform loop drew one chord of
+ * 0.166 — a sixth of the radius, as a straight line. → indicatrixArcSmooth.test.ts
+ */
+const CHORD = 0.003
+
 export default function HermiteSphereFigure() {
-  const { live, fan, theta, psi, target } = useHermiteChart()
+  const { live, theta, psi, target } = useHermiteChart()
   const pole = live.roots[0]
 
   const member = useMemo(() => toMember(live), [live])
-  const whole = useMemo(() => indicatrixLoop(member, 900).map(tri), [member])
-  const used = useMemo(() => indicatrixArc(member, 0, 1, 240).map(tri), [member])
+  const whole = useMemo(() => indicatrixLoopSmooth(member, CHORD).map(tri), [member])
+  const used = useMemo(() => indicatrixArcSmooth(member, 0, 1, CHORD).map(tri), [member])
   const corner = useMemo(
     () => indicatrixNear(member, pole, Math.min(0.45, 0.1 * indicatrixLength(member))).map(tri),
     [member, pole],
   )
   const cusp = useMemo(() => tri(indicatrixAt(member, pole)), [member, pole])
-
-  /** The answer set: the drawn piece of ten members around the ψ circle. */
-  const fanArcs = useMemo(
-    () => fan.map((q) => indicatrixArc(toMember(q), 0, 1, 120).map(tri)),
-    [fan],
-  )
 
   /** How far the live member's Hermite data has drifted from what the pair holds. Zero, or a bug. */
   const drift = useMemo(() => {
@@ -106,11 +108,11 @@ export default function HermiteSphereFigure() {
       controls={<HermiteControls modes={false} />}
       caption={
         <>
-          <b>Every pale arc is a different curve through the same Hermite data.</b> Both end tangents
-          are held and so is the displacement — nine numbers — and the fan is ten members of what is
-          left over. Look at where the arcs <i>start</i> and <i>end</i>: they all leave the sphere at
-          the same two points. That convergence <i>is</i> the held data. What varies in between is the
-          two-dimensional answer set.{' '}
+          <b>Turn ψ and watch the two ends of the dark arc stay exactly where they are.</b> Both end
+          tangents are held, and so is the displacement — nine numbers — so every position of the
+          slider is a <i>different</i> rational PH sextic through the <i>same</i> Hermite data. The
+          ends not moving is that data; everything between them is the two-dimensional set of answers
+          to it.{' '}
           <span className="text-slate-400">
             <b>ψ is a circle.</b> It turns <i>𝒜(1)</i> on its Hopf fibre over <i>c′(1)</i>, so at 360°
             it is back to the same curve — measured to 2.4e-16, with the nine numbers held to 5.6e-13
@@ -129,11 +131,6 @@ export default function HermiteSphereFigure() {
       </mesh>
       {GREAT_CIRCLES.map((c, i) => (
         <Curve3D key={`gc${i}`} points={c} color={FIG.color.controlPolygon} width={1} />
-      ))}
-
-      {/* the answer set: ten members through the same data */}
-      {fanArcs.map((a, i) => (
-        <Curve3D key={`fan${i}`} points={a} color={FIG.color.curveMuted} width={1.5} />
       ))}
 
       {/* the live member: its whole indicatrix pale, the drawn piece heavy */}

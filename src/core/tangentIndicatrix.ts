@@ -80,6 +80,52 @@ export const indicatrixArc = (m: HasHodograph, t0: number, t1: number, count = 1
   Array.from({ length: count + 1 }, (_, i) => indicatrixAt(m, t0 + ((t1 - t0) * i) / count))
 
 /**
+ * The same sub-arc, but with segments bounded in SPHERICAL ARC instead of in the parameter — so it
+ * renders as a curve rather than as a polygon.
+ *
+ * This is `indicatrixNear`'s lesson applied to the drawn piece: |T′| varies by orders of magnitude
+ * along the indicatrix, so a uniform sampling in t spends most of its points where the curve is barely
+ * moving and leaves the fast stretch as three long chords. Raising the count fixes the symptom at the
+ * cost of thousands of points almost all of which land where nothing is happening — and it fails again
+ * the moment a dial makes some stretch faster.
+ *
+ * The step is sized from the speed here and then HALVED until the chord it actually buys is under
+ * `chord`; measuring the chord rather than trusting the local speed is what bounds the segment, since
+ * |T′| can climb steeply inside a single step. `maxPoints` is a hard stop so a pathological member
+ * cannot hang the render; when it bites, the arc is still complete but coarser, never truncated.
+ */
+export function indicatrixArcSmooth(
+  m: HasHodograph, t0: number, t1: number, chord = 0.004, maxPoints = 6000,
+): Vec3[] {
+  const span = t1 - t0
+  const sign = Math.sign(span) || 1
+  const out: Vec3[] = [indicatrixAt(m, t0)]
+  let t = t0
+  for (let i = 0; i < maxPoints && sign * (t1 - t) > 0; i++) {
+    let dt = Math.min(
+      Math.abs(span) / 8,
+      Math.max(Math.abs(span) * 1e-6, chord / Math.max(indicatrixSpeedAt(m, t), 1e-9)),
+    )
+    const a = out[out.length - 1]
+    let next = t + sign * dt
+    if (sign * (next - t1) > 0) next = t1
+    let b = indicatrixAt(m, next)
+    for (let k = 0; k < 40 && Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) > 2 * chord; k++) {
+      dt /= 2
+      next = t + sign * dt
+      b = indicatrixAt(m, next)
+    }
+    t = next
+    out.push(b)
+  }
+  // The hard stop can leave the last point short of t1; end exactly where asked either way.
+  const end = indicatrixAt(m, t1)
+  const last = out[out.length - 1]
+  if (Math.hypot(last.x - end.x, last.y - end.y, last.z - end.z) > 1e-12) out.push(end)
+  return out
+}
+
+/**
  * The WHOLE indicatrix, as a closed polyline over the projective line.
  *
  * Sampling uniformly in t cannot do this — the interesting structure sits wherever σ is small and the
@@ -97,6 +143,45 @@ export function indicatrixLoop(m: HasHodograph, count = 480): Vec3[] {
   }
   const inf = indicatrixAtInfinity(m)
   return [inf, ...pts, inf]
+}
+
+/**
+ * The whole closed indicatrix with its segments bounded in SPHERICAL ARC — the version to draw.
+ *
+ * `indicatrixLoop`'s uniform sampling in θ = arctan t is already far better than uniform in t, but it
+ * is still not uniform on the sphere, and the residue is large: measured at the degree-6 seed with the
+ * pole close in (r = 1.06), the worst single chord at 900 points is **0.166** on a unit sphere — a
+ * sixth of the radius, drawn as one straight line. Tripling to 3000 points only gets it to 0.050. It
+ * renders as a polygon and no affordable uniform count fixes it, because the ratio being fought is not
+ * a constant: it grows as the pole approaches the drawn piece.
+ *
+ * Stepping in θ with dT/dθ = T′(t)·(1 + t²) as the speed, then halving until the measured chord is
+ * under target, bounds every segment for a few hundred points. The two open ends are joined through
+ * the exact point at infinity, so the polyline still closes.
+ */
+export function indicatrixLoopSmooth(m: HasHodograph, chord = 0.004, maxPoints = 8000): Vec3[] {
+  const LIMIT = Math.PI / 2
+  const EDGE = 1e-9                      // tan(±π/2) is infinite; the exact limit closes the loop
+  const inf = indicatrixAtInfinity(m)
+  const out: Vec3[] = [inf]
+  let theta = -LIMIT + EDGE
+  out.push(indicatrixAt(m, Math.tan(theta)))
+  for (let i = 0; i < maxPoints && theta < LIMIT - EDGE; i++) {
+    const a = out[out.length - 1]
+    const t = Math.tan(theta)
+    let dth = Math.min(0.2, Math.max(1e-9, chord / Math.max(indicatrixSpeedAt(m, t) * (1 + t * t), 1e-9)))
+    let next = Math.min(LIMIT - EDGE, theta + dth)
+    let b = indicatrixAt(m, Math.tan(next))
+    for (let k = 0; k < 40 && Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) > 2 * chord; k++) {
+      dth /= 2
+      next = Math.min(LIMIT - EDGE, theta + dth)
+      b = indicatrixAt(m, Math.tan(next))
+    }
+    theta = next
+    out.push(b)
+  }
+  out.push(inf)
+  return out
 }
 
 /** Total spherical length of the whole closed indicatrix — the scale any local budget should be read against. */

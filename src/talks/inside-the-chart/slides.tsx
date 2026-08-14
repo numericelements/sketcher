@@ -376,9 +376,12 @@ export const slides: SlideDefinition[] = [
       </>
     ),
     notes:
-      'THE POINT OF THE FAN IS THE CONVERGENCE AT THE TWO ENDS. Say it before anything else: every '
-      + 'pale arc is a different rational PH sextic, all of them through the same C1 Hermite data, and '
-      + 'they all leave the sphere at the same two points. That is what "the data is held" looks like. '
+      'OPEN BY TURNING PSI AND POINTING AT THE TWO ENDS OF THE DARK ARC. They do not move. Every '
+      + 'position of that slider is a different rational PH sextic through the same C1 Hermite data, '
+      + 'and the ends staying put IS that data. Everything between them is the answer set. '
+      + 'A FAN OF TEN MEMBERS WAS DRAWN AT FIRST and removed: it made the pinning visible in a still '
+      + 'frame, but with ten arcs on the sphere there is nowhere to rest the eye, and this slide is for '
+      + 'watching one indicatrix move. '
       + 'WHY DEGREE 6 AND NOT DEGREE 4. Degree 4 cannot interpolate C1 Hermite data at all -- rank 7 of '
       + '9, two numbers unreachable. This is not a preference for a bigger example; it is the first one '
       + 'that exists. Worth saying because the previous pair held six numbers and someone will ask why '
