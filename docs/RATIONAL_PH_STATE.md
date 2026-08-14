@@ -461,6 +461,43 @@ to spare, and is ~3× the degree-4 cost. The lever, if needed: `readoutJacobian`
 finite-difference Jacobian every Gauss–Newton iteration (24 member evaluations each) and the readout is
 smooth enough to reuse it. Recorded so the cause is known before anyone hunts for it elsewhere.
 
+## 9.7 Metamorphic testing — the axis that was missing
+
+*Added after Eric pointed out, correctly, that his only cheap check on this work is symmetry, and that
+it kept failing while I kept explaining why it could not hold.*
+
+**Every test in this project until now was a PINNING test**: today's numbers match today's numbers.
+That catches regressions and structurally cannot catch a formulation that was always wrong. There is no
+oracle here — nobody can say what curve the fibre slider *should* produce at θ = 2.2 — so the check that
+remains is how the answer must change when the INPUT changes in a known way.
+
+`rationalSymmetries.ts` supplies the group actions as **exact rewrites**, no solver:
+
+```
+reverseParam   𝒜̃(t) = 𝒜(1−t)·j,  r̃ = 1−r,  λ̃ = λ    data: (d₀,d₁,Δc) ↦ (−d₁,−d₀,−Δc)
+rotate         𝒜 ↦ q𝒜             scaleBy   𝒜 ↦ √s·𝒜
+gauge          𝒜 ↦ 𝒜e^{iθ}        — the NULL test everything else is read against
+affineReparam  𝒜̃(t) = 𝒜(at+b)/√a, r̃ = (r−b)/a, λ̃ = aλ
+```
+
+**EQUIVARIANCE, NOT INVARIANCE — the distinction that cost four exchanges.** Hunting for a configuration
+that is its own mirror is hard and here impossible (`r = 1−r` needs `r = 1/2`, inside the drawn piece).
+Asking whether *mirroring the input mirrors the output* needs no special configuration, applies to every
+seed, and is far more sensitive. **§7 records the wrong turn**: I had a correct theorem about invariance
+and let it stand in for an experiment about equivariance, and I never once fed the construction
+symmetric data.
+
+**Result: the middle circle is exactly equivariant.** `reverse(circle(m))` and `circle(reverse(m))` are
+the same circle — in the `{X·u}` space to 5e-16, on the Hopf fibre over the same `T` to 2e-14…7e-12,
+same radius. → `rationalEquivariance.test.ts`
+
+**And check it algebraically, not by searching.** Comparing the two circles by sampling curves and
+hunting the nearest angle floored at **2.2e-4** and stayed there under refinement — which reads as a
+real disagreement and was not. The circle *is* the Hopf fibre over `T`, so the exact question is whether
+`Y i Ȳ = T`: that is 1.7e-13 and needs no grid. **A sharper criterion beat a finer grid.**
+
+---
+
 ## 10. How this work goes wrong, and the habits that catch it
 
 Recorded because the same three failures repeated all session.
@@ -470,7 +507,13 @@ Recorded because the same three failures repeated all session.
 2. **An instrument with no control.** Every rank, every fit, every walk needs a case where the answer is
    known. Two instruments were discarded this session on their controls, and one result was withheld on
    a *miscalibrated* control that turned out to be fine.
-3. **A figure built before asking what it shows.** Two figures needed corrections found by eye, and one
+3. **Answering a failing heuristic with an explanation instead of an experiment.** Eric's symmetry
+   check failed four times running; each time I produced a true reason it might not hold (the `r = 1/2`
+   obstruction, the solver shear, the basis choice) and never once constructed the configuration where
+   it must. The correct first move when a user's check fails is to **build that exact configuration and
+   run it** — explanations only after, and only if the experiment agrees. The tell is writing "that
+   cannot hold because…" before having measured.
+4. **A figure built before asking what it shows.** Two figures needed corrections found by eye, and one
    pair was removed entirely — it walked an arbitrary path through the variety and called it "the
    missing degree of freedom" when the missing direction is a specific, constructible one.
 
