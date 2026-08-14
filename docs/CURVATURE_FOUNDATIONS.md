@@ -975,7 +975,19 @@ subspace of 𝒱 and not a curve through it.
 
 **SO 𝒱 IS SWEPT BY LINEAR SUBSPACES, HENCE RATIONAL:**
 
-    dim 𝒱 = [4(n+1) − 4m]  +  m  =  4(n+1) − 3m
+    dim 𝒱 = [4(n+1) − 4m]  +  m  =  4(n+1) − 3m          for m ≤ n
+
+**And it fails at m = n+1, which is exactly where the fibre collapses.** The count assumes the 3m
+residue conditions are independent. With `deg N = 2n` and `deg w² = 2m`, the residues of `N/w²` sum
+to zero identically as soon as `deg N ≤ deg w² − 2`, i.e. `m ≥ n+1` — and N is a vector, so that is
+**three** linear dependencies. So
+
+    dim 𝒱 = 4(n+1) − 3m + 3 = n + 4                      for m = n+1
+
+Measured across the whole table in `residuesSumToZero.test.ts`: the deficit is 0 for every m ≤ n
+from (2,1) to (5,5), and exactly 3 at (1,2), (2,3), (3,4). This is why the tangent at (3,4) came out
+6 where the old formula predicted 3, and it is the same locus where the fixed-λ fibre 4(n+1) − 4m
+becomes a point. Beyond m = n+1 there are no members at all.
               fibre at fixed λ    the m dials
 
 > **The λ-chart read FORWARD is a dominant rational parametrisation of 𝒱. The wall comes only from

@@ -8,7 +8,13 @@
 // real ones per real pole, so the fibre is a subspace of dimension 4(n+1) − 4m. Sweeping the m dials
 // adds m, giving
 //
-//     dim 𝒱 = 4(n+1) − 4m + m = 4(n+1) − 3m ,        codim 𝒱 = 3m .
+//     dim 𝒱 = 4(n+1) − 4m + m = 4(n+1) − 3m ,        codim 𝒱 = 3m .        [for m ≤ n]
+//
+// THAT BRACKET WAS ADDED LATER and it matters. The formula assumes the 3m residue conditions are
+// independent, and they are not once m ≥ n+1: deg N = 2n and deg w² = 2m, so deg N ≤ deg w² − 2 and
+// the residues of N/w² sum to ZERO identically — three linear dependencies. At m = n+1 the true
+// dimension is 4(n+1) − 3m + 3 = n + 4. Every (n,m) verified below has m ≤ n, so nothing here is
+// wrong; the regime simply is not covered. Measured in residuesSumToZero.test.ts.
 //
 // Note what the codimension does NOT depend on: the spinor degree. Three quadrics per real pole, and
 // n only ever enlarges the fibre. So the Bézout bound on deg 𝒱 is 2^{3m} — a function of the POLE
