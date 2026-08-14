@@ -26,9 +26,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   type MultiPoleParams,
-  curveAt, derivativeAt, familyBasis, phDefect, spinorEndsAndSpan, toMember, unpackSpinor,
+  curveAt, derivativeAt, familyBasis, hermiteOf, phDefect, spinorEndsAndSpan, toMember, unpackSpinor,
 } from '../rationalPHMultiPoleSpatial'
-import { affineReparam, gauge, reverseParam, rotate, scaleBy } from '../rationalSymmetries'
+import { affineReparam, gauge, reverseParam, rotate, scaleBy, symmetryDefect } from '../rationalSymmetries'
 import { middleCircle, shapePolynomial } from '../rationalHermiteCircles'
 import {
   QUAT_I, qadd, qconj, qmul, qnormSq, qscale, vnorm, vsub, type Quat, type Vec3,
@@ -173,5 +173,44 @@ describe('THE EQUIVARIANCE TEST: mirror the circle == circle of the mirror', () 
     }
     console.log(`    mirrored members hold the mirrored 𝒜(0), 𝒜(1), Δc to ${worst.toExponential(1)}`)
     expect(worst).toBeLessThan(1e-10)
+  })
+})
+
+describe('symmetryDefect — the readout that tells you when the mirror labels apply', () => {
+  it('zero on symmetric data, nonzero the moment either condition breaks', () => {
+    // symmetric: d₁ = −R d₀ with R the rotation by π about the axis d₀ − d₁, and Δc ⊥ that axis
+    const good = [1.0, 0.5, 0.2, -1.0, 0.5, 0.2, 0.0, 1.6, 0.4]
+    expect(symmetryDefect(good)).toBeLessThan(1e-15)
+
+    // break the LENGTHS: |d₀| ≠ |d₁|
+    const lengths = [...good]; lengths[3] = -1.4
+    expect(symmetryDefect(lengths)).toBeGreaterThan(0.05)
+
+    // break the PERPENDICULARITY: give Δc a component along d₀ − d₁ = (2,0,0)
+    const perp = [...good]; perp[6] = 0.9
+    expect(symmetryDefect(perp)).toBeGreaterThan(0.05)
+
+    // and it is scale-free — the readout sits beside curves of any size
+    const scaled = good.map((v) => v * 37)
+    expect(Math.abs(symmetryDefect(scaled) - symmetryDefect(good))).toBeLessThan(1e-15)
+    console.log(
+      `    symmetric ${symmetryDefect(good).toExponential(1)},` +
+        `  unequal ends ${symmetryDefect(lengths).toFixed(3)},` +
+        `  tilted Δc ${symmetryDefect(perp).toFixed(3)}`,
+    )
+  })
+
+  it('and it agrees with the thing it is a proxy for: σ preserves the data iff the defect is 0', () => {
+    // Build members at both, and check σ's data map is the identity exactly when the defect vanishes.
+    const m = seedAt(1.7, 35)
+    const h = hermiteOf(toMember(m))
+    const rv = reverseParam(m)!
+    const hr = hermiteOf(toMember(rv))
+    // σ sends (d₀,d₁,Δc) ↦ (−d₁,−d₀,−Δc); with the rotation applied it is the identity iff symmetric
+    const mirroredData = [-h[3], -h[4], -h[5], -h[0], -h[1], -h[2], -h[6], -h[7], -h[8]]
+    expect(Math.hypot(...hr.map((v, i) => v - mirroredData[i])) / Math.hypot(...h))
+      .toBeLessThan(1e-12)
+    console.log(`    the seed's own data has symmetry defect ${symmetryDefect(h).toFixed(3)} — not symmetric, as expected`)
+    expect(symmetryDefect(h)).toBeGreaterThan(1e-3)
   })
 })

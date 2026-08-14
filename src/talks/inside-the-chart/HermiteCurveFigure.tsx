@@ -85,7 +85,7 @@ const BOUNDS = (() => {
 })()
 
 export default function HermiteCurveFigure() {
-  const { live, mode, psi, sAngle, origin, target } = useHermiteChart()
+  const { live, mode, mirrorA, mirrorB, origin, target } = useHermiteChart()
   const strict = mode === 'strict'
   const pole = live.roots[0]
 
@@ -117,7 +117,7 @@ export default function HermiteCurveFigure() {
       base={{ width: 900, height: 430 }}
       notation={['ᴄ = p/w,  w = t − r', 'c′(0) = 6(w₁/w₀)(P₁ − P₀)', 'P₆ = c(1)']}
       readouts={[
-        { label: 'fibre ψ, s', value: `${psi.toFixed(0)}°, ${sAngle.toFixed(0)}°` },
+        { label: 'fibre A, B', value: `${mirrorA.toFixed(0)}°, ${mirrorB.toFixed(0)}°` },
         { label: 'pole r', value: pole.toFixed(3) },
         {
           label: 'infinity to curve',
@@ -144,8 +144,8 @@ export default function HermiteCurveFigure() {
             the arithmetic closes: 12 numbers in the handles plus ψ, s, λ and r is <b>sixteen</b>, and
             sixteen is the chart&rsquo;s dimension. <b>Turn either fibre slider with the control polygon in
             view</b> — the interior rearranges and the four handles do not move, because they{' '}
-            <i>are</i> the held data. The two sliders sweep differently: ψ turns one end&rsquo;s spinor
-            phase, <b>s</b> turns the middle. <b>Free</b> releases it and every one of the seven points is a handle with the
+            <i>are</i> the held data. And the two sliders are a <b>mirror pair</b>: turn <b>A</b>,
+            reflect the picture, and it looks like you turned <b>B</b>. <b>Free</b> releases it and every one of the seven points is a handle with the
             ends holding each other. Nothing in either mode enforces PH; inside the chart there is
             nothing to enforce. Drag the background to rotate.
           </span>

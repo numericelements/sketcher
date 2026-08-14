@@ -22,6 +22,11 @@
 //   s  the middle circle. The leftover freedom is {X·u(t) : X ∈ ℍ} for one COMPLEX cubic u, and because
 //      u is complex the displacement condition completes into one more Hopf equation.
 //
+// THE SLIDERS DRIVE A DIFFERENT BASIS: the MIRRORED PAIR (A, B) with ψ = A + B and s = B. Those are the
+// two loops the reversal EXCHANGES — turn A, mirror the picture, and it looks like you turned B.
+// Exchanged exactly in the polynomial limit; approximate at a genuine pole, improving 12× as the pole
+// goes out (4.0e-2 at r = 1.7 → 3.3e-3 at r = 100). → mirroredSliderPair, sliderPairAcrossThePole
+//
 // Neither involves a minimum-norm choice, and both return because e^{2πi} = 1 rather than because a
 // solver came home. s replaced a 2180-step continuation walk that took 109 s to traverse and could only
 // be shown as a bounded road; ψ replaced a Gauss-Newton target.
@@ -80,8 +85,7 @@ export const SEED: MultiPoleParams = (() => {
 export const RANGE = {
   pole: { min: 1.06, max: 4, step: 0.005 },
   theta: { min: -89.9, max: 89.9, step: 0.1 },
-  psi: { min: 0, max: 360, step: 0.5 },
-  sAngle: { min: 0, max: 360, step: 0.5 },
+  mirror: { min: 0, max: 360, step: 0.5 },
 } as const
 
 export type Mode = 'strict' | 'free'
@@ -99,21 +103,32 @@ export interface HermiteState {
   target: number[]
   /** Degrees. λ = tan θ. */
   theta: number
-  /** Degrees around the 𝒜(1) Hopf circle. */
-  psi: number
-  /** Degrees around the second (closed-form) fibre circle. */
-  sAngle: number
+  /**
+   * The MIRRORED PAIR, in degrees. A and B are the two loops the reversal EXCHANGES — turn A, mirror
+   * the picture, and it looks like you turned B. In the chart's own coordinates they are
+   *
+   *     ψ = A + B ,   s = B
+   *
+   * a unimodular change of basis, so both still return at 360°. (A alone is the ψ loop; B alone is the
+   * ψ+s loop, which is `e₂ = M e₁` for the reversal's action M = [1 0; 1 −1].)
+   */
+  mirrorA: number
+  mirrorB: number
   /** The closed-form chart on the current anchor. Rebuilt when a handle or a dial moves the data. */
   chart: HermiteChart | null
   origin: Vec3
   stalled: boolean
 }
 
-/** Both coordinates at once, from the chart built on `anchor`. Closed form — free to call per frame. */
+/**
+ * The member at mirrored-pair coordinates (A, B). The chart speaks (ψ, s); the basis change is
+ * ψ = A + B, s = B — unimodular, so a full turn of either slider is still a full turn of the fibre.
+ * Closed form, so this is free to call per frame.
+ */
 const atCell = (
-  chart: HermiteChart | null, anchor: MultiPoleParams, psiDeg: number, sDeg: number,
+  chart: HermiteChart | null, anchor: MultiPoleParams, aDeg: number, bDeg: number,
 ): MultiPoleParams =>
-  chart?.at((psiDeg * Math.PI) / 180, (sDeg * Math.PI) / 180) ?? anchor
+  chart?.at(((aDeg + bDeg) * Math.PI) / 180, (bDeg * Math.PI) / 180) ?? anchor
 
 const initial = (): HermiteState => ({
   mode: 'strict',
@@ -121,8 +136,8 @@ const initial = (): HermiteState => ({
   anchor: SEED,
   target: hermiteOf(toMember(SEED)),
   theta: OPENING_THETA,
-  psi: 0,
-  sAngle: 0,
+  mirrorA: 0,
+  mirrorB: 0,
   chart: buildChart(SEED),
   origin: { x: 0, y: 0, z: 0 },
   stalled: false,
@@ -152,14 +167,14 @@ function withHermiteDial(prm: MultiPoleParams, target: readonly number[]): Multi
 }
 
 export const hermiteChart = {
-  /** The end-phase circle. Closed form; returns at 360° because e^{2πi} = 1. */
-  setPsi(deg: number): void {
-    emit({ psi: deg, live: atCell(state.chart, state.anchor, deg, state.sAngle), stalled: false })
+  /** Mirror A. Closed form; returns at 360° because e^{2πi} = 1. */
+  setA(deg: number): void {
+    emit({ mirrorA: deg, live: atCell(state.chart, state.anchor, deg, state.mirrorB), stalled: false })
   },
 
-  /** The middle circle. Same chart, same guarantee. */
-  setS(deg: number): void {
-    emit({ sAngle: deg, live: atCell(state.chart, state.anchor, state.psi, deg), stalled: false })
+  /** Mirror B — the reversal's image of A. Same chart, same guarantee. */
+  setB(deg: number): void {
+    emit({ mirrorB: deg, live: atCell(state.chart, state.anchor, state.mirrorA, deg), stalled: false })
   },
 
   setTheta(deg: number): void {
@@ -168,7 +183,7 @@ export const hermiteChart = {
     }
     const next = withHermiteDial(moved, state.target)
     emit(next
-      ? { live: next, anchor: next, chart: buildChart(next), psi: 0, sAngle: 0, theta: deg, stalled: false }
+      ? { live: next, anchor: next, chart: buildChart(next), mirrorA: 0, mirrorB: 0, theta: deg, stalled: false }
       : { theta: deg, stalled: true })
   },
 
@@ -188,7 +203,7 @@ export const hermiteChart = {
       if (!next) { emit({ stalled: true }); return }
       cur = next
     }
-    emit({ live: cur, anchor: cur, chart: buildChart(cur), psi: 0, sAngle: 0, stalled: false })
+    emit({ live: cur, anchor: cur, chart: buildChart(cur), mirrorA: 0, mirrorB: 0, stalled: false })
   },
 
   /** Rebuild the anchor and the road around wherever the gesture left us. On settle only. */
@@ -196,8 +211,8 @@ export const hermiteChart = {
     emit({
       anchor: state.live,
       chart: buildChart(state.live),
-      psi: 0,
-      sAngle: 0,
+      mirrorA: 0,
+      mirrorB: 0,
       target: hermiteOf(toMember(state.live)),
     })
   },
@@ -257,7 +272,7 @@ export const hermiteChart = {
     const solved = projectOnto(state.live, hermiteOf, next, 40)
     const err = Math.hypot(...hermiteOf(toMember(solved)).map((v, i) => v - next[i]))
     if (err > 1e-6 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
-    emit({ origin: world, live: solved, target: next, anchor: solved, chart: buildChart(solved), psi: 0, sAngle: 0, stalled: false })
+    emit({ origin: world, live: solved, target: next, anchor: solved, chart: buildChart(solved), mirrorA: 0, mirrorB: 0, stalled: false })
   },
 
   /** Shared tail of the strict handles: solve the nine numbers, or report the stall. */
@@ -265,7 +280,7 @@ export const hermiteChart = {
     const solved = projectOnto(state.live, hermiteOf, next, 40)
     const err = Math.hypot(...hermiteOf(toMember(solved)).map((v, i) => v - next[i]))
     if (err > 1e-6 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
-    emit({ live: solved, target: next.slice(), anchor: solved, chart: buildChart(solved), psi: 0, sAngle: 0, stalled: false })
+    emit({ live: solved, target: next.slice(), anchor: solved, chart: buildChart(solved), mirrorA: 0, mirrorB: 0, stalled: false })
   },
 
   /**
@@ -282,7 +297,7 @@ export const hermiteChart = {
     if (!next) { emit({ stalled: true }); return }
     emit({
       live: next, target: hermiteOf(toMember(next)), anchor: next, chart: buildChart(next),
-      psi: 0, sAngle: 0, stalled: false,
+      mirrorA: 0, mirrorB: 0, stalled: false,
     })
   },
 
@@ -298,7 +313,7 @@ export const hermiteChart = {
     if (!solved) { emit({ stalled: true }); return }
     emit({
       origin: world, live: solved, target: hermiteOf(toMember(solved)), anchor: solved,
-      chart: buildChart(solved), psi: 0, sAngle: 0, stalled: false,
+      chart: buildChart(solved), mirrorA: 0, mirrorB: 0, stalled: false,
     })
   },
 
@@ -306,7 +321,7 @@ export const hermiteChart = {
     if (mode === 'strict') {
       emit({
         mode, target: hermiteOf(toMember(state.live)), anchor: state.live,
-        chart: buildChart(state.live), psi: 0, sAngle: 0, stalled: false,
+        chart: buildChart(state.live), mirrorA: 0, mirrorB: 0, stalled: false,
       })
     } else {
       emit({ mode, stalled: false })

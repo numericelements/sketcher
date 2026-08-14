@@ -26,8 +26,10 @@
 //   · j i j̄ = −i, so 𝒜̃ i 𝒜̃* = −N(1−t) — the reversed hodograph, sign and all
 //   · w(1−t) = −(t − (1−r)), so w(1−t)² = w̃(t)² and the denominator follows
 //   · the residue condition 𝒜′(r) = 𝒜(r)λi becomes −𝒜(r)λij = 𝒜(r)jλ̃i, and ij = k, ji = −k, so λ̃ = λ
-//   · integrating, c̃(t) = c(1) − c(1−t): it starts at the origin, as p(0) = 0 requires, and its
-//     displacement is unchanged. The C¹ Hermite data goes (d₀, d₁, Δc) ↦ (−d₁, −d₀, Δc).
+//   · integrating, c̃(t) = c(1−t) − c(1): it starts at the origin, as p(0) = 0 requires. The C¹ Hermite
+//     data goes (d₀, d₁, Δc) ↦ (−d₁, −d₀, −Δc) — the DISPLACEMENT FLIPS TOO. An earlier version of this
+//     comment said c(1) − c(1−t) with Δc unchanged; the test caught it immediately, at 15.3 on a curve
+//     of span 7.66.
 //
 // That last line is why this is equivariance and not invariance: the data MOVES, and the claim is that
 // the construction moves with it.
@@ -111,4 +113,34 @@ export function affineReparam(prm: MultiPoleParams, a: number, b: number): Multi
     return qscale(acc, Math.pow(a, j) / Math.sqrt(a))
   })
   return { A: out, roots: [(prm.roots[0] - b) / a], lambdas: [a * prm.lambdas[0]] }
+}
+
+
+/**
+ * How far a set of C¹ Hermite numbers is from being REVERSAL-SYMMETRIC — 0 when the mirror exists.
+ *
+ * Symmetric means there is a rotation R by π about some axis n̂ with d₁ = −R d₀ and R·Δc = −Δc. Writing
+ * R v = 2(v·n̂)n̂ − v, the first condition gives d₀ − d₁ = 2(d₀·n̂)n̂, so **n̂ is along d₀ − d₁** — the axis
+ * is not free, it is determined by the data. The second then says Δc ⊥ n̂. So the whole condition is two
+ * scalars, with no optimisation over R at all:
+ *
+ *     |d₀| = |d₁|            a rotation preserves length
+ *     Δc · (d₀ − d₁) = 0     the displacement is perpendicular to the mirror axis
+ *
+ * Reported relative, so it can be shown beside a curve of any size. The figure needs this because the
+ * mirrored slider pair is only exchanged where this is zero: without it, a user sees two sliders
+ * labelled as a mirror pair and no way to tell when the label applies.
+ */
+export function symmetryDefect(hermite: readonly number[]): number {
+  const d0 = [hermite[0], hermite[1], hermite[2]]
+  const d1 = [hermite[3], hermite[4], hermite[5]]
+  const dc = [hermite[6], hermite[7], hermite[8]]
+  const n0 = Math.hypot(...d0), n1 = Math.hypot(...d1)
+  const lengths = Math.abs(n0 - n1) / Math.max(n0, n1, 1e-300)
+  const axis = d0.map((v, i) => v - d1[i])
+  const na = Math.hypot(...axis), nc = Math.hypot(...dc)
+  const perp = na > 1e-12 && nc > 1e-12
+    ? Math.abs(dc.reduce((s, v, i) => s + v * axis[i], 0)) / (na * nc)
+    : 0
+  return Math.max(lengths, perp)
 }

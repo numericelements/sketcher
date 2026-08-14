@@ -5,10 +5,16 @@
 // ψ + s + λ + r is 16, which is the chart's measured dimension. Offering a fifth would be offering a
 // motion the family does not have.
 //
-// BOTH FIBRE SLIDERS ARE CIRCLES, and both run 0–360°. ψ turns 𝒜(1) on its Hopf fibre; s runs the
-// second circle, which is closed form (`rationalHermiteCircles.ts`) rather than a walk. An earlier
-// version had s as a bounded road labelled 0–1, because the only way to travel that loop was a
-// 2180-step continuation taking 109 s. The derivation replaced it with a formula.
+// BOTH FIBRE SLIDERS ARE CIRCLES, both closed form, and both run 0–360°. They drive the MIRRORED PAIR
+// (A, B) rather than the chart's own (ψ, s): the basis change is ψ = A + B, s = B, which is unimodular,
+// so a full turn of either is still a full turn of the fibre.
+//
+// WHY THAT BASIS. A and B are the two loops the reversal EXCHANGES — turn A, mirror the picture, and it
+// looks like you turned B. Exact in the polynomial limit (σ(A) = B to 0.00e+0, and the control polygon
+// orbits come out as exact mirror images); approximate at a genuine pole, improving 12× as the pole
+// goes out. The chart's raw (ψ, s) are equally valid coordinates and look lopsided, which is what sent
+// this investigation off for several rounds.
+// → mirroredSliderPair.test.ts, sliderPairAcrossThePole.test.ts
 //
 // `modes` is false on the SPHERE slide, for the same reason as the degree-4 pair: strict and free
 // differ only in which control points may be grabbed, and the sphere draws none.
@@ -42,7 +48,7 @@ const Slider = ({
 )
 
 export default function HermiteControls({ modes = true }: { modes?: boolean }) {
-  const { mode, live, psi, sAngle, theta, stalled } = useHermiteChart()
+  const { mode, live, mirrorA, mirrorB, theta, stalled } = useHermiteChart()
   const strict = !modes || mode === 'strict'
 
   return (
@@ -64,17 +70,17 @@ export default function HermiteControls({ modes = true }: { modes?: boolean }) {
       {strict ? (
         <>
           <Slider
-            label="fibre ψ"
-            value={psi}
-            range={RANGE.psi}
-            onChange={(v) => hermiteChart.setPsi(v)}
+            label="fibre A"
+            value={mirrorA}
+            range={RANGE.mirror}
+            onChange={(v) => hermiteChart.setA(v)}
             width="w-36"
           />
           <Slider
-            label="fibre s"
-            value={sAngle}
-            range={RANGE.sAngle}
-            onChange={(v) => hermiteChart.setS(v)}
+            label="B (its mirror)"
+            value={mirrorB}
+            range={RANGE.mirror}
+            onChange={(v) => hermiteChart.setB(v)}
             width="w-36"
           />
           {/*

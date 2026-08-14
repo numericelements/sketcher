@@ -18,10 +18,11 @@
 // put under a moving slider says "held" better than two marks would, and it says it while you watch.)
 //
 // BOTH FIBRE SLIDERS ARE CIRCLES AND BOTH ARE CLOSED FORM — one chart drives them (`hermiteChart`).
-// ψ is the phase of 𝒜(1) against 𝒜(0); s is the middle circle, the rational completed square. Neither
-// makes a minimum-norm choice, and both return because e^{2πi} = 1 rather than because a solver came
-// home. s replaced a 2180-step continuation that took 109 s to traverse; ψ replaced a Gauss-Newton
-// target. → rationalHermiteCircles.ts, slide 7.
+// Underneath they are ψ (the phase of 𝒜(1) against 𝒜(0)) and s (the middle circle, the rational
+// completed square); the sliders drive the MIRRORED PAIR A, B with ψ = A + B and s = B, because those
+// are the two loops the reversal exchanges. Neither makes a minimum-norm choice, and both return
+// because e^{2πi} = 1 rather than because a solver came home.
+// → rationalHermiteCircles.ts, mirroredSliderPair.test.ts, slide 7.
 //
 // The pole still cusps the indicatrix, exactly as on the degree-4 slide — that is a theorem about
 // simple poles (Kalkan–Scharler–Schröcker–Šír, Rem. 4.7), not a feature of degree 4.
@@ -33,6 +34,7 @@
 import { useMemo } from 'react'
 import type { Vec3 } from '../../core/quaternion'
 import { hermiteOf, toMember } from '../../core/rationalPHMultiPoleSpatial'
+import { symmetryDefect } from '../../core/rationalSymmetries'
 import {
   indicatrixArcSmooth,
   indicatrixAt,
@@ -70,7 +72,7 @@ const GREAT_CIRCLES: [number, number, number][][] = [0, 1, 2].map((axis) =>
 const CHORD = 0.003
 
 export default function HermiteSphereFigure() {
-  const { live, theta, psi, sAngle, target } = useHermiteChart()
+  const { live, theta, mirrorA, mirrorB, target } = useHermiteChart()
   const pole = live.roots[0]
 
   const member = useMemo(() => toMember(live), [live])
@@ -88,13 +90,19 @@ export default function HermiteSphereFigure() {
     return Math.hypot(...h.map((v, i) => v - target[i]))
   }, [member, target])
 
+  /**
+   * How far the held data is from admitting a mirror. The A/B sliders are only an EXCHANGED pair where
+   * this is zero — without it on screen, the labels would be a promise with no way to check it.
+   */
+  const symDefect = useMemo(() => symmetryDefect(target), [target])
+
   return (
     <Figure3D
       bounds={BOUNDS}
       base={{ width: 900, height: 420 }}
-      notation={['ᴛ = N/σ', '𝒜(θ) = 𝒜₀ + (X₀e^{iθ} − X₀)u', 'λ = tan θ']}
+      notation={['ᴛ = N/σ', 'ψ = A + B,  s = B', 'λ = tan θ']}
       readouts={[
-        { label: 'fibre ψ, s', value: `${psi.toFixed(0)}°, ${sAngle.toFixed(0)}°` },
+        { label: 'fibre A, B', value: `${mirrorA.toFixed(0)}°, ${mirrorB.toFixed(0)}°` },
         { label: 'pole r', value: pole.toFixed(3) },
         {
           label: 'λ',
@@ -103,6 +111,11 @@ export default function HermiteSphereFigure() {
             : Math.tan((theta * Math.PI) / 180).toFixed(1),
         },
         { label: 'Hermite drift', value: drift.toExponential(1), tone: 'ok' as const },
+        {
+          label: 'symmetry defect',
+          value: symDefect.toExponential(1),
+          tone: symDefect < 1e-6 ? ('ok' as const) : ('warn' as const),
+        },
         { label: '‖T‖ − 1', value: sphereResidual(member).toExponential(1), tone: 'ok' as const },
       ]}
       controls={<HermiteControls modes={false} />}
@@ -114,13 +127,14 @@ export default function HermiteSphereFigure() {
           ends not moving is that data; everything between them is the two-dimensional set of answers
           to it.{' '}
           <span className="text-slate-400">
-            <b>Both fibre sliders are circles, and both are formulas.</b> ψ turns <i>𝒜(1)</i> on its
-            Hopf fibre over <i>c′(1)</i>; <b>s</b> is the fibre at both end spinors fixed. Neither
-            solves anything, so both return at 360° because <i>e</i><sup>2πi</sup> = 1. Between them
-            they reach the whole two-dimensional answer set, with the nine numbers held to 1e-10
-            everywhere on it. <b>Push the twist dial to either extreme</b> — not to zero, which is
-            where the pole is most genuine — and the pole <i>cancels</i>: the family becomes the
-            polynomial PH quintic and these two circles become the ones the sibling deck sweeps.{' '}
+            <b>Both fibre sliders are circles, and both are formulas</b> — neither solves anything, so
+            both return at 360° because <i>e</i><sup>2πi</sup> = 1. They are chosen so that{' '}
+            <b>the mirror exchanges them</b>: turn <b>A</b>, reflect the picture, and it looks like you
+            turned <b>B</b>. That is exact when the data is mirror-symmetric and the pole is far out —
+            watch <i>symmetry defect</i> and <i>pole r</i> together. <b>Push the twist dial to either
+            extreme</b> — not to zero, which is where the pole is most genuine — and the pole{' '}
+            <i>cancels</i>: the family becomes the polynomial PH quintic and these two circles become
+            the ones the sibling deck sweeps.{' '}
             <b>The pole still cusps the indicatrix</b> — follow the{' '}
             <b style={{ color: FIG.color.pole }}>violet strand</b> in to the corner and back out. That
             is a theorem about simple poles, not a feature of degree 4. Drag the background to rotate.
