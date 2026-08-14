@@ -209,34 +209,112 @@ the pale full indicatrix deforms.
 
 ---
 
-## 9. The next slides — agreed design, blocked on §8
+## 9. The figure grammar — Eric's requirements, and they are requirements
 
-`inside-the-chart` currently has: title, slide 1 (what a chart is), **slide 3** (the pole on the
-sphere), **slide 4** (the same pole on the curve). Those two share one state and one control strip
-(`chartModel.ts`, `ChartControls.tsx`) and are **not to be modified** — new material goes on new slides.
+These are not style preferences. They were each stated after looking at a built figure that got it
+wrong, and every one of them cost a rebuild. A new figure that breaks one of these is wrong even if
+every number on it is correct.
 
-The agreed next pair: **degree 6, one pole, C¹ Hermite held**, same grammar — sphere first, curve
-second, one shared slider set.
+### 9.1 The pair
 
-```
-P₀  c(0), the translation      3
-P₁  carries c′(0)              3
-P₅  carries c′(1)              3
-P₆  carries c(1)               3        four draggable points
-the fibre                      2        ← the torus, IF §8 resolves
-twist λ                        1
-pole r                         1
-                             ────
-                              16        = the chart's dimension, measured
-```
+**Two slides, sphere first, curve second.** The sphere shows the tangent indicatrix; the curve shows
+the Bézier curve. They are two views of ONE configuration, not two demonstrations.
 
-Interior `P₂ P₃ P₄` are outputs, drawn grey. **No pole selector yet** — deferred until this pair
-exists, because the four families have fibres 12, 8, 4, 0 and cannot share a held-data convention.
+**The same handles on both, and the state carries across the slide break.** One shared control strip
+(`ChartControls.tsx`) and one shared store (`chartModel.ts`), so whatever is set up on the sphere slide
+is what the curve slide opens on. If each slide built its own controls they would drift apart the first
+time one was edited.
 
-Before writing figure code: verify the Hermite projection **tracks** (nine conditions against a
-twelve-dimensional fibre) the way `strictHandlesTrack.test.ts` pins the current six-against-eight.
+### 9.2 The strict / free toggle
+
+**Only on the CURVE slide.** The two modes differ solely in which control points may be grabbed, and
+the sphere draws none — a toggle there is a handle that changes nothing visible. The sphere keeps the
+sliders, which do act on it.
+
+**STRICT — the honest coordinates.** Exactly the right number of control points are draggable: the ones
+that ARE the held data. Everything derived is drawn grey. Whatever degrees of freedom remain become
+**named sliders**. The count must be **DERIVED, not chosen** — the arithmetic has to close against the
+family's dimension, and that closure is what makes the mode honest. Do not offer a handle the family
+does not have.
+
+**FREE — drag anything, ends held.** Every control point is a handle, one at a time, and the endpoints
+hold each other: move an interior point and both ends stay put; move one end and the other stays put.
+
+**FREE HAS NO SLIDERS.** Once every control point is a handle there is no leftover coordinate for a
+slider to be, and the dials are held during a free drag — a slider that still moved would be a second,
+contradictory way to steer. Hide them.
+
+### 9.3 Control points
+
+**All draggable points are the same colour (blue).** `P₀` included. It is a handle, not a pinned mark,
+and colouring it differently says "not yours to move" about something that is.
+
+**Dragging `P₀` RESHAPES, it does not slide.** The other handles hold their positions *on screen* while
+`P₀` goes to the cursor, so the curve changes shape between them. A rigid translation moves the picture
+without moving the curve, so nothing is learned by doing it. (`p(0) = 0` pins `c(0)` inside the family,
+so `P₀`'s drag is a change of ORIGIN — and its handle speaks WORLD coordinates, since its world
+position *is* the offset.)
+
+**Derived control points are drawn grey**, and the greying has to be real: it marks points the family
+computes, not points we chose not to expose.
+
+### 9.4 What not to draw
+
+**No endpoint dots on the sphere.** The heavy dark arc already says which portion of the indicatrix the
+drawn curve uses, and it says it along its whole length rather than at two points.
+
+**No run-out, no escape ray on the curve.** Draw only the piece being edited, `t ∈ [0,1]`, with the pole
+outside it. The continuation past the drawn piece cost a third of the frame and pulled the eye off the
+thing being edited.
+
+**A figure earns its place only by showing something the prose cannot** — a number moving the wrong
+way, a handle that stops responding, a corner that refuses to soften. Not a picture of a fact.
+
+### 9.5 Process
+
+**Prose in chat first, JSX after. One slide at a time.**
+
+**Slides 3 and 4 are fixed.** New material goes on NEW slides; do not modify the existing pair.
+
+**Figure files hold no mathematics** — only marks and gestures. Every number a figure displays is
+pinned in a core test, because r3f cannot be verified headlessly.
+
+**Measure before designing the picture.** Both figures built this session needed corrections found by
+eye, and one pair was removed entirely. Knowing the numbers are pinned says nothing about whether the
+picture is worth drawing — sweep the configuration numerically and look at the ranges first.
 
 ---
+
+## 9.6 The next pair — agreed design, blocked on §8
+
+`inside-the-chart` currently has: title, slide 1 (what a chart is), **slide 3** (the pole on the
+sphere), **slide 4** (the same pole on the curve).
+
+The agreed next pair: **degree 6, one pole, C¹ Hermite held**, same grammar throughout.
+
+```
+STRICT                              handles
+  P₀   c(0), the translation          3        draggable
+  P₁   carries c′(0)                  3        draggable
+  P₅   carries c′(1)                  3        draggable
+  P₆   carries c(1)                   3        draggable
+  P₂ P₃ P₄                            —        OUTPUTS, drawn grey
+  the fibre                           2        sliders  ← the torus, IF §8 resolves
+  twist λ                             1        slider
+  pole r                              1        slider
+                                    ────
+                                     16        = the chart's dimension, measured
+
+FREE     all seven control points draggable, one at a time, ends held, NO sliders
+```
+
+**No pole selector yet** — deferred until this pair exists. The four degree-6 families have fibres 12,
+8, 4 and 0, so they cannot share a held-data convention; a selector wants to be its own slide, whose
+punchline is that three of its seven buttons are empty by a parity theorem (§2).
+
+Before writing any figure code: verify the Hermite projection **tracks** — nine conditions against a
+twelve-dimensional fibre — the way `strictHandlesTrack.test.ts` pins the current six-against-eight. A
+handle that silently does not track looks exactly like one that works.
 
 ## 10. How this work goes wrong, and the habits that catch it
 
