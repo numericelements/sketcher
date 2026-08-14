@@ -350,34 +350,136 @@ export function fiberTangent(prm: MultiPoleParams, orient?: readonly number[]): 
   return null
 }
 
-/** Walk the fiber all the way round with the λ's and roots held. One projection per sample. */
-export function fiberLoop(
+/**
+ * How far apart two spinors are AS CURVES: the Euclidean gap modulo the Hopf gauge 𝒜 ↦ 𝒜e^{iθ}, which
+ * moves no curve. Exact and complete — same 𝒜 mod gauge ⟺ the same curve at every t, so this needs no
+ * sampling and has no window to hide outside of. Relative to |𝒜|.
+ *
+ * `x` and `xi = 𝒜i` are orthogonal and of equal length (⟨q, qi⟩ = Re(−q i q̄) = 0, and right
+ * multiplication by a unit quaternion is an isometry), so the best θ is a projection onto their span:
+ * θ = atan2(⟨y, xi⟩, ⟨y, x⟩).
+ *
+ * The residual is then formed as a VECTOR and normed, not as √(|x|² + |y|² − 2⟨·⟩). The closed form is
+ * the same number in exact arithmetic, but it subtracts two nearly-equal quantities and so floors out
+ * near √ε: it reported an exact 0 at a return whose true gap was 1e-9.
+ */
+export function gaugeDistance(a: readonly Quat[], b: readonly Quat[]): number {
+  const x = packSpinor(a)
+  const xi = a.flatMap((q) => parts(qmul(q, QUAT_I)))
+  const y = packSpinor(b)
+  const nx = Math.hypot(...x)
+  const theta = Math.atan2(dot(y, xi), dot(y, x))
+  const c = Math.cos(theta), s = Math.sin(theta)
+  return Math.hypot(...y.map((v, i) => v - c * x[i] - s * xi[i])) / Math.max(nx, 1e-300)
+}
+
+/**
+ * The largest gap between two members' tangent indicatrices, over a range that deliberately runs
+ * OUTSIDE the drawn piece. T = c′/‖c′‖ is a unit vector everywhere, so no sample can dominate the
+ * measure the way a curve point near a pole would — this is the one quantity that is safe to sample
+ * past the pole. It is also the picture the closure argument is made in: the indicatrix back where it
+ * started after a full turn.
+ */
+export function indicatrixDistance(
+  a: MultiPoleParams, b: MultiPoleParams, span: readonly [number, number] = [-2, 2], samples = 120,
+): number {
+  const ma = toMember(a), mb = toMember(b)
+  let worst = 0
+  for (let i = 0; i <= samples; i++) {
+    const t = span[0] + ((span[1] - span[0]) * i) / samples
+    const u = derivativeAt(ma, t), v = derivativeAt(mb, t)
+    const nu = Math.hypot(u.x, u.y, u.z), nv = Math.hypot(v.x, v.y, v.z)
+    if (!(nu > 0) || !(nv > 0)) continue
+    worst = Math.max(worst, Math.hypot(u.x / nu - v.x / nv, u.y / nu - v.y / nv, u.z / nu - v.z / nv))
+  }
+  return worst
+}
+
+/**
+ * Walk the fiber all the way round with the λ's and roots held, and report how far it is from closing.
+ *
+ * THE STOPPING RULE IS THE WHOLE POINT, and the old one was the bug. It stopped when three curve points
+ * on t ∈ [0,1] came within 4e-3 — a coarse trigger on the drawn piece. Measured: the closest approach
+ * to the start was ALWAYS the last step taken, i.e. the walk was still coming back when the rule fired,
+ * and at that moment the full indicatrix over t ∈ [−2,2] was still 0.49 away on a unit sphere. The
+ * drawn piece had returned; the curve had not.
+ *
+ * This rule measures the gap modulo the Hopf gauge (exact, no window), waits for the walk to LEAVE
+ * before a return can mean anything, detects the closest approach instead of a threshold crossing, and
+ * then refines the final step onto it by golden section. The distance is V-shaped at a true return, so
+ * a bracketing search is the right tool and a smooth one would not be.
+ *
+ * THE CONTROL is the polynomial PH CUBIC. There the six numbers held here — c′(0) and c(1) — cut out a
+ * provable Hopf circle (`spatialQuinticTorus.test.ts` completes the square for it), so the walk MUST
+ * close. Note which control: on the polynomial QUINTIC the same six numbers leave a FIVE-dimensional
+ * fiber with no loop in it at all, which is what the earlier "|𝒜| grows 5 → 34 and never closes" was
+ * actually measuring. → `fiberClosure.test.ts`
+ */
+export function fiberClosure(
   prm: MultiPoleParams, options: { stride?: number; maxSteps?: number } = {},
-): MultiPoleParams[] {
+): { loop: MultiPoleParams[]; gap: number; closed: boolean } {
   const stride = options.stride ?? 0.05
   const maxSteps = options.maxSteps ?? 900
   const target = dataOf(toMember(prm))
-  const signature = (q: MultiPoleParams): number[] => {
-    const m = toMember(q)
-    return [0.2, 0.45, 0.7].flatMap((t) => { const v = curveAt(m, t); return [v.x, v.y, v.z] })
+  const holds = (q: MultiPoleParams): boolean =>
+    Math.hypot(...dataOf(toMember(q)).map((v, i) => v - target[i])) <= 1e-8
+
+  /** One step of size h along t, then back onto the data. h may be negative or fractional. */
+  const advance = (cur: MultiPoleParams, t: readonly number[], h: number): MultiPoleParams => {
+    const basis = familyBasis(cur)
+    return projectToData(fromCoords(cur, basis, coordsOf(cur, basis).map((v, i) => v + h * t[i])), target)
   }
-  const sig0 = signature(prm)
-  const scale = Math.hypot(...sig0) || 1
+
   const out: MultiPoleParams[] = [prm]
+  const tans: (readonly number[])[] = []
+  const dist: number[] = [0]
   let cur = prm
   let t = fiberTangent(cur)
+  let far = 0
+  let closed = false
   for (let step = 1; step <= maxSteps && t; step++) {
-    const basis = familyBasis(cur)
-    const c = coordsOf(cur, basis).map((v, i) => v + stride * t![i])
-    const stepped = fromCoords(cur, basis, c)
-    const fixed = projectToData(stepped, target)
-    if (Math.hypot(...dataOf(toMember(fixed)).map((v, i) => v - target[i])) > 1e-8) break
-    cur = fixed
+    tans.push(t)
+    const next = advance(cur, t, stride)
+    if (!holds(next)) break
+    const d = gaugeDistance(prm.A, next.A)
+    // A return is a turn taken NEAR THE START, after the walk has genuinely left. Both halves are
+    // needed: the distance-to-start is not monotone along the loop, so "it turned" alone fires on the
+    // first local dip — measured, at step 7 of 136 — and "it is close" alone fires before departure.
+    const left = far > 10 * dist[1]
+    const turned = left && d < 0.2 * far && d > dist[dist.length - 1]
+    far = Math.max(far, d)
+    out.push(next)
+    dist.push(d)
+    cur = next
     t = fiberTangent(cur, t)
-    out.push(cur)
-    if (out.length > 40 && Math.hypot(...signature(cur).map((v, i) => v - sig0[i])) / scale < 4e-3) break
+    if (turned) { closed = true; break }
   }
-  return out
+
+  if (closed) {
+    // out[j] is the closest sample; the true return lies within one stride either side of it.
+    const j = out.length - 2
+    const tj = tans[j]
+    const f = (h: number): number => gaugeDistance(prm.A, advance(out[j], tj, h).A)
+    const phi = (Math.sqrt(5) - 1) / 2
+    let lo = -stride, hi = stride
+    let x1 = hi - phi * (hi - lo), x2 = lo + phi * (hi - lo)
+    let f1 = f(x1), f2 = f(x2)
+    for (let i = 0; i < 32 && hi - lo > 1e-10 * stride; i++) {
+      if (f1 < f2) { hi = x2; x2 = x1; f2 = f1; x1 = hi - phi * (hi - lo); f1 = f(x1) }
+      else { lo = x1; x1 = x2; f1 = f2; x2 = lo + phi * (hi - lo); f2 = f(x2) }
+    }
+    const landing = advance(out[j], tj, f1 < f2 ? x1 : x2)
+    out.length = j + 1
+    if (holds(landing)) out.push(landing)
+  }
+  return { loop: out, gap: gaugeDistance(prm.A, out[out.length - 1].A), closed }
+}
+
+/** Walk the fiber all the way round with the λ's and roots held. See `fiberClosure` for the rule. */
+export function fiberLoop(
+  prm: MultiPoleParams, options: { stride?: number; maxSteps?: number } = {},
+): MultiPoleParams[] {
+  return fiberClosure(prm, options).loop
 }
 
 /** Re-solve the same data after moving one twist rate or one pole. */

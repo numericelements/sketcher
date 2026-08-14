@@ -156,6 +156,7 @@ and `c(1)`.
 | `rationalPHFreeLambda.ts` | solves the residue quadrics with λ free — reaches `m = n+1`. Also `freeLambdaTangent`, `stepAlong` |
 | `rationalCurveBlend.ts` | `squareRootDefect` / `squareRootMismatch` — is `q` a perfect square, algebraically |
 | `rationalPHCoverage.ts` | **SUPERSEDED.** Differentiates a normalised series root; its rank moves with the seed |
+| `rationalPHMultiPoleSpatial.ts` | `fiberClosure` — walks a fibre and says how far it is from closing; `gaugeDistance` (exact, mod the Hopf gauge), `indicatrixDistance` (the sphere picture, safe past a pole) |
 
 **The lesson that made all of them work: carry `σ` as unknowns instead of eliminating it.** Eliminating
 it means dividing by `q(t₀)` and shifting, and the finite-difference Jacobian inherits both — the rank
@@ -164,8 +165,12 @@ at every tolerance from 1e-7 to 1e-11.
 
 **And every instrument needs a control it can fail.** The containment check (do the family's tangent
 columns lie in the variety's tangent?) caught two bad instruments. A Hopf-square fitter that failed its
-own control had its numbers discarded. The torus walk (§8) failed its control and its numbers were
-discarded too.
+own control had its numbers discarded.
+
+**And the control has to be a known answer to the question actually being asked.** The fibre walk was
+withdrawn for a whole session on a control that was known-answer for a *different* question — nine
+numbers held, not six (§8). Before trusting a control, check that the instrument's own inputs are the
+ones the control's answer is known for. Here that was one line of arithmetic: `12 − 6 − 1 = 5`.
 
 ---
 
@@ -186,18 +191,42 @@ discarded too.
 
 ## 8. Open
 
-**Is the rational Hermite fibre a torus?** *Unresolved, and the word must not go on a slide yet.* It is
-2-dimensional (measured) and walks in it stayed bounded over 6000 steps. But the continuation walk used
-to test closure **fails its control**: run on the polynomial quintic, where the leftover is provably a
-circle of fixed radius (`Y i Ȳ = T`), the same walk has `|𝒜|` growing linearly 5 → 34 and never closes.
-So the walk is buggy, not the geometry. Two routes: (a) fix the walk against the control — `|Y|` must
-be constant along it; (b) redo the completion-of-the-square algebraically for the rational case, which
-is what made the polynomial case certain. **(b) is the better investment** — a derivation needs no
-control.
+**~~The walk fails its control~~ — RESOLVED 2026-08-14. The control was misapplied, not the walk.**
+`fiberLoop` holds **six** numbers (`c′(0)`, `c(1)`). On the polynomial quintic that leaves
+`12 − 6 − 1 = 5` — a **five-dimensional** fibre with no loop in it, which is all the "`|𝒜|` grows
+5 → 34" was measuring. The quintic is a provable circle only with **nine** numbers held, and that is a
+*torus*, where a generic tangent winds forever — so it could not have been this walk's control either
+way.
 
-**`fiberLoop`'s closure test is weak.** It stops when three curve points on `t ∈ [0,1]` return to within
-4e-3. At that moment `σ` is still 3.6% away and the full indicatrix over `t ∈ [−2,2]` is **0.49** away
-(on a unit sphere). "The fibre closes" currently rests on a three-point test on the visible piece.
+The right control is the **polynomial PH cubic**: `8 − 6 − 1 = 1`, and the six numbers it holds are
+exactly the six the walk holds. It is a provable Hopf circle by the same completion of the square, which
+in this module's *monomial* basis reads `Y = A₁ + 3/2·A₀`, `Y i Ȳ = 3Δc − ¾c′(0)` (the ½ in
+`spatialQuinticTorus` is the Bernstein coefficient — same algebra, different basis).
+
+```
+polynomial CUBIC    fibre 1    CLOSES     gauge 5.3e-10   indicatrix 3.5e-10   curve 5.0e-11
+rational quintic    fibre 1    CLOSES     gauge 8.5e-11   indicatrix 3.7e-11   curve 1.9e-12
+polynomial QUINTIC  fibre 5    REFUSES    gap 7.5 — correctly reports that there is no loop
+```
+
+with both Hopf identities held to 1e-13 along the whole cubic walk. **The one-dimensional rational
+fibre genuinely closes.** → `fiberClosure.test.ts`
+
+**~~`fiberLoop`'s closure test is weak~~ — FIXED.** The three-point trigger on `t ∈ [0,1]` fired at step
+155 of 158 with the full indicatrix still 1.6e-2 away; the closest approach was always the *last step
+taken*, i.e. the walk was still coming back when it was stopped. `fiberClosure` now measures the gap
+**modulo the Hopf gauge** — exact and complete, since the same `𝒜` mod gauge is the same curve at every
+`t`, so there is no window to hide outside of — waits for the walk to leave, detects the turn *near the
+start*, and refines the final step onto it by golden section (bracketing, because the distance is
+V-shaped at a true return). `indicatrixDistance` exposes the sphere-picture measure separately, sampled
+over `t ∈ [−2,2]`: `T = c′/‖c′‖` is a unit vector everywhere, so it is the one quantity safe to sample
+past a pole.
+
+**Still open: is the degree-6 C¹ Hermite fibre a torus?** The instrument is now trustworthy, but this
+question is *not* answered by the above. That fibre is **2**-dimensional, and a walk along a generic
+tangent on a torus never closes. It needs two *coordinates*, each returning at a full turn — which is
+also exactly what the two fibre sliders of the next slide pair must be. Measure the two directions'
+independence first (§9.5), then close each one.
 
 **Why is every chart member a singular point of the variety?** Rank deficit 2 at degree 4, 4 at degree
 6, at every family tried. Not the gauge, not pole reality, not the pole count, not `deg w`. Unexplained.
@@ -286,7 +315,7 @@ picture is worth drawing — sweep the configuration numerically and look at the
 
 ---
 
-## 9.6 The next pair — agreed design, blocked on §8
+## 9.6 The next pair — agreed design
 
 `inside-the-chart` currently has: title, slide 1 (what a chart is), **slide 3** (the pole on the
 sphere), **slide 4** (the same pole on the curve).
@@ -300,7 +329,7 @@ STRICT                              handles
   P₅   carries c′(1)                  3        draggable
   P₆   carries c(1)                   3        draggable
   P₂ P₃ P₄                            —        OUTPUTS, drawn grey
-  the fibre                           2        sliders  ← the torus, IF §8 resolves
+  the fibre                           2        sliders  ← two COORDINATES, not two directions (§8)
   twist λ                             1        slider
   pole r                              1        slider
                                     ────
@@ -308,6 +337,18 @@ STRICT                              handles
 
 FREE     all seven control points draggable, one at a time, ends held, NO sliders
 ```
+
+**The dial count is the POLE count.** One pole ⟹ **one** λ and **one** `r`, so the sliders are 2 + 1 + 1
+= 4, and `12 + 4 = 16` closes against the measured chart dimension. Six sliders would be 18 — two dead
+handles, which §9.2 forbids. (Six dials would mean three poles, and that family has fibre 8, so the map
+to the nine Hermite numbers has rank ≤ 7: **C¹ Hermite is not posable there at all.** One pole is the
+only degree-6 family in which this figure exists, which is a reason to choose it rather than a
+convenience. Degree 4 fails the same way — fibre 8, rank 7 of 9 — which is why slides 3–4 hold six
+numbers.)
+
+**On a rational Bézier, `P₁` does not carry `c′(0)` by position alone**: `c′(0) = 6(w₁/w₀)(P₁ − P₀)`, so
+the weight is in it too. The handle sets a direction and the family settles the magnitude — the same
+situation slide 4's `dragTangent` already lives with, and the reason `strictHandlesTrack.test.ts` exists.
 
 **No pole selector yet** — deferred until this pair exists. The four degree-6 families have fibres 12,
 8, 4 and 0, so they cannot share a held-data convention; a selector wants to be its own slide, whose
