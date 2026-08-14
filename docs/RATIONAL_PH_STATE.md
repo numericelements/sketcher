@@ -583,12 +583,38 @@ root**, because
 `𝒜i𝒜̄` being a *pure vector* — the Hopf map doing a third job, after making PH free and making the
 interpolation fibre a circle.
 
-**NOT constant along the fibre sliders — 0.6 % to 1.6 %**, identically along A alone, B alone and the
-whole grid. This contradicts nothing, but it must not be carried over from the sibling deck:
-`torusTimesRoads` measures arc length *exactly* constant (1e-9) on a **different fibre** — degree 5, two
-poles, **six** numbers held (`c′(0)`, `c(1)`), 1-dimensional. The degree-6 pair holds **nine** and its
-fibre is 2-dimensional, and there the length moves. **"The torus kept its incapacity" is not a fact
-about this pair.**
+**And there IS a conservation law, on the MIDDLE circle only.** Eric expected one from the quaternions
+and it is there. On the polynomial quintic, arc length is the quadratic form `Σ mᵢⱼ⟨Bᵢ,Bⱼ⟩` with
+`mᵢⱼ = C(2,i)C(2,j)/(5·C(4,i+j))`. Substituting `B₁ = Y − ¾S`, the terms **linear in Y** are
+
+```
+⟨Y, −(3/2)m₁₁·S + 2m₀₁·B₀ + 2m₁₂·B₂⟩     m₁₁ = 2/15,  m₀₁ = m₁₂ = 1/10
+  = ⟨Y, −⅕(B₀+B₂) + ⅕B₀ + ⅕B₂⟩ = ⟨Y, 0⟩ = 0
+```
+
+an **exact cancellation**, leaving `arc = const + m₁₁|Y|²` — and `|Y|² = |T|` is fixed on the Hopf
+circle. **The same ¾ that completes the square in the displacement kills the linear term in the arc
+length.** One completion, two jobs.
+
+```
+                    MIDDLE circle (s alone)   end phase ψ
+r = 1.7  θ = 35°      1.16e-9                   9.55e-3
+r = 4    θ = −35°     9.92e-10                  1.61e-2
+r = 20   θ = 35°      2.37e-8                   2.03e-2
+```
+
+and it holds on the **rational** side, where it was not derived.
+
+**This also explains the pattern that started the question.** The 1-dimensional fibres over SIX numbers
+(`c′(0)`, `c(1)`) — where `torusTimesRoads` measures length constant to 1e-9 at 1, 2 and 3 poles — ARE
+the middle circle: once both ends are pinned the only direction left is the `Y` circle. So that
+constancy was this law all along, and it is about the *direction*, not about the fibre's dimension.
+
+**The SHIPPED sliders do move it, by 0.6 %–1.6 %**, because both `A = ψ` and `B = ψ + s` contain the end
+phase. A length-preserving handle would be `s` alone — which is also the **−1 eigendirection** of the
+mirror, `M = [1 0; 1 −1]` having eigenvectors `(2,1)` and `(0,1) = s`. So the eigenbasis `(2ψ+s, s)`
+gives one mirror-symmetric slider and one that is mirror-antisymmetric *and* isometric; the exchanged
+pair `(ψ, ψ+s)` gives neither. **That is a real design choice, not a detail.**
 
 ### The three symmetric configurations, and what each costs
 

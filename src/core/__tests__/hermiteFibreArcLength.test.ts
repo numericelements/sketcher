@@ -28,8 +28,25 @@
 //    degree-6 pair holds NINE (full C¹ Hermite) and its fibre is 2-dimensional, and there the length
 //    moves. So "the torus kept its incapacity" does not carry over, and a slide must not say it does.
 //
-//    Measured identically along A alone, B alone and the whole grid — the variation is a property of
-//    the fibre, not of one slider.
+//    Measured identically along A alone, B alone and the whole grid — because BOTH shipped sliders
+//    contain ψ (they are ψ and ψ+s).
+//
+// 3. AND THERE IS AN ALGEBRAIC REASON, which Eric expected from the quaternions and which is better
+//    than it first looked: the MIDDLE circle conserves arc length EXACTLY, and only the end phase
+//    changes it. On the polynomial quintic, arc length is the quadratic form Σ mᵢⱼ⟨Bᵢ,Bⱼ⟩ with
+//    mᵢⱼ = C(2,i)C(2,j)/(5·C(4,i+j)). Substituting B₁ = Y − ¾S, the terms LINEAR in Y are
+//
+//        ⟨Y, −(3/2)m₁₁·S + 2m₀₁·B₀ + 2m₁₂·B₂⟩ ,   m₁₁ = 2/15,  m₀₁ = m₁₂ = 1/10
+//          = ⟨Y, −⅕(B₀+B₂) + ⅕B₀ + ⅕B₂⟩ = ⟨Y, 0⟩ = 0
+//
+//    an EXACT cancellation, leaving arc = const + m₁₁|Y|² — and |Y|² = |T| is fixed on the Hopf circle.
+//    THE SAME ¾ THAT COMPLETES THE SQUARE IN THE DISPLACEMENT KILLS THE LINEAR TERM IN THE ARC LENGTH.
+//    One completion, two jobs.
+//
+//    Measured below: the middle circle holds the length to 1e-9 while the end phase moves it by 1–2 %,
+//    on the RATIONAL side as well as the polynomial one. It also explains the pattern that started this:
+//    the 1-dimensional fibres over SIX numbers (c′(0), c(1)) ARE the middle circle — once both ends are
+//    pinned the only direction left is the Y circle — so constancy there was this law all along.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
@@ -40,7 +57,7 @@ import {
   cx, familyBasis as cBasis, phDefect as cPH, speedAt as cSpeed, toMember as cMember,
   unpackSpinor as cUnpack, type ComplexPoleParams,
 } from '../rationalPHComplexPoleSpatial'
-import { hermiteChart } from '../rationalHermiteCircles'
+import { hermiteChart, middleCircle } from '../rationalHermiteCircles'
 import { leastSquares } from '../linalg'
 import type { Quat } from '../quaternion'
 
@@ -140,7 +157,26 @@ describe('arc length on the degree-6 Hermite fibre', () => {
     }
   }, 300_000)
 
-  it('BUT IT IS NOT CONSTANT along the fibre sliders — 0.6 % to 1.6 %', () => {
+  it('THE MIDDLE CIRCLE CONSERVES IT EXACTLY — and the end phase does not', () => {
+    // The prediction from the cancellation above, tested on the rational side where it was not derived.
+    for (const [r, th] of [[1.7, 35], [1.7, 0], [4, -35], [20, 35]] as const) {
+      const m = seedR(r, th)
+      const mid = middleCircle(m)!
+      const ch = hermiteChart(m)!
+      const angles = [0, 45, 90, 135, 180, 225, 270, 315].map((d) => (d * Math.PI) / 180)
+      const spread = (L: number[]): number => (Math.max(...L) - Math.min(...L)) / Math.max(...L)
+      const middleOnly = angles.map((t) => arc(mid.at(t)))
+      const endOnly = angles.map((t) => arc(ch.at(t, 0)!))
+      console.log(
+        `    r=${String(r).padStart(4)} θ=${String(th).padStart(4)}°:  MIDDLE circle ${spread(middleOnly).toExponential(2)}` +
+          `   |  end phase ψ ${spread(endOnly).toExponential(2)}   (length ${middleOnly[0].toFixed(6)})`,
+      )
+      expect(spread(middleOnly), 'the completed square conserves the length').toBeLessThan(1e-6)
+      expect(spread(endOnly), 'and the end phase genuinely does not').toBeGreaterThan(1e-3)
+    }
+  }, 600_000)
+
+  it('BUT NOT ALONG THE SHIPPED SLIDERS — 0.6 % to 1.6 %, since both contain ψ', () => {
     // The sibling result says the opposite and is about a DIFFERENT fibre: torusTimesRoads holds SIX
     // numbers on a 1-dimensional fibre at degree 5, and there the length is constant to 1e-9. Here nine
     // numbers are held and the fibre is 2-dimensional. A slide must not carry the other punchline over.
