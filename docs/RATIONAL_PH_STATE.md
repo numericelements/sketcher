@@ -2,7 +2,8 @@
 
 *Working state as of 2026-08-14. The durable facts live in the test files named below; this file is
 the map, the retractions, and the plan. If you are picking this up cold, read this first, then the
-tests it names — not the other way round.*
+tests it names — not the other way round. §11 is the mathematics underneath, and is the place to start
+if the goal is to advance the subject rather than to continue the code.*
 
 The goal behind all of it: **local modification of 3D PH curves during editing** (Eric's letter to
 Carlotta). The rational work is a detour taken to understand 3D PH curves well enough to get there.
@@ -332,3 +333,109 @@ Recorded because the same three failures repeated all session.
 And the reverse: several of the best results this session came from Eric asking a plain question —
 *"can the missing dimension be a reparametrisation?"*, *"is it often one degree less?"*, *"how many
 fibre sliders?"* — that reframed a measurement programme in one line.
+
+
+---
+
+## 11. The mathematics underneath — where the depth actually is
+
+*Written for whoever picks this up next. The sections above are what we measured; this is the theory
+those measurements are shadows of. Almost every hard-won result in this file is a special case of
+something classical, and knowing which one turns a week of numerics into a paragraph.*
+
+### 11.1 The five structures that do the real work
+
+**The Hopf map, made algebraic.** `N = 𝒜i𝒜*` is the Hopf fibration `S³ → S²` written in polynomial
+coefficients. The gauge `𝒜 ↦ 𝒜e^{iθ}` is *literally the Hopf fibre*, which is why it moves no curve.
+Its image is exactly the Pythagorean quadruples — that is the content of "PH is free in this
+representation", and the reason the whole construction exists. When something in this project is
+invariant under the gauge, look for a Hopf-theoretic reason before computing.
+
+**Sums of squares, and the Pythagoras number of `ℝ[t]` is 2.** `σ = |𝒜|²` is a sum of FOUR squares,
+and this is not decoration: every nonnegative real polynomial is a sum of *two* squares, which is why
+the planar theory is elementary and the spatial one is not. The 2D/3D gap this project keeps meeting
+is exactly one square against a sum of two. Pfister's theory and the Cassels–Ellison–Pfister circle
+of results are the right background; `sp11SquareClass.test.ts` was the first probe into it.
+
+**Hurwitz's theorem** — composition algebras exist only in dimensions 1, 2, 4, 8. This is *why* there
+is a quaternionic spinor representation in 3D at all, and why the same trick does not generalise
+upward. If a future idea needs "a nice product on ℝⁿ", Hurwitz decides whether it can exist.
+
+**The residue theorem on `ℙ¹`.** §3's whole story — three dependencies at `m = n+1`, the fibre
+collapsing, the `dim 𝒱` caveat — is the classical statement that the residues of a rational
+differential sum to zero. We rediscovered it numerically over two days. The general lesson: **when a
+dimension count fails, look for a syzygy among the equations**, not for a bug.
+
+**Conformal geometry: `Cl(4,1)`, `Sp(1,1) ≅ Spin(4,1)`.** Points of `ℝ³ ∪ {∞}` as null vectors in
+`ℝ^{4,1}`, spheres as ordinary vectors, and Möbius transformations acting **linearly**. This is the
+formulation in which the `p/w` gauge's artefacts (the `σ = 0` stratum, the absorbing theorem) become
+visible as artefacts. Note the measured caveat: the covariant form does **not** remove the singularity
+(§7), so it is a better *language*, not a cure.
+
+### 11.2 The habits that would have saved this session
+
+- **Prefer a derivation to a measurement when one is available.** The polynomial torus is *derived* —
+  three Hopf circles, gauge the diagonal — and is therefore certain. Ours is measured and still
+  unresolved. A derivation needs no control.
+- **Find the group acting, and quotient by it early.** Hopf gauge, projective scale, `PGL(2,ℝ)` on the
+  parameter, `O(4,1)` on space. Nearly every dimension we got wrong was a group we had not divided out
+  — or had divided out twice (§7, the conformal moduli).
+- **Distinguish parametrised from unparametrised.** PH is a property of the *parametrisation*, not the
+  point set. The entire "missing degree of freedom" turned out to be `PGL(2,ℝ)` acting on `t`.
+- **Distinguish the Zariski tangent space from the local dimension.** At a singular point the tangent
+  overestimates. "12 of 15" was that mistake; the answer was 13.
+- **Ask what is invariant before computing in coordinates.** Half of the retractions in §7 are
+  coordinate artefacts.
+
+### 11.3 References
+
+*Present in `~/Documents/Carlotta` and used directly:*
+
+- **Kalkan, Scharler, Schröcker & Šír**, *Rational Framing Motions and Spatial Rational Pythagorean
+  Hodograph Curves*, CAGD 2022 (arXiv:2111.04600). **The central paper for this line.** Theorem 3.6
+  characterises all rational PH curves via motion polynomials `C = (α + εb)𝒜`; Theorem 4.6 gives the
+  cusp/inflection criterion we use; Rem. 4.7 is our pole ⟺ cusp fact. Its stated future work — "fully
+  describe the basis of the linear system of PH curves with given tangent indicatrix" — *is* our
+  `familyBasis`.
+- **Farouki & Sakkalis**, *Construction of rational curves with rational arc lengths by direct
+  integration*, CAGD 74, 2019.
+- **Farouki & Šír**, *Rational Pythagorean-hodograph space curves*, CAGD 28, 2011.
+- **Farouki, Giannelli & Sestini**, *New developments in theory, algorithms, and applications for PH
+  curves*, 2019 — the survey; the fastest way in.
+- **Pottmann**, *Rational curves and surfaces with rational offsets*, CAGD 12, 1995 — the dual/envelope
+  route, and the Laguerre-geometry doorway.
+- **2026, "A complete characterization of PH preserving mappings"** — recent, in the folder, not yet
+  read here. Likely bears directly on the Möbius question.
+
+*Cited from memory — verify before relying on a page number:*
+
+- **Farouki**, *Pythagorean-Hodograph Curves: Algebra and Geometry Inseparable*, Springer 2008 — the book.
+- **Farouki & Sakkalis**, *Pythagorean-hodograph space curves*, Adv. Comp. Math. 2, 1994 — spatial PH
+  cubics are helices, which is our degree-4 closure result.
+- **Choi, Lee & Moon**, *Clifford algebra, spin representation, and rational parameterization of curves
+  and surfaces*, Adv. Comp. Math. 17, 2002 — the spinor/Clifford foundation.
+- **Dietz, Hoschek & Jüttler**, *An algebraic approach to curves and surfaces on the sphere and on
+  other quadrics*, CAGD 10, 1993 — the characterisation of Pythagorean quadruples, i.e. when
+  `N = h·(𝒜i𝒜*)`. Relevant to the still-open question of §8.
+- **Li, Schicho & Schröcker**, *Factorization of motion polynomials*, J. Symb. Comput. 92, 2019; and
+  **Hegedüs, Schicho & Schröcker**, *Factorization of rational curves in the Study quadric*, Mech.
+  Machine Theory 69, 2013 — the machinery behind `sp11Factorisation.ts`.
+- **Sommese & Wampler**, *The Numerical Solution of Systems of Polynomials Arising in Engineering and
+  Science*, World Scientific 2005 — witness sets, numerical irreducible decomposition, monodromy and
+  the trace test. **If the `deg 𝒱` question is reopened, use a real tool** (`HomotopyContinuation.jl`
+  or Bertini) with certified endgames that report path failures. §7 records why the ad-hoc version
+  was withdrawn.
+- **Cecil**, *Lie Sphere Geometry*, Springer — `ℝ^{4,2}`, `Spin(4,2) ≅ SU(2,2)`, where Möbius and
+  Laguerre are both subgroups. This is the stated destination: curves are the one-dimensional shadow,
+  surfaces are the objects.
+
+### 11.4 The one question worth the most
+
+Every member the chart builds is a **singular point** of the PH variety — deficit 2 at degree 4, 4 at
+degree 6, in both the `p/w` and the covariant formulations, at every family tried. Not the gauge, not
+the reality of the poles, not the pole count, not `deg w`. All four tested and dead (§7).
+
+An explanation would probably be one line of the right theory, and it would likely also settle whether
+the Hermite fibre is a torus. My guess, untested: it has to do with `σ = |𝒜|²` being a *sum of four
+squares* rather than merely a nonnegative polynomial — a semialgebraic condition sitting inside an
+algebraic one. Dietz–Hoschek–Jüttler is where I would look first.
