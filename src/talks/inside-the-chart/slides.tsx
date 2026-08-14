@@ -596,31 +596,52 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // 8 — a DECISION RECORD, not an argument. The fibre's two sliders can be chosen
-  //     in several ways and the choice is not forced; this slide states what each
-  //     one buys and what the arithmetic forbids, so it can be settled later
-  //     without re-deriving anything.
+  // 8 — a DECISION RECORD, not an argument. Which basis the two fibre sliders
+  //     should use. The logical order matters and an earlier draft had it wrong:
+  //     symmetry is bought at the HANDLES and only then explored by the sliders.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
         <Tag status={['OPEN', 'MEAS']} />
-        <h2>Which two circles?</h2>
+        <h2>First make it symmetric, then choose the circles</h2>
         <p>
-          The fibre is a torus, so &ldquo;the two sliders&rdquo; is a <em>choice of basis</em>, not a
-          fact. Different choices are all correct and they feel completely different. The mirror is
-          what makes the choice non-arbitrary: with <Math>{'\\psi'}</Math> the end phase and{' '}
-          <Math>{'s'}</Math> the middle circle, reversal acts as
+          <strong>Symmetry lives in the data, not in the fibre.</strong> Every member of a fibre carries
+          the <em>same</em> nine Hermite numbers, so whether a half-turn maps the curve to itself is
+          decided before any slider is touched. Scanning all 576 cells of the{' '}
+          <Math>{'(\\psi, s)'}</Math> grid: with asymmetric data the best any member manages is{' '}
+          <strong>2e-1</strong>; make the data symmetric and it drops to <strong>8e-3</strong>.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            The sliders cannot make a curve symmetric. The handles can.
+          </strong>
+        </p>
+        <p>
+          So the order is: move <Math>{'P_1'}</Math> and <Math>{'P_5'}</Math> until the data admits a
+          half-turn &mdash; watch <em>symmetry defect</em> fall to zero &mdash; and only then does the
+          mirror act on the fibre at all. The condition is two scalars, and the axis is not free but
+          fixed by the data:
         </p>
         <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
           <Math display>
-            {'\\sigma(\\psi, s) = (\\psi,\\; \\psi - s), \\qquad M = \\begin{pmatrix} 1 & 0 \\\\ 1 & -1\\end{pmatrix}, \\qquad M^2 = I, \\quad \\det M = -1'}
+            {'|c^{\\prime}(0)| = |c^{\\prime}(1)| , \\qquad \\Delta c \\perp \\bigl(c^{\\prime}(0) - c^{\\prime}(1)\\bigr)'}
           </Math>
         </p>
         <p>
-          An involution of a torus has two eigendirections, and here <strong>both are geometrically
-          meaningful</strong> rather than merely convenient:
+          <strong>And it is a half-turn, not a reflection</strong> &mdash; the curve looks the same
+          turned 180&deg; about an axis, like an <b>S</b>, not flipped in a plane like an <b>A</b>. The
+          two conditions differ by one sign: the axis runs along the <em>difference</em> of the end
+          tangents for a half-turn, along their <em>sum</em> for a reflection. Data built for the wrong
+          one reads <strong>0.99</strong> where the right one reads <strong>0.00</strong>. Only the
+          half-turn is available: spinors realise spatial motions as{' '}
+          <Math>{'\\mathcal{A} \\mapsto q\\mathcal{A}'}</Math>, which is <Math>{'SO(3)'}</Math>.
+        </p>
+        <p>
+          <strong>Once the data is symmetric, the fibre splits.</strong> Reversal acts as{' '}
+          <Math>{'\\sigma(\\psi, s) = (\\psi, \\psi - s)'}</Math>, an involution with two eigen&shy;
+          directions, and each preserves something different as you slide along it:
         </p>
         <div
           style={{
@@ -633,33 +654,27 @@ export const slides: SlideDefinition[] = [
             alignItems: 'baseline',
           }}
         >
-          <span><Math>{'(2,1) = 2\\psi + s'}</Math></span>
-          <span><strong>the fixed circle</strong></span>
+          <span><Math>{'2\\psi + s'}</Math></span>
+          <span><strong>keeps the symmetry</strong></span>
           <span>
-            <Math>{'\\sigma'}</Math> fixes it pointwise, since <Math>{'\\psi - s \\equiv s'}</Math>{' '}
-            means <Math>{'\\psi \\equiv 2s'}</Math>. Every curve on it is <em>its own mirror</em> —
-            measured self-mirror to <strong>3e-3</strong> at <Math>{'r = 20'}</Math>, against{' '}
-            <strong>2e-1</strong> anywhere off it
+            the fixed circle of <Math>{'\\sigma'}</Math>. Slide along it and every curve you pass is
+            still half-turn symmetric &mdash; measured <strong>3e-3</strong> at{' '}
+            <Math>{'r = 20'}</Math> against <strong>2e-1</strong> off it. It does <em>not</em> keep the
+            length
           </span>
-          <span><Math>{'(0,1) = s'}</Math></span>
-          <span><strong>the isometric circle</strong></span>
+          <span><Math>{'s'}</Math></span>
+          <span><strong>keeps the length</strong></span>
           <span>
-            <Math>{'\\sigma'}</Math> reverses it, and it preserves <em>arc length</em> —{' '}
-            <strong>1e-9</strong>, while every loop containing <Math>{'\\psi'}</Math> moves the length
-            by 0.6&ndash;2 %
+            arc length to <strong>1e-9</strong>, while every loop containing <Math>{'\\psi'}</Math>
+            {' '}moves it by 0.6&ndash;2 %. It does <em>not</em> keep the symmetry &mdash;{' '}
+            <Math>{'\\sigma'}</Math> reverses it. And this one needs no symmetric data at all
           </span>
         </div>
-        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
-          <strong style={{ fontSize: '1.05em' }}>
-            But the two eigendirections are not a lattice basis:{' '}
-            <Math>{'\\det\\begin{pmatrix} 2 & 0 \\\\ 1 & 1\\end{pmatrix} = 2'}</Math>
-          </strong>
-        </p>
         <p>
-          They generate an <strong>index-2 sublattice</strong>, so as sliders they double-cover: two
-          settings give the same curve. Each still closes at <Math>{'2\\pi'}</Math> and together they
-          still reach everything — it is redundancy, not error — but it is a real wart on a handle. So
-          you may have <strong>any two of three</strong>, never all:
+          The obvious move is to make those two the sliders. The arithmetic forbids it:{' '}
+          <Math>{'\\det\\begin{pmatrix} 2 & 0 \\\\ 1 & 1\\end{pmatrix} = 2'}</Math>, so they generate
+          only half the lattice and would double-cover &mdash; two settings, one curve. You may have{' '}
+          <strong>any two of three</strong>:
         </p>
         <div
           style={{
@@ -672,13 +687,13 @@ export const slides: SlideDefinition[] = [
             alignItems: 'baseline',
           }}
         >
-          <span><strong>basis</strong></span>
-          <span><strong>lattice</strong></span>
-          <span><strong>self-mirror axis</strong></span>
-          <span><strong>isometric axis</strong></span>
+          <span><strong>sliders</strong></span>
+          <span><strong>honest basis</strong></span>
+          <span><strong>keeps symmetry</strong></span>
+          <span><strong>keeps length</strong></span>
           <span><Math>{'(\\psi,\\; \\psi + s)'}</Math> &mdash; shipped</span>
           <span>yes</span>
-          <span>no (they swap)</span>
+          <span>no</span>
           <span>no</span>
           <span><Math>{'(\\psi,\\; s)'}</Math></span>
           <span>yes</span>
@@ -689,53 +704,47 @@ export const slides: SlideDefinition[] = [
           <span><strong>yes</strong></span>
           <span>no</span>
           <span><Math>{'(2\\psi + s,\\; s)'}</Math></span>
-          <span><strong>no</strong> (index 2)</span>
+          <span><strong>no</strong> &mdash; index 2</span>
           <span><strong>yes</strong></span>
           <span><strong>yes</strong></span>
         </div>
         <p style={{ opacity: 0.85 }}>
-          <strong>A fourth option, and possibly the best one.</strong> The fixed circle may be worth
-          more as a <em>place to be</em> than as an axis: a <strong>button</strong> — &ldquo;go to the
-          symmetric member&rdquo; — leaving the sliders as <Math>{'(\\psi, s)'}</Math> with its
-          isometric second handle. That gets all three properties, at the cost of one of them being a
-          destination rather than a direction.
-        </p>
-        <p style={{ opacity: 0.85 }}>
-          <strong>And two conditions gate all of it.</strong> The mirror only acts on the fibre when the
-          held data admits one — watch <em>symmetry defect</em> — and only exactly when the pole has
-          nowhere to move: exact in the polynomial limit, and improving 12× as{' '}
-          <Math>{'r'}</Math> goes out (4.0e-2 at <Math>{'r = 1.7'}</Math>, 3.3e-3 at{' '}
-          <Math>{'r = 100'}</Math>). The isometric property, by contrast, needs neither: it holds at
-          every pole and for any data.
+          <strong>Undecided, and written down so it can be decided later.</strong> One thing is already
+          clear from the table: <Math>{'s'}</Math> is the robust handle. Keeping the length needs
+          neither symmetric data nor a distant pole, while everything about the symmetry needs both
+          &mdash; exact only where the pole cannot move, and improving 12&times; as{' '}
+          <Math>{'r'}</Math> goes out. If one property has to survive to a final deck, it is that one.
         </p>
         <Cite>
-          The mirror&rsquo;s action and the exchanged pair are{' '}
-          <Math>{'\\texttt{mirroredSliderPair.test.ts}'}</Math>; its behaviour at a genuine pole is{' '}
-          <Math>{'\\texttt{sliderPairAcrossThePole.test.ts}'}</Math>. That the middle circle is
-          isometric — and why, the same <Math>{'3/4'}</Math> that completes the square killing the
-          linear term in <Math>{'\\int|\\mathcal{A}|^2'}</Math> — is{' '}
+          That the sliders cannot reach a symmetric curve, and that the handles can, is the 576-cell
+          scan in <Math>{'\\texttt{hermiteTorusCoordinates.test.ts}'}</Math>&rsquo;s neighbourhood; the
+          mirror&rsquo;s action and the fixed circle are{' '}
+          <Math>{'\\texttt{mirroredSliderPair.test.ts}'}</Math> and{' '}
+          <Math>{'\\texttt{sliderPairAcrossThePole.test.ts}'}</Math>. That{' '}
+          <Math>{'s'}</Math> is isometric &mdash; and why, the same <Math>{'3/4'}</Math> that completes
+          the square killing the linear term in <Math>{'\\int|\\mathcal{A}|^2'}</Math> &mdash; is{' '}
           <Math>{'\\texttt{hermiteFibreArcLength.test.ts}'}</Math>, which also records that the arc
-          length is <em>rational</em>, with no log and no arctan, even at complex poles.
+          length is <em>rational</em>: no log, no arctan, even at complex poles.
         </Cite>
       </>
     ),
     notes:
-      'THIS SLIDE IS A DECISION RECORD, not an argument, and it is fine to say so. The point is that '
-      + 'the fibre is a torus, so "the two sliders" is a choice of basis rather than a fact, and the '
-      + 'choice changes how the figure FEELS without changing any mathematics. '
-      + 'THE ONE THING TO LAND: an involution of a torus has two eigendirections, and here both mean '
-      + 'something. The +1 direction is the FIXED CIRCLE -- curves that are their own mirror, which is '
-      + 'where a symmetric curve actually lives. The -1 direction preserves ARC LENGTH exactly. Those '
-      + 'are not two arbitrary loops; they are the two things the symmetry hands you. '
-      + 'THE OBSTRUCTION IS ARITHMETIC AND WORTH STATING PLAINLY: det = 2, so the two eigendirections '
-      + 'generate only half the lattice and cannot both be sliders without double-covering. Any two of '
-      + 'three. That is a fact about the matrix, not a defect of the construction. '
-      + 'IF ASKED WHAT I WOULD PICK: the button. Sliders (psi, s) so one handle provably changes shape '
-      + 'and not length, plus a button that jumps to the self-mirror member. Then the symmetric curve '
-      + 'is somewhere you GO rather than an axis you ride, and nothing is redundant. '
-      + 'DO NOT OVERSELL THE MIRROR. It only acts on the fibre when the data admits one -- that is what '
-      + 'the symmetry-defect readout is for -- and it is exact only where the pole cannot move. The '
-      + 'ISOMETRIC property is the robust one: it needs neither condition. If only one thing survives '
-      + 'to the final deck, it should be that one.',
+      'THE FIRST SENTENCE IS THE WHOLE SLIDE: symmetry lives in the DATA, not in the fibre. Every member '
+      + 'of a fibre carries the same nine numbers, so whether a half-turn maps the curve to itself is '
+      + 'settled before any slider is touched. Scanning all 576 cells of the grid: asymmetric data gives '
+      + 'at best 2e-1, symmetric data gives 8e-3. The sliders cannot make a curve symmetric; the handles '
+      + 'can. An earlier draft of this slide had that backwards and it is worth not repeating. '
+      + 'THEN THE HALF-TURN VERSUS REFLECTION POINT, which is easy to get wrong by eye. The curve looks '
+      + 'the same turned 180 degrees about an axis -- like an S, not like an A. The two conditions '
+      + 'differ by one sign: axis along the DIFFERENCE of the end tangents, not the sum. Data built for '
+      + 'the wrong one reads 0.99 where the right one reads 0.00. And only the half-turn is available at '
+      + 'all, because spinors realise spatial motion as A -> qA, which is SO(3). '
+      + 'ONLY THEN THE TWO CIRCLES, and say what each PRESERVES rather than what it is: 2psi+s keeps the '
+      + 'symmetry as you slide, s keeps the length. Neither keeps both, and det = 2 forbids using them '
+      + 'as a slider pair -- any two of three. '
+      + 'IF ASKED WHAT TO PICK: s is the robust one. Keeping the length needs no symmetric data and no '
+      + 'distant pole; everything about the symmetry needs both. If only one property survives to a '
+      + 'final deck it should be the isometric slider. The symmetry story is real but conditional, and '
+      + 'the slide should stay honest about that.',
   },
 ]
