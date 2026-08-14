@@ -74,6 +74,7 @@ import {
   QUAT_I, qadd, qconj, qmul, qnormSq, qscale, quatFromSandwich, sandwich, vnorm, vsub,
   type Quat, type Vec3,
 } from '../quaternion'
+import { integralOverW2, middleCircle as middleCircleOf, shapePolynomial } from '../rationalHermiteCircles'
 
 const ZERO: Quat[] = Array.from({ length: 4 }, () => ({ u: 0, v: 0, p: 0, q: 0 }))
 const POLE = 1.7
@@ -89,26 +90,6 @@ const SEED: MultiPoleParams = (() => {
   return { ...base, A: unpackSpinor(x) }
 })()
 
-// --- complex arithmetic, just enough for u -------------------------------------------------------
-type Cx = [number, number]
-const cMul = (a: Cx, b: Cx): Cx => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]]
-const cSub = (a: Cx, b: Cx): Cx => [a[0] - b[0], a[1] - b[1]]
-const cScale = (a: Cx, k: number): Cx => [a[0] * k, a[1] * k]
-
-/**
- * u = t(t−1)(αt + β), the unique (up to complex scale) cubic with u(0) = u(1) = 0 and u′(r) = λi·u(r).
- * Returned as its four complex coefficients in t.
- */
-function shapeU(r: number, lambda: number): Cx[] {
-  const P: Cx = [1, 0]                                   // the free complex scale, taken as 1
-  const alpha = cMul(cSub([0, lambda], [(2 * r - 1) / (r * r - r), 0]), P)
-  const beta = cSub(P, cScale(alpha, r))
-  // (t² − t)(αt + β) = α t³ + β t² − α t² − β t
-  return [[0, 0], cScale(beta, -1), cSub(beta, alpha), alpha]
-}
-
-/** A complex polynomial as a quaternion polynomial (in span{1, i}). */
-const asQuat = (c: readonly Cx[]): Quat[] => c.map(([a, b]) => ({ u: a, v: b, p: 0, q: 0 }))
 const polyMulQ = (a: readonly Quat[], b: readonly Quat[]): Quat[] => {
   const out: Quat[] = Array.from({ length: a.length + b.length - 1 }, () => ({ u: 0, v: 0, p: 0, q: 0 }))
   a.forEach((x, i) => b.forEach((y, j) => { out[i + j] = qadd(out[i + j], qmul(x, y)) }))
@@ -116,64 +97,23 @@ const polyMulQ = (a: readonly Quat[], b: readonly Quat[]): Quat[] => {
 }
 const evalQ = (a: readonly Quat[], t: number): Quat =>
   a.reduce((s, c, k) => qadd(s, qscale(c, Math.pow(t, k))), { u: 0, v: 0, p: 0, q: 0 })
-
-/**
- * ∫₀¹ p(t)/(t−r)² dt EXACTLY, by re-expanding p about r. p(t) = Σ cₖ sᵏ with s = t − r gives
- * ∫ Σ cₖ s^{k−2} ds = −c₀/s + c₁·ln|s| + Σ_{k≥2} cₖ s^{k−1}/(k−1). No quadrature anywhere.
- */
-function integralOverW2(p: readonly number[], r: number): number {
-  const c = p.slice()                                     // synthetic division: Taylor coeffs about r
-  const taylor: number[] = []
-  for (let d = 0; d < p.length; d++) {
-    let acc = 0
-    for (let k = c.length - 1; k >= d; k--) { acc = acc * r + c[k]; c[k] = acc }
-    taylor.push(c[d])
-    // c now holds the quotient's coefficients from index d+1 up; the loop above rewrites in place
-  }
-  const at = (s: number): number => {
-    let v = -taylor[0] / s + (taylor[1] ?? 0) * Math.log(Math.abs(s))
-    for (let k = 2; k < taylor.length; k++) v += (taylor[k] * Math.pow(s, k - 1)) / (k - 1)
-    return v
-  }
-  return at(1 - r) - at(-r)
-}
-/** The four real component polynomials of a quaternion polynomial. */
-const comps = (a: readonly Quat[]): number[][] => [
-  a.map((q) => q.u), a.map((q) => q.v), a.map((q) => q.p), a.map((q) => q.q),
-]
-
-/** The pieces of the derivation, exposed so the control can check them directly. */
-function middleCircleParts(base: MultiPoleParams): { uQ: Quat[]; mu: number; X0: Quat } {
+/** The pieces of the derivation, re-derived here so the control checks the SHIPPED module. */
+function middleCircleParts(base: MultiPoleParams): { X0: Quat } {
   const r = base.roots[0], lambda = base.lambdas[0]
-  const uQ = asQuat(shapeU(r, lambda))
-  const uBar = uQ.map(qconj)
-  const mu = integralOverW2(polyMulQ(uQ, uBar).map((q) => q.u), r)
+  const u = shapePolynomial(r, lambda)
+  const uBar = u.map(qconj)
+  const mu = integralOverW2(polyMulQ(u, uBar).map((q) => q.u), r)
   const gPoly = polyMulQ(polyMulQ(base.A as Quat[], [QUAT_I]), uBar)
-  const g = comps(gPoly).map((c) => integralOverW2(c, r))
-  const G: Quat = { u: g[0], v: g[1], p: g[2], q: g[3] }
-  return { uQ, mu, X0: qscale(qmul(G, QUAT_I), -1 / mu) }
+  const g = [gPoly.map((q) => q.u), gPoly.map((q) => q.v), gPoly.map((q) => q.p), gPoly.map((q) => q.q)]
+    .map((c) => integralOverW2(c, r))
+  return { X0: qscale(qmul({ u: g[0], v: g[1], p: g[2], q: g[3] }, QUAT_I), -1 / mu) }
 }
 
-/** THE CLOSED FORM: the middle circle through `base`, as a function of θ. */
-function middleCircle(base: MultiPoleParams): (theta: number) => MultiPoleParams {
-  const r = base.roots[0], lambda = base.lambdas[0]
-  const uQ = asQuat(shapeU(r, lambda))
-  const uBar = uQ.map(qconj)
-  // μ = ∫ |u|²/w² — |u|² is real, and it is the scalar part of u·ū
-  const uu = polyMulQ(uQ, uBar).map((q) => q.u)
-  const mu = integralOverW2(uu, r)
-  // G = ∫ 𝒜₀ i ū /w²
-  const gPoly = polyMulQ(polyMulQ(base.A as Quat[], [QUAT_I]), uBar)
-  const g = comps(gPoly).map((c) => integralOverW2(c, r))
-  const G: Quat = { u: g[0], v: g[1], p: g[2], q: g[3] }
-  // X₀ = −G i / μ ;  with 𝒜₀ IN the fibre the target is already met, so Y = X₀e^{iθ}
-  const X0 = qscale(qmul(G, QUAT_I), -1 / mu)
-  return (theta: number): MultiPoleParams => {
-    const Y = qadd(qscale(X0, Math.cos(theta)), qscale(qmul(X0, QUAT_I), Math.sin(theta)))
-    const D = qmul(qadd(Y, qscale(X0, -1)), { u: 1, v: 0, p: 0, q: 0 })
-    const A = (base.A as Quat[]).map((c, k) => qadd(c, qmul(D, uQ[k] ?? { u: 0, v: 0, p: 0, q: 0 })))
-    return { ...base, A }
-  }
+/** THE SHIPPED CLOSED FORM. */
+const middleCircle = (base: MultiPoleParams) => (theta: number): MultiPoleParams => {
+  const c = middleCircleOf(base)
+  if (!c) throw new Error('middleCircle refused')
+  return c.at(theta)
 }
 
 const H0 = hermiteOf(toMember(SEED))
@@ -182,7 +122,7 @@ const heldTo = (q: MultiPoleParams): number =>
 
 describe('the middle circle, in closed form', () => {
   it('u EXISTS AND IS UNIQUE up to scale: u(0) = u(1) = 0 and u′(r) = λi·u(r)', () => {
-    const uQ = asQuat(shapeU(POLE, LAMBDA))
+    const uQ = shapePolynomial(POLE, LAMBDA)
     expect(qnormSq(evalQ(uQ, 0))).toBeLessThan(1e-24)
     expect(qnormSq(evalQ(uQ, 1))).toBeLessThan(1e-24)
     const du = uQ.slice(1).map((c, k) => qscale(c, k + 1))
@@ -194,7 +134,7 @@ describe('the middle circle, in closed form', () => {
   })
 
   it('AND {X·u} IS EXACTLY THE LEFTOVER FREEDOM — four real dimensions, all admissible', () => {
-    const uQ = asQuat(shapeU(POLE, LAMBDA))
+    const uQ = shapePolynomial(POLE, LAMBDA)
     const base = spinorEndsAndSpan(toMember(SEED), SEED)
     let worstNoLog = 0, worstEnds = 0
     for (const X of [
@@ -255,7 +195,7 @@ describe('the middle circle, in closed form', () => {
     //
     //   1. 𝒜_walk − 𝒜₀ = D·u for some quaternion D — i.e. the walk stays in the {X·u} space
     //   2. |D + X₀| = |X₀| — i.e. Y = X + X₀ sits on the Hopf fibre over T, which IS the circle
-    const uQ = asQuat(shapeU(POLE, LAMBDA))
+    const uQ = shapePolynomial(POLE, LAMBDA)
     const { X0 } = middleCircleParts(SEED)
     const road = fiberRoad(SEED, { stride: 0.08, steps: 10, readout: spinorEndsAndSpan })
     let worstShape = 0, worstRadius = 0, reach = 0

@@ -22,14 +22,14 @@
 //      coordinate that returns at 2π BY CONSTRUCTION — the target at 2π is literally the target at 0.
 //      Measured: 2.4e-16, with the nine Hermite numbers held to 5.6e-13 the whole way round.
 //
-//   s  IS A ROAD ALONG A REAL LOOP. At fixed ψ the leftover is one-dimensional and it DOES close —
-//      648 steps on the polynomial-quintic control, 2180 steps on the rational sextic (gap 1.7e-9).
-//      But 2180 steps is 109 s to walk, so the slider drives a bounded stretch of it rather than the
-//      whole turn. The loop is real; driving all of it live is not affordable.
-//      → degree6TwoCircles.test.ts
+//   s  IS ALSO A CIRCLE, AND NOW IN CLOSED FORM. At fixed 𝒜(0) and 𝒜(1) the leftover freedom is
+//      {X·u(t) : X ∈ ℍ} for one complex cubic u, and because u is complex the displacement condition
+//      completes into one more Hopf equation. So 𝒜(θ) = 𝒜₀ + (X₀e^{iθ} − X₀)u — no solver, closing at
+//      2π because e^{2πi} = 1. This replaces a 2180-step continuation walk that took 109 s to traverse
+//      and could only be shown as a bounded road. → rationalHermiteCircles.ts, rationalMiddleCircle.test.ts
 //
-// COST, and why the split. A projection is ~9 ms, so ψ, λ, r and the handles run live. The ROAD is
-// ~52 projections, so it is built on first touch and rebuilt when a gesture settles, never per frame.
+// COST. A projection is ~9 ms, so ψ, λ, r and the handles run live. The s circle is CLOSED FORM, so it
+// costs nothing at all — which is the practical payoff of the derivation, on top of the honest one.
 //
 // No mathematics lives here, only state. Everything it calls is pinned in
 // core/__tests__/degree6TwoCircles.test.ts and degree6HandlesTrack.test.ts.
@@ -43,7 +43,6 @@ import {
   derivativeAt,
   dragWithEndHeld,
   familyBasis,
-  fiberRoad,
   hermiteOf,
   phaseTarget,
   poleMargin,
@@ -53,6 +52,7 @@ import {
   toMember,
   unpackSpinor,
 } from '../../core/rationalPHMultiPoleSpatial'
+import { middleCircle } from '../../core/rationalHermiteCircles'
 
 export const SEED_POLE = 1.7
 /** Same reason as the degree-4 pair: both ends of the twist dial degenerate to a polynomial curve. */
@@ -77,7 +77,7 @@ export const RANGE = {
   pole: { min: 1.06, max: 4, step: 0.005 },
   theta: { min: -89.9, max: 89.9, step: 0.1 },
   psi: { min: 0, max: 360, step: 0.5 },
-  road: { min: 0, max: 1, step: 0.004 },
+  sAngle: { min: 0, max: 360, step: 0.5 },
 } as const
 
 export type Mode = 'strict' | 'free'
@@ -97,9 +97,10 @@ export interface HermiteState {
   theta: number
   /** Degrees around the 𝒜(1) Hopf circle. */
   psi: number
-  /** The bounded road along the leftover direction, and where on it we are. */
-  road: MultiPoleParams[]
-  roadAt: number
+  /** Degrees around the second (closed-form) fibre circle. */
+  sAngle: number
+  /** The member at (ψ, s = 0) — the base the s circle is built on. */
+  base: MultiPoleParams
   origin: Vec3
   stalled: boolean
 }
@@ -107,8 +108,11 @@ export interface HermiteState {
 const atPhase = (anchor: MultiPoleParams, psiDeg: number): MultiPoleParams =>
   projectOnto(anchor, spinorEndsAndSpan, phaseTarget(anchor, (psiDeg * Math.PI) / 180), 40)
 
-const roadOf = (prm: MultiPoleParams): MultiPoleParams[] =>
-  fiberRoad(prm, { stride: 0.08, steps: 26, readout: spinorEndsAndSpan })
+/** The s circle at a base member — closed form, so this is free to call per frame. */
+const sAt = (base: MultiPoleParams, deg: number): MultiPoleParams => {
+  const circle = middleCircle(base)
+  return circle ? circle.at((deg * Math.PI) / 180) : base
+}
 
 const initial = (): HermiteState => ({
   mode: 'strict',
@@ -117,8 +121,8 @@ const initial = (): HermiteState => ({
   target: hermiteOf(toMember(SEED)),
   theta: OPENING_THETA,
   psi: 0,
-  road: [SEED],
-  roadAt: 0,
+  sAngle: 0,
+  base: SEED,
   origin: { x: 0, y: 0, z: 0 },
   stalled: false,
 })
@@ -154,22 +158,14 @@ export const hermiteChart = {
       ...spinorEndsAndSpan(toMember(next), next).map((v, i) => v - phaseTarget(state.anchor, (deg * Math.PI) / 180)[i]),
     )
     if (err > 1e-6) { emit({ psi: deg, stalled: true }); return }
-    emit({ psi: deg, live: next, stalled: false })
+    // ψ moves the base the s circle is built on; s is then re-applied so the pair reads as coordinates
+    // rather than as a history — turning ψ and back returns to the same curve at the same s.
+    emit({ psi: deg, base: next, live: sAt(next, state.sAngle), stalled: false })
   },
 
-  /**
-   * The leftover direction — a bounded road along a loop that is real but 2180 steps long.
-   *
-   * BUILT ON FIRST USE, not at module load. The road is ~52 projections at ~9 ms, and paying that
-   * while the deck is loading would stall the first paint of every slide. Building it here means the
-   * cost lands on the first touch of this one slider, where the user is already waiting for it.
-   */
-  setRoad(u: number): void {
-    if (state.road.length <= 1) emit({ road: roadOf(state.live) })
-    const road = state.road
-    if (road.length === 0) return
-    const i = Math.min(road.length - 1, Math.max(0, Math.round(u * (road.length - 1))))
-    emit({ roadAt: u, live: road[i], stalled: false })
+  /** The second fibre circle. Closed form, so it costs nothing and returns exactly at 360°. */
+  setS(deg: number): void {
+    emit({ sAngle: deg, live: sAt(state.base, deg), stalled: false })
   },
 
   setTheta(deg: number): void {
@@ -177,7 +173,7 @@ export const hermiteChart = {
       ...state.live, lambdas: [Math.tan((deg * Math.PI) / 180)],
     }
     const next = withHermiteDial(moved, state.target)
-    emit(next ? { live: next, theta: deg, stalled: false } : { theta: deg, stalled: true })
+    emit(next ? { live: next, base: next, sAngle: 0, theta: deg, stalled: false } : { theta: deg, stalled: true })
   },
 
   /**
@@ -196,16 +192,16 @@ export const hermiteChart = {
       if (!next) { emit({ stalled: true }); return }
       cur = next
     }
-    emit({ live: cur, stalled: false })
+    emit({ live: cur, base: cur, sAngle: 0, stalled: false })
   },
 
   /** Rebuild the anchor and the road around wherever the gesture left us. On settle only. */
   settle(): void {
     emit({
       anchor: state.live,
+      base: state.live,
       psi: 0,
-      road: roadOf(state.live),
-      roadAt: 0.5,
+      sAngle: 0,
       target: hermiteOf(toMember(state.live)),
     })
   },
@@ -265,7 +261,7 @@ export const hermiteChart = {
     const solved = projectOnto(state.live, hermiteOf, next, 40)
     const err = Math.hypot(...hermiteOf(toMember(solved)).map((v, i) => v - next[i]))
     if (err > 1e-6 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
-    emit({ origin: world, live: solved, target: next, anchor: solved, psi: 0, stalled: false })
+    emit({ origin: world, live: solved, target: next, anchor: solved, base: solved, psi: 0, sAngle: 0, stalled: false })
   },
 
   /** Shared tail of the strict handles: solve the nine numbers, or report the stall. */
@@ -273,7 +269,7 @@ export const hermiteChart = {
     const solved = projectOnto(state.live, hermiteOf, next, 40)
     const err = Math.hypot(...hermiteOf(toMember(solved)).map((v, i) => v - next[i]))
     if (err > 1e-6 || poleMargin(solved) < 1e-3) { emit({ stalled: true }); return }
-    emit({ live: solved, target: next.slice(), anchor: solved, psi: 0, stalled: false })
+    emit({ live: solved, target: next.slice(), anchor: solved, base: solved, psi: 0, sAngle: 0, stalled: false })
   },
 
   /**
@@ -289,7 +285,8 @@ export const hermiteChart = {
       : dragWithEndHeld(state.live, index, p, end)
     if (!next) { emit({ stalled: true }); return }
     emit({
-      live: next, target: hermiteOf(toMember(next)), anchor: next, psi: 0, stalled: false,
+      live: next, target: hermiteOf(toMember(next)), anchor: next, base: next, psi: 0, sAngle: 0,
+      stalled: false,
     })
   },
 
@@ -304,16 +301,16 @@ export const hermiteChart = {
     const solved = dragWithEndHeld(state.live, null, null, held)
     if (!solved) { emit({ stalled: true }); return }
     emit({
-      origin: world, live: solved, target: hermiteOf(toMember(solved)), anchor: solved, psi: 0,
-      stalled: false,
+      origin: world, live: solved, target: hermiteOf(toMember(solved)), anchor: solved, base: solved,
+      psi: 0, sAngle: 0, stalled: false,
     })
   },
 
   setMode(mode: Mode): void {
     if (mode === 'strict') {
       emit({
-        mode, target: hermiteOf(toMember(state.live)), anchor: state.live, psi: 0,
-        road: [state.live], roadAt: 0, stalled: false,
+        mode, target: hermiteOf(toMember(state.live)), anchor: state.live, base: state.live,
+        psi: 0, sAngle: 0, stalled: false,
       })
     } else {
       emit({ mode, stalled: false })

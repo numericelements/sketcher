@@ -5,10 +5,10 @@
 // ψ + s + λ + r is 16, which is the chart's measured dimension. Offering a fifth would be offering a
 // motion the family does not have.
 //
-// THE TWO FIBRE SLIDERS ARE LABELLED DIFFERENTLY ON PURPOSE. ψ runs 0–360° because it IS a circle —
-// it returns to the same member at 360 by construction. The leftover s runs 0–1 because the loop it
-// lives on is 2180 steps long and the figure precomputes only a bounded ROAD along it. Both are real
-// coordinates of the fibre; only one of them is affordable to drive all the way round.
+// BOTH FIBRE SLIDERS ARE CIRCLES, and both run 0–360°. ψ turns 𝒜(1) on its Hopf fibre; s runs the
+// second circle, which is closed form (`rationalHermiteCircles.ts`) rather than a walk. An earlier
+// version had s as a bounded road labelled 0–1, because the only way to travel that loop was a
+// 2180-step continuation taking 109 s. The derivation replaced it with a formula.
 //
 // `modes` is false on the SPHERE slide, for the same reason as the degree-4 pair: strict and free
 // differ only in which control points may be grabbed, and the sphere draws none.
@@ -42,7 +42,7 @@ const Slider = ({
 )
 
 export default function HermiteControls({ modes = true }: { modes?: boolean }) {
-  const { mode, live, psi, roadAt, theta, stalled } = useHermiteChart()
+  const { mode, live, psi, sAngle, theta, stalled } = useHermiteChart()
   const strict = !modes || mode === 'strict'
 
   return (
@@ -72,9 +72,10 @@ export default function HermiteControls({ modes = true }: { modes?: boolean }) {
           />
           <Slider
             label="fibre s"
-            value={roadAt}
-            range={RANGE.road}
-            onChange={(v) => hermiteChart.setRoad(v)}
+            value={sAngle}
+            range={RANGE.sAngle}
+            onChange={(v) => hermiteChart.setS(v)}
+            width="w-36"
           />
           <Slider
             label="twist θ"

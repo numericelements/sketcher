@@ -17,18 +17,17 @@
 // (§9.4's "no endpoint dots on the sphere" still holds, and for its original reason. The ends staying
 // put under a moving slider says "held" better than two marks would, and it says it while you watch.)
 //
-// THE TWO FIBRE SLIDERS ARE NOT THE SAME KIND OF HANDLE, and the caption says so rather than hiding it.
-// ψ is a CIRCLE — 𝒜(1) turning on its Hopf fibre over c′(1), returning to the same curve at 360° to
-// 2.4e-16. The leftover s closes too (2180 steps, gap 1.7e-9), so the fibre is a circle bundle over a
-// circle — but 2180 steps is 109 s to walk, so the figure drives a bounded stretch of that loop
-// instead of the whole turn.
+// BOTH FIBRE SLIDERS ARE CIRCLES. ψ turns 𝒜(1) on its Hopf fibre over c′(1) and returns at 360° to
+// 2.4e-16. The second, s, is the fibre at FIXED 𝒜(0) and 𝒜(1), and it has a closed form — the rational
+// completed square, `rationalHermiteCircles.ts` — so it returns because e^{2πi} = 1 rather than because
+// a solver came home. It replaced a 2180-step continuation that took 109 s to traverse.
 //
 // The pole still cusps the indicatrix, exactly as on the degree-4 slide — that is a theorem about
 // simple poles (Kalkan–Scharler–Schröcker–Šír, Rem. 4.7), not a feature of degree 4.
 //
 // r3f cannot be verified headlessly, so this file holds no mathematics — only marks and gestures.
-// Everything it displays is pinned in core/__tests__/degree6TwoCircles.test.ts and
-// degree6HandlesTrack.test.ts.
+// Everything it displays is pinned in core/__tests__/degree6TwoCircles.test.ts,
+// rationalMiddleCircle.test.ts, hermiteTorusCoordinates.test.ts and degree6HandlesTrack.test.ts.
 // ============================================================================
 import { useMemo } from 'react'
 import type { Vec3 } from '../../core/quaternion'
@@ -70,7 +69,7 @@ const GREAT_CIRCLES: [number, number, number][][] = [0, 1, 2].map((axis) =>
 const CHORD = 0.003
 
 export default function HermiteSphereFigure() {
-  const { live, theta, psi, target } = useHermiteChart()
+  const { live, theta, psi, sAngle, target } = useHermiteChart()
   const pole = live.roots[0]
 
   const member = useMemo(() => toMember(live), [live])
@@ -92,9 +91,9 @@ export default function HermiteSphereFigure() {
     <Figure3D
       bounds={BOUNDS}
       base={{ width: 900, height: 420 }}
-      notation={['ᴛ = N/σ', 'ψ turns 𝒜(1) on its Hopf circle', 'λ = tan θ']}
+      notation={['ᴛ = N/σ', '𝒜(θ) = 𝒜₀ + (X₀e^{iθ} − X₀)u', 'λ = tan θ']}
       readouts={[
-        { label: 'fibre ψ', value: `${psi.toFixed(0)}°` },
+        { label: 'fibre ψ, s', value: `${psi.toFixed(0)}°, ${sAngle.toFixed(0)}°` },
         { label: 'pole r', value: pole.toFixed(3) },
         {
           label: 'λ',
@@ -114,10 +113,11 @@ export default function HermiteSphereFigure() {
           ends not moving is that data; everything between them is the two-dimensional set of answers
           to it.{' '}
           <span className="text-slate-400">
-            <b>ψ is a circle.</b> It turns <i>𝒜(1)</i> on its Hopf fibre over <i>c′(1)</i>, so at 360°
-            it is back to the same curve — measured to 2.4e-16, with the nine numbers held to 5.6e-13
-            the whole way round. <b>s is a road along the other one.</b> That loop is real too, but it
-            is 2180 steps long, so the slider drives a bounded stretch of it rather than the full turn.{' '}
+            <b>Both fibre sliders are circles.</b> ψ turns <i>𝒜(1)</i> on its Hopf fibre over{' '}
+            <i>c′(1)</i>; <b>s</b> is the fibre at both end spinors fixed, and it has a closed form — so
+            it returns at 360° because <i>e</i><sup>2πi</sup> = 1, not because a solver came home.
+            Between them they reach the whole two-dimensional answer set, with the nine numbers held to
+            1e-12 everywhere on it.{' '}
             <b>The pole still cusps the indicatrix</b> — follow the{' '}
             <b style={{ color: FIG.color.pole }}>violet strand</b> in to the corner and back out. That
             is a theorem about simple poles, not a feature of degree 4. Drag the background to rotate.
