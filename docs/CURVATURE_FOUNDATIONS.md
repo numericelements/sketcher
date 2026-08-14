@@ -953,6 +953,15 @@ where 𝒜 has a **double** root at a pole — 𝒜(r) = 𝒜′(r) = 0, eight r
 `src/core/__tests__/mobiusMovesTheStratum.test.ts` (9 tests) and
 `src/core/__tests__/sp11VarietyRank.test.ts` (5 tests).
 
+
+---
+
+> **Rational spatial PH curves — see `docs/RATIONAL_PH_STATE.md`.** The working state of that line of
+> work: the degree/pole classification, `dim 𝒱`'s caveat at `m = n+1`, the coverage result (the chart
+> reaches everything up to a projective reparametrisation), the instruments, and — importantly — the
+> list of RETRACTED claims so they are not re-derived. F17/F18/F19 below are the durable facts it
+> builds on.
+
 ---
 
 ## F19 — The admissible variety is RATIONAL: the λ-chart read forward IS the parametrisation, and codim = 3m
