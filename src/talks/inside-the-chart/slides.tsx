@@ -38,7 +38,8 @@
 //
 // The degree-6 pair holds full C¹ Hermite data — the first rational degree at which that is posable at
 // all — so its leftover is two-dimensional where the degree-4 pair's is one. Both of those dimensions
-// are circles; only one of them is cheap enough to drive all the way round.
+// are circles, and SLIDE 7 derives the second one in closed form. That slide is the deck's one
+// exception to "nothing here is proved": it exists because it is what makes slides 5 and 6 honest.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
@@ -470,5 +471,113 @@ export const slides: SlideDefinition[] = [
       + 'FREE MODE IS WORTH TEN SECONDS AT THE END. Seven handles, ends holding each other, nothing '
       + 'enforcing PH -- because inside a chart there is nothing to enforce. That is the deck thesis '
       + 'and this is the last place it shows up.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 7 — the one piece of new mathematics in the deck: why the second fibre
+  //     coordinate has a closed form. No figure, deliberately — everything else
+  //     here is driven, and this is the slide that says why the driving works.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['THM', 'MEAS']} />
+        <h2>Why the second circle is a formula</h2>
+        <p>
+          Both sliders on the last two slides return at 360°. One of them does it because a solver
+          came back to where it started. The other does it <strong>because</strong>{' '}
+          <Math>{'e^{2\\pi i} = 1'}</Math>, and that is worth two minutes.
+        </p>
+        <p>
+          Hold both end spinors <Math>{'\\mathcal{A}(0)'}</Math> and <Math>{'\\mathcal{A}(1)'}</Math>
+          {' '}— stronger than holding the two tangents, because it also spends the Hopf gauge. A
+          variation that stays in the family and holds them must satisfy
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <Math display>
+            {'\\delta\\mathcal{A}(0) = 0, \\qquad \\delta\\mathcal{A}(1) = 0, \\qquad \\delta\\mathcal{A}^{\\prime}(r) = \\delta\\mathcal{A}(r)\\,\\lambda i'}
+          </Math>
+        </p>
+        <p>
+          the last being the no-log condition at the pole. Now try{' '}
+          <Math>{'\\delta\\mathcal{A} = X\\cdot u(t)'}</Math> with <Math>{'X \\in \\mathbb{H}'}</Math>{' '}
+          <em>free</em> and <Math>{'u'}</Math> <strong>complex</strong> — valued in{' '}
+          <Math>{'\\mathrm{span}\\{1, i\\}'}</Math>, the subfield that commutes with{' '}
+          <Math>{'i'}</Math>. The residue condition becomes{' '}
+          <Math>{'X u^{\\prime}(r) = X u(r)\\lambda i'}</Math> for <em>every</em>{' '}
+          <Math>{'X'}</Math>, so it stops being a condition on the spinor at all:
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <Math display>{'u(0) = u(1) = 0, \\qquad u^{\\prime}(r) = \\lambda i\\, u(r)'}</Math>
+        </p>
+        <p>
+          which <Math>{'u = t(t-1)(\\alpha t + \\beta)'}</Math> solves outright, uniquely up to complex
+          scale. And now the line the whole thing turns on — because{' '}
+          <Math>{'u'}</Math> is complex, <Math>{'u\\,i\\,\\bar{u} = i|u|^2'}</Math>, so
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <Math display>{'(Xu)\\,i\\,(Xu)^{*}  =  X (u\\,i\\,\\bar{u})\\bar{X}  =  |u|^2 \\cdot X i \\bar{X}'}</Math>
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.4em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>The Hopf map, a second time.</strong>
+        </p>
+        <p>
+          So the displacement condition is a quadratic in one quaternion, and completing the square in{' '}
+          <Math>{'X'}</Math> turns it into one more Hopf equation —{' '}
+          <Math>{'Y i \\bar{Y} = T'}</Math> with <Math>{'Y = X + X_0'}</Math>,{' '}
+          <Math>{'X_0 = -Gi/\\mu'}</Math>. When <Math>{'\\mathcal{A}_0'}</Math> is already in the fibre
+          it collapses to
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
+          <Math display>{'\\mathcal{A}(\\theta)  =  \\mathcal{A}_0 + \\bigl(X_0 e^{i\\theta} - X_0\\bigr)\\,u(t)'}</Math>
+        </p>
+        <p>
+          No solver anywhere. It replaced a <strong>2180-step</strong> continuation walk that took{' '}
+          <strong>109 seconds</strong> to travel once round, and it is exact:{' '}
+          <Math>{'\\theta + 2\\pi'}</Math> returns to 2.6e-15 with the nine Hermite numbers held to
+          1.5e-12.
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          <strong>What it is, and is not.</strong> The polynomial quintic&rsquo;s version of this is
+          classical — three Hopf angles, no solver. What is new is that the <em>rational</em> case does
+          the same thing, and the reason it can: the pole contributes only the shape polynomial{' '}
+          <Math>{'u'}</Math>, and <Math>{'u'}</Math> being complex is exactly what keeps the quadratic
+          term a Hopf map. <strong>Scope:</strong> one pole, spinor degree three. At other degrees{' '}
+          <Math>{'u'}</Math> is not unique and there is no single circle to name. And the{' '}
+          <em>other</em> coordinate, <Math>{'\\psi'}</Math>, is still a target chased by a solver — a
+          coordinate relative to a fixed anchor, not a formula. Half the torus is derived; half is
+          projected.
+        </p>
+        <Cite>
+          The derivation is checked line by line in{' '}
+          <Math>{'\\texttt{rationalMiddleCircle.test.ts}'}</Math>, whose control is that the 2180-step
+          walk lies <em>on</em> this circle — in the <Math>{'\\{Xu\\}'}</Math> space to 1.4e-14 and on
+          the Hopf fibre to 4.3e-16. That the two sliders behave as coordinates rather than as a
+          history is <Math>{'\\texttt{hermiteTorusCoordinates.test.ts}'}</Math>. The polynomial
+          original is <Math>{'\\texttt{spatialQuinticTorus.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS IS THE ONE SLIDE IN THE DECK THAT IS DERIVED RATHER THAN DRIVEN, and it is worth saying so '
+      + 'out loud -- the deck header promises that nothing here is proved and everything is driven. This '
+      + 'slide is the exception because it is what makes the last two slides honest. '
+      + 'THE HOOK IS THE FIRST SENTENCE. Both sliders come home at 360 degrees. One does it because a '
+      + 'solver came back; the other because e^{2 pi i} = 1. Everyone in the room knows the difference '
+      + 'between those two facts. '
+      + 'THE PIVOT IS u BEING COMPLEX. Spend time here and nowhere else. Because u is valued in '
+      + 'span{1,i}, which commutes with i, u i ubar = i|u|^2 -- so (Xu) i (Xu)* = |u|^2 X i Xbar and the '
+      + 'quadratic term is the Hopf map AGAIN. The Hopf map appears twice in this subject: once making '
+      + 'PH free (N = A i A*), and once making the interpolation fibre a circle. That is the sentence to '
+      + 'land. '
+      + 'CREDIT WHERE IT IS DUE: the polynomial quintic version is classical, Farouki and co-authors, and '
+      + 'a manipulation of this kind is very likely how it was first obtained. What is new is the '
+      + 'rational case, and specifically that the pole enters ONLY through the shape polynomial u. '
+      + 'DO NOT OVERSELL. Scope is one pole and spinor degree three; at other degrees u is not unique. '
+      + 'And psi is still a solver target, so half the torus is derived and half is projected. Saying '
+      + 'that costs nothing and it is the difference between a talk people trust and one they do not. '
+      + 'IF SOMEONE ASKS WHY NOT JUST WALK IT: 2180 steps, 109 seconds, once round. The formula is not a '
+      + 'speedup, it is the difference between a slider and a slideshow.',
   },
 ]
