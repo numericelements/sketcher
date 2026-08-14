@@ -29,7 +29,7 @@
 // AUDIENCE: someone who knows what a PH curve is and has seen a rational one. The theory
 // is cited to price-of-a-circle and to FOUNDATIONS, never re-derived.
 //
-// STATUS: title, slide 1, and THE PAIR — the pole on the sphere (slide 3) and the same pole on the
+// STATUS: title, slide 1, and TWO PAIRS. The pole on the sphere (slide 3) and the same pole on the
 // curve (slide 4). They share one state and one control strip (chartModel.ts, ChartControls.tsx), so
 // the handles carry across and the two views are two views of one configuration rather than two
 // demonstrations. Next: the quintic with two poles, where "two of everything" is the point.
@@ -38,6 +38,8 @@ import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
 import { Tag, Cite, TagLegend } from '../framework/SlideTag'
 import PoleCurveFigure from './PoleCurveFigure'
+import OffChartCurveFigure from './OffChartCurveFigure'
+import OffChartSphereFigure from './OffChartSphereFigure'
 import PoleSphereFigure from './PoleSphereFigure'
 
 export const slides: SlideDefinition[] = [
@@ -324,5 +326,125 @@ export const slides: SlideDefinition[] = [
       + 'mode enforces PH, because inside a chart there is nothing to enforce. '
       + 'IF YOU HAVE TIME, go back one slide and forward again with a different pole set -- the state '
       + 'persists, and seeing the sphere and the curve agree twice is what makes the pairing land.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5 — walking off the chart, on the sphere. Same pair structure as 3 and 4:
+  //     one shared slider, sphere first, curve second.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>The cusp that does disappear</h2>
+        <OffChartSphereFigure />
+        <p style={{ marginTop: '0.5em' }}>
+          Slide 3 turned the chart&rsquo;s own dial to its limit and the corner refused to soften. At
+          any finite angle the pole is still a pole, so the cusp is still a cusp. This walk does
+          something the dial cannot.
+        </p>
+        <p>
+          Step along the variety instead of along a coordinate: move a little, solve back onto{' '}
+          <Math>{'|N|^2 = \\sigma^2'}</Math>, and refuse any step that would let{' '}
+          <Math>{'\\sigma'}</Math> change sign. Within ten steps the denominator&rsquo;s single{' '}
+          <em>real</em> root has become <strong>two complex conjugate pairs</strong>.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            A cusp needs a pole at a <em>real</em> parameter. Move it off the axis and there is
+            nothing left to corner.
+          </strong>
+        </p>
+        <p>
+          Slide 3&rsquo;s theorem is an <em>if and only if</em> about real poles, and this is what it
+          leaves open. Nothing is enforced along the way: every station is exactly PH, and each is
+          joined to the last by a step that kept <Math>{'\\sigma > 0'}</Math> — so this is one
+          continuous family of curves that starts inside the chart and ends outside it.
+        </p>
+        <Cite>
+          The walk, and that it never loses <Math>{'\\sigma'}</Math>&rsquo;s sign, is{' '}
+          <Math>{'\\texttt{onBranchTheChartCovers12Of13.test.ts}'}</Math>. The cusp-pole equivalence is{' '}
+          <Math>{'\\texttt{tangentIndicatrix.test.ts}'}</Math> and Kalkan, Scharler, Schr&ouml;cker &amp;
+          &Scaron;&iacute;r Rem. 4.7.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS PAIR ANSWERS A QUESTION THE FIRST PAIR RAISED, and it is worth saying so. On slide 3 the '
+      + 'cusp would not fade however far the dial turned, and that surprised the room and the person '
+      + 'who built it. The resolution is that the dial was the wrong instrument: it moves a coordinate '
+      + 'inside the chart, and the chart only has REAL poles. '
+      + 'THE WALK IS A DIFFERENT KIND OF MOTION. It steps along the variety itself -- move a little, '
+      + 'Newton back onto |N|^2 = sigma^2, reject any step that would let sigma change sign -- so it '
+      + 'is not confined to what the chart can express. Within ten steps the single real pole has '
+      + 'become two complex conjugate pairs, and the cusp has nowhere to live. '
+      + 'STRESS THAT NOTHING IS BEING ENFORCED. Every station is exactly PH. The sigma condition is '
+      + 'not a constraint being imposed on the curves, it is how we stay on ONE branch -- sigma is a '
+      + 'sum of four squares in the chart and cannot change sign, so a path that let it would have '
+      + 'jumped to a different component and the comparison would be meaningless. That was measured '
+      + 'the hard way; an earlier version of this walk did exactly that and three conclusions had to '
+      + 'be withdrawn until it was fixed. '
+      + 'IF ASKED WHAT THE RANK READOUT IS: the PH system has 13 equations, and its Jacobian has rank '
+      + '11 at our starting member and 13 once we are off the chart. The members the chart builds are '
+      + 'SINGULAR points of the variety. Why is not yet understood.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6 — the same walk with the curve drawn. Same shared slider.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['MEAS']} />
+        <h2>And it stops running to infinity</h2>
+        <OffChartCurveFigure />
+        <p style={{ marginTop: '0.5em' }}>
+          The same walk, the same slider, the curve drawn instead of the sphere. On the sphere the
+          corner vanished; here is the other half of that one event.
+        </p>
+        <p>
+          With no <em>real</em> root, <Math>{'w > 0'}</Math> on the whole line — so the curve is
+          bounded <em>everywhere</em>, not merely on the piece we drew. Watch{' '}
+          <Math>{'\\min |w|'}</Math> lift off zero as the poles leave the axis.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            The geometry walks calmly across a boundary the coordinates cannot follow.
+          </strong>
+        </p>
+        <p style={{ opacity: 0.8 }}>
+          Boundedness is exactly what complex poles are for, and it is unreachable with real ones,
+          where a pole <em>is</em> an escape to infinity. So the walk leaves the{' '}
+          <Math>{'\\lambda'}</Math>-chart — whose construction takes real roots — while the Pythagorean
+          condition never once gives way. The chart is a way of holding these curves, and this is the
+          shape of what it cannot hold.
+        </p>
+        <Cite>
+          Every station is exactly PH and on one branch —{' '}
+          <Math>{'\\texttt{onBranchTheChartCovers12Of13.test.ts}'}</Math>, which also measures the
+          variety at <strong>13</strong> dimensions against the chart&rsquo;s <strong>12</strong>. What
+          the missing dimension does is raise the degree of <Math>{'w'}</Math>, measured independently
+          in <Math>{'\\texttt{missingDirectionsAreFourPoles.test.ts}'}</Math>.
+        </Cite>
+      </>
+    ),
+    notes:
+      'OPEN BY MOVING THE SLIDER BACK AND FORTH ONCE. The two slides are one configuration and one '
+      + 'handle; whatever you left on the sphere is where this opens. '
+      + 'THE CLAIM IS SMALL AND EXACT: no real root of w means w > 0 on the whole real line, so the '
+      + 'curve never reaches infinity anywhere, not just on [0,1]. The min-|w| readout is the proof '
+      + 'and it lifts off zero as you walk. '
+      + 'CONNECT IT TO THE LEDGER. Boundedness is one of the things The Price of a Circle lists as '
+      + 'bought by rationality, and specifically by COMPLEX poles: with real poles a pole IS an escape '
+      + 'to infinity, so no chart built on them can make a bounded curve at all. This walk arrives at '
+      + 'boundedness from the inside, by continuation, without ever asking for it. '
+      + 'AND THE NUMBER TO LEAVE THEM WITH: the variety is 13-dimensional on this branch and the chart '
+      + 'covers 12. The one dimension it misses is the one that raises the degree of w -- measured '
+      + 'twice, by two independent routes, and this walk is the second of them. '
+      + 'IF ASKED WHAT COMES NEXT: why every member the chart builds is a singular point of the '
+      + 'variety. Not the reality of the poles, not the gauge, not the pole count -- all three tested '
+      + 'and all three dead. That is the open question.',
   },
 ]
