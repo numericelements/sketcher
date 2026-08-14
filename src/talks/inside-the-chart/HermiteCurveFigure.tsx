@@ -39,20 +39,17 @@
 import { useMemo } from 'react'
 import type { Vec3 } from '../../core/quaternion'
 import {
-  type MultiPoleParams,
   controlStructure,
   curveAt,
   derivativeAt,
   hermiteOf,
   poleMargin,
-  projectOnto,
-  projectToFamily,
   toMember,
 } from '../../core/rationalPHMultiPoleSpatial'
 import Figure3D, { Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
 import HermiteControls from './HermiteControls'
-import { RANGE, SEED, hermiteChart, useHermiteChart } from './hermiteModel'
+import { SEED, hermiteChart, useHermiteChart } from './hermiteModel'
 
 const tri = (v: Vec3): [number, number, number] => [v.x, v.y, v.z]
 const SAMPLES = 160
@@ -61,19 +58,24 @@ const drawn = (m: ReturnType<typeof toMember>): [number, number, number][] =>
   Array.from({ length: SAMPLES + 1 }, (_, i) => tri(curveAt(m, i / SAMPLES)))
 
 /**
- * Framed once, from the seed across the pole slider's range. A camera that reframes mid-gesture is
- * worse than one framed a little wide — the same call the degree-4 curve slide makes.
+ * Framed once, from the SEED alone. A camera that reframes mid-gesture is worse than one framed a
+ * little wide.
+ *
+ * AND THE SEED ALONE IS ENOUGH, which is measured rather than hoped: with the nine Hermite numbers
+ * held, max‖c‖ over the drawn piece is 7.665 at EVERY pole from 1.01 to 20, identical to four figures
+ * (degree6PoleSlider.test.ts). The pole moves the shape around inside a box it never leaves.
+ *
+ * THE VERSION THIS REPLACES IS WHY THE CURVE WAS INVISIBLE. It probed five poles by jumping straight
+ * from the seed, and a jumped solve does not converge — r = 1.1 solved, 1.15 did not, 1.2 did, no
+ * clean boundary, the signature of a bad starting point. A non-converged solve still passes
+ * `poleMargin`, which only asks where the pole SITS, so one with a residual of 1.2e13 and a curve
+ * reaching 5.8e11 was accepted, the box came out ±3e11, and the real curve became a sub-pixel dot.
+ * Probing by CONTINUATION would fix the convergence but costs ~200 projections at module load, which
+ * stalls the deck; the measurement above says the probing was never needed.
  */
 const BOUNDS = (() => {
-  const pts: [number, number, number][] = []
-  const target = hermiteOf(toMember(SEED))
-  for (const r of [RANGE.pole.min, 1.3, 1.7, 2.4, RANGE.pole.max]) {
-    const moved: MultiPoleParams = projectToFamily({ ...SEED, roots: [r] })
-    const prm = projectOnto(moved, hermiteOf, target, 40)
-    if (poleMargin(prm) > 1e-3) pts.push(...drawn(toMember(prm)))
-  }
-  if (pts.length === 0) pts.push(...drawn(toMember(SEED)))
-  const pad = 0.9
+  const pts: [number, number, number][] = drawn(toMember(SEED))
+  const pad = 1.0
   const axis = (i: number): [number, number] => [
     Math.min(...pts.map((p) => p[i])) - pad,
     Math.max(...pts.map((p) => p[i])) + pad,

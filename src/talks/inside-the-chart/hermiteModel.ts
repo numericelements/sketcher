@@ -180,9 +180,23 @@ export const hermiteChart = {
     emit(next ? { live: next, theta: deg, stalled: false } : { theta: deg, stalled: true })
   },
 
+  /**
+   * The pole. BY CONTINUATION when the jump is large — clicking the slider track moves r much further
+   * than dragging it does, and a single Gauss-Newton solve from the current member does not converge
+   * across a big jump. Measured on the seed: r = 1.1 solved, 1.15 did not, 1.2 did, with no clean
+   * boundary — the signature of a bad starting point rather than of an edge of the family. Stepped in
+   * increments of 0.02 it reaches r = 1.01 with residuals at 1e-14.
+   */
   setPole(r: number): void {
-    const next = withHermiteDial({ ...state.live, roots: [r] }, state.target)
-    emit(next ? { live: next, stalled: false } : { stalled: true })
+    const from = state.live.roots[0]
+    const steps = Math.max(1, Math.ceil(Math.abs(r - from) / 0.02))
+    let cur = state.live
+    for (let k = 1; k <= steps; k++) {
+      const next = withHermiteDial({ ...cur, roots: [from + ((r - from) * k) / steps] }, state.target)
+      if (!next) { emit({ stalled: true }); return }
+      cur = next
+    }
+    emit({ live: cur, stalled: false })
   },
 
   /** Rebuild the anchor and the road around wherever the gesture left us. On settle only. */
