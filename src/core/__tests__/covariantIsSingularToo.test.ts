@@ -1,4 +1,9 @@
 // ============================================================================
+// READ sigmaKeepsItsSign.test.ts FIRST — the "generic" baseline used here is on a different branch of
+// the variety (its sigma changes sign; ours cannot). What survives unshaken is the EQUALITY of the two
+// deficits, which is a comparison of our members against themselves in two formulations and does not
+// depend on the baseline at all.
+//
 // THE SINGULARITY IS NOT A COORDINATE ARTEFACT — the covariant form has exactly the same one.
 //
 // THE HYPOTHESIS THIS FILE KILLS. degree4IsThirteen measures every member our machinery builds as a

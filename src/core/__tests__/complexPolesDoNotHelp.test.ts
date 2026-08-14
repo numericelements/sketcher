@@ -1,4 +1,8 @@
 // ============================================================================
+// READ sigmaKeepsItsSign.test.ts FIRST for the same caveat about the "generic" baseline. The result
+// that survives it is the REAL-versus-COMPLEX equality — 27 and 27 — which compares two members of our
+// own construction against each other and needs no baseline.
+//
 // COMPLEX POLES DO NOT MOVE US OFF THE SINGULAR LOCUS — the second hypothesis, also dead.
 //
 // covariantIsSingularToo established that every member our machinery builds is a singular point of the

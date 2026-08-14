@@ -1,4 +1,10 @@
 // ============================================================================
+// READ sigmaKeepsItsSign.test.ts FIRST. The "generic" points this file compares against are reached by
+// Newton on |N|^2 = sigma^2, which does not constrain sigma's SIGN — and measured, they change sign or
+// are negative throughout, while our sigma = |A|^2 cannot. So the two sets are on different branches
+// and the singular-versus-smooth contrast below is not comparing like with like. The RANKS are correct;
+// the inference drawn from their difference is downgraded.
+//
 // THE RATIONAL PH QUARTICS ARE 13-DIMENSIONAL, AND THE ONE-POLE CHART REACHES 12 OF THEM.
 //
 // This supersedes coverageDegree4's "12 of 15", which was measured with an instrument that could not
