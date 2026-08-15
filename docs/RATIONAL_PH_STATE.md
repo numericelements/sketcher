@@ -1023,9 +1023,45 @@ agreement of the two curves says the pole DIVIDES OUT rather than merely shrinki
 
 > **F18's two chart types are disjoint, but their CLOSURES meet along the polynomial locus.**
 
-Disjointness still holds as stated: a polynomial has no genuine pole, so it is not *in* a λ-chart,
-and it satisfies `σ = h·w` only trivially with `w = 1`. But the polynomials are in the closure of
-both, so the union is connected, and the connection is through them.
+**READ THIS BY POLE DIVISOR, NOT BY "POLYNOMIAL vs RATIONAL" — the first draft of this paragraph got
+its reason wrong.** It argued that a polynomial "satisfies `σ = h·w` only trivially with `w = 1`".
+That is a defect in the criterion, not a fact about polynomials: **`σ = h·w` is vacuous whenever `w`
+is constant**, so it cannot be used to place them. The classification that works (the Lean
+companion's) is
+
+> the **pole divisor on ℙ¹(ℂ)** — how many poles, where — **plus one bit per pole: does σ vanish
+> there?**
+
+Read that way, a polynomial is the divisor `d·[∞]`, and ∞ is a **real** point of ℙ¹, with
+`σ(∞) = |leading 𝒜|² > 0`. So polynomials sit cleanly on the λ-chart side by the same rule as
+everything else, and their appearance inside the conformal family is nothing special — §13.5 shows
+the conformal model represents *every* rational curve. "Polynomial versus rational" stops being a
+distinction at all; the polynomial is simply the most degenerate divisor.
+
+**And the seam is a DIVISOR DEGENERATION.** What the twist dial does is cancel a pole: the divisor
+goes from `[1.7] + …` to `d·[∞]`. That is a boundary between strata of one classification, not two
+kinds of object touching. The measured content of §13.1–13.2 is unchanged; this is the right
+description of it.
+
+**Which also splits F18's single stratum in two, and they are different phenomena:**
+
+```
+at a REAL pole      σ(r) = 0 ⟹ 𝒜(r) = 0 ⟹ (t−r) | 𝒜 ⟹ the pole CANCELS
+                    — the degree-drop locus, i.e. this seam. FORCED, because the quaternion
+                      norm form is DEFINITE on ℝ: σ(t) = |𝒜(t)|² is a sum of four real squares.
+at a COMPLEX pole   σ(r) = 0 with 𝒜(r) ≠ 0 is possible, because over ℂ the form is ISOTROPIC
+                    — the circle, the conformal world, the stratum proper. No degree drop.
+```
+
+Measured: `σ(t) = |𝒜(t)|²` on ℝ to 1.2e-15, and their ratio at a real pole is 1.000000 at every
+twist angle, so σ(r) → 0 happens *exactly* when the spinor vanishes there. Against the published
+rational PH cubic at its complex pole: `|𝒜(ι)| = 4.2426` — nonzero — with `𝒜(ι)𝒜̄(ι) = 0` exactly.
+→ `realPolesCannotBeOnTheStratum.test.ts`
+
+**A guard falls out.** "σ(r) ≈ 0 at a real pole" now has exactly one meaning: the spinor is divisible
+by `(t−r)` and the curve is secretly of lower degree — the λ-side twin of `denominatorRealRoots`. It
+is not by itself evidence of a bug, because nothing in `MultiPoleParams` enforces coprimality; the
+check is for divisibility, not an assumption of reducedness.
 
 **AND THE MEETING POINT IS SINGULAR IN BOTH CHARTS.** On the conformal side the defining Jacobian
 drops to rank 21 of 24 there. On the λ side the meeting point is `𝒜(r) = 0` — precisely the quantity
