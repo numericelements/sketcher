@@ -18,6 +18,13 @@
 // So every member of the chart has rational arc length whether or not it was asked for, at any dial
 // and any pole placement. That is what this file measures.
 //
+// SCOPE, ADDED AFTER READING THE LITERATURE (RATIONAL_PH_STATE §12.2). "Any pole placement" means any
+// REAL one. The derivation above is parameter-agnostic on its face, but `roots` is `number[]`, so a
+// complex pole cannot be measured here and never has been. Farouki (CAGD 32, 2015) shows a rational PH
+// curve with a CONJUGATE PAIR whose arc length is a genuine arctangent — but his σ has SIMPLE poles
+// there (w | σ), so it is a σ = h·w stratum member and not a chart member. It is not a counterexample
+// to anything below; it is also not support. The complex-pole case is untested, not established.
+//
 // ATTRIBUTION. The residue criterion is Farouki & Sakkalis (CAGD 32, 2015; 74, 2019). The
 // unification — one quaternion representation carrying the curve AND its arc length — and the
 // construction of ALL spatial rational curves with rational arc length are Schröcker & Šír,

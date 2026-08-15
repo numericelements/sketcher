@@ -1,4 +1,11 @@
 // ============================================================================
+// RETIRED — imported nowhere, and the "SLIDE 14" below is stale: slide 14 is SexticFivePointFigure,
+// which replaced this one. The weakness it fixed, in its own words: "you could turn five dials but
+// move no control point." Kept for the measurements, which are still the source of the degree-6
+// moduli counts quoted elsewhere.
+//
+// ORIGINAL HEADER FOLLOWS.
+//
 // SLIDE 14 — DEGREE 6, AND THE FIVE MODULI. Slide 12's gesture two degrees up, where the count of
 // genuinely different shapes is five and every one of them is a dial you can turn.
 //

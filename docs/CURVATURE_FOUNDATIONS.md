@@ -936,6 +936,20 @@ here so it is not proposed a fourth time.
 and they are disjoint **because** the stratum absorbs. That is why `conformalPHCurve` exists and why it
 cannot be folded into the λ machinery.
 
+**BUT THEIR CLOSURES MEET, along the POLYNOMIAL locus** — measured after this fact was written, and it
+refines the sentence above rather than contradicting it. Disjointness holds as stated: a polynomial has
+no genuine pole, so it is not *in* a λ-chart, and it satisfies σ = h·w only trivially with w = 1. Yet
+the λ-chart's twist dial degenerates to a polynomial (𝒜(r) → 0, the pole divides out, the degree drops
+by one) and that same polynomial lifts to an exact member of the conformal family at twice its degree.
+Measured at D = 4: the degree-4 λ-chart's limit and a conformal degree-6 member are the same curve to
+6.3e-4 of the extent. **And the meeting point is singular in BOTH charts** — rank 21 of 24 on the
+conformal side against 23 generic, and 𝒜(r) = 0 on the λ side, which is the quantity the whole chart
+divides by. So the two spaces are connected through a point neither can parametrise; the bridge has no
+coordinates. Full write-up and the degree ladder (the pairing is D ↔ 2(D−1), so it is easy to be off by
+one rung) in `docs/RATIONAL_PH_STATE.md` §13, pinned by
+`src/core/__tests__/theTwoChartsMeetAtPolynomials.test.ts`. None of this gives a transport trick — see
+the first consequence above, which still stands.
+
 **THIRD — the containment, stated carefully because the identity claim is false.** Every inversion of an
 ordinary PH curve lands in the conformal family, since σ̃ = σ·w̃ is exactly the σ = h·w signature. But the
 conformal family is **strictly bigger**: a generic conformal degree-6 member has *no* null S with

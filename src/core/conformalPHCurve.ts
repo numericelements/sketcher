@@ -1041,12 +1041,35 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 //
 //     ⟨C,C⟩ = ‖q‖² − 2·w·c∞ = 0     so     ‖q‖² = 2·w·c∞
 //
-// At every real root r of w that forces ‖q(r)‖² = 0, and q is REAL, so q(r) = 0 — hence (t−r)
-// divides q, w, c∞ and h alike, and the member is (t−r) × a member of degree n−1. A real
-// polynomial of odd degree always has a real root, and deg w = n. Therefore
+// At every real root r of w that forces ‖q(r)‖² = 0, and q is REAL, so q(r) = 0.
+//
+// THE NEXT STEP NEEDS A WORD THIS COMMENT USED TO OMIT, and the omission made it FALSE. It read
+// "hence (t−r) divides q, w, c∞ and h alike". It does not, at a root of EVEN multiplicity.
+// Counterexample, measured in `conformalLiftOfRational.test.ts`: take any rational curve q/w with a
+// SIMPLE real pole at r and lift it as (2w², 2w·q, ‖q‖²). The lift's denominator is 2w², so r is a
+// DOUBLE root; ‖Q(r)‖² = 8e-31 and Q(r) = 0 as required — yet c∞(r) = ‖q(r)‖² = 67.5 ≠ 0, because
+// gcd(q, w) = 1. Nothing factors: it is a genuine degree-8 member, residual 1.1e-12.
+//
+// THE REPAIR IS A MULTIPLICITY COUNT. ‖q‖² is a sum of real squares, so each of its real roots has
+// EVEN multiplicity (write qᵢ = (t−r)^k uᵢ with some uᵢ(r) ≠ 0; then ‖q‖² = (t−r)^{2k}·Σuᵢ² and
+// Σuᵢ(r)² > 0). Hence mult_r(w) + mult_r(c∞) is even, and
+//
+//     (t−r) ∣ c∞   ⟺   mult_r(w) is ODD
+//
+// so the member factors at the ODD-multiplicity real roots of w and need not at the even ones.
+//
+// THE THEOREM SURVIVES INTACT, because odd degree delivers an odd-multiplicity root: non-real roots
+// of a real polynomial come in conjugate pairs of equal multiplicity, so the real multiplicities sum
+// to deg w mod 2. deg w = n odd ⟹ at least one real root of odd multiplicity. Therefore
 //
 //     n odd   →  every member is a degree-(n−1) rational curve in disguise
 //     n even  →  w may avoid the real axis, and generically does → genuinely degree n
+//
+// (Found by asking whether the conformal model can represent a λ-chart curve with a genuine real
+// pole — it can, and the lift is the witness that broke the old step. The Lean companion has the
+// corrected argument as `even_rootMultiplicity_sumSq` and
+// `exists_odd_rootMultiplicity_of_odd_natDegree`; note the second replaces an intermediate-value
+// lemma, which proved the wrong thing — IVT gives a root but says nothing about its multiplicity.)
 //
 // Measured (conformalPHHopf.test.ts) and the pattern is total: degrees 3, 5, 7 give exactly ONE
 // real root of w every time with q vanishing there to 1e-7…1e-8; degree 6 gives NONE, five
@@ -1057,11 +1080,17 @@ export function farinVectors(s: ConformalPHCurve): Conformal[] {
 // quadratic is a conic, and PH makes it a circle. The "WHY NOT DEGREE 3" note at the top of this
 // file reached the same fact by counting the span of the coefficients; this says why.
 //
-// WHAT IT COSTS US. The degree-5 figures (slides 11 and 12) draw a genuine rational PH curve —
-// but a QUARTIC one, carried in a quintic polygon whose sixth control point is redundant
+// WHAT IT COST US, AND THE DECK HAS SINCE PAID IT. The degree-5 figures drew a genuine rational PH
+// curve — but a QUARTIC one, carried in a quintic polygon whose sixth control point is redundant
 // parametrisation. Everything measured on that family (dimension 15, the strict 3-fold, the
 // {ρ₂, ρ₃, L} coordinates) is a true statement about a quartic. The dimension table at the top of
 // this file is honest at 4 and 6 and describes reducible curves at 3, 5 and 7.
+//
+// So both degree-5 figures are gone: slide 11 moved to the cached SEXTIC seed, and slide 12 was
+// retired outright because its headline ("rationality buys one more dimension AT THE SAME DEGREE")
+// compared a polynomial quintic against a rational quartic. See the retirement note in
+// talks/ph-interpolation/slides.tsx. StrictFreeRationalFigure.tsx and RationalPHSexticFigure.tsx
+// are kept for their measurements but are imported nowhere.
 //
 // DOES DEGREE 4'S SINGLE DIMENSION WRAP? Best evidence says NO — it is an open arc with two
 // ends, not the circle that the polynomial cubic's single angle gives. Stated with its strength,
@@ -1225,6 +1254,54 @@ export function dragStrict(
 }
 
 /**
+ * Prescribe ONE scalar coordinate with a chosen set of CONTROL POINTS pinned — a different slice
+ * from `dragStrict`'s, and the one slide 11's strict mode rides.
+ *
+ * WHY IT IS A SEPARATE SLICE AND NOT A CONVENIENCE. Pinning the Hermite DATA fixes the
+ * parametrisation, because d₀ = n(w₁/w₀)(P₁−P₀) scales by λ. Pinning control POINTS does not: the
+ * gauge Cₖ ↦ λᵏCₖ moves no control point at all, so it satisfies the pins for free and stays live in
+ * the leftover. Measured at degree 6 with P₀, P₁, P₅, P₆ held: nullity 6 = 1 projective scale +
+ * 1 parameter gauge + 4 genuine shape, and {ρ₂, ρ₃, ρ₄, L} cuts the four shapes one at a time.
+ *
+ * SO THE COORDINATE MUST BE GAUGE-INVARIANT, and a HALF-length is not — reparametrisation moves the
+ * midpoint. Offering one here would be a slider that changes every weight and every Farin bead while
+ * the curve sits still, which is the dead dial that got a whole slide retired. It throws rather than
+ * pretending. Radii are invariant (ρ = √⟨C,C⟩/w survives both C ↦ cC and Cₖ ↦ λᵏCₖ), and so is the
+ * TOTAL arc length.
+ */
+export function dragPinned(
+  from: ConformalPHCurve,
+  pin: readonly number[],
+  coordinate: StrictCoordinate,
+  target: number,
+  options: { iterations?: number; maxStepRatio?: number; lengthSamples?: number } = {},
+): DragResult {
+  if (coordinate.kind === 'length' && ((coordinate.from ?? 0) !== 0 || (coordinate.to ?? 1) !== 1)) {
+    throw new Error('dragPinned: a half-length is not gauge-invariant, and the gauge is live when control points are pinned')
+  }
+  const before = controlPoints(from)
+  const samples = options.lengthSamples ?? 8
+  const maxStepRatio = options.maxStepRatio ?? 0.04
+  const measure = (s: ConformalPHCurve): number =>
+    coordinate.kind === 'length' ? arcLength(s, samples) : radii(s)[coordinate.index]
+  const current = measure(from)
+  const limit = Math.abs(current) * maxStepRatio
+  const wanted = Number.isFinite(current)
+    ? Math.min(current + limit, Math.max(current - limit, target))
+    : target
+  return solveWith(from, {
+    rows: (s) => {
+      const P = controlPoints(s)
+      const out: number[] = []
+      for (const i of pin) out.push(P[i].x - before[i].x, P[i].y - before[i].y, P[i].z - before[i].z)
+      out.push(measure(s) - wanted)
+      return out
+    },
+    track: (s) => Math.abs(measure(s) - wanted),
+  }, options.iterations ?? 80)
+}
+
+/**
  * Re-prescribe the Hermite data itself — strict mode's other gesture, so the DATA can be
  * dragged as well as the family ridden. Nothing else is pinned, so the leftover 3 dimensions
  * are spent by minimum norm.
@@ -1256,13 +1333,20 @@ export function moveToData(
 
 
 /**
- * How many real roots the denominator has, found by bracketing sign changes on [−100,100] and
- * bisecting — all in the Bernstein basis, never through the power basis.
+ * How many SIGN CHANGES the denominator has on [−100,100], counted on a grid — all in the Bernstein
+ * basis, never through the power basis.
  *
- * NONZERO MEANS THE CURVE IS SECRETLY OF LOWER DEGREE. Nullity forces ‖q‖² = 2w·c∞, so at a real
- * root of w the numerator vanishes too and (t−r) divides q, w and h alike (the parity theorem
- * below). At odd degree this is unavoidable; at even degree it is a stratum to stay off, which is
- * what findMember's `irreducible` guard is for.
+ * THE NAME UNDERSELLS THE PRECISION, and the distinction is load-bearing rather than pedantic. A
+ * sign change is a real root of ODD multiplicity; a root of even multiplicity is invisible here.
+ * That is exactly right for what this function is used for, because the parity theorem forces the
+ * member to factor at the odd-multiplicity roots and NOT at the even ones (see the repaired argument
+ * above, and the double-root witness in `conformalLiftOfRational.test.ts`). Reading it as "how many
+ * real roots" is the misreading to avoid: a member whose denominator is a perfect square with a real
+ * root reports 0 here, correctly, because it does not factor.
+ *
+ * NONZERO MEANS THE CURVE IS SECRETLY OF LOWER DEGREE. At odd degree that is unavoidable — the real
+ * multiplicities sum to deg w mod 2, so an odd degree always supplies an odd one. At even degree it
+ * is a stratum to stay off, which is what findMember's `irreducible` guard is for.
  */
 export function denominatorRealRoots(s: ConformalPHCurve): number {
   const w = s.C.map((c) => c[0])

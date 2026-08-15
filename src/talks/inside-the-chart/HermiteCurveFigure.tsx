@@ -19,6 +19,14 @@
 // chart's measured dimension. Offering P₂, P₃ or P₄ in strict would be offering motions the family
 // does not have.
 //
+// ONE AT A TIME: dragging any of the four leaves the other three where they are. That is a statement
+// about POINTS and it is not the same as holding the nine numbers, because two of the nine are
+// DIFFERENCES between two handles — c′(0) = k₀(P₁ − P₀) and c′(1) = k₁(P₆ − P₅). Holding the number
+// while one end of it moves carries the other end rigidly, which is what the two endpoint handles did
+// until it was measured: P₅ moved by exactly the P₆ drag, P₁ by exactly the P₀ drag. So an endpoint
+// drag retargets its own end tangent, and the mid-tangent handles need no such term.
+// → degree6HandlesTrack.test.ts
+//
 // THE WEIGHT RATIOS ARE CONSTANT while a handle moves, which is what makes "P₁ carries c′(0)" an
 // identity rather than a linearisation: w = ∏(t − r) depends only on the poles, and the poles are held
 // during a handle drag. Measured drift across the drags: exactly 0.
@@ -139,8 +147,11 @@ export default function HermiteCurveFigure() {
           <span className="text-slate-400">
             <b>Strict gives you four points, and the number is derived.</b> P₁ carries the start
             tangent, P₅ the end tangent, P₆ is the endpoint, and P₀ is c(0) — pinned inside the family
-            by <i>p</i>(0) = 0, so dragging it changes the <i>origin</i> while the other three hold
-            their places on screen and the curve reshapes. P₂, P₃, P₄ are outputs, drawn grey. Then
+            by <i>p</i>(0) = 0, so dragging it changes the <i>origin</i> and the curve reshapes.{' '}
+            <b>Drag any one of the four and the other three stay where they are</b>, which is a promise
+            about the points and not about the nine numbers: two of the nine are <i>differences</i>{' '}
+            between handles, so at each end it is the tangent that gives way. P₂, P₃, P₄ are outputs,
+            drawn grey. Then
             the arithmetic closes: 12 numbers in the handles plus ψ, s, λ and r is <b>sixteen</b>, and
             sixteen is the chart&rsquo;s dimension. <b>Turn either fibre slider with the control polygon in
             view</b> — the interior rearranges and the four handles do not move, because they{' '}

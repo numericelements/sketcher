@@ -2859,23 +2859,27 @@ export const slides: SlideDefinition[] = [
           <span>space</span>
           <span><Math>{'4(Q_2^{\\,2} + Q_3^{\\,2})'}</Math></span>
           <span>
-            <strong>a sum of two</strong> — a square only when{' '}
-            <Math>{'Q_2'}</Math> and <Math>{'Q_3'}</Math> are proportional
+            <strong>a sum of two</strong> — a square only under a <em>condition</em>, and
+            generically not one
           </span>
         </div>
         <p style={{ textAlign: 'center', margin: '0.6em 0' }}>
           <strong style={{ fontSize: '1.12em' }}>
-            The whole difference between a chart and no chart is one square against two.
+            An identity in the plane, a condition in space. That is the whole of it.
           </strong>
         </p>
 
         <p>
-          And that has a name. The <strong>Pythagoras number</strong> of{' '}
-          <Math>{'\\mathbb{R}[t]'}</Math> is <strong>2</strong>: every non-negative polynomial in one
-          variable is a sum of two squares, and generically needs both. So the plane sits on the{' '}
-          <em>special</em> case where one suffices, and space sits on the <em>generic</em> case where
-          it does not. The obstruction was never differential geometry. It is arithmetic, it is
-          classical, and it says the planar construction was lucky in a way that does not repeat.
+          And the condition has a name — <strong>Kubota&rsquo;s</strong>, not one about counting
+          squares. Pass to <Math>{'\\mathbb{C}[t]'}</Math>:{' '}
+          <Math>{'(Q_2 + iQ_3)(Q_2 - iQ_3) = P^2'}</Math>. When{' '}
+          <Math>{'Q_2, Q_3'}</Math> are coprime so are the two factors, and coprime factors of a
+          square in a <strong>UFD</strong> are themselves squares. So{' '}
+          <Math>{'Q_2^{\\,2} + Q_3^{\\,2}'}</Math> is a perfect square exactly when{' '}
+          <Math>{'Q_2 + iQ_3'}</Math> is a square — which is to say, exactly when the auxiliary pair{' '}
+          <Math>{'(Q_2, Q_3)'}</Math> is <em>itself a planar PH hodograph</em>. The obstruction is a{' '}
+          <strong>recursion</strong>, one level down, not a wall. It is still arithmetic and still
+          classical; it is simply not thin.
         </p>
         <Cite>
           Pottmann, <em>Rational curves and surfaces with rational offsets</em>, CAGD{' '}
@@ -2898,14 +2902,33 @@ export const slides: SlideDefinition[] = [
       + 'unit tangent is rational. Without that recall the identity looks like a coincidence. '
       + 'THE SPATIAL LINE IS THE POINT OF THE SLIDE, and it is worth writing on the board: the same '
       + 'quantity is 4(Q2^2 + Q3^2) with Q = A* A-prime. One square in the plane, a sum of TWO in '
-      + 'space. And a^2 + b^2 is a perfect square only when a and b are proportional. That single '
-      + 'step is the entire difference between having a chart and not having one -- there is no '
-      + 'deeper obstruction hiding behind it. '
-      + 'CLOSE ON THE PYTHAGORAS NUMBER, because it turns an accident into a theorem. The Pythagoras '
-      + 'number of R[t] is 2: every psd polynomial in one variable is a sum of two squares and '
-      + 'generically needs both. So the plane is the SPECIAL case and space is the GENERIC one. The '
-      + 'obstruction is arithmetic and classical, not differential-geometric, which is the same '
-      + 'conclusion the square-class slide reached from the other direction. '
+      + 'space -- an IDENTITY against a CONDITION. '
+      + 'CLOSE ON KUBOTA. Over C[t], (Q2 + iQ3)(Q2 - iQ3) = P^2; coprime factors of a square in a UFD '
+      + 'are squares; so the sum is a square exactly when Q2 + iQ3 is a square, i.e. exactly when the '
+      + 'pair (Q2, Q3) is itself a PLANAR PH hodograph. A recursion one level down, not a wall. '
+      + 'TWO CORRECTIONS LIVE HERE, both caught by the Lean companion, and neither should be undone. '
+      + 'FIRST: this slide used to say the sum is a square "only when Q2 and Q3 are PROPORTIONAL". '
+      + 'That is false. Q2 = t^2 - 1, Q3 = 2t are coprime and not proportional, and the sum is '
+      + '(t^2+1)^2 -- and the witness is its own repair, since Q2 + iQ3 = (t+i)^2. Proportional '
+      + 'implies square; the converse fails badly. '
+      + 'SECOND: it used to close on the PYTHAGORAS NUMBER of R[t] being 2. That sentence is true but '
+      + 'it answers a different question. "Is sigma a sum of two squares" is always yes for psd '
+      + 'sigma; the question here is "is Q2^2 + Q3^2 a SQUARE", and p(R[t]) = 2 says nothing about '
+      + 'it. It was decoration wearing the clothes of a reason. The real name is Kubota, and it is '
+      + 'the same theorem the ledger carries as planar_perfect_square. '
+      + 'AND DO NOT SAY THE SPATIAL DIRECTION IS CLOSED -- the Cite line on this very slide is the '
+      + 'reason. Pottmann’s dual WAS generalised to spatial rational PH curves: Schroecker and '
+      + 'Sir’s third method is exactly that ("generalizes the dual approach of Pottmann 1995 from '
+      + 'planar to spatial curves"), and their section 1 records an earlier generalisation before it. '
+      + 'The honest claim is about the MECHANISM, not the possibility: a support function needs '
+      + 'tangent HYPERPLANES, so the construction transfers to codimension 1 -- plane curves, and '
+      + 'SURFACES in space. A space curve is codimension 2 and its tangent lines are a congruence, so '
+      + 'the naive transfer fails and the published spatial version must do something else. '
+      + 'THE CONSEQUENCE FOR THE ROADMAP, and it is the useful part: the direct analogue of planar '
+      + 'rational PH is PN SURFACES, not PH space curves. Pottmann 1995 covers plane curves and '
+      + 'surfaces in ONE framework because both are codimension 1. So if PN surfaces are the goal, '
+      + 'they may be the EASIER next step rather than the distant one, and space curves are the hard '
+      + 'sibling rather than the intermediate rung. '
       + 'IF ASKED HOW SURE WE ARE: the spatial identity was checked coefficient by coefficient, and '
       + 'the first version of that check was WRONG in an instructive way -- two of three probe '
       + 'spinors were degree 1, where A-prime is constant, Q2 and Q3 are constants, and the sum is a '

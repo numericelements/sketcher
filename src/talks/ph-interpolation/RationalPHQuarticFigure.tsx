@@ -1,12 +1,25 @@
 // ============================================================================
+// RETIRED — imported nowhere. This was the "Four points fix the quartic" slide, removed at Eric's
+// request; it was not broken, and the retirement note in slides.tsx records where its three
+// load-bearing findings went (the degree-4 bending gap to slide 11, the parameter gauge and its
+// asymptotic wall to slide 14, the parity theorem to core/conformalPHCurve). Kept for the rigidity
+// measurement, which now has no home in the deck: FOUR CONTROL POINTS DETERMINE the degree-4
+// rational PH shape.
+//
+// Removing it also retired the deck's last module-load search — `findMember(4, …)` with the
+// `irreducible` guard measured at 3.14 s, the slowest of the three, because that guard rejects most
+// seeds. Nothing in the deck now solves at import.
+//
+// ORIGINAL HEADER FOLLOWS.
+//
 // SLIDE 13 — DEGREE 4: the smallest genuinely-new rational case, and the one dimension left
 // when the polygon is nailed down turns out to be the PARAMETER GAUGE.
 //
-// WHY 4 AND NOT 5, which is what slides 11 and 12 use. Nullity is a polynomial identity,
+// WHY 4 AND NOT 5, which is what slides 11 and 12 USED to use. Nullity is a polynomial identity,
 // ‖q‖² = 2w·c∞, so at any real root of w the numerator vanishes too and (t−r) divides q, w and h
 // alike. A real polynomial of ODD degree always has a real root, so every degree-5 member is a
-// quartic in a quintic polygon — slides 11 and 12 draw genuine rational PH curves, but quartic
-// ones. Even degree can keep w off the real axis, and this figure's member is guarded to do so
+// quartic in a quintic polygon. This argument is what later moved slide 11 to degree 6 and retired
+// slide 12 altogether. Even degree can keep w off the real axis, and this figure's member is guarded to do so
 // (`irreducible`, and the readout shows the count).
 //
 // AND AT DEGREE 4 THE ARGUMENT FOR THIS WHOLE CONSTRUCTION IS AT ITS SHARPEST. The conformal lift

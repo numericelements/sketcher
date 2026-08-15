@@ -440,7 +440,8 @@ describe('what the even degrees offer', () => {
 })
 
 // ---------------------------------------------------------------------------
-// COUNTED IN CURVES RATHER THAN POLYGONS — what slide 12 has actually been showing.
+// COUNTED IN CURVES RATHER THAN POLYGONS — what the retired degree-5 slide 12 was actually showing,
+// and one of the three reasons it was retired.
 //
 // A tangent direction to the pinned family may move the CURVE, or it may only reshuffle the
 // polygon and leave the curve pointwise identical. The rescale (C,h) ↦ (λC,λh) is the obvious
@@ -449,8 +450,9 @@ describe('what the even degrees offer', () => {
 // while the curve does not move.
 //
 // Measured: at degree 5 the four nullspace directions produce a curve-motion map of rank TWO
-// (singular values 1.0, 0.73, 7e-6, 4e-9 — gap 1e5). One is the rescale, so of slide 12's THREE
-// strict dimensions only two are curve shape. At degree 4 the two directions give rank ONE, and
+// (singular values 1.0, 0.73, 7e-6, 4e-9 — gap 1e5). One is the rescale, so of that slide's THREE
+// strict dimensions only TWO were curve shape — a third slider that moved the polygon and left the
+// curve alone. At degree 4 the two directions give rank ONE, and
 // the one that does nothing is exactly the rescale — no hidden redundancy left.
 //
 // That is why degree 4 is the honest figure: every dial it offers moves the curve.

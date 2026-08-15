@@ -26,10 +26,17 @@
 //
 //     P₁ drag        lands to 5.0e-14 of the cursor, the other six Hermite numbers held to 2.8e-14
 //     P₅ drag        lands to 9.3e-14, c′(0) and c(1) held to 5.0e-14
-//     P₆ drag        lands to 5.1e-14, both end tangents held to 7.1e-15
+//     P₆ drag        lands to 4.5e-14, the other three POINTS held to 1.2e-14
 //     P₀ drag        RESHAPES: the other three hold their SCREEN places to 1e-8, and the interior
 //                    points depart from a rigid slide by about the size of the drag
 //     every member exactly PH (defect < 1e-12)
+//
+// THE HANDLES HOLD POINTS, NOT NUMBERS, and at the two ENDS those differ. c′(0) = k₀(P₁ − P₀) and
+// c′(1) = k₁(P₆ − P₅) are DIFFERENCES: hold the number while dragging one end of it and the other end
+// is carried rigidly. Dragging P₆ with c′(1) held moved P₅ by exactly the drag; dragging P₀ with only
+// the displacement retargeted moved P₁ by exactly the drag. So an endpoint drag retargets its own end
+// tangent, and each drag touches exactly the held numbers that are built out of the point that moved.
+// (The P₀ test below has modelled this since it was written; the P₆ test and the store did not.)
 //
 // So all four handles track, and the harder solve — nine conditions instead of six — costs nothing in
 // accuracy.
@@ -166,25 +173,42 @@ describe('the four degree-6 strict handles', () => {
     expect(worstPH).toBeLessThan(1e-12)
   })
 
-  it('P₆ TRACKS: the endpoint moves and BOTH end tangents stay put', () => {
+  it('P₆ TRACKS: the endpoint moves and THE OTHER THREE POINTS stay put', () => {
+    // HOLD THE POINTS, NOT THE NUMBERS — and at this end the two differ. Holding c′(1) while P₆ moves
+    // holds a DIFFERENCE with one end moving, so P₅ = P₆ − c′(1)/k₁ is carried along rigidly: measured
+    // at exactly the drag, 1.50e-1 for a 0.150 drag. What the user grabbed is a POINT and the other
+    // three are what must stay put, so c′(1) is the number that gives way. c′(0) and P₀ are untouched
+    // — they are built from points at the other end.
     const m0 = toMember(SEED)
+    const P = controlStructure(m0).points
     const end0 = curveAt(m0, 1)
+    const k1 = endK(m0)
     const h0 = hermiteOf(m0)
 
-    let worst = 0, worstHeld = 0
+    let worst = 0, worstHeld = 0, worstCarried = 0
     for (const [dx, dy, dz] of DRAGS) {
       const want: Vec3 = { x: end0.x + dx, y: end0.y + dy, z: end0.z + dz }
+
+      // what holding the NUMBER does, kept as the measurement that motivates the target below
+      const rigid = h0.slice()
+      rigid[6] = want.x; rigid[7] = want.y; rigid[8] = want.z
+      const carried = controlStructure(toMember(projectOnto(SEED, hermiteOf, rigid))).points[5]
+      worstCarried = Math.max(worstCarried, dist(carried, P[5]) / Math.hypot(dx, dy, dz))
+
       const target = h0.slice()
+      target[3] = k1 * (want.x - P[5].x); target[4] = k1 * (want.y - P[5].y); target[5] = k1 * (want.z - P[5].z)
       target[6] = want.x; target[7] = want.y; target[8] = want.z
       const m = toMember(projectOnto(SEED, hermiteOf, target))
+      const Q = controlStructure(m).points
       worst = Math.max(worst, dist(curveAt(m, 1), want) / Math.hypot(dx, dy, dz))
       expect(phDefect(m)).toBeLessThan(1e-12)
-      const h = hermiteOf(m)
-      for (let i = 0; i < 6; i++) worstHeld = Math.max(worstHeld, Math.abs(h[i] - h0[i]))
+      for (const i of [0, 1, 5]) worstHeld = Math.max(worstHeld, dist(Q[i], P[i]))
     }
-    console.log(`    P₆ lands to ${worst.toExponential(1)}; both tangents held to ${worstHeld.toExponential(1)}`)
+    console.log(`    P₆ lands to ${worst.toExponential(1)}; P₀ P₁ P₅ held to ${worstHeld.toExponential(1)}`)
+    console.log(`    (holding c′(1) instead carries P₅ by ${worstCarried.toFixed(2)}× the drag)`)
     expect(worst).toBeLessThan(1e-8)
-    expect(worstHeld).toBeLessThan(1e-9)
+    expect(worstHeld, 'the other three handles do not move').toBeLessThan(1e-9)
+    expect(worstCarried, 'which is why the tangent is retargeted: it was a rigid carry').toBeGreaterThan(0.9)
   })
 
   it('P₀ RESHAPES: the other three hold their SCREEN places, and it is not a rigid slide', () => {

@@ -164,9 +164,21 @@ describe('the planar dual as a chart', () => {
   it('IN SPACE the same quantity is a SUM OF TWO SQUARES, not one', () => {
     // Derived and pinned here: with Q = 𝒜*𝒜′,
     //     |N′|² − σ′²  =  4(Q₂² + Q₃²)
-    // In the plane the corresponding numerator was 4u′² — ONE square, hence always a square.
-    // In space it is a sum of TWO, and a² + b² is a perfect square only when a and b are
-    // proportional. That single step is the whole 2D/3D difference.
+    // In the plane the corresponding numerator was 4u′² — ONE square, hence always a square. In
+    // space it is a sum of TWO: an IDENTITY becomes a CONDITION, and that is the 2D/3D difference.
+    //
+    // THE CONDITION IS KUBOTA'S, NOT PROPORTIONALITY — corrected after the Lean companion produced
+    // a counterexample. This comment used to read "a² + b² is a perfect square only when a and b
+    // are proportional". False: a = t²−1, b = 2t are coprime and not proportional, yet
+    // a² + b² = (t²+1)². The witness is its own repair, since a + ib = (t+i)². Over ℂ[t],
+    // (a+ib)(a−ib) = P² with the factors coprime, so in a UFD each is a square — the sum is a
+    // square exactly when a + ib is, i.e. exactly when the pair is itself a PLANAR PH hodograph.
+    // A recursion one level down, not a wall.
+    //
+    // NONE OF THE ASSERTIONS BELOW CHANGE. What they measure — that the sum is generically NOT a
+    // square — is true and is what the slide needs; only the explanation of WHY was wrong. The
+    // failure mode is worth naming: a correct measurement can carry an incorrect reason for years,
+    // because nothing in the test suite ever evaluates the prose.
     const spinors: QPoly[] = [
       [[0.4, 1, -0.3], [1, 0, 0.2], [-0.6, 0.5], [0.2, -1]],
       [[1, 0, 0.5], [0.2, 1, -0.4], [0.7, -0.3, 0.9], [-0.1, 0.6, 0.2]],

@@ -41,7 +41,6 @@ import RmErfFigure from './RmErfFigure'
 import RmErfSplineFigure from './RmErfSplineFigure'
 import MobiusFigure from './MobiusFigure'
 import RationalPHCurveFigure from './RationalPHCurveFigure'
-import RationalPHQuarticFigure from './RationalPHQuarticFigure'
 import SexticFivePointFigure from './SexticFivePointFigure'
 import RationalPHLoopFigure from './RationalPHLoopFigure'
 import RationalPHTwoPoleFigure from './RationalPHTwoPoleFigure'
@@ -50,7 +49,6 @@ import IndicatrixTwoPoleFigure from './IndicatrixTwoPoleFigure'
 import RationalCubicFigure from './RationalCubicFigure'
 import IndicatrixCubicFigure from './IndicatrixCubicFigure'
 import SharedIndicatrixFigure from './SharedIndicatrixFigure'
-import StrictFreeRationalFigure from './StrictFreeRationalFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import WhenActive from '../framework/slideContext'
 
@@ -473,10 +471,31 @@ export const slides: SlideDefinition[] = [
     ),
     notes:
       'THE POINT OF THIS SLIDE, against the previous one: nothing was bent. The control points are ' +
-      'placed directly in the conformal model, and this curve is NOT reachable by any Mobius ' +
-      'transformation of a polynomial PH curve — the lift doubles the degree, so a Mobius image always ' +
-      'has EVEN conformal degree, and the odd ones are unreachable by bending. ' +
-      'WHY DEGREE 5 AND NOT 3, and say this if anyone asks why not start smaller — it is a result, not ' +
+      'placed directly in the conformal model. ' +
+      'DO NOT SAY "AND NOTHING COULD BEND TO THIS." That was this slide\'s headline and it is ' +
+      'withdrawn. The argument was: a Mobius image has EVEN conformal degree, so the ODD degrees are ' +
+      'unreachable by bending. The parity theorem then showed odd conformal degree is never GENUINELY ' +
+      'odd — a real root of w forces the whole member to factor, and a real odd-degree polynomial ' +
+      'always has one. The degree-5 member this figure used to load measured denominatorRealRoots = 1: ' +
+      'it was a QUARTIC in a quintic polygon, so one of its six control points was pure ' +
+      'reparametrisation and the unreachability argument did not apply to the curve on screen. Hence ' +
+      'degree 6, where w generically avoids the real axis (five members of five). ' +
+      'WHAT THE SLIDE ARGUES NOW, and it was always the better half: bending here is a CONSTANT ' +
+      'MATRIX, so the polygon maps one point for one point and the degree does not move — against ' +
+      'slide 10, where the same bend takes 8 control points to 15. ' +
+      'AND IF SOMEONE PRESSES ON "COULD BENDING REACH THIS ANYWAY", the honest answer is a DEGREE-4 ' +
+      'one, inherited from the retired quartic slide and sharper than anything available here. The ' +
+      'lift doubles the degree, so a Mobius image of a polynomial PH curve of degree d lands at ' +
+      'conformal degree 2d. Conformal 4 therefore comes from a polynomial PH QUADRATIC — and a PH ' +
+      'quadratic is a straight LINE, since |p-prime| = |at+b| forces p-prime = (at+b)u with u ' +
+      'constant. So at conformal degree 4, bending a polynomial produces ONLY circles and lines, while ' +
+      'building directly gives 13 dimensions of genuinely spatial curves (measured: curvature spread ' +
+      '0.39, out-of-plane 0.05). That is a QUALITATIVE gap and it lands two degrees below this one. ' +
+      'At conformal 6 the same question is subtler: it carries the polynomial PH CUBICS (a polynomial ' +
+      'PH quintic needs conformal degree 10), but a generic member here is not a bent cubic at all — ' +
+      'being a Mobius image of a polynomial needs a NULL S with <P,S> constant, and at degree 6 that ' +
+      'orthogonal complement measures ZERO-dimensional, so there is no candidate even to test. ' +
+      'WHY NOT DEGREE 3, and say this if anyone asks why not start smaller — it is a result, not ' +
       'a preference. Four coefficients span at most a 4-dimensional subspace of R^{4,1}, so a vector S ' +
       'is left orthogonal to all of them, and <P(x),S> = 0 confines every point of the curve to the ' +
       'single sphere S. Measured, the span collapses further to rank 3 (sigma = 2.2, 1.5, 1.1, 6e-9), ' +
@@ -495,93 +514,103 @@ export const slides: SlideDefinition[] = [
       'quaternions, no coordinates and no choice of origin. Verified to 1e-15, and a non-PH curve ' +
       'fails it by 1.9e-2. ' +
       'WHY NOTHING FIVE-DIMENSIONAL IS DRAWN: a conformal vector\u2019s five coordinates ARE weight + ' +
-      'centre + radius, because the infinity-component is fixed by the null condition. So the four ' +
+      'centre + radius, because the infinity-component is fixed by the null condition. So the seven ' +
       'sphere centres are the ordinary rational-Bezier control points, the ends have radius zero (they ' +
-      'are point-spheres), and — the load-bearing fact, verified to 1e-9 — the interior radii are ' +
-      'DETERMINED: rho_1 = |P1-P0|, rho_2 = |P2-P3|. The spheres are drawn from the polygon with ' +
-      'nothing stored, which is why both pictures fit in one figure. ' +
-      'THE REST OF THE DICTIONARY, if pressed: w0w2 pow(P0,S2) = 3w1^2 rho_1^2, mirrored, and ' +
+      'are point-spheres), and — the load-bearing fact, verified to 1e-8 — the OUTER radii are ' +
+      'DETERMINED: rho_1 = |P1-P0| and rho_5 = |P5-P6|, so those two spheres GRIP the endpoints and are ' +
+      'drawn from the polygon with nothing stored. ' +
+      'THE REST OF THE DICTIONARY, if pressed — these are the DEGREE-3 forms, quoted because they are ' +
+      'the ones short enough to say out loud: w0w2 pow(P0,S2) = 3w1^2 rho_1^2, mirrored, and ' +
       'w0w3|P0-P3|^2 + 9w1w2(|P1-P2|^2 - rho_1^2 - rho_2^2) = 0. Each is a null condition read as ' +
       'geometry, all confirmed to 1e-11 or better. ' +
-      'THE WEIGHTS ARE FARIN BEADS and the count is exact: three legs, three weight ratios after the ' +
-      'overall scale. All three at the midpoints would mean polynomial, so the rationality is visibly ' +
+      'THE WEIGHTS ARE FARIN BEADS and the count is exact: six legs, six weight ratios after the ' +
+      'overall scale. All six at the midpoints would mean polynomial, so the rationality is visibly ' +
       'how far off-centre they sit; a bead leaving its segment would mean a negative weight ratio. Same ' +
       'visual language as the sketcher\u2019s complex rational B-splines. ' +
+      'THEY ARE A READOUT AND NOT A HANDLE, in both modes, and the reason is worth a sentence because ' +
+      'it is a design principle rather than a limitation: in strict the four dials already spend the ' +
+      'slice, and in free the eleven dimensions are what the seven POINTS are for. A weight handle ' +
+      'competing with a point handle for the same dimensions is two controls for one freedom. So the ' +
+      'gesture is to move something else and watch the rationality answer on its own. (They were ' +
+      'draggable once and it read as dead, because dragFarin clamps each event to 0.03 in the ratio ' +
+      'and the bead crawled behind the cursor. That was the symptom; the line above is the cause.) ' +
       'THE COST OF PH, at degree 3 where the elementary count is easy to state: an ordinary rational ' +
       'cubic has 15 degrees of freedom and the PH ones 11 — measured two independent ways, as the rank ' +
       'of the conformal system and as 15 minus the four conditions for ||q\u2032w-qw\u2032|| to be a ' +
       'polynomial. CODIMENSION 4. So nothing moves alone here either: drag a point and the weights ' +
       'answer, which is what the beads make visible. ' +
-      'THE MIDDLE RADII ARE THE REASON FOR DEGREE 5 rather than just more moduli. b_1 = <C_0,C_1> and ' +
+      'THE MIDDLE RADII ARE WHY THE SPHERES CARRY CONTROLS AT ALL. b_1 = <C_0,C_1> and ' +
       'b_{2n-1} = <C_{n-1},C_n> hold at EVERY degree, so the OUTER spheres always grip the endpoints ' +
-      'and are drawn from the polygon. At degree 3 that is all of them, so the spheres carry no ' +
-      'handles. From degree 5 on the middle radii are pinned to nothing — real freedom, with their own ' +
-      'handles, and the sphere picture becomes load-bearing instead of derived. ' +
-      'WHY DIRECT BEATS BENDING, if anyone asks whether this is just slide 10 again: the family has ' +
-      'dimension 2n+5, of which 9 are Mobius MOTIONS, so 2n-4 genuine shape moduli. At conformal ' +
-      'degree 6, where the two constructions finally meet, direct is 17-dimensional against the Mobius ' +
-      'orbit\u2019s measured 13 — 8 shape moduli against 4, twice as many. ' +
-      'THE SHAPE BUDGET HERE: 15 dimensions, 9 Mobius motions, 6 shape moduli — three times degree 3. ' +
-      'Pinning the ends freezes most of the motions, which is why they are pinned. ' +
+      'and are drawn from the polygon. At degree 3 that is all of them, so the spheres are a reveal ' +
+      'with nothing attached. Here rho_2, rho_3 and rho_4 are pinned to nothing — three genuine extra ' +
+      'dimensions, and the sphere picture becomes load-bearing instead of derived. ' +
+      'STRICT AND FREE, and this is the deck\'s gesture pair arriving on the rational curve. STRICT ' +
+      'holds the outer TWO at each end — P0, P1, P5, P6, twelve coordinates against seventeen — and ' +
+      'what is left is SIX, which decomposes as 1 projective scale + 1 parameter gauge + FOUR SHAPES. ' +
+      'Hence four dials and not three: rho_2, rho_3, rho_4 cut three of the four and the TOTAL ARC ' +
+      'LENGTH cuts the fourth. Measured one readout at a time, 6-5-4-3-2. FREE hides the dials, makes ' +
+      'every point a handle and holds the ends unless you grab one — eleven dimensions. ' +
+      'SAY THE DEGREE-4 FACT IF THERE IS TIME, because it is what makes the strict mode worth having: ' +
+      'two degrees down this gesture is IMPOSSIBLE. Pinning the four outer points of a quartic leaves ' +
+      'exactly one dimension and it is a pure weight direction — the middle point moves 1e-6 while ' +
+      'every weight moves 0.1 to 0.5. "There are dimensions left" and "this handle moves" are ' +
+      'different claims; degree 6 is where they agree. Measured: all four handles track to 100% with ' +
+      'the other three held to 1e-15, and the interior absorbs 0.32 on a 0.15 ask. ' +
+      'AND ONE DIAL IS FORBIDDEN HERE — a HALF arc length. Pinning control POINTS leaves the gauge ' +
+      'live (lambda^k moves no control point, so it satisfies the pins for free) and the half-lengths ' +
+      'are not gauge-invariant, so that slider would move every weight and bead with the curve ' +
+      'standing still. It is the dead dial that retired the degree-5 slide; dragPinned throws rather ' +
+      'than offering it. Radii and the TOTAL length are invariant, which is why those four are safe. ' +
+      'THEY ARE SLIDERS, NOT 3-D HANDLES, and if anyone asks, say why: a radius is a SCALAR. The old ' +
+      'handle asked for it with a point drag, was drawn at centre + (rho,0,0) so it teleported back to ' +
+      'the x-axis after every event, and read the radius as |cursor - centre| — so dragging AROUND the ' +
+      'sphere did nothing while dragging ACROSS it took the radius through zero. Eric found it by ' +
+      'using it. The solve runs on the UNBENT curve, because a bend changes the radii. ' +
+      'THE SHAPE BUDGET: 18 dimensions, 17 after the projective scale, of which TEN are Mobius ' +
+      'MOTIONS — the group is ten-dimensional — leaving 2n-5 = 7 shape moduli. Pinning the ends ' +
+      'freezes most of the motions, which is why they are pinned. ' +
+      'TWO NUMBERS THIS SLIDE USED TO CARRY ARE RETRACTED (RATIONAL_PH_STATE section 7): "9 Mobius ' +
+      'motions, 6 shape moduli" subtracted nine for a ten-dimensional group, and the comparison ' +
+      'figure below was NEVER MEASURED. Do not quote it. Kept only so nobody re-derives it: ' +
+      'OLD TEXT — "direct is 17-dimensional against the Mobius ' +
+      'orbit\u2019s measured 13 — 8 shape moduli against 4, twice as many." ' +
       'THE TRAP, if the figure ever looks collapsed: the family has a large degenerate stratum, and ' +
       'unguarded solves land on it — interior radii collapsing to 1e-3, weights going negative, the ' +
       'curve spanning a hundredth of its polygon. The mechanism is in the dictionary: as rho_1 goes to ' +
       'zero, P1 falls onto P0 and the cross condition drags P0 onto S2. Same shape of trap as the ' +
       'septic\u2019s planar locus, hence the guards in findMember. ' +
-      'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w, so h is CUBIC here and w is quintic. That degree drop ' +
+      'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w, so h is QUARTIC here and w is sextic. That degree drop ' +
       'is where the one rank deficiency in the system came from, and it is pinned. ' +
       'core/conformalPHCurve (22 tests), conformalPHFamily (10), conformal (28).',
   },
 
   // ---------------------------------------------------------------------------
-  // 12 — strict and free on the rational curve
+  // 12 — RETIRED. Was "Strict and free, one dimension richer", at conformal degree 5.
+  //
+  // REMOVED BECAUSE THE PARITY THEOREM KILLED ITS HEADLINE. It argued that rationality buys exactly
+  // one more dimension AT THE SAME DEGREE and the same data — polynomial PH quintic 2, rational
+  // quintic 3. But an odd conformal degree is never genuinely odd: a real root of w forces the whole
+  // member to factor, and a real odd-degree polynomial always has one. So its rational side was a
+  // QUARTIC in a quintic polygon, and the two sides were never the same degree.
+  //
+  // AND ONE OF ITS THREE SLIDERS DID NOT MOVE THE CURVE, which is the second reason and was found
+  // independently. Counted in curves rather than polygons, the four nullspace directions have
+  // curve-motion rank TWO (singular values 1.0, 0.73, 7e-6, 4e-9, gap 1e5): one is the projective
+  // rescale, and at odd degree the redundant factor (t−r) can slide freely, changing every weight and
+  // radius on screen while the curve stays pointwise identical. → conformalPHHopf.test.ts
+  //
+  // AND THERE IS NO HONEST ODD RUNG TO REPAIR IT WITH. Conformal 6 carries the polynomial PH CUBICS;
+  // a polynomial PH quintic needs conformal degree 10. The comparison would have to be rebuilt across
+  // a different pair of degrees, with different data held on each side. Dropped rather than faked.
+  //
+  // ITS TWO DURABLE FINDINGS MOVED INTO SLIDE 14's NOTES — "one slider at a time", and "the outer
+  // points are NOT the data" — that being the degree-6 slide which had already superseded its gesture
+  // ("you could turn five dials but move no control point").
+  //
+  // NOW UNUSED, kept for their measurements rather than deleted: StrictFreeRationalFigure.tsx (this
+  // slide's figure) and RationalPHSexticFigure.tsx (which slide 14 replaced earlier).
   // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Strict and free, one dimension richer</h2>
-        <WhenActive>
-          <StrictFreeRationalFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'THE COMPARISON IS THE SLIDE, and it is the same gesture pair as slides 4, 6, 7 and 8. Pin the ' +
-      'C1 Hermite data: 12 conditions against the degree-5 rational family\u2019s 15, so THREE remain. ' +
-      'Measured, rank 31 of 32 with a gap of 2.5e8. Slide 7\u2019s POLYNOMIAL PH quintic has 14 before ' +
-      'its data and 2 after. So at the same degree and the same data, RATIONALITY BUYS EXACTLY ONE MORE ' +
-      'DIMENSION: the torus becomes a 3-fold, two dials become three sliders. ' +
-      'WHAT THE THREE SLIDERS ARE was measured, not chosen. Candidate quantities were added to the ' +
-      'pinned system one at a time and the rank watched: {rho_2, rho_3, arc length} is COMPLETE — rank ' +
-      '34, freedom 0. So are {rho_2, rho_3, <C2,C3>} and {L, lambda_1, lambda_2}. And {rho_2, rho_3, ' +
-      'lambda_1} is NOT — freedom 1 — because lambda_1 is dependent on the two radii once the data is ' +
-      'pinned. Worth saying if anyone asks why these three: because the other obvious triple fails. ' +
-      'The two radii were already handles on slide 11, and arc length rhymes with slide 7, where L ' +
-      'turns out to depend on one coordinate alone. ' +
-      'ONE SLIDER AT A TIME, and this is the engineering point. Prescribing all three leaves the system ' +
-      'exactly determined with a projective kernel, and Newton stalls at a defect of 1e-6 to 1e-7 — the ' +
-      'three coordinates were hit EXACTLY while the defining conditions were not, which would have been ' +
-      'a figure enforcing something other than what it displays. Pinning w_0 = 1 to kill the kernel ' +
-      'made it worse, so that diagnosis was wrong. Prescribing only the slider being touched leaves 2 ' +
-      'spare dimensions — the shape of every drag in this codebase that behaves — and the defect ' +
-      'returns to 1e-13. ' +
-      'SO THE OTHER TWO READINGS DRIFT while you move one, and the sliders show their measured values ' +
-      'rather than holding position. They are genuinely coupled by the defining conditions; hiding that ' +
-      'would be displaying one quantity and enforcing another. ' +
-      'AND THE FOUR OUTER POINTS ARE NOT THE DATA, unlike slide 7 where P1 = p_i + d_i/5 makes dragging ' +
-      'them identical to prescribing Hermite data. For a rational curve r\u2032(0) = 5(w_1/w_0)(P1-P0) ' +
-      'carries the weights too, so pinning the four points and pinning the data give DIFFERENT 3-folds ' +
-      'of the same dimension — both freedom 3, measured. The figure pins the data and drags the points ' +
-      'to move it. ' +
-      'FREE releases everything but the ends: 9 dimensions, and the Farin beads come back. ' +
-      'core/conformalPHCurve, 32 tests.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 13 — degree 4: the smallest genuinely-new rational case, and rigidity + the gauge
-  // ---------------------------------------------------------------------------
-  // the plane first — Mobius costs nothing, and the Farin beads leave their edges
+  // 13 — the plane first: Mobius costs nothing, and the Farin beads leave their edges
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -630,65 +659,25 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Four points fix the quartic</h2>
-        <WhenActive>
-          <RationalPHQuarticFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'DEGREE 4, AND THE PREVIOUS TWO SLIDES ARE QUARTICS TOO — they just do not say so. Nullity is a ' +
-      'POLYNOMIAL identity, |q|^2 = 2 w c_inf, so at any real root of w the numerator vanishes as well ' +
-      'and (t-r) divides q, w and h alike. A real polynomial of ODD degree always has a real root, and ' +
-      'deg w = n. So EVERY degree-5 member is a quartic in a quintic polygon. Measured across degrees ' +
-      '3, 5, 7: exactly ONE real root of w every time, with q vanishing there to 1e-7. Degree 6: none, ' +
-      'five members of five. Degree 4: none in three of five, TWO in the other two — reducible by two ' +
-      'degrees, which is what an even degree allows. This figure guards against it and the readout shows ' +
-      'the count. AND THE DEGREE-3 CIRCLE IS A COROLLARY: a cubic member is (t-r) times a quadratic, a ' +
-      'rational quadratic is a conic, and PH makes it a circle. ' +
-      'WHY THIS IS THE STRONGEST SLIDE FOR THE CONFORMAL MODEL. The lift DOUBLES the degree, so a ' +
-      'Mobius image of a polynomial PH curve of degree d lands at conformal degree 2d. Conformal 4 comes ' +
-      'from a polynomial PH QUADRATIC, and a PH quadratic is a straight LINE: |p′| = |at+b| forces ' +
-      'p′ = (at+b) u with u constant. So at this degree bending a polynomial can produce ONLY circles ' +
-      'and lines, while building directly gives 13 dimensions of spatial curves — measured here at ' +
-      'curvature spread 0.39 and out-of-plane 0.05. That is a QUALITATIVE gap, sharper than degree 6’s ' +
-      '17-against-13, and it lands two degrees earlier. ' +
-      'THE DIAL IS THE PARAMETER GAUGE, AND SAY SO OUT LOUD — it is the best beat on the slide. Holding ' +
-      'the four outer points is 12 conditions on 13, leaving ONE, and that one does not change the ' +
-      'curve. Turn the dial and every weight moves, all four beads slide, the readouts all change, and ' +
-      'the drawn curve sits still. Measured: the weight ratios w_k/w_k(0) come out 1, 3.4218, 11.7090, ' +
-      '40.0665, 137.1015 — a SINGLE lambda = 3.4218 recovered to four decimals from all four — and the ' +
-      'image is unchanged to 2.6e-3 of the extent, which is the sampling resolution. w_k -> lambda^k w_k ' +
-      'is the classical rational-Bezier reparametrisation; the Mobius map t -> lambda t/(1+(lambda-1)t) ' +
-      'preserves rational PH because the chain rule multiplies |p′| by a rational scalar. ' +
-      'THIS FIGURE TAUGHT US THAT, and Eric read it off the screen before the algebra did: "the dial ' +
-      'does not change the shape of the curve, it just moves the Farin points." An earlier version of ' +
-      'the slide claimed the frozen polygon carried a family of DISTINCT curves. It does not. If asked ' +
-      'how it was missed: uniform-in-t samples move by 0.56 of the extent under the dial, because the ' +
-      'points slide ALONG the curve — parametrisation motion misread as shape motion. ' +
-      'AND IT IS FORCED, NOT AN ACCIDENT OF THE SEED. lambda^k changes only weights; every control ' +
-      'point, as a projective point, stays put. So the gauge lies in the nullspace of any constraint of ' +
-      'the form "control point k is HERE" — structurally, before any computation. Pin four, pin all ' +
-      'five: it survives. ' +
-      'SO THE STATEMENT IS RIGIDITY, and it is stronger than the family it replaced. 13 = 1 gauge + 12 ' +
-      'geometric. Twelve pinned coordinates can only bite on the 12 geometric directions, and the ' +
-      'measured dimension is 1, so they bite on ALL of them: the geometric quotient is cut to dimension ' +
-      'ZERO. Four control points DETERMINE the degree-4 rational PH shape. ' +
-      'THE CONSEQUENCE FOR THE EARLIER SLIDES, if someone counts along: every dimension quoted from ' +
-      'pinning control-point POSITIONS carries this spurious +1, so slides 11 and 12 are one lower ' +
-      'geometrically than their readouts say. Pinning the HERMITE DATA instead does fix lambda, since ' +
-      'p′(0) = n(w_1/w_0)(P1-P0) scales by lambda — and the dimension left there is genuine shape, ' +
-      'measured at curve motion 6.9e-4 per unit against control-point motion 1.3e-2. ' +
-      'WHERE THE DIAL ENDS. The weights run to a degeneration, w_0, w_1 and w_4 going to zero relative ' +
-      'to w_2, which in the gauge reading is just lambda running off to its limit. The wall is ' +
-      'asymptotic: 16000 continuation steps without arriving, so the slider slows to a stop rather than ' +
-      'snapping. ' +
-      'core/conformalPHHopf (19 tests), conformalPHCurve, conformalPHFamily, conformal.',
-  },
+  // RETIRED — was "Four points fix the quartic", conformal degree 4.
+  //
+  // Removed at Eric's request. It was NOT broken; everything on it was measured and correct. Three of
+  // its findings were load-bearing elsewhere and were moved rather than dropped:
+  //
+  //   · the DEGREE-4 BENDING GAP — conformal 4 comes from a polynomial PH QUADRATIC, which is a
+  //     straight line, so bending yields only circles and lines there while building directly gives 13
+  //     dimensions of spatial curves — went to SLIDE 11, where it is the honest replacement for that
+  //     slide's own retired "nothing could bend to this";
+  //   · the PARAMETER GAUGE (w_k -> lambda^k w_k moves every weight and bead and leaves the curve
+  //     pointwise still, lambda = 3.4218 recovered from all four ratios, image fixed to 2.6e-3) and its
+  //     asymptotic wall went to SLIDE 14, which cited this slide for both;
+  //   · the PARITY THEOREM it presented is what moved slide 11 to degree 6 and retired slide 12; it
+  //     lives in core/conformalPHCurve and in those two retirement notes.
+  //
+  // Its rigidity result has no home in the deck now: 13 = 1 gauge + 12 geometric, twelve pinned
+  // coordinates bite on all twelve, so FOUR CONTROL POINTS DETERMINE the degree-4 rational PH shape.
+  // RationalPHQuarticFigure.tsx is kept, unused, for that measurement.
+  // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
   // 14 — degree 6: navigate the family by its control points
   // ---------------------------------------------------------------------------
@@ -703,17 +692,21 @@ export const slides: SlideDefinition[] = [
       </>
     ),
     notes:
-      'THE GESTURE IS ERIC\'S AND THE COUNTING IS WHY IT IS THE RIGHT ONE. Seven control points is 21 numbers for an 18-dimensional family, so a polygon looks over-determined -- and it is, but by FIVE, not three. The map from the family to the polygon has measured rank 16, because TWO family directions move no control point at all: the projective scale (C -> cC changes nothing observable, since every defining condition is quadratic) and slide 13\'s reparametrisation (C_k -> lambda^k C_k slides the Farin beads and leaves every centre exactly where it was). So the reachable polygons are 16-dimensional. '
+      'THE GESTURE IS ERIC\'S AND THE COUNTING IS WHY IT IS THE RIGHT ONE. Seven control points is 21 numbers for an 18-dimensional family, so a polygon looks over-determined -- and it is, but by FIVE, not three. The map from the family to the polygon has measured rank 16, because TWO family directions move no control point at all: the projective scale (C -> cC changes nothing observable, since every defining condition is quadratic) and the PARAMETER GAUGE (C_k -> lambda^k C_k slides the Farin beads and leaves every centre exactly where it was). So the reachable polygons are 16-dimensional. '
+      + 'THE GAUGE IS WORTH A SENTENCE OF ITS OWN, since the slide that used to carry it is gone and it is the best beat in this material. w_k -> lambda^k w_k is the classical rational-Bezier reparametrisation, and the Mobius map t -> lambda t/(1+(lambda-1)t) preserves rational PH because the chain rule multiplies |p-prime| by a rational scalar. Turn that dial and EVERY weight moves, every Farin bead slides, every readout changes -- and the drawn curve sits still. Measured at degree 4: weight ratios 1, 3.4218, 11.7090, 40.0665, 137.1015, a SINGLE lambda = 3.4218 recovered to four decimals from all four, image unchanged to 2.6e-3 of the extent. ERIC READ THAT OFF THE SCREEN before the algebra did -- "the dial does not change the shape of the curve, it just moves the Farin points" -- and an earlier version of that slide had claimed the frozen polygon carried a family of DISTINCT curves. It does not. The trap: uniform-in-t samples move by 0.56 of the extent, because the points slide ALONG the curve, and parametrisation motion was misread as shape motion. '
+      + 'AND IT IS STRUCTURAL, NOT AN ACCIDENT OF A SEED: lambda^k changes only weights, so every control point AS A PROJECTIVE POINT stays put, and the gauge therefore lies in the nullspace of any constraint of the form "control point k is HERE". That is why the counting above subtracts it before anything is measured. Pinning the HERMITE DATA instead does fix lambda, since p-prime(0) = n(w_1/w_0)(P1-P0) scales by it. '
       + 'AND 16 = 15 + 1, WHICH IS THE WHOLE SLIDE. Five control points prescribed is fifteen coordinates -- the two ends, their neighbours, and the middle -- leaving ONE dimension, hence one slider. That is why {P0, P1, P3, P5, P6} are handles and P2, P4 are grey: the grey pair is what absorbs. Nothing about the arrangement is a taste decision. '
       + 'MEASURED BEFORE IT WAS BUILT. Dragging one of the five with the other four held tracks the cursor to 100% for four of them over a long path, the held points stay put to 2e-15, the grey pair absorbs by up to 1.6 units, and the residual never leaves machine zero. P0 is the exception at 87% and the reason is visible on screen: rho_1 IS the distance from P0 to P1, so holding P1 while dragging P0 drives that sphere\'s radius directly. '
       + 'THE LEFTOVER DIMENSION IS A ROAD, AND IT IS DRAWN. The first version of this slide spent that dimension on an abstract slider, and Eric\'s verdict was that the five points worked well and the slider less so -- correctly, because the dimension has a concrete picture that a slider throws away. Hold the five and the grey points are NOT free in space: each is confined to a curve, and the two travel it together. So the road is drawn (measured: 36 samples, arc 1.65 against a polygon span of 1.45, chord/arc 0.83, so genuinely curved; P4 travels 1.20 of it while P2 travels 1.65) and the gesture is to PUSH the grey point along it. Measured: a cursor 60 degrees OFF the road still slides P2 1.50 along it with the five held to 2e-15. No slider, no orientation to carry, no re-seating -- and it is slide 4\'s gesture one dimension up, which is the gesture this audience has already been taught. '
       + 'WHY NOT A NAMED QUANTITY -- this took a measurement and it is the interesting part. Every geometric candidate for a dial FAILS on that road: rho_2 is CONSTANT along it (0% both ways), while rho_3, rho_4 and the total arc length each sit at a FOLD -- rho_3 reaches 100% up and 17% down, rho_4 reaches 100% down and runs BACKWARDS (-71%) when asked up. A fold is where a readout stops being a coordinate; it is not a solver defect. The road has no such problem because it is the family\'s own shape rather than a function on it. '
       + 'HOW THE ROAD IS COMPUTED, if asked. Its tangent is the ambient push projected onto the nullspace of the constraint Jacobian; the two gauge directions move no control point, so every probe that moves the point at all reports the same direction -- the probe cancels out. Walking it needs BACKTRACKING and skipping that broke the first attempt: the step is travel/rate, so where the point travels slowly the predictor leaps, and measured, one direction ran fourteen steps while the other diverged to a defect of 1e6 on its second, taking 1.20 where 0.07 was asked. A step is now accepted only if it stayed on the family AND did not overshoot; otherwise the ask is halved. Nothing infeasible is ever drawn. '
       + 'AND THERE IS A SLIDER TOO, because a road cannot do the one thing a presenter needs: move the point with no hand on it. It indexes the samples already drawn, so dragging it costs NO solve -- every notch is a curve computed once and known to be a member. 33 notches over an arc of 1.80 is a step of about 4% of the polygon span. '
-      + 'THE TWO ENDS ARE DIFFERENT, and one earlier reading of them was WRONG -- correct it if it comes up. BACKWARD is a real wall at 0.19 whatever the step budget: the weights degenerate to (1, 4.1, 11.7, 20.9, 142.9, 95.5, 43.5), which projectively is w_0 -> 0, slide 13\'s asymptotic wall met from another direction. FORWARD does not end at all -- 1.61 travelled on a budget of 1.74, 3.06 on a budget of 4.34 -- so the drawn road is a generous stretch, not the whole locus, and the slider spans what is drawn. What the walk DOES refuse is a denominator with a real root, since that is a curve with a pole; measured, that does not happen inside the drawn stretch. '
+      + 'THE TWO ENDS ARE DIFFERENT, and one earlier reading of them was WRONG -- correct it if it comes up. BACKWARD is a real wall at 0.19 whatever the step budget: the weights degenerate to (1, 4.1, 11.7, 20.9, 142.9, 95.5, 43.5), which projectively is w_0 -> 0 -- the parameter gauge running off to its limit, the same asymptotic wall the degree-4 figure hit (16000 continuation steps without arriving, so a slider slows to a stop rather than snapping), met here from another direction. FORWARD does not end at all -- 1.61 travelled on a budget of 1.74, 3.06 on a budget of 4.34 -- so the drawn road is a generous stretch, not the whole locus, and the slider spans what is drawn. What the walk DOES refuse is a denominator with a real root, since that is a curve with a pole; measured, that does not happen inside the drawn stretch. '
       + 'A RADIUS REACHING ZERO IS NOT AN END, which is the correction. Travelling forward, rho_2 passes through 0 and comes out NEGATIVE: <C,C> < 0, an imaginary sphere, while the residual stays at machine zero and the curve is a perfect member throughout. An earlier version of this slide called that a point-sphere boundary. It is a coordinate event -- the sphere through that conformal point stops being real -- and the family does not care. Worth pointing at on screen, since the readout shows it happening. '
       + 'FREE MODE HOLDS NOTHING, and that was measured against the alternative. Pinning the two ends and holding nothing BOTH track the cursor to 100% for all seven points; with nothing pinned the rest of the curve answers more evenly (largest companion motion 1.22 against 3.07), so free is the literal thing -- every control point moves, and minimum norm spends the fifteen spare dimensions. '
       + 'THE DIALS THIS SLIDE REPLACED, if someone asks for the moduli count. Pinning the C1 Hermite data at both ends is a slice through the gauge, leaving 2n-7 = five shapes at this degree: rho_2, rho_3, rho_4 and the arc length of each half were measured to pin 5 of the 5 slice directions (the total length alone is one short, where degree 5 got 2+1 = 3 by luck). That figure still exists as RationalPHSexticFigure. Its weakness is exactly what this slide fixes: you could turn five dials but move no control point. '
+      + 'THE DEGREES OF FREEDOM, ALL THREE, measured on this seed by adding rows to the defining Jacobian: the family is 18, seventeen after the projective scale; holding the two ENDS leaves 11; holding the full C1 DATA leaves 5. This slide\'s free mode holds nothing at all, so it is the whole 17. '
+      + 'THIS SLIDE ABSORBED THE OLD DEGREE-5 STRICT/FREE SLIDE, and two of its findings are worth keeping. FIRST, ONE SLIDER AT A TIME: prescribing every dial at once leaves the system exactly determined with a projective kernel, and Newton stalls at a defect of 1e-6 to 1e-7 -- the coordinates get hit EXACTLY while the defining conditions do not, which is a figure enforcing something other than what it displays. Pinning w_0 = 1 to kill the kernel made it WORSE, so that diagnosis was wrong. Prescribing only the handle being touched leaves spare dimensions and the defect returns to 1e-13. That is the shape of every drag in this codebase that behaves. SECOND, THE OUTER POINTS ARE NOT THE DATA, unlike slide 7 where P1 = p_i + d_i/5 makes dragging them identical to prescribing Hermite data: for a rational curve r-prime(0) = n(w_1/w_0)(P1-P0) carries the WEIGHTS too, so pinning the points and pinning the data give DIFFERENT slices of the same dimension -- measured, both freedom 3 at degree 5. '
       + 'WHAT BENDING REACHES AT THIS DEGREE, and it is the sharper version of the old 17-against-13. The null lift of a polynomial curve is (1, p, half |p|^2), so the infinity coordinate is |p|^2 and degree d lands at conformal degree exactly 2d -- exactly, because the o-coordinate is the constant 1 so the five components share no common factor. O(4,1) acts LINEARLY and invertibly, so conformal degree is a Mobius invariant and bending cannot lower it either. Hence conformal 6 carries the polynomial PH CUBICS, and a polynomial PH QUINTIC needs conformal degree 10 -- Eric asked exactly this and the answer is 10, not 6. Measured: the lifted cubic is a degree-6 member to 4.1e-16, the lifted quintic a degree-10 member to 3.4e-16, both with every weight exactly 1. '
       + 'AND A GENERIC MEMBER HERE IS NOT EVEN A BENT CUBIC. p is a Mobius image of a polynomial iff some NULL S has <P,S> constant -- S is the point sent to infinity, and constant means the curve never reaches it. Constant in Bernstein form means S is orthogonal to every difference C_i - C_i+1, so the test is: does the orthogonal complement of the differences contain a null vector? At degree 6 that complement is measured ZERO-dimensional -- there is no candidate to test. At degree 4 there was one and it read <S,S> = 2.0e-3. The control experiment: the lifted polynomials give exactly 0. '
       + 'IF ASKED WHY THE SLIDERS DRIFT: they are genuinely coupled by the defining conditions, so moving one moves the others readings. The handles show what was ASKED, the readouts show what is MEASURED; showing the measured value on the handle makes it jump under the pointer. '

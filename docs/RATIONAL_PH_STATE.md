@@ -1,9 +1,11 @@
 # Rational spatial PH curves — where we are
 
-*Working state as of 2026-08-14. The durable facts live in the test files named below; this file is
+*Working state as of 2026-08-15. The durable facts live in the test files named below; this file is
 the map, the retractions, and the plan. If you are picking this up cold, read this first, then the
 tests it names — not the other way round. §11 is the mathematics underneath, and is the place to start
-if the goal is to advance the subject rather than to continue the code.*
+if the goal is to advance the subject rather than to continue the code. §12 is what the LITERATURE
+says about all of it, read from the papers themselves — go there before claiming anything is new.
+§13 is where the two chart types turn out to touch.*
 
 The goal behind all of it: **local modification of 3D PH curves during editing** (Eric's letter to
 Carlotta). The rational work is a detour taken to understand 3D PH curves well enough to get there.
@@ -69,6 +71,11 @@ d = 6, m = 3  →  a helix        d = 6, m = 5  →  a straight line
 degree", and the reason an even-degree rational PH curve has an odd number of poles.
 → `polynomialsInTheClosure.test.ts`, `theTwistDialIsADegreeDial.test.ts`
 
+**AND THIS CLOSURE IS SHARED WITH THE OTHER CHART TYPE — see §13.** The polynomial a λ-chart
+degenerates to is the *same curve* as one sitting inside the conformal family at twice its degree,
+measured for `d = 4` (polynomial cubic ↔ conformal 6). So the table above is not only the λ-chart's
+boundary; it is the list of places the two chart types touch.
+
 **The tangent indicatrix cusps at every real pole**, and this is an *if and only if*: a simple pole
 exists iff `T′` vanishes there, i.e. `{N, N′}` are dependent (Kalkan–Scharler–Schröcker–Šír Rem. 4.7).
 `N(r) = −p(r)` exactly, so the cusp direction is the escape direction.
@@ -126,6 +133,12 @@ For shape editing the gap is bookkeeping. For anything caring about the speed pr
 planning, arc length, a frame in time — it is real.
 → `theMissingFreedomIsReparametrisation.test.ts`, `degree4IsThirteen.test.ts`,
 `onBranchTheChartCovers12Of13.test.ts`
+
+**BUT SEE §12.** The literature states outright that rational arc length is a *proper subset* of
+rational PH, while `rationalArcLengthInChart` says every chart member has it for free. Those two and
+this section's headline sentence cannot all be unrestricted. The likeliest fix is that "everything"
+here means *at a fixed `(n,m)`*, and the sentence needs that qualifier — but it is untested, so the
+claim above should be read with §12 open beside it.
 
 ---
 
@@ -188,6 +201,10 @@ ones the control's answer is known for. Here that was one line of arithmetic: `1
 | "ψ's lopsided motion is the min-norm solver's basis dependence" | falsifiable, and falsified by the test proposed for it: with every step closed form, ψ alone gives 0.578 / 3.397 / 3.731 against the solver's 0.554 / 3.785 / 3.590. The shear is geometry — ψ turns the spinor AT AN END, and that is an end-weighted motion however it is computed |
 | conformal moduli 6 (slide) / 8 (module) | both wrong; it is **7**, and the formula is `2n−5`. The module subtracted 9 for a 10-dimensional group; the slide subtracted the scale twice |
 | "the run-out diverges" as the pole approaches | `‖c′(1)‖` grows 6.6×, not ~1340× — the data is held, so the curve *reshapes* |
+| "`a² + b²` is a perfect square only when `a` and `b` are **proportional**" (price-of-a-circle, and the comment in `planarDualChart.test.ts`) | False. `a = t²−1`, `b = 2t` are coprime and not proportional, yet `a² + b² = (t²+1)²`. Proportional ⟹ square; the converse fails badly. The real condition is **Kubota's**: `a² + b²` is a square iff `a + ib` is a square in `ℂ[t]` (here `(t+i)²`), i.e. iff the pair is itself a *planar PH hodograph* — a recursion, not a wall. The test's ASSERTIONS were right throughout; only the prose was wrong, which is the failure mode to fear. Caught by the Lean companion |
+| "the Pythagoras number of `ℝ[t]` = 2 is the obstruction" | It is an *enabling* theorem — never more than two squares are needed — not a scarcity statement, and it answers a different question than the one asked (`is σ a sum of two squares` vs `is Q₂²+Q₃² a square`). Decoration wearing the clothes of a reason. Invoked twice this way; see §11.4's retraction and the row above |
+| "`σ` being a sum of FOUR squares is a semialgebraic condition inside an algebraic one" (§11.4's guess) | Same fact, opposite direction: `p(ℝ[t]) = 2` makes "sum of four squares" and "nonnegative on `ℝ`" the same condition for one polynomial. No extra content. The successor is the COUPLING of `σ` with `N`, i.e. `C5`/Dietz–Hoschek–Jüttler — see §11.4 |
+| "the dual/support-function method is planar-only" | Not established, and our own citation says otherwise: Pottmann's dual **was** generalised to spatial rational PH curves (Schröcker & Šír's third method, and an earlier one in their §1). What is true is about the MECHANISM — a support function needs tangent *hyperplanes*, so the naive transfer wants **codimension 1**: plane curves, and SURFACES in space. Consequence for the roadmap: the direct analogue of planar rational PH is **PN surfaces**, which Pottmann 1995 already covers in the same framework, so they may be the *easier* next step rather than the distant one |
 
 ---
 
@@ -727,13 +744,19 @@ visible as artefacts. Note the measured caveat: the covariant form does **not** 
   `familyBasis`.
 - **Farouki & Sakkalis**, *Construction of rational curves with rational arc lengths by direct
   integration*, CAGD 74, 2019.
+- **Farouki**, *Arc lengths of rational Pythagorean–hodograph curves*, CAGD 32, 2015 — **read in full,
+  §12.1.** The real/complex pole dichotomy, and it is our two chart types.
+- **Schröcker & Šír**, *Three Paths to Rational Curves with Rational Arc Length*, arXiv:2310.08047,
+  2024 — **read, §12.1.** All spatial rational curves with rational arc length; the `𝒜(1+i)𝒜*` lift.
 - **Farouki & Šír**, *Rational Pythagorean-hodograph space curves*, CAGD 28, 2011.
 - **Farouki, Giannelli & Sestini**, *New developments in theory, algorithms, and applications for PH
   curves*, 2019 — the survey; the fastest way in.
 - **Pottmann**, *Rational curves and surfaces with rational offsets*, CAGD 12, 1995 — the dual/envelope
   route, and the Laguerre-geometry doorway.
-- **2026, "A complete characterization of PH preserving mappings"** — recent, in the folder, not yet
-  read here. Likely bears directly on the Möbius question.
+- **Altavilla, Schröcker, Šír & Vršek**, *A Complete Characterization of Pythagorean Hodograph
+  Preserving Mappings*, arXiv:2512.19587, 2026 — **READ, §12.1.** It did bear on the Möbius question:
+  Thm 6 and Cor 9 say the PH-preserving maps in dimension ≥ 3 are precisely the Möbius
+  transformations. F18's premise, now with a converse.
 
 *Cited from memory — verify before relying on a page number:*
 
@@ -741,7 +764,9 @@ visible as artefacts. Note the measured caveat: the covariant form does **not** 
 - **Farouki & Sakkalis**, *Pythagorean-hodograph space curves*, Adv. Comp. Math. 2, 1994 — spatial PH
   cubics are helices, which is our degree-4 closure result.
 - **Choi, Lee & Moon**, *Clifford algebra, spin representation, and rational parameterization of curves
-  and surfaces*, Adv. Comp. Math. 17, 2002 — the spinor/Clifford foundation.
+  and surfaces*, Adv. Comp. Math. 17, 2002 — the spinor/Clifford foundation. **Read this before
+  claiming the ℝ^{4,1} sphere polygon is new** (§12.4): the search found no conformal-lift
+  construction anywhere, and this is the nearest thing to one.
 - **Dietz, Hoschek & Jüttler**, *An algebraic approach to curves and surfaces on the sphere and on
   other quadrics*, CAGD 10, 1993 — the characterisation of Pythagorean quadruples, i.e. when
   `N = h·(𝒜i𝒜*)`. Relevant to the still-open question of §8.
@@ -764,6 +789,330 @@ degree 6, in both the `p/w` and the covariant formulations, at every family trie
 the reality of the poles, not the pole count, not `deg w`. All four tested and dead (§7).
 
 An explanation would probably be one line of the right theory, and it would likely also settle whether
-the Hermite fibre is a torus. My guess, untested: it has to do with `σ = |𝒜|²` being a *sum of four
-squares* rather than merely a nonnegative polynomial — a semialgebraic condition sitting inside an
-algebraic one. Dietz–Hoschek–Jüttler is where I would look first.
+the Hermite fibre is a torus.
+
+**~~My guess: `σ = |𝒜|²` is a *sum of four squares* rather than merely nonnegative — a semialgebraic
+condition inside an algebraic one.~~ RETRACTED 2026-08-15, by the Lean companion.** The **Pythagoras
+number of `ℝ[t]` is 2**: every nonnegative real polynomial in ONE variable is a sum of two squares
+(factor into even-multiplicity real roots and irreducible quadratics `(t−b)² + c²`, each a sum of two
+squares, and sums of two squares are closed under multiplication by the ℂ-norm identity). Sum of two
+⟹ sum of four. So for a single polynomial, "sum of four squares" and "nonnegative on ℝ" are the SAME
+condition and there is no extra semialgebraic content to be the culprit. The guess cost nothing only
+because it was written down where it could be checked.
+
+**The successor is not nothing — it is `C5`.** If an explanation of that flavour is right it cannot be
+about `σ` alone; it must be about the COUPLING, since `σ` and `N` come from the same `𝒜`. The sharp
+form of that is: given a Pythagorean quadruple `(N, σ)`, when is it `𝒜i𝒜*`? That is
+Dietz–Hoschek–Jüttler, the answer is *"up to a common factor `h`"*, and it is already on the Lean
+ledger as `Claims.spatial_representation`.
+
+**AND ASK THE SYZYGY QUESTION FIRST, before any theory.** The fact above is a **rank deficit of a
+chosen equation system**, and a deficit means the variety is singular *or* the equations are
+redundant. This project has already resolved that ambiguity the second way, twice:
+
+- the degree-6 conformal system's "23 of 24" turned out to be **a redundant EQUATION, not a spurious
+  direction** — which moved the family from 17 to 18 (`conformalPHStructure.test.ts` finding 14);
+- §3's `m = n+1` collapse is three dependencies, and they come from residues summing to zero — the
+  residue theorem on `ℙ¹` including the point at infinity, which is also *why* the degree threshold
+  `deg N ≤ deg w² − 2` appears there at all.
+
+So the first question for §11.4 is: **is the deficit-2-at-degree-4, deficit-4-at-degree-6 pattern a
+syzygy among the `|N|² = σ²` equations?** Two precedents say it may be. The general form of the lesson,
+worth keeping: *when a dimension count fails, look for a syzygy among the equations before looking for
+a bug or a theory.*
+
+**One distinction that dissolves part of the worry.** *Representation-complete* (the spinor map is
+surjective) and *chart* (that map is regular near a point, so it can be inverted and dragged) are
+independent. A map can be surjective and singular on a whole stratum — `t ↦ (t², t³)` is onto the
+cuspidal cubic and its differential dies at 0. So "every chart member is a singular point" is a
+**regularity** statement and casts no doubt on **completeness**. It also splits the labour cleanly:
+surjectivity is algebra and belongs on the Lean ledger; rank and local dimension are measurements and
+belong here.
+
+---
+
+## 12. The literature check — 2026-08-15
+
+Three papers read from the PDFs themselves, not from abstracts. **The two-chart-type picture is
+confirmed, the residue criterion is standard, and one of our own claims turns out to be measured more
+narrowly than it is stated.** Everything below is quoted; page and equation numbers are the papers'.
+
+### 12.1 Confirmed
+
+**Rational PH does not imply rational arc length, and the criterion is the residue.** Farouki 2015:
+
+> "in general rational PH curves do *not* have rational arc length functions, since the integral of a
+> rational function may involve transcendental (logarithmic or arctangent) terms"
+
+> "the general condition for a rational function to have a rational integral is that the residues at
+> each of its poles must vanish" — citing Henrici, *Applied and Computational Complex Analysis* §7.2
+
+**And his real/complex dichotomy IS F18's two chart types, reached in 2015 by a different route.**
+This is the strongest single confirmation and it was not expected. Farouki 2015, p. 4:
+
+> "If Im(**c**) ≠ 0, the function (4) has the distinct **simple poles** t = **c** and t = **c̄** …
+> Clearly, these values cannot both vanish when **a₁**, **a₃** are non-zero. On the other hand, when
+> Im(**c**) = 0 … the function (6) has only the **double pole** t = c. The residue of σ(t) at this
+> pole is d/dt[(t−c)²σ(t)]|₍ₜ₌𝑐₎ = 0, and hence s(t), the integral of σ(t), is a rational function."
+
+Read his two denominators and the identification is exact:
+
+```
+real centre     σ = |6a₃(t−c)² + a₁|² / 12|a₃|(t−c)²     =  σ/w²  with w = t−c            ← a λ-chart member
+complex centre  σ = |6a₃(t−c)² + a₁|² / 12|a₃||t−c|²     =  h/w   with w = (t−c)(t−c̄)     ← the σ = h·w stratum
+```
+
+So his short communication carries one worked example of **each** of our two chart types, and the
+arc-length dichotomy between them is exactly F18's. His examples give the numbers: complex centre →
+`s = 3t³ − 9t² + 24t + 12 ln√(t² − 2t + 2) + 10 tan⁻¹(1/(t−1))`; real centre → a rational `s`.
+
+**A real pole is a point at infinity, and hiding it outside the drawn interval is the standard move.**
+
+> "Note that Im(**c**) ≠ 0 must be assumed to exclude real points at infinity"
+
+> "A real value c for the center of the Laurent series generates a point at infinity on the curve
+> **r**(t) — an undesirable feature in most practical applications — although for a finite curve
+> segment one can always choose c to lie outside the prescribed curve parameter domain t ∈ [a,b]"
+
+which is precisely what the degree-6 pair does with `r = 1.7` drawn on `t ∈ [0,1]` (§9.6).
+
+**The circle is his degenerate case, and its length is an arctangent.**
+
+> "the locus **r**(t) = **a₋₁**/(t−**c**) + **a₀** simply defines a circular arc … The length of a
+> circular arc is obviously determined by its angular extent, which involves an arctangent dependence
+> upon the parameter t"
+
+His eq. (5) also splits the arc length as `polynomial + β ln|t−c| + γ arg(t−c)`: **the real part of
+the residue is the logarithm's coefficient and the imaginary part is the arctangent's.** A real pole
+has a real residue, so it can only ever produce a logarithm — an arctangent requires leaving the real
+axis. That is the one-line reason a bounded curve is where the arctangent lives.
+
+**Rational arc length is a PROPER SUBSET of rational PH — stated outright.** Schröcker & Šír 2024, §1:
+
+> "Whereas all polynomial PH curves have polynomial arc length functions, only a **proper subset** of
+> the rational PH curves admits rational arc lengths. Determining this subset seems to be a rather
+> difficult problem."
+
+with their Lemma 2.1 giving the converse: a rational curve with piecewise rational arc length is
+necessarily PH.
+
+**Their quaternion representation is ours, symbol for symbol.** `𝓕 = 𝒜i𝒜*`, `N(𝓕) = σ²`, and their
+Corollary 2.4: `r = ∫λ𝒜i𝒜* dt` and `s = ∫λ𝒜𝒜* dt` both rational. Their eq. (8) then packs both into
+one equation through `𝒜(t)(1 + i)𝒜*(t)` — the curve is the vector part and the arc length the real
+part of a rational curve in ℍ ≅ ℝ⁴. **A four-dimensional lift unifying curve and length; ours is a
+five-dimensional lift unifying curve and sphere.** Different lifts, same instinct, and worth comparing
+properly before building more on either.
+
+**Möbius is exactly the PH-preserving group.** Altavilla, Schröcker, Šír & Vršek 2026 — the paper
+§11.3 listed as sitting unread — Theorem 6, and Corollary 9: for `n ≥ 3` the PH-preserving maps are
+**precisely** the Möbius transformations, sphere inversions included. F18's premise is now a theorem
+with a converse.
+
+### 12.2 What this narrows — read before trusting the arc-length claim
+
+`rationalArcLengthInChart.test.ts` says every chart member has rational arc length "at any dial and any
+pole placement". The two-line derivation is parameter-agnostic on its face, but **it has only ever been
+measured at REAL poles**, and `roots` is `number[]`, so nothing else can be measured today. Farouki's
+complex-centre example is not a counterexample — it is a stratum member (`w | σ`), not a chart member —
+but neither is it support. **Treat the complex-pole case as untested.**
+
+### 12.3 The tension with §4, and how to settle it
+
+§4 says the chart reaches every degree-4 rational PH curve up to reparametrisation (variety 13, chart
+12, the gap being `PGL(2,ℝ)`). Combine that with "every chart member has rational arc length" and you
+get "every degree-4 rational PH curve has rational arc length", contradicting the *proper subset* above.
+One of three things is true and we do not know which:
+
+1. **the likeliest** — §4's coverage is about `𝒱` at a FIXED `(n,m)` while the proper-subset statement
+   ranges over all pole configurations and degrees, in which case §4's headline sentence simply needs
+   an `(n,m)` qualifier;
+2. the rational-arc-length claim has a scope limit not yet found (see §12.2);
+3. the `σ = h·w` stratum sits inside `𝒱` — F18 measures its points as smooth, full rank — so "every
+   chart member" and "every point of `𝒱`" are different sets, and the chart misses the stratum inside
+   its own variety.
+
+**Cheap to attack, and it is now a task rather than a worry:** the stratum members are exactly those
+with `w | σ`, so intersect the degree-4 variety with that divisibility condition and ask whether the
+result is nonempty and whether the chart's tangent reaches it.
+
+### 12.4 Not found in the literature
+
+Two reading sessions, not a survey — so this is "not found", **not** "new". Both need a real search
+before any claim is made in a paper:
+
+- **The identity `σ̃ = σ·w̃` under inversion, and the stratum being ABSORBING.** The PH-preserving
+  paper proves Möbius preserves PH and says nothing about what happens to the pole and speed
+  structure. "One inversion always lands on the stratum and nothing ever leaves it" appears in nothing
+  read so far.
+- **The ℝ^{4,1} conformal null-lift construction with the control polygon as WEIGHTED SPHERES**
+  (`conformalPHCurve.ts`). No search hits at all. **Choi, Lee & Moon is the paper to read first** — it
+  is already in §11.3 and is the Clifford/spin representation of the *hodograph*, which is the
+  quaternion picture we already use, but that must be confirmed rather than assumed before the sphere
+  polygon is called new.
+
+### 12.5 The papers, exactly
+
+- **Farouki**, *Arc lengths of rational Pythagorean–hodograph curves*, CAGD **32** (2015) 1–5. A
+  five-page short communication and the single most relevant paper to the arc-length side of this
+  work. Written to correct Lee, Jung & Kim (CAGD 31, 2014), which had claimed rational arc lengths for
+  a family that does not have them. Closes by saying the vanishing-residue criterion "might, in
+  principle, be used as the point of departure for identifying more general classes … **However, it is
+  not obvious how to impose this condition in a geometrically meaningful manner**" — which is exactly
+  what F17's bilinear form and the λ-chart do.
+  <https://escholarship.org/content/qt90s84043/qt90s84043_noSplash_fd13b7ac928641b109d6b02c3aa36ee3.pdf>
+- **Schröcker & Šír**, *Three Paths to Rational Curves with Rational Arc Length*, arXiv:2310.08047v2
+  (5 Mar 2024); Appl. Math. Comput. 2024. Solves the open problem of constructing **all** spatial
+  rational curves with rational arc length, three ways: a linear system adapting Kalkan et al. 2022;
+  zero-residue conditions extending Farouki & Sakkalis 2019; and a spatial generalisation of
+  Pottmann's dual approach. Already cited by `rationalArcLengthInChart.test.ts`; now also here.
+  <https://arxiv.org/pdf/2310.08047>
+- **Altavilla, Schröcker, Šír & Vršek**, *A Complete Characterization of Pythagorean Hodograph
+  Preserving Mappings*, arXiv:2512.19587 (2026). Theorem 6: Φ is PH-preserving iff it is rational and
+  its first fundamental form satisfies `G = λ²Iₘ` with λ a non-zero real rational function.
+  Corollary 9: for `n ≥ 3` these are precisely the Möbius transformations.
+  <https://arxiv.org/html/2512.19587>
+
+---
+
+## 13. The two chart types MEET, and the meeting place is the polynomials — 2026-08-15
+
+**Why this section exists.** F18's atlas reads as two disjoint chart *types* and says nothing about
+their closures. Eric asked the obvious next question: the λ-chart's twist dial runs out at a
+polynomial, and a polynomial lifts exactly into the conformal family — so are the two spaces
+connected through the polynomials? They are, and the answer is sharper than a yes.
+
+### 13.1 The degree ladder, which is where an inference would have gone wrong
+
+The pole cancelling drops the degree by one; the conformal lift doubles it. So the three families
+that meet are not the ones with the same number on them:
+
+```
+λ-chart degree D, one pole   →   polynomial degree D−1   ←   conformal degree 2(D−1)
+
+D = 4:   polynomial CUBIC,    conformal 6      ← the pair measured below, and slide 11's family
+D = 6:   polynomial QUINTIC,  conformal 10
+```
+
+**So the family that meets slide 11 (conformal 6) at the polynomials is the degree-FOUR λ-chart, not
+the degree-six one.** Both halves were already in the repo — `polynomialLimitOfTheCircle` on the λ
+side, `conformalPHStructure`'s lifted cubic on the other — and pairing the two "degree 6" objects
+would have been off by exactly one rung.
+
+### 13.2 Measured
+
+```
+θ      90−θ    |𝒜(r)|/scale
+0      90.0      1.77e+0
+80     10.0      3.25e-1
+89      1.0      3.28e-2
+89.9     0.1      3.28e-3      a decade of angle for a decade of cancellation — LINEAR
+
+deflate 𝒜 by (t−r)  →  a DEGREE-1 spinor, i.e. a polynomial PH CUBIC (§2: a helix, τ/κ to 3e-15)
+its conformal lift  →  degree 6, residual 1.8e-14 — an exact member
+the two curves      →  agree pointwise to 6.3e-4 of the extent (extent 2.619)
+rank at the lifted polynomial  →  21 of 24 (nullity 20), against 23 of 24 (nullity 18) generic
+```
+
+**The curve comparison is the load-bearing one, and one trap is worth recording.** `|𝒜(r)|` alone
+only says the spinor is *small* at the pole, and synthetic division's remainder **is** `𝒜(r)` — so
+the "deflation defect" is the same number wearing a different name, not a second opinion. A first
+draft of the test reported the two columns as independent evidence; they are not. Only the pointwise
+agreement of the two curves says the pole DIVIDES OUT rather than merely shrinking.
+
+### 13.3 What it changes
+
+> **F18's two chart types are disjoint, but their CLOSURES meet along the polynomial locus.**
+
+Disjointness still holds as stated: a polynomial has no genuine pole, so it is not *in* a λ-chart,
+and it satisfies `σ = h·w` only trivially with `w = 1`. But the polynomials are in the closure of
+both, so the union is connected, and the connection is through them.
+
+**AND THE MEETING POINT IS SINGULAR IN BOTH CHARTS.** On the conformal side the defining Jacobian
+drops to rank 21 of 24 there. On the λ side the meeting point is `𝒜(r) = 0` — precisely the quantity
+the whole chart construction divides by (F17's `𝒜(r)⁻¹`, F19's note about running the chart
+backward). So:
+
+> The two spaces are connected **through a point neither chart can parametrise.** That is stronger
+> than "one chart is not enough": the bridge itself has no coordinates.
+
+It also explains a measurement that was sitting unexplained — bending the cubic fibres reaches only
+3 of the 6 moduli, never all 6. The polynomials sit on a fold, so strictly fewer directions are
+available AT them than arbitrarily close to them.
+
+### 13.4 What it does NOT say
+
+- **Not that you can edit across.** A solver walking from one chart to the other must pass through
+  the rank-deficient locus, where both parametrisations fail. Nothing here contradicts F18's "no
+  transport trick exists" — that is about Möbius carrying a curve INTO a λ-chart, which still cannot
+  happen.
+- **Not that the circle is reachable.** The circle is on the `σ = h·w` stratum but is not a
+  polynomial; this section is about the polynomial locus only.
+- **Not measured at D = 6.** The ladder predicts polynomial quintic ↔ conformal 10, and conformal 10
+  has never been built here. Predicted, not checked.
+
+**Pinned by** `src/core/__tests__/theTwoChartsMeetAtPolynomials.test.ts` (3 tests). Related:
+`polynomialLimitOfTheCircle.test.ts` (the λ side, at degree 6), `conformalPHStructure.test.ts` (the
+lifted cubic fibre, and the rank at a lifted polynomial).
+
+### 13.5 The other direction, and it is a formula — added 2026-08-15
+
+§13 above says the two chart types *touch*. The next question is whether either can **represent** what
+the other represents, and it splits — cleanly, along surjectivity versus regularity.
+
+**Conformal ⊇ everything, and nullity is FREE.** For any rational curve `x = q/w`,
+
+```
+P̃ = ( 2w² , 2w·q , ‖q‖² )        ⟨P̃,P̃⟩ = ‖2wq‖² − 2·(2w²)·‖q‖² = 0
+```
+
+by ring, with **no hypothesis** on `q` or `w`, no spinor, and no PH assumption. Measured on a
+deliberately non-PH curve: `⟨P,P⟩ ≤ 2.8e-14`. So:
+
+> **The conformal model is a model of RATIONAL CURVES, not of PH curves.** PH is a second,
+> independent condition layered on it: `⟨P̃′,P̃′⟩ = W²‖x′‖² = 4‖q′w − qw′‖²`, a perfect square exactly
+> when the curve is PH, and then `h = 2σ`.
+
+Consequently **conformal representation-completeness is settled by construction**, needing neither
+Dietz–Hoschek–Jüttler nor the spinor form. Measured on a λ-chart member with a *genuine* real pole
+(σ(1.7) = 8.2, squarely off the σ = h·w stratum): curve degree 4 → **conformal degree 8, residual
+1.1e-12**, same curve to **5.4e-16** of the extent.
+
+**The other way is the asymmetry.** Matching `σ_spinor/w² = h/w` forces `σ_spinor = h·w`, i.e.
+`𝒜(r) = 0` at each pole. The spinor **representation** reaches those (DHJ, up to a common factor);
+the λ-**chart** cannot, because `𝒜(r)⁻¹` is exactly what it divides by. Same object, two questions,
+two answers — which is why the surjectivity/regularity distinction in §11.4 is worth keeping.
+
+### 13.6 The lift broke a proof: the parity theorem needs MULTIPLICITY
+
+The step "at every real root `r` of `w`, `(t−r)` divides `q`, `w`, `c∞` and `h` alike" — asserted in
+`conformalPHCurve.ts` and used to justify moving slide 11 to degree 6 — is **false at a root of even
+multiplicity**, and the lift above is the witness. Lift a curve with a *simple* pole at `r`: the
+lift's denominator is `2w²`, so `r` is a **double** root. Measured:
+
+```
+at r = 1.7:   W = 0,   ‖Q‖² = 8.3e-31,   c∞ = ‖q(r)‖² = 67.48
+```
+
+`(t−r)` divides `Q` and `W` as nullity forces, and does **not** divide `c∞`, because `gcd(q,w) = 1`.
+Nothing factors: a genuine degree-8 member at residual 1.1e-12.
+
+**The repair, and the theorem survives.** `‖q‖²` is a sum of real squares, so each of its real roots
+has EVEN multiplicity — hence `mult_r(w) + mult_r(c∞)` is even and
+
+```
+(t−r) ∣ c∞   ⟺   mult_r(w) is ODD
+```
+
+Odd degree still delivers one: non-real roots of a real polynomial pair up with equal multiplicity,
+so the real multiplicities sum to `deg w` mod 2. **"Odd conformal degree is never genuinely odd"
+stands**; only its proof needed the word.
+
+**And it exonerates an instrument that looked wrong.** `denominatorRealRoots` counts SIGN CHANGES, so
+it misses even-multiplicity roots — which is exactly correct for its purpose, since factoring is
+forced at the odd ones and not the even ones. Correct function, misleading name; the doc now says so.
+
+**Pinned by** `src/core/__tests__/conformalLiftOfRational.test.ts` (3 tests). The Lean companion
+carries `liftOfRational` (null by `ring`, no hypotheses), `lift_isPH_iff`, and the two lemmas the
+corrected parity argument needs — `even_rootMultiplicity_sumSq` and
+`exists_odd_rootMultiplicity_of_odd_natDegree`, the second replacing an intermediate-value lemma that
+proved the wrong thing: **IVT gives a root but says nothing about its multiplicity.**

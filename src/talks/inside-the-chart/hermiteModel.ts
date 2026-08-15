@@ -157,6 +157,27 @@ export function useHermiteChart(): HermiteState {
   )
 }
 
+/**
+ * THE TWO WEIGHT RATIOS, read off the current member rather than rebuilt from the Bernstein weights, so
+ * they stay right at any pole. `c′(0) = k₀·(P₁ − P₀)` and `c′(1) = k₁·(P₆ − P₅)`, and k = 6·w₁/w₀ resp.
+ * 6·w₅/w₆ depends only on the POLES — held during every handle drag — so these are identities.
+ * Null when the handle vector has collapsed and the ratio is not readable.
+ */
+const tangentRatios = (m: ReturnType<typeof toMember>): { k0: number; k1: number } | null => {
+  const P = controlStructure(m).points
+  const last = P.length - 1
+  const v = { x: P[last].x - P[last - 1].x, y: P[last].y - P[last - 1].y, z: P[last].z - P[last - 1].z }
+  const n0 = P[1].x * P[1].x + P[1].y * P[1].y + P[1].z * P[1].z
+  const n1 = v.x * v.x + v.y * v.y + v.z * v.z
+  if (!(n0 > 1e-18) || !(n1 > 1e-18)) return null
+  const d0 = derivativeAt(m, 0)
+  const d1 = derivativeAt(m, 1)
+  return {
+    k0: (d0.x * P[1].x + d0.y * P[1].y + d0.z * P[1].z) / n0,
+    k1: (d1.x * v.x + d1.y * v.y + d1.z * v.z) / n1,
+  }
+}
+
 /** Re-solve the nine Hermite numbers after a dial moved the family under them. */
 function withHermiteDial(prm: MultiPoleParams, target: readonly number[]): MultiPoleParams | null {
   const moved = projectToFamily(prm)
@@ -218,21 +239,16 @@ export const hermiteChart = {
   },
 
   /**
-   * STRICT: P₁ carries c′(0) and P₅ carries c′(1), both EXACTLY — c′(0) = 6(w₁/w₀)(P₁ − P₀) and
-   * c′(1) = 6(w₅/w₆)(P₆ − P₅), and w = ∏(t − r) depends only on the poles, which are held during a
-   * handle drag. So the weight ratios do not move and these are identities, not linearisations
-   * (degree6HandlesTrack pins them at exactly 0 drift). Read k off the current member rather than
-   * rebuilding it from the Bernstein weights, so it stays right at any pole.
+   * STRICT: P₁ carries c′(0), EXACTLY — c′(0) = 6(w₁/w₀)(P₁ − P₀), and w = ∏(t − r) depends only on
+   * the poles, which are held during a handle drag. So the weight ratio does not move and this is an
+   * identity, not a linearisation (degree6HandlesTrack pins it at exactly 0 drift). P₀ is at the
+   * origin of the family's coordinates, so the whole target is k₀·(the cursor).
    */
   dragStartTangent(p: Vec3): void {
-    const m = toMember(state.live)
-    const P = controlStructure(m).points
-    const n2 = P[1].x * P[1].x + P[1].y * P[1].y + P[1].z * P[1].z
-    if (!(n2 > 1e-18)) { emit({ stalled: true }); return }
-    const d0 = derivativeAt(m, 0)
-    const k = (d0.x * P[1].x + d0.y * P[1].y + d0.z * P[1].z) / n2
+    const k = tangentRatios(toMember(state.live))
+    if (!k) { emit({ stalled: true }); return }
     const next = state.target.slice()
-    next[0] = k * p.x; next[1] = k * p.y; next[2] = k * p.z
+    next[0] = k.k0 * p.x; next[1] = k.k0 * p.y; next[2] = k.k0 * p.z
     hermiteChart.solveTo(next)
   },
 
@@ -241,19 +257,31 @@ export const hermiteChart = {
     const m = toMember(state.live)
     const P = controlStructure(m).points
     const last = P.length - 1
-    const v = { x: P[last].x - P[last - 1].x, y: P[last].y - P[last - 1].y, z: P[last].z - P[last - 1].z }
-    const n2 = v.x * v.x + v.y * v.y + v.z * v.z
-    if (!(n2 > 1e-18)) { emit({ stalled: true }); return }
-    const d1 = derivativeAt(m, 1)
-    const k = (d1.x * v.x + d1.y * v.y + d1.z * v.z) / n2
+    const k = tangentRatios(m)
+    if (!k) { emit({ stalled: true }); return }
     const next = state.target.slice()
-    next[3] = k * (P[last].x - p.x); next[4] = k * (P[last].y - p.y); next[5] = k * (P[last].z - p.z)
+    next[3] = k.k1 * (P[last].x - p.x); next[4] = k.k1 * (P[last].y - p.y); next[5] = k.k1 * (P[last].z - p.z)
     hermiteChart.solveTo(next)
   },
 
-  /** STRICT: P₆ IS c(1), so dragging it moves the displacement — a different fibre. */
+  /**
+   * STRICT: P₆ IS c(1), so dragging it moves the displacement — a different fibre.
+   *
+   * AND IT RETARGETS c′(1) SO THAT P₅ HOLDS ITS PLACE. Holding the end tangent instead — which is what
+   * this did until it was watched — makes P₅ follow P₆ rigidly, because c′(1) = k₁(P₆ − P₅) is a
+   * DIFFERENCE and moving one end of a held difference drags the other end with it. Measured: P₅ moved
+   * by exactly the drag, 1.50e-1 for a 0.150 drag. What the user grabbed is a POINT; the other three
+   * points are what must stay put, so the number built out of both of them is the one that gives way.
+   * With the retarget, P₆ lands to 4.5e-14 of the cursor and P₅ and P₁ hold to 1.2e-14.
+   */
   dragEnd(p: Vec3): void {
+    const m = toMember(state.live)
+    const P = controlStructure(m).points
+    const k = tangentRatios(m)
+    if (!k) { emit({ stalled: true }); return }
+    const held = P[P.length - 2]
     const next = state.target.slice()
+    next[3] = k.k1 * (p.x - held.x); next[4] = k.k1 * (p.y - held.y); next[5] = k.k1 * (p.z - held.z)
     next[6] = p.x; next[7] = p.y; next[8] = p.z
     hermiteChart.solveTo(next)
   },
@@ -261,13 +289,23 @@ export const hermiteChart = {
   /**
    * STRICT P₀: a change of ORIGIN, not a motion inside the family — p(0) = 0 pins c(0). The other
    * three handles hold their SCREEN places while P₀ goes to the cursor, which in the family's own
-   * coordinates means moving every held point by −δ. The tangents are directions and do not shift;
-   * only the displacement does. That RESHAPES rather than sliding, which is the whole point: a rigid
-   * translation moves the picture without moving the curve.
+   * coordinates means moving every held POINT by −δ. That RESHAPES rather than sliding, which is the
+   * whole point: a rigid translation moves the picture without moving the curve.
+   *
+   * P₁'s screen place is held the same way P₅'s is under `dragEnd`, and for the same reason: shifting
+   * the displacement alone holds c′(0), and c′(0) = k₀(P₁ − P₀) is a difference, so P₁ used to ride
+   * along with P₀ by exactly the drag. P₅ and P₆ need no such term — their difference is held between
+   * two points that both shift by −δ. `degree6HandlesTrack.test.ts` has modelled this gesture
+   * correctly since it was written; only the store did not implement it.
    */
   translate(world: Vec3): void {
     const d = { x: world.x - state.origin.x, y: world.y - state.origin.y, z: world.z - state.origin.z }
+    const m = toMember(state.live)
+    const P1 = controlStructure(m).points[1]
+    const k = tangentRatios(m)
+    if (!k) { emit({ stalled: true }); return }
     const next = state.target.slice()
+    next[0] = k.k0 * (P1.x - d.x); next[1] = k.k0 * (P1.y - d.y); next[2] = k.k0 * (P1.z - d.z)
     next[6] -= d.x; next[7] -= d.y; next[8] -= d.z
     const solved = projectOnto(state.live, hermiteOf, next, 40)
     const err = Math.hypot(...hermiteOf(toMember(solved)).map((v, i) => v - next[i]))

@@ -1,4 +1,23 @@
 // ============================================================================
+// RETIRED — imported nowhere. This was slide 12; the slide is gone and the file is kept only for
+// the measurements below, which are true statements about a rational PH QUARTIC.
+//
+// THREE REASONS IT WENT, all found after it was built:
+//   1. The parity theorem. Its headline — "rationality buys exactly one more dimension AT THE SAME
+//      DEGREE" — compared a polynomial PH quintic against what is really a rational QUARTIC, since
+//      an odd conformal degree always carries a common linear factor.
+//   2. One of its three sliders did not move the curve. Counted in curves rather than polygons, the
+//      four nullspace directions have curve-motion rank TWO (singular values 1.0, 0.73, 7e-6, 4e-9),
+//      so one strict dimension only reshuffled the polygon — the redundant factor (t−r) sliding.
+//      → conformalPHHopf.test.ts
+//   3. Its gesture had already been superseded at degree 6 by SexticFivePointFigure.
+//
+// Its two durable findings — "one slider at a time" and "the outer points are not the data" — now
+// live in slide 14's notes. The fixed-range / ask-vs-achieve slider arrangement documented below is
+// still in use: RationalPHCurveFigure copied it for its radius dials.
+//
+// ORIGINAL HEADER FOLLOWS.
+//
 // SLIDE 12 — the same pair of gestures as slides 4, 6, 7 and 8, now on a RATIONAL curve.
 //
 //   STRICT  pin the C¹ Hermite data and ride what is left. Twelve conditions against the

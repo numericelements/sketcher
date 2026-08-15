@@ -2330,7 +2330,9 @@ describe('the space of conformal PH curves', () => {
     // pin rows for free. That is exactly why the readout must be gauge-INVARIANT — otherwise the
     // slider rides gauge and nothing happens on screen. Radii are invariant (ρ = √⟨C,C⟩/w is
     // unchanged by C ↦ cC and by Cₖ ↦ λᵏCₖ) and so is the TOTAL arc length; the half-lengths of
-    // slide 14 are NOT, since reparametrisation moves the midpoint.
+    // `RationalPHSexticFigure` are NOT, since reparametrisation moves the midpoint. (Named by FILE
+    // rather than by slide number: that figure's header still says "slide 14", but slide 14 is
+    // SexticFivePointFigure, which replaced it.)
     const TOUCH = [0, 1, 3, 5, 6]
     const start = sexticSeed()
     const candidates: { label: string; readout: (s: ConformalPHCurve) => number }[] = [
