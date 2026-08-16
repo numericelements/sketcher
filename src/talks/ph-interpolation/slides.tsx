@@ -50,6 +50,7 @@ import RationalCubicFigure from './RationalCubicFigure'
 import IndicatrixCubicFigure from './IndicatrixCubicFigure'
 import SharedIndicatrixFigure from './SharedIndicatrixFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
+import CanalSurfaceFigure from './CanalSurfaceFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -454,6 +455,67 @@ export const slides: SlideDefinition[] = [
       'live in the conformal model, not the Hopf model. In 2D it works because Möbius is a CONSTANT 2×2 ' +
       'matrix on (N : D) and a Farin point is a projective sum. ' +
       'core/phMobius (14 tests), core/conformal (22), core/phSpatialSeptic (25).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10A — A CURVE OF SPHERES. The unconstrained warm-up, placed before 11 so the room has played in
+  //       the space before two conditions arrive at once.
+  //
+  // BOTH DOORS ARE SHOWN FROM THE START, deliberately: collapse the spheres to points and you get
+  // slide 11; keep them and rationalise the ENVELOPE and you get MPH, canal surfaces and offsets.
+  // The second door is the one this deck does not take, and saying so here is what stops the atlas
+  // slides later reading as though there were only ever one way out.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>A curve of spheres</h2>
+        <WhenActive>
+          <CanalSurfaceFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE ONLY UNCONSTRAINED FIGURE IN THE DECK, and open on that. Everything else here solves '
+      + 'something; this one is arithmetic, so it loads instantly and drags at frame rate. A control '
+      + 'point is a SPHERE -- centre, radius, weight -- and all three are yours. '
+      + 'AND A CURVE OF SPHERES IS NOT A CURVE. It has an ENVELOPE, and the envelope is a CANAL '
+      + 'SURFACE. In the plane the same object is the MEDIAL AXIS TRANSFORM: a shape described by the '
+      + 'discs that fill it rather than by its boundary. That is a whole literature (Choi-Lee-Moon; '
+      + 'Peternell-Pottmann; Kosinka-Lavicka), not a curiosity. '
+      + 'GET SOMEONE TO BREAK IT -- this is the beat of the slide. Pull a radius faster than its '
+      + 'centre moves and |cdot|^2 - rhodot^2 goes negative: the square root is imaginary and the '
+      + 'envelope STOPS EXISTING. Not clamped, not approximated -- the circles are simply not drawn. '
+      + 'It is the first constraint in this deck that fails visibly rather than as a residual, and it '
+      + 'earns every later slide where a constraint is a number in a readout. '
+      + 'THE SECOND FAILURE IS DIFFERENT: inflate until rho*kappa passes 1 and the tube '
+      + 'self-intersects. The envelope still exists; it just runs into itself. That is the one people '
+      + 'meet in practice when they thicken a canal surface, and the two failures are independent -- '
+      + 'measured, you can have either without the other. '
+      + 'THEN THE TWO DOORS, both named before moving on. COLLAPSE the spheres to points -- that is '
+      + 'the null condition -- and the family becomes a CURVE; ask its speed to be rational and you '
+      + 'have the next slide. Or KEEP the spheres and ask the ENVELOPE to be rational: the condition '
+      + 'is |cdot|^2 - rhodot^2 a perfect square, Pythagorean in the MINKOWSKI metric. That is MPH, '
+      + 'canal surfaces, offsets. It is the door this deck does not take. '
+      + 'DO NOT LET THE ROOM THINK THOSE ARE TWO SPELLINGS OF ONE CONDITION. |cdot|^2 - rhodot^2 is '
+      + 'the LAGUERRE invariant; <P-prime,P-prime> is the MOEBIUS one. Two subgroups of one Lie '
+      + 'sphere group in R^{4,2} (Krasauskas 2017, already cited by the light-cone deck). Moebius '
+      + 'keeps points and cannot see a sphere ORIENTATION; Laguerre keeps oriented contact and cannot '
+      + 'see a point. '
+      + 'IF ASKED WHY DEGREE 5 HERE when slide 11 abandoned it: because the parity theorem needs the '
+      + 'NULL condition to force a common factor. With no conditions there is no identity and nothing '
+      + 'is forced, so an odd degree is genuinely odd. The degree we retired next door is honest here, '
+      + 'and the reason is exactly the condition this slide has not imposed yet. '
+      + 'AND THE MEASUREMENT WORTH KEEPING IN YOUR POCKET, if anyone asks whether the two models are '
+      + 'really different or just two spellings: take two spheres of radius 0.7 with centres 3 apart, '
+      + 'so DISJOINT. Interpolate them cyclographically and you get a cone frustum, radius 0.7 in the '
+      + 'middle. Interpolate the same two in R^{4,1} and the midpoint has radius-squared -1.76 -- an '
+      + 'IMAGINARY sphere, because two non-intersecting spheres determine a pencil with no real '
+      + 'member between them. Same two spheres, same "straight line", two different answers. That is '
+      + 'also why this figure interpolates cyclographically: the Moebius version is not something you '
+      + 'can drag. '
+      + 'core/canalSphereSpline (7 tests: cylinder, cone, torus, both failure modes, and both models).',
   },
 
   // ---------------------------------------------------------------------------
