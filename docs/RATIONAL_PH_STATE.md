@@ -908,13 +908,39 @@ properly before building more on either.
 **precisely** the Möbius transformations, sphere inversions included. F18's premise is now a theorem
 with a converse.
 
-### 12.2 What this narrows — read before trusting the arc-length claim
+### 12.2 What this narrows — RESOLVED 2026-08-15, and the caution was itself wrong
 
-`rationalArcLengthInChart.test.ts` says every chart member has rational arc length "at any dial and any
-pole placement". The two-line derivation is parameter-agnostic on its face, but **it has only ever been
-measured at REAL poles**, and `roots` is `number[]`, so nothing else can be measured today. Farouki's
-complex-centre example is not a counterexample — it is a stratum member (`w | σ`), not a chart member —
-but neither is it support. **Treat the complex-pole case as untested.**
+**The original entry said:** the arc-length claim "has only ever been measured at REAL poles", because
+`roots` is `number[]` so "nothing else can be measured today". The first half was fair; the second read
+one module's signature as a statement about the codebase. **`rationalPHComplexPoleSpatial.ts` is the
+same chart one axis wider** — conjugate pole pairs, one complex λ per pair, `familyBasis` returning 8
+and 12 — and it had been sitting there the whole time.
+
+Measured off the real axis, `|σ′(r) − 2σ(r)Σ|` relative:
+
+```
+n=3, pole 0+1i      8.8e-17
+n=3, pole 0.4+1.3i  1.0e-16
+n=4, pole −0.2+0.8i 6.5e-16
+```
+
+So **rational arc length is free at complex poles too**, exactly as the derivation said it should be —
+it never used the reality of `r`. → the last test in `rationalArcLengthInChart.test.ts`.
+
+**AND COMPLEX POLES ARE NOT THE STRATUM**, which is the distinction the original caution blurred. Those
+same members have `|σ(r)|/scale ≈ 1.0–1.4` — nowhere near zero. A conjugate pair with σ ≠ 0 is an
+ordinary chart member: **bounded, and hard-poled**. Farouki's arctangent example is still not a
+counterexample, for the reason it never was — his σ has *simple* poles (`w | σ`), so it is a stratum
+member. Complex ≠ soft, and the generic complex pole is hard.
+→ `realPolesCannotBeOnTheStratum.test.ts`
+
+**The one that survives, restated properly.** The stratum is where **𝒜(r) is SINGULAR**, not where it
+vanishes. Over ℂ, ℍ ⊗ ℂ ≅ M₂(ℂ) is not a division algebra and `det 𝒜(r) = σ(r)`, so 𝒜(r) can be nonzero
+and singular — measured on the published cubic at its pole: `|𝒜(ι)| = 4.2426` with `𝒜(ι)𝒜̄(ι) = 0`.
+F17's "𝒜(r) = 0, equivalently σ(r) = 0" therefore holds **only on the real axis**, where ℍ *is* a
+division algebra. What the λ-chart divides by is `det 𝒜(r)`, so its requirement is `σ(r) ≠ 0` at every
+pole, real or complex — and the two chart types stay disjoint off the real axis for the same reason
+they do on it.
 
 ### 12.3 The tension with §4, and how to settle it
 

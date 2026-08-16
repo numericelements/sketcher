@@ -18,12 +18,19 @@
 // So every member of the chart has rational arc length whether or not it was asked for, at any dial
 // and any pole placement. That is what this file measures.
 //
-// SCOPE, ADDED AFTER READING THE LITERATURE (RATIONAL_PH_STATE §12.2). "Any pole placement" means any
-// REAL one. The derivation above is parameter-agnostic on its face, but `roots` is `number[]`, so a
-// complex pole cannot be measured here and never has been. Farouki (CAGD 32, 2015) shows a rational PH
-// curve with a CONJUGATE PAIR whose arc length is a genuine arctangent — but his σ has SIMPLE poles
-// there (w | σ), so it is a σ = h·w stratum member and not a chart member. It is not a counterexample
-// to anything below; it is also not support. The complex-pole case is untested, not established.
+// SCOPE — AND IT IS WIDER THAN A PREVIOUS VERSION OF THIS BLOCK CLAIMED. That version said "any pole
+// placement means any REAL one, and a complex pole cannot be measured here". The first half was a fair
+// caution; the second was wrong, because it read `roots: number[]` in THIS module as a statement about
+// the codebase. `rationalPHComplexPoleSpatial` is the same chart one axis wider, and the condition is
+// now measured off the real axis: |σ′(r) − 2σ(r)Σ| relative comes out 8.8e-17, 1.0e-16, 6.5e-16 at
+// three complex poles (the last test in this file). The derivation never used the reality of r, and it
+// does not need to.
+//
+// FAROUKI'S ARCTANGENT IS STILL NOT A COUNTEREXAMPLE, for the reason it never was: his complex-centre
+// curve has σ with SIMPLE poles (w | σ), so it is a σ = h·w stratum member and not a chart member.
+// Complex poles and the stratum are different conditions — measured, a conjugate pair with
+// |σ(r)|/scale ≈ 1.1 is an ordinary chart member (realPolesCannotBeOnTheStratum.test.ts and
+// RATIONAL_PH_STATE §12.2).
 //
 // ATTRIBUTION. The residue criterion is Farouki & Sakkalis (CAGD 32, 2015; 74, 2019). The
 // unification — one quaternion representation carrying the curve AND its arc length — and the
@@ -37,6 +44,10 @@ import {
   familyBasis, packSpinor, unpackSpinor, poleMargin,
   type MultiPoleParams,
 } from '../rationalPHMultiPoleSpatial'
+import {
+  type Cx, cx, cabs,
+  familyBasis as cxFamilyBasis, toMember as cxToMember, unpackSpinor as cxUnpack,
+} from '../rationalPHComplexPoleSpatial'
 
 const evalP = (p: readonly number[], t: number): number => p.reduceRight((a, c) => a * t + c, 0)
 const dP = (p: readonly number[]): number[] => p.slice(1).map((c, i) => c * (i + 1))
@@ -118,5 +129,40 @@ describe('rational arc length inside the chart', () => {
     }
     expect(arcLengthDefect(bad)).toBeGreaterThan(0.5)          // measured 0.90
     expect(Math.abs(logCoefficients(bad)[0])).toBeGreaterThan(1) // measured 33.5
+  })
+  /**
+   * OFF THE REAL AXIS, which is what §12.2 used to record as unmeasurable. Same identity, same
+   * derivation, a pole at a complex parameter. With ONE conjugate pair {r, r̄} the sum has a single
+   * term: Σ_r = 1/(r − r̄) = 1/(2i·Im r).
+   */
+  it('AND IT HOLDS AT A COMPLEX POLE — the derivation never used r being real', () => {
+    const cmul = (a: Cx, b: Cx): Cx => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re })
+    const csub = (a: Cx, b: Cx): Cx => ({ re: a.re - b.re, im: a.im - b.im })
+    const cdiv = (a: Cx, b: Cx): Cx => {
+      const d = b.re * b.re + b.im * b.im
+      return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }
+    }
+    const evalC = (p: readonly number[], t: Cx): Cx =>
+      p.reduceRight<Cx>((acc, c) => ({ re: acc.re * t.re - acc.im * t.im + c, im: acc.re * t.im + acc.im * t.re }), cx(0))
+    const ZERO = (k: number) => Array.from({ length: k }, () => ({ u: 0, v: 0, p: 0, q: 0 }))
+
+    let worst = 0
+    for (const [n, pole] of [[3, cx(0, 1)], [3, cx(0.4, 1.3)], [4, cx(-0.2, 0.8)]] as const) {
+      const base = { A: ZERO(n + 1), pairs: [pole], lambdas: [cx(0.4, -0.2)] }
+      const B = cxFamilyBasis(base)
+      expect(B.length, 'the complex-pole fibre is not empty').toBeGreaterThan(0)
+      const x = new Array<number>(4 * (n + 1)).fill(0)
+      B.forEach((b, i) => {
+        const a = 1.3 * Math.sin(1.7 * i + 0.6)
+        for (let j = 0; j < x.length; j++) x[j] += a * b[j]
+      })
+      const sg = [...cxToMember({ ...base, A: cxUnpack(x) }).sigma]
+      const Sigma = cdiv(cx(1), csub(pole, cx(pole.re, -pole.im)))
+      const lhs = evalC(dP(sg), pole)
+      const rhs = cmul(cmul(cx(2), evalC(sg, pole)), Sigma)
+      worst = Math.max(worst, cabs(csub(lhs, rhs)) / Math.max(cabs(lhs), cabs(rhs), 1e-30))
+    }
+    console.log(`    at COMPLEX poles: worst |σ′(r) − 2σ(r)Σ| relative = ${worst.toExponential(1)}`)
+    expect(worst, 'rational arc length is free off the real axis too').toBeLessThan(1e-12)
   })
 })

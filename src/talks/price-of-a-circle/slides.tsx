@@ -42,6 +42,11 @@
 //   3  what polynomial PH gives you for free: every spinor works               [LIT]
 //   4  and the fiber is a torus -- compact, sweepable, length cannot choose     [LIT] [MEAS]
 //   5  weights are the missing ingredient, and weights mean POLES              [LIT]
+//  5A  THE OTHER SPHERE -- where the poles LIVE: C u {inf} is the Riemann       [LIT]
+//      sphere, real t is its EQUATOR, and you drive the equator when you draw.
+//      A dot on the route is unbounded, a dot off it is bounded, and that is
+//      the circle. Placed here because "weights mean poles" is the moment the
+//      room asks where poles are; 19 and 26 both point back at it.
 //   6  integration stops being a map and becomes an equation                    [LIT]
 //   7  where the condition comes from -- one pole in a line, then the general  [LIT]
 //   8  THE CIRCLE, INTEGRATED -- the whole apparatus by hand, and an arctangent [THM]
@@ -108,6 +113,7 @@
 import type { SlideDefinition } from '../framework/types'
 import Math from '../framework/Math'
 import { Tag, Cite, TagLegend } from '../framework/SlideTag'
+import ParameterSphere from './ParameterSphere'
 
 export const slides: SlideDefinition[] = [
   // ---------------------------------------------------------------------------
@@ -563,6 +569,85 @@ export const slides: SlideDefinition[] = [
       + 'DO NOT MENTION THE NO-LOG CONDITION YET. This slide establishes that poles are unavoidable, '
       + 'nothing more. The difficulty they cause is the next slide, and it lands far harder if the '
       + 'room has first accepted the poles as the price of a shape they wanted.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5A — WHERE THE POLES LIVE. Inserted after "weights are poles", because that is the moment the
+  //      room will ask it, and every later slide (19, 26, the atlas) points back here.
+  //
+  // THE ONE JOB: separate the two spheres. The indicatrix is in ℝ³ and shows where the tangent
+  // points; this one is ℂ ∪ {∞} and its dots are the roots of w. They get confused constantly, so
+  // the slide says so in its first sentence and the figure's header says it again.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="LIT" />
+        <h2>The other sphere</h2>
+        <p>
+          You have been looking at one sphere all deck — the <strong>tangent indicatrix</strong>, out
+          in space, where <Math>{'c^{\\prime}/\\|c^{\\prime}\\|'}</Math> points. There is a second
+          sphere, and it is a completely different object. Keeping them apart is the hardest thing
+          here.
+        </p>
+        <p>
+          The parameter <Math>{'t'}</Math> runs along a line. Add one point at infinity and the line
+          closes into a <strong>circle</strong>. Now let <Math>{'t'}</Math> be complex:{' '}
+          <Math>{'\\mathbb{C}\\cup\\{\\infty\\}'}</Math> is a <strong>sphere</strong> — the Riemann
+          sphere — and the real parameters are its <strong>equator</strong>.
+        </p>
+
+        <ParameterSphere />
+
+        <p style={{ marginTop: '0.4em' }}>
+          Conjugation is reflection through the equator, so complex poles always come in{' '}
+          <strong>mirror pairs</strong>; real poles sit on the equator. A pole is nothing more
+          mysterious than a root of <Math>{'w'}</Math> — a dot on this sphere.
+        </p>
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And when you draw the curve, you drive around the equator.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          You feed in real <Math>{'t'}</Math>, so you travel the equator, and what you see is the
+          image of that trip. A real pole is a dot <em>on</em> your route — you drive into it and the
+          curve shoots off to infinity. A complex pole is a dot <em>off</em> your route — you never
+          visit it, and the curve stays finite. <strong>That is the circle.</strong>
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            One sphere is the road. The other is what you see out the window.
+          </strong>
+        </p>
+      </>
+    ),
+    notes:
+      'THE CONFUSION IS THE SLIDE, so open on it and do not hurry: there are TWO spheres in this '
+      + 'subject and the room has only met one. The indicatrix lives in R^3 and shows where the unit '
+      + 'tangent points. This one is the parameter space. Nothing about it is in R^3 at all. '
+      + 'BUILD THE SPHERE IN FRONT OF THEM rather than presenting it. The parameter runs along a '
+      + 'line; add one point at infinity and the line closes into a circle; now let t be complex and '
+      + 'C plus infinity is a sphere. The real parameters are the equator. Every step is one sentence '
+      + 'and the room can do each one. '
+      + 'CONJUGATION IS REFLECTION through the equator -- that is WHY complex poles come in mirror '
+      + 'pairs, and it is worth saying as a reason rather than a rule, because A has real '
+      + 'coefficients and everything else follows. '
+      + 'THE KEY MOVE IS "YOU DRIVE THE EQUATOR". Say it slowly. You only ever feed in REAL t, so the '
+      + 'curve you draw is the image of a trip around the equator. Then the classification is a '
+      + 'sentence: a dot on your route is a place you crash into (unbounded); a dot off your route is '
+      + 'a place you never visit (bounded). The circle is the second case, and that is the first time '
+      + 'in this deck the circle stops being an anomaly and becomes an ordinary member of a class. '
+      + 'INFINITY IS ON THE EQUATOR, and it is marked on the figure for the NEXT slide rather than '
+      + 'this one -- a polynomial curve is not pole-free, its pole is at infinity, which is a real '
+      + 'point. Do not spend the punchline here. '
+      + 'IF SOMEONE SAYS "IMAGINARY POLES ARE NOT REAL THINGS": they are perfectly real dots, at '
+      + 'complex parameter VALUES. 1/(1+x^2) is smooth on the whole real line and its Taylor series '
+      + 'still stops at radius 1, and nobody driving along R can see why. The reason is the poles at '
+      + '+-i. That is the same denominator as the circle, and it is slide D of this run if you need '
+      + 'to reach for it early. '
+      + 'WHAT NOT TO SAY YET: soft versus hard poles, sigma, the stratum. This slide places the dots '
+      + 'and nothing else. The dots acquire a second attribute two slides later and it lands harder '
+      + 'if the room has first accepted that the position alone already decides boundedness.',
   },
 
   // ---------------------------------------------------------------------------
