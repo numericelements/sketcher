@@ -521,6 +521,97 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
+  // 10A1 — THE ARITHMETIC, ONCE. Text and formulas only, no figure.
+  //
+  // Everything after this treats the five-number encoding as known. This slide is where it is
+  // actually shown: what you specify, why there are five slots, and one example carried all the way
+  // through by hand. It exists because the interactive slides kept raising the same question --
+  // "what am I even specifying?" -- and no figure answers that. A worked example does.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Two spheres, by hand</h2>
+        <p style={{ marginBottom: '0.2em' }}>
+          <strong>What you specify is a centre and a radius.</strong> That is a sphere, and it is the
+          only thing you ever type in. (Plus a weight, exactly the rational-B&eacute;zier weight you
+          already use, and for the same reason.)
+        </p>
+        <p style={{ marginBottom: '0.2em' }}>
+          <strong>Why five numbers?</strong> Four for the sphere &mdash; centre and radius &mdash;
+          and one for the projective scale, the same extra slot that turns a 3D point into{' '}
+          <code>(w, wx, wy, wz)</code>. Nothing deeper than that.
+        </p>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
+{`STORE      S  =  ( w ,  w·c ,  w(|c|² − ρ²)/2 )
+
+READ       centre  = (2nd, 3rd, 4th) / w
+           radius² = |centre|² − 2·(5th)/w`}
+        </div>
+
+        <p style={{ textAlign: 'center', margin: '0.3em 0 0.6em' }}>
+          <strong style={{ fontSize: '1.1em' }}>And a point is a sphere of radius zero.</strong>
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>One example, all the way through.</strong> Two spheres of radius{' '}
+          <code>0.7</code>, centres at <code>(0,0,0)</code> and{' '}
+          <code>(3,0,0)</code>, weights 1. Store them, average the five slots, read back:
+        </p>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
+{`S₀ = ( 1, 0, 0, 0, (0 − 0.49)/2 )  =  ( 1, 0, 0, 0, −0.245 )
+S₁ = ( 1, 3, 0, 0, (9 − 0.49)/2 )  =  ( 1, 3, 0, 0,  4.255 )
+
+M  = (S₀ + S₁)/2                   =  ( 1, 1.5, 0, 0, 2.005 )
+
+centre  = (1.5, 0, 0)/1        =  (1.5, 0, 0)      the midpoint
+radius² = 1.5² − 2(2.005)/1    =  2.25 − 4.01  =  −1.76`}
+        </div>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          Only the last slot of <code>S₁</code> and the answer change as the gap grows:
+        </p>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
+{`gap 0.6    M = ( 1, 0.3, 0, 0, −0.155 )   radius² =  0.40   ρ = 0.632
+gap 1.4    M = ( 1, 0.7, 0, 0,  0.245 )   radius² =  0.00   ρ = 0        ← tangent
+gap 3.0    M = ( 1, 1.5, 0, 0,  2.005 )   radius² = −1.76   imaginary`}
+        </div>
+
+        <p>
+          <strong>The centre never surprises anyone; the radius always does.</strong> The centre comes
+          out of a <em>division</em> and lands on the midpoint. The radius comes out of a{' '}
+          <em>subtraction involving</em> <code>|centre|²</code> &mdash; which is quadratic, and
+          is the only place any non-obvious behaviour can enter.
+        </p>
+      </>
+    ),
+    notes:
+      'THE SLIDE THAT SHOULD HAVE COME FIRST. Every interactive slide after this treats the '
+      + 'five-number encoding as known, and no figure can answer "what am I even specifying?". A '
+      + 'worked example can, so this one is text and arithmetic with nothing to drag. '
+      + 'OPEN ON WHAT IS SPECIFIED: a centre and a radius. That is all anyone ever types in. The '
+      + 'sliders in the next figures are radii and the drag handles are centres -- nothing else. '
+      + 'THEN WHY FIVE. Four for the sphere, one for the projective scale. Say it is the SAME extra '
+      + 'slot that makes a 3D point into (w, wx, wy, wz) in any rational Bezier, because the room '
+      + 'already owns that idea and this is not a new one. '
+      + 'THE ONE IDEA ON THE SLIDE is that a POINT IS A SPHERE OF RADIUS ZERO. Points and spheres '
+      + 'stop being two kinds of object. Everything later -- the null condition, curves of points, '
+      + 'the whole conformal model -- is downstream of that single sentence. '
+      + 'WALK THE EXAMPLE SLOWLY and let the room do the arithmetic. Store, average, read back. The '
+      + 'centre lands on the midpoint, which nobody doubts. Then the radius comes out NEGATIVE, and '
+      + 'that is the moment worth pausing on: two perfectly ordinary spheres, averaged, give '
+      + 'something that is not a sphere at all. '
+      + 'CLOSE ON WHY. The centre is a division and behaves; the radius is a subtraction involving '
+      + '|centre|^2, which is QUADRATIC. All the surprise in this entire representation enters '
+      + 'through that one square. Say that and the next three slides stop being mysterious. '
+      + 'DO NOT MENTION the null cone, Moebius, PH or the signature here. This slide is arithmetic. '
+      + 'The (4,1) signature is only "radius squared is allowed to be negative", and it is better '
+      + 'earned by the −1.76 above than announced in advance.',
+  },
+
+  // ---------------------------------------------------------------------------
   // 10A2 — TWO SPHERES. The smallest case, and the one that answers "why so many spheres".
   //
   // Degree ONE: a pencil. Every mechanism the later slides use is already here with two objects
