@@ -19,5 +19,12 @@ export interface TalkDefinition {
   subtitle?: string
   /** Static PDF export, if one exists — phones are redirected to it. */
   pdfUrl?: string
-  slides: SlideDefinition[]
+  /**
+   * The deck's slides, fetched ON DEMAND. Deliberately a loader and not an array: the registry is
+   * imported by the presentations INDEX, and a static `slides` field made that page pull in every
+   * deck — hence every figure, three.js, drei and the core mathematics behind them — into one 1.15 MB
+   * chunk before anything could paint. With a loader the index carries titles only and opening a deck
+   * fetches that deck alone.
+   */
+  load: () => Promise<SlideDefinition[]>
 }

@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import RevealPresentation from '../talks/framework/RevealPresentation'
 import { findTalk } from '../talks/registry'
+import type { SlideDefinition } from '../talks/framework/types'
 import { isPhone } from '../lib/device'
 
 // Canonical presentations URL — used for the PDF export's back-link (see below).
@@ -31,6 +32,19 @@ export default function Talk() {
     if (pdfUrl && isPhone()) window.location.replace(pdfUrl)
   }, [interactive, pdfUrl])
 
+  // The deck is fetched on demand (see registry.ts): the index must not pay for six decks'
+  // figures. `alive` guards the slug changing mid-flight, which would otherwise render one
+  // deck's slides under another's URL.
+  const [slides, setSlides] = useState<SlideDefinition[] | null>(null)
+  const load = talk?.load
+  useEffect(() => {
+    if (!load) return
+    let alive = true
+    setSlides(null)
+    void load().then((s) => { if (alive) setSlides(s) })
+    return () => { alive = false }
+  }, [load])
+
   if (!talk) return <Navigate to="/talks" replace />
 
   return (
@@ -40,7 +54,7 @@ export default function Talk() {
       ) : (
         <Link to="/talks" className={BACK_LINK_CLASS}>← Presentations</Link>
       )}
-      <RevealPresentation slides={talk.slides} />
+      {slides && <RevealPresentation slides={slides} />}
     </>
   )
 }
