@@ -1069,6 +1069,11 @@ goes from `[1.7] + …` to `d·[∞]`. That is a boundary between strata of one 
 kinds of object touching. The measured content of §13.1–13.2 is unchanged; this is the right
 description of it.
 
+**AND THE SEAM IS THE LOWER OF TWO FLOORS — see §13.7.** Everything in §13.1–13.3 is about `𝒜(r) = 0`,
+the rank-0 floor where the pole cancels. The stratum also has a rank-1 floor (`𝒜(r)` nonzero but
+singular) which exists only off the equator and is where the circle lives. Reading this section as
+"push the twist dial far enough and you arrive at the conformal world" reads the wrong floor.
+
 **Which also splits F18's single stratum in two, and they are different phenomena:**
 
 ```
@@ -1178,3 +1183,58 @@ carries `liftOfRational` (null by `ring`, no hypotheses), `lift_isPH_iff`, and t
 corrected parity argument needs — `even_rootMultiplicity_sumSq` and
 `exists_odd_rootMultiplicity_of_odd_natDegree`, the second replacing an intermediate-value lemma that
 proved the wrong thing: **IVT gives a root but says nothing about its multiplicity.**
+
+### 13.7 The stratum has TWO FLOORS, and §13's seam is the lower one — 2026-08-15
+
+§13.1–13.3 place the seam at the polynomials and call it "where the two chart types meet". True, and
+incomplete: **the σ = 0 stratum is not one thing.** What the λ-chart needs is not `𝒜(r) ≠ 0` but
+`𝒜(r)` **invertible**, and off the real axis those differ, because `ℍ ⊗ ℂ ≅ M₂(ℂ)` is not a division
+algebra and `det 𝒜(r) = σ(r)`.
+
+```
+rank 0    𝒜(r) = 0               the pole cancels, the degree drops    ← §13's seam
+rank 1    𝒜(r) ≠ 0 but singular   full degree, genuine curves           ← where the CIRCLE lives
+```
+
+**The equator decides which floor exists.** At a real pole σ(r) = |𝒜(r)|² is a sum of four real
+squares, so σ(r) = 0 forces 𝒜(r) = 0 and **rank 1 is unavailable**. Off the axis `1² + i² = 0` and it
+opens up. Same definite-versus-isotropic fact as §12.2 and F17, fourth appearance.
+
+**So the circle is NOT at the end of the twist dial.** §13.2 drives λ to its limit and measures
+𝒜(r) → 0 (0.0078 at 89.9°) — that is **rank 0**, the polynomial degeneration. The circle is **rank 1**:
+`𝒜 = (1−t) + (1+t)k`, degree ONE, σ(±i) = 0 with |𝒜(i)| = 2 ≠ 0. No compactification of λ reaches it.
+Anyone reading §13 as "push the dial far enough and you arrive at the conformal world" is reading the
+wrong floor. → `circleSpinor.test.ts`, `polynomialLimitOfTheCircle.test.ts`
+
+**And λ is forced rather than chosen, by an inverse.** With `X = 𝒜(r)⁻¹𝒜′(r) = a + bi + cj + dk`,
+`Xi + iX* = 2a·i + 2d·j − 2c·k`; equating to `2Σi` gives a = Σ, c = d = 0, b free. So `X = Σ + λi` is
+the *unique* solution and λ is the leftover twist — but every step needs `𝒜(r)⁻¹`. Where 𝒜(r) is
+singular the reduction does not get harder; **X has no meaning**.
+
+### 13.8 The missing piece is the OVERLAP, not another chart
+
+Two disjoint charts are not an atlas. On a sphere the charts overlap, and the overlap is what lets you
+carry an object from one to the other. Ours:
+
+```
+λ-chart      every pole invertible     σ(r) ≠ 0 everywhere
+conformal    every pole singular       σ = h·w, i.e. σ(r) = 0 everywhere
+overlap      —
+```
+
+Nothing can be dragged across, because there is no shared region to hand it over in. **The MIXED cell —
+some poles invertible, some singular — is exactly the region that touches both**, so it is not an
+unexplored corner of the classification but the connective tissue an atlas requires.
+
+**Which reframes the goal.** "Add a chart for σ = 0" is already done: `conformalPHCurve` covers that
+stratum. Rebuilding it in spinor coordinates (rank-1 matrices are outer products `u·vᵀ`, the cone over
+the Segre embedding, smooth away from zero, so the datum is a point of `ℙ¹ × ℙ¹` where the invertible
+case carries one real λ) would buy **uniformity, not coverage** — one solver, one editing model. Worth
+doing for comfort; not required to reach anything.
+
+**The sharp test, and its cost.** Build a curve with two poles, one invertible and one singular, and see
+whether the λ machinery handles the good pole while rank-1 coordinates handle the bad one. If it
+composes, that is the atlas. **But it cannot be built with what exists**, and the reason is §13.7: a
+*real* singular pole is rank 0, i.e. a degree drop, not a mixed member. So the test needs a **complex**
+singular pole beside another pole — several conjugate pairs in `rationalPHComplexPoleSpatial`, *and*
+the rank-1 case its header explicitly excludes. Real work, not an afternoon.

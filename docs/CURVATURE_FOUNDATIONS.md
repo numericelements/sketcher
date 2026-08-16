@@ -895,14 +895,50 @@ That is not a technicality. It is the **seam with the polynomial case** (F13's m
 precisely the complement of the slider chart: the sliders cover the variety *except* where the pole is not
 really a pole. An editor working near that stratum is working where its chart runs out.
 
-**Pinned by** `src/core/__tests__/multiPoleLinearity.test.ts` (4 tests).
+### The stratum has TWO FLOORS, and everything above describes only the lower one
+
+**Added 2026-08-15, after "𝒜(r) = 0, equivalently σ(r) = 0" produced three separate wrong conclusions.**
+The two are equivalent **only at a real pole**. What the derivation actually needs is not `𝒜(r) ≠ 0` but
+`𝒜(r)` **invertible** — and off the real axis those differ, because `ℍ ⊗ ℂ ≅ M₂(ℂ)` is not a division
+algebra and `det 𝒜(r) = σ(r)`. So the σ = 0 stratum splits:
+
+```
+rank 0    𝒜(r) = 0              the pole CANCELS, the degree drops — the polynomial seam, above
+rank 1    𝒜(r) ≠ 0 but singular  genuine curves of full degree — where the CIRCLE lives
+```
+
+**And which floor is available is decided by the equator.** At a real pole `σ(r) = |𝒜(r)|²` is a sum of
+four real squares, so σ(r) = 0 forces 𝒜(r) = 0: **rank 1 does not exist there.** Off the real axis
+`1² + i² = 0` and it does. The two floors are the definite and isotropic sides of one fact.
+
+**Three consequences, each of which was got wrong first:**
+
+1. **The λ-form is FORCED, not chosen — and it is forced by an inverse.** Setting `X = 𝒜(r)⁻¹𝒜′(r)` and
+   writing `X = a + bi + cj + dk` gives `Xi + iX* = 2a·i + 2d·j − 2c·k`; equating to `2Σi` forces
+   a = Σ, c = d = 0 and leaves b free, so `X = Σ + λi` with λ = b is the *unique* solution and λ is the
+   leftover twist. Every step needs `𝒜(r)⁻¹`. Where 𝒜(r) is singular, X has no meaning at all — the
+   reduction does not degrade, it evaporates.
+2. **The circle is NOT at the end of the twist dial.** Driving λ to its limit sends 𝒜(r) → 0 — the
+   **rank-0** floor, the polynomial degeneration (`polynomialLimitOfTheCircle.test.ts`, 0.0078 at 89.9°).
+   The circle is **rank 1**: `𝒜 = (1−t) + (1+t)k`, degree ONE, with σ(±i) = 0 and |𝒜(i)| = 2 ≠ 0
+   (`circleSpinor.test.ts`). No compactification of λ reaches it; they are different objects.
+3. **A chart for the stratum needs different coordinates, not an extended λ.** Rank-1 2×2 matrices are
+   outer products `u·vᵀ` — the cone over the Segre embedding, smooth away from zero — so the datum is a
+   point of `ℙ¹ × ℙ¹` ("which direction is killed") where the invertible case carries one real λ ("how
+   fast it twists"). Buildable; but it buys **uniformity, not coverage**, since `conformalPHCurve`
+   already covers σ = h·w.
+
+**Pinned by** `src/core/__tests__/multiPoleLinearity.test.ts` (4 tests), and for the two floors
+`realPolesCannotBeOnTheStratum.test.ts` and `circleSpinor.test.ts`. Discussion in
+`docs/RATIONAL_PH_STATE.md` §13.7.
 
 ---
 
 ## F18 — The σ = 0 stratum is ABSORBING under Möbius: you can enter it, never leave
 
 **Why this fact exists.** F17 named the stratum the λ-sliders miss (𝒜(r) = 0, equivalently σ(r) = 0 at a
-real pole) and said the chart runs out there. It did not say what the stratum *is* under the Möbius group.
+real pole — **and only at a real pole**; off the axis the stratum is where 𝒜(r) is SINGULAR, which is
+strictly larger, and it is the rank-1 floor that holds the circle. See F17's two-floor block) and said the chart runs out there. It did not say what the stratum *is* under the Möbius group.
 Three separate lines of work have now hit it independently — F17's sliders, the Sp(1,1) work, and a
 parallel session finding that the published rational cubic has **w | σ with a null spinor**. They are all
 the same stratum, and none of the three knew about the others. That duplication is the reason this fact
