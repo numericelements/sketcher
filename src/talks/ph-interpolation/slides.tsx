@@ -121,17 +121,26 @@ export const slides: SlideDefinition[] = [
 
      polynomial        r′ = w²                  r′ = 𝒜 i 𝒜*
 
-     rational          z = P/Q                  x = C·A⁻¹          the spinor column
-                                                ⟨P,P⟩ = 0          its square, in ℝ⁴′¹`}
+     rational          r′ = w²/q²               r′ = 𝒜 i 𝒜* / w²`}
         </div>
+
+        <p style={{ marginBottom: '0.6em', marginTop: '-0.2em' }}>
+          <span style={{ color: '#64748b' }}>
+            Across a row, the complex <em>square</em> becomes a quaternion <em>sandwich</em>. Down a
+            column, a denominator arrives &mdash; and with it the only real cost, because a rational
+            function does not integrate to a rational one.{' '}
+          </span>
+          <strong>Or refuse to integrate at all</strong>, and build the curve where Möbius is already
+          linear: <code>⟨P,P⟩ = 0</code> in ℝ⁴′¹.
+        </p>
 
         <p style={{ marginBottom: '0.35em' }}>
           <strong>I &mdash; Polynomial.</strong> The plane, then space, then why the frame has no
           choice but to be rational.
         </p>
         <p style={{ marginBottom: '0.35em' }}>
-          <strong>II &mdash; Rational, twice.</strong> The same curves in two representations.
-          Möbius is linear in both; one is the <em>square</em> of the other.
+          <strong>II &mdash; Rational, twice.</strong> The same curves built two ways: integrate the
+          sandwich and pay a residue condition at every pole, or never integrate.
         </p>
         <p style={{ marginBottom: '0.55em' }}>
           <strong>III &mdash; What each one buys.</strong> A chart on one side, a solver on the
@@ -150,10 +159,20 @@ export const slides: SlideDefinition[] = [
     ),
     notes:
       'THIRTY SECONDS IS THE BUDGET for this slide, because the deck is read before the meeting. '
-      + 'Say the table out loud once: polynomial or rational, plane or space. Four cells, and the '
-      + 'bottom-right one has TWO entries -- that is the whole point of the second half. '
+      + 'THE TABLE IS HODOGRAPHS THROUGHOUT, and that uniformity is the point -- every cell is the '
+      + 'same kind of statement, the PH condition. Read ACROSS a row and the complex square becomes a '
+      + 'quaternion sandwich; that is section I. Read DOWN a column and a denominator arrives, which '
+      + 'is the only thing that actually costs anything: PH stays free, but a rational function does '
+      + 'not integrate to a rational one, so the logarithms must be killed pole by pole. '
+      + 'AN EARLIER VERSION OF THIS SLIDE PUT x = C A^{-1} in the bottom-right cell -- the H P^1 '
+      + 'column from core/sp11RationalPH. It is a real object and Moebius is linear on it, but the '
+      + 'deck never teaches it, so the outline was promising a representation that no slide delivers. '
+      + 'Corrected. If the sigma = 0 work makes the column load-bearing it earns slides and the title '
+      + 'honestly becomes three representations; until then it stays in the repo. '
+      + 'THE FOURTH THING IS NOT A CELL, and say it that way: the conformal model is not another '
+      + 'hodograph form, it is a refusal to integrate. That is the real dividing line of section II. '
       + 'THE THREE SECTIONS map onto the six things worth separating: 2D polynomial, 3D polynomial, '
-      + 'the rational frame; then the spinor column and the conformal model; then the chart and the '
+      + 'the rational frame; then the two ways to build a rational PH curve; then the chart and the '
       + 'optimizer. Six is a list, three is a story, and the six survive as beats inside the three. '
       + 'THE LAST PARAGRAPH IS A PROMISE and it should be kept on every slide: named sources for what '
       + 'is known, an honest label for what is ours, a number for what is measured, and the open '
@@ -500,36 +519,46 @@ export const slides: SlideDefinition[] = [
     content: (
       <>
         <h1>II &mdash; Rational, twice</h1>
-        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
-          x = C·A⁻¹ &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; ⟨P,P⟩ = 0
+        <div className="subtitle" style={{ fontSize: '0.66em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre', lineHeight: 1.7 }}>
+{`r′ = 𝒜 i 𝒜* / w²     integrate — and kill a logarithm at every pole
+⟨P,P⟩ = 0            never integrate — build it where Möbius is linear`}
         </div>
-        <div className="event note" style={{ marginTop: '1.6em' }}>
-          Möbius is <em>linear</em> in both &mdash; a constant matrix, so the degree never moves.
+        <div className="event note" style={{ marginTop: '1.5em' }}>
+          Same curves. PH is <em>free</em> in both &mdash; the sandwich does that work either way.
         </div>
         <div className="event note" style={{ marginTop: '0.6em' }}>
-          And Ĥ = U U† : the conformal model is the <em>square</em> of the column. The same circle is
-          degree 1 in one and degree 2 in the other.
+          What separates them is whether you integrate, and everything else follows from that one
+          choice.
         </div>
       </>
     ),
     notes:
-      'TWO REPRESENTATIONS OF THE SAME CURVES, and the relationship between them is exact rather than '
-      + 'analogical: H = U U-dagger. The conformal vector is the column SQUARED; the column is its '
-      + 'spinor square root. '
-      + 'WHAT EACH ONE IS. The column writes a point of R^3 as x = C A^{-1} with A and C quaternion '
-      + 'polynomials -- exactly z = P/Q one algebra up -- and Sp(1,1) acts on the column (A,C) '
-      + 'LINEARLY. The conformal model writes a point as a NULL VECTOR in R^{4,1} and O(4,1) acts on '
-      + 'it linearly too. Neither raises a degree under a Mobius map; ordinary rational Bezier '
-      + 'coordinates do, roughly doubling. '
-      + 'THE DEGREE IS THE THING TO SAY OUT LOUD. Because one is the square of the other, degrees '
-      + 'differ by a factor of two: a circle is degree 1 as a column and degree 2 as a curve of '
-      + 'spheres. Two representations that disagree about the degree of a circle, and both are right. '
-      + 'PROVENANCE, and say it plainly here rather than in the small print. The complete construction '
-      + 'of spatial rational PH curves is Kalkan, Scharler, Schrocker and Sir, CAGD 99 (2022); the '
-      + 'arc-length refinement is Schrocker and Sir. What is ours in the column is a covariant '
-      + 're-expression -- it solves no open problem, it removes a gauge singularity. The conformal '
-      + 'construction with the control polygon as WEIGHTED SPHERES is the one with no search hits so '
-      + 'far, and Choi, Lee and Moon is the paper to read before calling it new.',
+      'THE SANDWICH IS THE SAME A, and that is the sentence to open on because everyone expects the '
+      + 'rational case to need a new object. It does not. Polynomial: r-prime = A i A-star, so the '
+      + 'speed is |A|^2, a polynomial -- PH free, A free, integrate and you are done. Rational: the '
+      + 'quotient rule already hands you a square in the denominator, so ask the numerator to be the '
+      + 'SAME sandwich and the speed is |A|^2/w^2 -- still rational, still free. '
+      + 'SO WHAT CHANGED IS INTEGRATION, and nothing else. A polynomial always integrates to a '
+      + 'polynomial; a rational function does not. The logarithms have to cancel, which is a residue '
+      + 'condition at every pole: N-prime(r) = 2 N(r) Sigma, with Sigma the sum of 1/(r - r_l) over '
+      + 'the other poles. A is no longer free -- it is exactly as free as those conditions allow. '
+      + 'AND THAT IS WHERE THE CHART COMES FROM. Rewritten in A the condition reads A-prime(r) = '
+      + 'A(r)(Sigma + lambda i). At FIXED lambda it is LINEAR in A, so the admissible spinors form a '
+      + 'linear space with a basis -- that is what makes coordinates possible. And lambda is left '
+      + 'over with a meaning: the frame twist rate at that pole. One dial per pole. '
+      + 'THE OTHER ANSWER IS TO REFUSE THE QUESTION. In R^{4,1} nothing is integrated -- the curve is '
+      + 'placed where it lives, as a polygon of weighted spheres -- so there are no logarithms to kill '
+      + 'and no residue conditions at all. The price is the mirror image: the conditions become '
+      + 'quadratic constraints on the control data, so dragging needs a solver, and there are no '
+      + 'coordinates. '
+      + 'THE DEGREE FACT, if it comes up: the conformal vector carries (1, x, half |x|^2) -- the '
+      + 'position AND its square -- so its degree is DOUBLE the curve-s. That is the fee for making '
+      + 'distance an inner product, which is what makes Moebius linear there. '
+      + 'PROVENANCE, plainly, here rather than in the small print. The complete construction of '
+      + 'spatial rational PH curves is Kalkan, Scharler, Schrocker and Sir, CAGD 99 (2022); the '
+      + 'arc-length refinement is Schrocker and Sir. The conformal construction with the control '
+      + 'polygon as WEIGHTED SPHERES is the one with no search hits so far -- and Choi, Lee and Moon '
+      + 'is the paper to read before anyone calls it new.',
   },
 
   // ---------------------------------------------------------------------------
