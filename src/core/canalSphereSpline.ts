@@ -273,3 +273,37 @@ export function nullDefect(s: SphereSpline, samples = 96): number {
   }
   return worst
 }
+
+/**
+ * The parameters where the curve passes through a POINT — the roots of ⟨P,P⟩, found by bracketing
+ * sign changes and bisecting.
+ *
+ * AT DEGREE 1 THESE ARE THE PENCIL'S LIMIT POINTS, and they are the whole lesson. Two spheres span a
+ * pencil; as t runs, the sphere between them shrinks, and if the two are far enough apart it shrinks
+ * all the way to a POINT, goes IMAGINARY, and comes back through a second point. Classical: a pencil
+ * of non-intersecting spheres has exactly two limit points.
+ *
+ * AND IT SAYS WHY A NULL CURVE NEEDS ROOM. ⟨P,P⟩ ≡ 0 asks every member to be a point. At degree 1
+ * that forces ⟨C₀,C₀⟩ = ⟨C₀,C₁⟩ = ⟨C₁,C₁⟩ = 0, and two point-spheres are orthogonal only when they
+ * COINCIDE — so the only null curve of degree 1 is a single stationary point. Curves of points need
+ * degree, and that is the plainest statement of what the null condition costs.
+ */
+export function pointSphereParameters(s: SphereSpline, samples = 400): number[] {
+  const f = (t: number): number => conformalSphereAt(s, t).nullDefect
+  const out: number[] = []
+  let prev = f(0)
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples
+    const cur = f(t)
+    if (prev === 0 || (prev < 0) !== (cur < 0)) {
+      let lo = (i - 1) / samples, hi = t
+      for (let k = 0; k < 60; k++) {
+        const mid = (lo + hi) / 2
+        if ((f(lo) < 0) === (f(mid) < 0)) lo = mid; else hi = mid
+      }
+      out.push((lo + hi) / 2)
+    }
+    prev = cur
+  }
+  return out
+}

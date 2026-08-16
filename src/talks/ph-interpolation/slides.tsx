@@ -52,6 +52,7 @@ import SharedIndicatrixFigure from './SharedIndicatrixFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import CanalSurfaceFigure from './CanalSurfaceFigure'
 import ConformalSphereFigure from './ConformalSphereFigure'
+import SpherePencilFigure from './SpherePencilFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -517,6 +518,51 @@ export const slides: SlideDefinition[] = [
       + 'also why this figure interpolates cyclographically: the Moebius version is not something you '
       + 'can drag. '
       + 'core/canalSphereSpline (7 tests: cylinder, cone, torus, both failure modes, and both models).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10A2 — TWO SPHERES. The smallest case, and the one that answers "why so many spheres".
+  //
+  // Degree ONE: a pencil. Every mechanism the later slides use is already here with two objects
+  // instead of seven, and it delivers a punchline no higher degree can — the only null curve of
+  // degree 1 is a single stationary point, because two point-spheres are orthogonal only when they
+  // coincide. Points do not interpolate to points.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Two spheres</h2>
+        <WhenActive>
+          <SpherePencilFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE SMALLEST CASE, and run it slowly -- it is the slide that makes the next two make sense. '
+      + 'Two control spheres, P(t) = (1-t)C0 + tC1. Classically a PENCIL of spheres, and every '
+      + 'mechanism the later slides use is already here with two objects instead of seven. '
+      + 'DRIVE IT WITH THE GAP, and narrate the three regimes. While the spheres OVERLAP, every '
+      + 'sphere between them is real -- that is the classical pencil through their common circle. At '
+      + 'the moment they are TANGENT the middle one shrinks to a POINT: that is the bifurcation, and '
+      + 'it happens at gap = 2 rho exactly. Past that, TWO point-spheres appear and walk outwards, '
+      + 'and everything between them is IMAGINARY -- drawn as nothing, because there is nothing '
+      + 'there. Those two are the pencil-s classical LIMIT POINTS. '
+      + 'MEASURED, radius 0.7 each: gap 0.8 -> mid radius 0.574; 1.2 -> 0.361; 1.4 -> 0.000; '
+      + '2.0 -> -0.714 with points at t = 0.143 and 0.857; 3.0 -> -1.327 with points at 0.058 and '
+      + '0.942. The limit points are BORN at the centre and separate. '
+      + 'AND THEN THE PUNCHLINE, which only degree 1 can deliver. The next slides ask that EVERY '
+      + 'sphere on the curve be a point. Here that means <C0,C0> = <C0,C1> = <C1,C1> = 0: both '
+      + 'control spheres are points, AND they are orthogonal. But two point-spheres are orthogonal '
+      + 'only when they COINCIDE -- their inner product is -half the squared distance. So the only '
+      + 'null curve of degree one is a single stationary point. '
+      + 'SAY IT AS THE ANSWER TO "WHY SO MANY SPHERES": you cannot draw a segment of points this way. '
+      + 'Points do not interpolate to points. A curve of points has to be bought with DEGREE, and the '
+      + 'big well-separated control spheres two slides later are what pays for it. That is the whole '
+      + 'reason the constrained figure looks the way it does. '
+      + 'DO NOT INTRODUCE PH HERE. This slide is about the null condition alone -- what it takes to '
+      + 'be a curve of POINTS. Speed and PH arrive two slides later and land harder for the wait. '
+      + 'core/canalSphereSpline: pointSphereParameters and the pencil table.',
   },
 
   // ---------------------------------------------------------------------------
