@@ -47,6 +47,11 @@
 //      A dot on the route is unbounded, a dot off it is bounded, and that is
 //      the circle. Placed here because "weights mean poles" is the moment the
 //      room asks where poles are; 19 and 26 both point back at it.
+//  5B  A POLYNOMIAL HAS A POLE TOO -- at infinity, which is an EQUATOR point.   [THM]
+//      PGL(2,R) slides which point is called infinity, so polynomial-versus-
+//      rational is a distinction between PRESENTATIONS, not curves. Retires the
+//      "two chart types meet at the polynomials" puzzle: one classification (the
+//      pole divisor) read at its most degenerate spot.
 //   6  integration stops being a map and becomes an equation                    [LIT]
 //   7  where the condition comes from -- one pole in a line, then the general  [LIT]
 //   8  THE CIRCLE, INTEGRATED -- the whole apparatus by hand, and an arctangent [THM]
@@ -73,13 +78,22 @@
 //  22  THE VARIETY IS SMOOTH WHERE WE STALLED -- Jacobian rank 6 everywhere      [MEAS]
 //      incl. the excluded stratum; local coordinates EXIST, we lack a formula
 //  23  ONE SQUARE, OR TWO -- Pottmann's planar dual IS a chart; the 2D/3D gap    [THM] [MEAS]
-//      is 4(u')^2 versus 4(Q2^2+Q3^2), i.e. the Pythagoras number of R[t]
+//      is 4(u')^2 versus 4(Q2^2+Q3^2): an IDENTITY against a CONDITION. The
+//      condition is Kubota's (a^2+b^2 is a square iff a+ib is), NOT
+//      proportionality, and NOT the Pythagoras number -- both retracted, see
+//      the slide's own notes. p(R[t]) = 2 is used correctly on 26A instead.
 //  24  WE HAD IT BACKWARDS -- deg V = 64 by witness sets, V is swept by linear   [MEAS] [THM]
 //      8-spaces, so V IS RATIONAL and the lambda-chart WAS the parametrisation;
 //      the wall comes only from running the map backward. Coverage, not existence.
 //  25  FAST ENOUGH TO DRAG -- dim V = 4(n+1) - 3m at every size, codim independent [MEAS]
 //      of degree, sub-ms per member; the gap left is starting points, not motion.
 //      (Self-contained: written so it can be lifted into another talk.)
+// 26A  THE CIRCLE, IN YOUR HANDS -- its spinor is A = (1-t) + (1+t)k, DEGREE   [THM] [MEAS]
+//      ONE, derived in three lines by adding and subtracting. sigma = 2w so it
+//      is soft at both poles, sigma(i) = 0 so the chart cannot divide, and yet
+//      A(i) != 0: isotropy in the audience's hands. representable YES,
+//      chartable NO -- the deck's thesis with a degree-1 polynomial instead of
+//      an argument. Follows 26 because that slide argues it abstractly.
 //  26  AN ATLAS, NOT A CHART -- the sigma=0 stratum is ABSORBING under Mobius,   [THM] [MEAS]
 //      so two chart types are necessary; and the conformal one is the LARGER
 //      half (deg 6: no null kernel, 6 moduli vs 4 from bending a PH cubic)
@@ -648,6 +662,85 @@ export const slides: SlideDefinition[] = [
       + 'WHAT NOT TO SAY YET: soft versus hard poles, sigma, the stratum. This slide places the dots '
       + 'and nothing else. The dots acquire a second attribute two slides later and it lands harder '
       + 'if the room has first accepted that the position alone already decides boundedness.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5B — POLYNOMIAL IS A POLE AT INFINITY. The direct sequel to 5A, and it retires a puzzle the
+  //      deck otherwise leaves standing: why the two chart types kept meeting at the polynomials.
+  //
+  // The answer is that "polynomial vs rational" was never a distinction between CURVES. It is a
+  // choice of which equator point to call ∞, and PGL(2,ℝ) slides that choice. Do not overclaim: the
+  // reparametrisation is explicit algebra and the chart is not closed under it (§4), so this is a
+  // statement about classification, not a new editing move.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status="THM" />
+        <h2>A polynomial has a pole too</h2>
+        <p>
+          It is at <Math>{'\\infty'}</Math>. Let <Math>{'t'}</Math> run and a polynomial curve flies
+          off to infinity — so it reaches infinity at a parameter, which is what a pole <em>is</em>.
+          And <Math>{'\\infty'}</Math> is a point of the <strong>equator</strong>: an ordinary real
+          parameter that we happen never to draw.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.55em 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            A polynomial curve is not pole-free. It is a curve whose pole you parked at{' '}
+            <Math>{'\\infty'}</Math>.
+          </strong>
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>And which point is <Math>{'\\infty'}</Math> is a choice.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          <Math>{'PGL(2,\\mathbb{R})'}</Math> slides the equator along itself — it preserves the real
+          line and moves which of its points is the one at infinity. Slide the pole at{' '}
+          <Math>{'r = 1.7'}</Math> out to <Math>{'\\infty'}</Math> and a rational curve becomes a
+          polynomial one; slide it back and it is rational again. <strong>Same curve, same
+          shape.</strong> Only the bookkeeping moved.
+        </p>
+
+        <p style={{ marginTop: '0.5em' }}>
+          So <em>polynomial versus rational</em> is not a distinction between curves at all — it is a
+          distinction between <strong>presentations</strong>. What is genuinely intrinsic is the pole
+          divisor: how many poles, and <em>where on the sphere</em>. On the equator or off it.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.7em 0 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            Which is why the two chart types keep meeting at the polynomials.
+          </strong>
+        </p>
+        <p style={{ marginLeft: '1.2em', marginTop: '0.25em' }}>
+          Not two kinds of object touching — <strong>one classification read at its most degenerate
+          spot</strong>, where all the poles have been pushed onto the single equator point nobody
+          draws.
+        </p>
+      </>
+    ),
+    notes:
+      'THE HOOK IS ONE SENTENCE and it usually lands as a small shock: a polynomial curve is not '
+      + 'pole-free. Let t run and it flies off to infinity, so it REACHES infinity at a parameter, '
+      + 'and that is what a pole is. The only special thing about that parameter is that it is the '
+      + 'one point of the equator we never draw. '
+      + 'THEN THE CHOICE. PGL(2,R) preserves the real line and slides which of its points is called '
+      + 'infinity. Push the pole at 1.7 out to infinity and the rational curve IS a polynomial one; '
+      + 'pull it back and it is rational again. Same curve, same shape, different bookkeeping. '
+      + 'DO NOT OVERSELL THE REPARAMETRISATION. Section 4 measured this: reparametrising is explicit '
+      + 'algebra with no solve, so it can be applied as a final step, but the chart is NOT closed '
+      + 'under it -- deg w jumps 1 to 4 -- so you cannot reparametrise mid-edit and keep dragging. '
+      + 'This slide reclassifies; it does not hand anyone a new gesture. '
+      + 'THE PAYOFF, and it is why this slide exists rather than being a remark: the deck has been '
+      + 'saying the two chart types "meet at the polynomials", which sounds like a coincidence '
+      + 'between two families. It is not. There is one classification -- the pole divisor -- and the '
+      + 'polynomials are its most degenerate stratum, every pole shoved onto the one equator point '
+      + 'nobody draws. Two things do not touch there; one thing is being read at a degenerate spot. '
+      + 'IF ASKED WHETHER THAT MAKES POLYNOMIAL PH TRIVIAL: no. The classification says the '
+      + 'distinction is not intrinsic to the CURVES. The polynomial presentation is still the one '
+      + 'where integration is free, and that is a fact about the presentation, which is exactly what '
+      + 'this slide says is the thing being chosen.',
   },
 
   // ---------------------------------------------------------------------------
@@ -2278,6 +2371,46 @@ export const slides: SlideDefinition[] = [
           was a twist rate on the real line becomes a twist rate <em>and</em> a scale.
         </p>
 
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And that determinant is not bookkeeping — it is what σ was all along.</strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The construction divides by <Math>{'\\mathcal{A}(r)'}</Math>. On the real line that needs
+          only <Math>{'\\mathcal{A}(r)\\neq 0'}</Math>, because a nonzero quaternion always has an
+          inverse: <Math>{'|q|^2 = a^2+b^2+c^2+d^2'}</Math> is a sum of <em>real</em> squares, so
+          nothing can cancel. Off the real line that protection is gone —{' '}
+          <Math>{'1^2 + i^2 = 0'}</Math> — and a matrix has <strong>three</strong> states, not two:
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, auto)',
+            gap: '0.15em 2.4em',
+            margin: '0.4em 0 0.5em',
+            justifyContent: 'center',
+            textAlign: 'center',
+            fontSize: '0.85em',
+          }}
+        >
+          <span><Math>{'\\begin{pmatrix}0&0\\\\0&0\\end{pmatrix}'}</Math></span>
+          <span><Math>{'\\begin{pmatrix}1&1\\\\1&1\\end{pmatrix}'}</Math></span>
+          <span><Math>{'\\begin{pmatrix}1&0\\\\0&1\\end{pmatrix}'}</Math></span>
+          <span className="text-slate-500">zero</span>
+          <span className="text-slate-500">not zero, still no inverse</span>
+          <span className="text-slate-500">invertible</span>
+        </div>
+        <p style={{ marginLeft: '1.2em' }}>
+          The middle one is full of ones and squashes the plane to a line — a shadow you cannot undo.
+          The test that separates it is the determinant, and here the determinant{' '}
+          <em>is</em> <Math>{'\\sigma'}</Math>.
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.55em 0 0' }}>
+          <strong style={{ fontSize: '1.1em' }}>
+            <Math>{'\\sigma'}</Math> was never the speed numerator. It is the answer to
+            &ldquo;can I divide by <Math>{'\\mathcal{A}'}</Math> here?&rdquo;
+          </strong>
+        </p>
+
         <p style={{ marginBottom: '0.15em' }}>
           <strong>What is measured, not assumed.</strong>
         </p>
@@ -2357,6 +2490,25 @@ export const slides: SlideDefinition[] = [
       + 'THE ELEGANT PART IS THAT NOTHING CHANGES SHAPE. Same equation, complex entries, because '
       + 'H tensor C is just 2x2 complex matrices and sigma is the determinant. Say that slowly -- it is '
       + 'the reason the move was cheap. '
+      + 'THE THREE-STATE PICTURE IS THE PAYOFF OF THE SLIDE, so do not rush it. Everyday arithmetic has '
+      + 'two states, zero and divisible. Matrices have three, and the middle one -- all ones, not zero, '
+      + 'squashes the plane onto a line -- is the one with no everyday analogue. Quaternions on the real '
+      + 'line have only two states because |q|^2 is a sum of REAL squares and nothing can cancel; off '
+      + 'the line 1^2 + i^2 = 0 and the middle state arrives. Then the punchline lands by itself: what '
+      + 'you need to divide is not "nonzero", it is "invertible", the test is the determinant, and the '
+      + 'determinant is sigma. Sigma was never the speed numerator. '
+      + 'THIS ALSO CORRECTS A TEMPTING WRONG TURN, worth having ready because it is the natural '
+      + 'objection: if the chart divides by A(r), surely it only needs A(r) != 0, which is WEAKER than '
+      + 'sigma(r) != 0 at a complex pole -- so maybe the chart reaches further than we said. It does '
+      + 'not. Dividing needs invertible, invertible means det != 0, and det = sigma. The requirement is '
+      + 'sigma(r) != 0 at every kind of point, and the two chart types stay disjoint off the real axis '
+      + 'for the same reason they do on it. '
+      + 'AND THE FOOTNOTE THAT KEEPS THIS HONEST: it is DEFINITENESS doing the work, not realness. The '
+      + 'form a^2+b^2+c^2+d^2 is positive definite, which is why nonzero implies invertible on the real '
+      + 'line. Split-quaternions are also a real algebra and their form a^2+b^2-c^2-d^2 is isotropic AT '
+      + 'REAL VALUES -- three states on the equator. That is not pedantry: Minkowski PH curves live in '
+      + 'R^{2,1} with exactly that form, and their isotropic real directions are the point of them '
+      + '(medial axis transforms). So never state this as "real implies divisible". '
       + 'THE MEASUREMENT WORTH PAUSING ON is the first row. One complex lambda handles BOTH poles: you '
       + 'impose the condition at r and it holds at r-conjugate to 6e-16 without being asked. That is '
       + 'the conjugate symmetry of a real-coefficient problem doing the work, and it is why the '
@@ -3306,6 +3458,15 @@ export const slides: SlideDefinition[] = [
           <strong>any curve whatsoever</strong>. One inversion always lands on the stratum, and
           similarities do not touch the pole structure at all.
         </p>
+        <p style={{ marginLeft: '1.2em', marginTop: '0.35em' }}>
+          <strong>And it is not an accident you have to verify.</strong> Inversion about{' '}
+          <Math>{'a'}</Math> multiplies every length by the conformal factor{' '}
+          <Math>{'1/\\|c-a\\|^2'}</Math> — and <Math>{'\\|c-a\\|^2'}</Math> <em>is</em> the new
+          denominator. So one power of <Math>{'\\tilde w'}</Math> is already sitting in the speed
+          before you write anything down:{' '}
+          <Math>{'\\tilde\\sigma/\\tilde w^{2} = \\sigma/\\tilde w'}</Math>. Every inversion image is
+          born on the stratum, and the scar is the conformal factor.
+        </p>
         <p style={{ textAlign: 'center', margin: '0.5em 0' }}>
           <strong style={{ fontSize: '1.08em' }}>
             You can enter it. You cannot leave. No M&ouml;bius map carries the circle into a{' '}
@@ -3446,6 +3607,124 @@ export const slides: SlideDefinition[] = [
       + 'the bendability measurement is what settles it. Correcting that in public costs one sentence '
       + 'and buys the audience a reason to believe the rest.',
   },
+
+  // ---------------------------------------------------------------------------
+  // 26A — THE CIRCLE, IN YOUR HANDS. The atlas slide argues representation-versus-chart abstractly;
+  //       this one hands the room the circle's spinor and lets them see both halves at once.
+  //
+  // WHY IT EARNS A SLIDE: the derivation is three lines and needs no theorem. σ and n₁ split by
+  // adding and subtracting, both halves are perfect squares ON SIGHT, and the phase works out to a
+  // single i. The result is a DEGREE-1 spinor — the circle is not a pathological member of the
+  // spinor form, it is nearly the simplest one. And then the failure is visibly not about the curve:
+  // 𝒜(±i) ≠ 0 while σ(±i) = 0, so what breaks is the division, not the object.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <Tag status={['THM', 'MEAS']} />
+        <h2>The circle, in your hands</h2>
+        <p>
+          The atlas argument was abstract. Here is the circle&rsquo;s spinor, in three lines and with
+          no theorem. Take the standard parametrisation, differentiate, and read off
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.35em 0' }}>
+          <Math>{'w = 1+t^2 , \\qquad N = (-4t,\\; 2-2t^2,\\; 0) , \\qquad \\sigma = 2(1+t^2)'}</Math>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          The sandwich splits by <strong>adding and subtracting</strong>, since{' '}
+          <Math>{'\\sigma = \\alpha\\bar\\alpha + \\beta\\bar\\beta'}</Math> and{' '}
+          <Math>{'n_1 = \\alpha\\bar\\alpha - \\beta\\bar\\beta'}</Math>:
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.3em 0' }}>
+          <Math>{'\\alpha\\bar\\alpha = \\tfrac{\\sigma+n_1}{2} = (1-t)^2 , \\qquad \\beta\\bar\\beta = \\tfrac{\\sigma-n_1}{2} = (1+t)^2'}</Math>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          Perfect squares on sight. Take roots, fix the phase against{' '}
+          <Math>{'2\\alpha\\beta = 2i(1-t^2)'}</Math>, and
+        </p>
+        <p style={{ textAlign: 'center', margin: '0.4em 0' }}>
+          <strong style={{ fontSize: '1.12em' }}>
+            <Math>{'\\mathcal{A}(t) = (1-t) + (1+t)\\,k'}</Math>
+          </strong>
+        </p>
+        <p style={{ marginLeft: '1.2em' }}>
+          <strong>Degree one.</strong> Four real coefficients. The circle is not a pathological
+          member of the spinor form — it is nearly the simplest one there is.
+        </p>
+
+        <p style={{ marginTop: '0.5em', marginBottom: '0.15em' }}>
+          <strong>And now look at the pole.</strong>
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.25em 1.3em',
+            margin: '0.3em 0 0.5em 1.2em',
+            fontSize: '0.86em',
+            alignItems: 'baseline',
+          }}
+        >
+          <span><Math>{'\\sigma = 2(1+t^2) = 2w'}</Math></span>
+          <span>soft at both poles — <Math>{'\\sigma'}</Math> dies exactly where <Math>{'w'}</Math> does</span>
+          <span><Math>{'\\sigma(i) = 0'}</Math></span>
+          <span>so the chart has nothing to divide by</span>
+          <span><Math>{'\\mathcal{A}(i) = (1-i)+(1+i)k \\neq 0'}</Math></span>
+          <span><strong>and yet the spinor is not zero.</strong> Isotropy, in your hands</span>
+        </div>
+
+        <p style={{ textAlign: 'center', margin: '0.6em 0 0' }}>
+          <strong style={{ fontSize: '1.14em' }}>
+            representable ✓&nbsp;&nbsp;&nbsp; chartable ✗
+          </strong>
+        </p>
+        <p style={{ marginLeft: '1.2em', marginTop: '0.25em' }}>
+          The object is perfectly ordinary. Only the coordinate system fails — which is this
+          deck&rsquo;s thesis, arrived at with a degree-1 polynomial instead of an argument.
+        </p>
+        <Cite>
+          Every line of this is checked coefficient by coefficient in{' '}
+          <Math>{'\\texttt{circleSpinor.test.ts}'}</Math>: the spinor reproduces{' '}
+          <Math>{'N'}</Math> and <Math>{'\\sigma'}</Math> exactly,{' '}
+          <Math>{'\\sigma = 2w'}</Math>, <Math>{'\\sigma(i) = 0'}</Math> to machine zero, and{' '}
+          <Math>{'|\\mathcal{A}(i)| = 2'}</Math>. Surjectivity of the spinor form in general —
+          which the circle does not need, because we solved it by hand — is
+          Dietz&ndash;Hoschek&ndash;J&uuml;ttler, and holds only up to a common factor.
+        </Cite>
+      </>
+    ),
+    notes:
+      'THIS SLIDE EXISTS BECAUSE THE ATLAS SLIDE IS ABSTRACT. Everything before it argues '
+      + 'representation-versus-chart structurally; this hands the room the actual object and lets '
+      + 'them watch both halves at once. Do the derivation live -- it is three lines and it always '
+      + 'gets a reaction, because people expect the circle to be the hard case. '
+      + 'THE MOVE THAT DOES THE WORK is adding and subtracting. sigma = alpha-alphabar + '
+      + 'beta-betabar and n1 = alpha-alphabar - beta-betabar, so the two halves separate with no '
+      + 'cleverness at all, and here they come out (1-t)^2 and (1+t)^2 -- squares ON SIGHT. Then one '
+      + 'phase to fix and you are done. Degree ONE. '
+      + 'THE PYTHAGORAS NUMBER FINALLY DOES ITS JOB HERE, and it is worth the aside because this deck '
+      + 'used to misuse it. Step two -- taking a square root of each half -- always works, because '
+      + 'every non-negative real polynomial in one variable is a sum of two squares, i.e. |alpha|^2 '
+      + 'for some complex alpha. That is p(R[t]) = 2 used as the ENABLING theorem it is. Slide 21 '
+      + 'used to cite it as an obstruction, which was backwards. '
+      + 'AND SAY WHERE THE DIFFICULTY REALLY LIVES, since the circle makes it look easy. Step 1 '
+      + '(split) and step 2 (roots) never fail. Step 3 is matching the PHASES: alpha and beta each '
+      + 'come out only up to a phase and their product has to hit n2/2 exactly. That is the step that '
+      + 'can fail, it is where Dietz-Hoschek-Juttler’s common factor h comes from, and it is the '
+      + 'whole 3D difficulty in one line. The circle is easy because its phase works out to a single '
+      + 'factor of i. '
+      + 'THEN THE POLE, and this is the punchline the deck has been building to. sigma = 2w, so the '
+      + 'circle is soft at both poles. sigma(i) = 0, so the chart has nothing to divide by. But '
+      + 'A(i) = (1-i)+(1+i)k is NOT ZERO -- a nonzero quaternion whose size is zero, isotropy in the '
+      + 'audience’s hands rather than in a definition. '
+      + 'CLOSE ON THE SPLIT, slowly: representable yes, chartable no. "PH is free" and "we can reach '
+      + 'everything" are different claims -- the first is a ring identity, the second is '
+      + 'surjectivity and is a hard theorem true only up to that common factor. For the circle we did '
+      + 'not need the theorem; we solved it by hand. The object is ordinary, only the coordinates '
+      + 'fail, and that is the deck’s title stated with a degree-1 polynomial instead of an argument.',
+  },
+
   // ---------------------------------------------------------------------------
   // 27 — THE LEDGER. The deck's title made literal, and the slide it is named for.
   //
