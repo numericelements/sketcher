@@ -61,7 +61,7 @@
 // the parity theorem needs the null condition (⟨C,C⟩ ≡ 0 forcing ‖q‖² = 2w·c∞) to force a common
 // factor. With no conditions there is no identity and nothing is forced.
 // ============================================================================
-import { type Conformal, innerProduct } from './conformal'
+import { type Conformal, innerProduct, nullCurveResidual } from './conformal'
 import { type Vec3, vadd, vcross, vnorm, vscale, vsub } from './quaternion'
 
 /**
@@ -264,6 +264,26 @@ export function conformalSphereAt(
     nullDefect: g,
   }
 }
+
+/**
+ * The 2n+1 Bernstein coefficients of ⟨P,P⟩ — the null condition written out rather than sampled.
+ *
+ * WHY COEFFICIENTS AND NOT A SAMPLED DEFECT. `nullDefect` answers "are we on it", one number. These
+ * answer "what is still wrong", one number per piece of the polygon, and at degree 2 they come off
+ * one at a time with a handle each:
+ *
+ *     b₀ = ⟨C₀,C₀⟩                 the first sphere must be a POINT
+ *     b₁ = ⟨C₀,C₁⟩                 the middle sphere must pass through it
+ *     b₂ ∝ ⟨C₀,C₂⟩ + 2⟨C₁,C₁⟩      the balance between the middle sphere's size and its weight
+ *     b₃ = ⟨C₁,C₂⟩                 and through the other end
+ *     b₄ = ⟨C₂,C₂⟩                 which must be a POINT too
+ *
+ * Measured (spherePolygonDegreeTwo.test.ts): moving the middle centre off the bisector plane breaks
+ * b₃ ALONE, leaving the rest at 1e-17. So these are five separate statements, not one blurred one,
+ * which is what makes the condition findable by hand at this degree.
+ */
+export const nullCoefficients = (s: SphereSpline): number[] =>
+  nullCurveResidual(s.S.map(conformalOf))
 
 /** Worst |⟨P,P⟩/w²| over the interval — zero exactly when every sphere on the curve is a point. */
 export function nullDefect(s: SphereSpline, samples = 96): number {
