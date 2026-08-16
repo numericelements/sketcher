@@ -52,8 +52,15 @@ const SEED: ControlSphere[] = (() => {
   return P.map((centre, i) => ({ centre, radius: r[i], weight: 1 }))
 })()
 
+/**
+ * ONLY REAL SPHERES ARE DRAWN. A negative radius here means ⟨S,S⟩ < 0 — an IMAGINARY sphere, which
+ * is not a sphere at all, so it must draw as NOTHING and leave a visible gap. The canal figure's
+ * copy of this helper takes |radius| and is right to: there a negative radius is a reversed
+ * ORIENTATION and the sphere is real. Same helper, opposite meaning — and the first version of this
+ * file used the canal one, so imaginary spheres were drawn as real ones and the gap never appeared.
+ */
 function greatCircles(centre: Vec3, radius: number): [number, number, number][][] {
-  const r = Math.abs(radius)
+  const r = radius
   if (!(r > 1e-4)) return []
   const axes: Vec3[] = [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }]
   return axes.map((axis) => {

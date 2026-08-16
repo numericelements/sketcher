@@ -27,6 +27,15 @@
 // constrained figure needs SEVEN control spheres and why they are large and far apart: a curve of
 // points has to be bought with degree, and the scaffold pays for it.
 //
+// AND THE FARIN BEAD IS PURE GAUGE HERE, which is worth having at this size. With two control
+// spheres the weight ratio is exactly the reparametrisation t ↦ λt/(1−t+λt): it changes WHICH member
+// you are at for a given t, and not the family. Measured — as the weight goes 0.5, 1, 2, 4 the limit
+// points move to t = (0.250, 0.923), (0.143, 0.857), (0.077, 0.750), (0.040, 0.600), while the limit
+// SPHERES sit at x = ±0.7141 throughout. The drawn samples slide; the dots do not move.
+//
+// That is the parameter gauge with two objects instead of five, and it is the same phenomenon Eric
+// read off the degree-4 figure: the dial does not change the curve, it moves the Farin points.
+//
 // r3f cannot be verified headlessly, so this file holds NO mathematics — only marks and gestures.
 // ============================================================================
 import { useMemo, useState } from 'react'
@@ -51,8 +60,15 @@ const SEED: ControlSphere[] = [
   { centre: { x: 0.4, y: 0, z: 0 }, radius: 0.7, weight: 1 },
 ]
 
+/**
+ * ONLY REAL SPHERES ARE DRAWN. A negative radius here means ⟨S,S⟩ < 0 — an IMAGINARY sphere, which
+ * is not a sphere at all, so it must draw as NOTHING and leave a visible gap. The canal figure's
+ * copy of this helper takes |radius| and is right to: there a negative radius is a reversed
+ * ORIENTATION and the sphere is real. Same helper, opposite meaning — and the first version of this
+ * file used the canal one, so imaginary spheres were drawn as real ones and the gap never appeared.
+ */
 function greatCircles(centre: Vec3, radius: number): [number, number, number][][] {
-  const r = Math.abs(radius)
+  const r = radius
   if (!(r > 1e-4)) return []
   const axes: Vec3[] = [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }]
   return axes.map((axis) => {
@@ -87,6 +103,12 @@ export default function SpherePencilFigure() {
 
   const relation = pairing > 1e-9 ? 'overlapping' : pairing < -1e-9 ? 'separated' : 'ORTHOGONAL'
 
+  /** F = (w₀c₀ + w₁c₁)/(w₀+w₁) — the weight, as one bead on the leg. */
+  const bead = useMemo(() => {
+    const sum = S[0].weight + S[1].weight
+    return vscale(vadd(vscale(S[0].centre, S[0].weight), vscale(S[1].centre, S[1].weight)), 1 / sum)
+  }, [S])
+
   return (
     <Figure3D
       bounds={BOUNDS}
@@ -109,6 +131,7 @@ export default function SpherePencilFigure() {
           value: limits.length ? limits.map((t) => t.toFixed(3)).join(', ') : 'none',
         },
         { label: 'imaginary samples', value: `${imaginary} of ${PROBES.length}` },
+        { label: 'weight w₁/w₀', value: (S[1].weight / S[0].weight).toFixed(3) },
       ]}
       controls={
         <span className="flex items-center gap-3 flex-wrap justify-center">
@@ -147,6 +170,10 @@ export default function SpherePencilFigure() {
           <b>And now the punchline.</b> The next slides ask that <i>every</i> sphere on the curve be a
           point. Here that forces both control spheres to be points and to be orthogonal — and two
           points are orthogonal only if they are the <b>same point</b>.{' '}
+          <b>The bead on the leg is the weight</b>, and at this size it does something you can check:
+          drag it and the drawn spheres <i>redistribute</i> along the pencil while the two point-marks
+          stay exactly where they are. It changes which member you are at for a given <i>t</i>, not
+          the family. That is the parameter gauge, with two objects.{' '}
           <span className="text-slate-400">
             So the only curve of points you can make with two control spheres is a single stationary
             point. Points do not interpolate to points. A curve of points must be bought with{' '}
@@ -178,6 +205,24 @@ export default function SpherePencilFigure() {
           radius={0.07}
         />
       ))}
+
+      {/* the weight. Dragging it slides the SAMPLES along the pencil and leaves the pencil alone. */}
+      <DragPoint3D
+        position={tri(bead)}
+        color={grabbed === 2 ? FIG.color.dataPointDrag : FIG.color.derived}
+        radius={0.04}
+        onDragStart={() => setGrabbed(2)}
+        onDragEnd={() => setGrabbed(null)}
+        onDrag={([x, y, z]) => {
+          const a = S[0].centre, c = S[1].centre
+          const leg = vsub(c, a)
+          const len2 = leg.x * leg.x + leg.y * leg.y + leg.z * leg.z
+          if (len2 === 0) return
+          const rel = vsub({ x, y, z }, a)
+          const u = Math.min(0.9, Math.max(0.1, (rel.x * leg.x + rel.y * leg.y + rel.z * leg.z) / len2))
+          setS((p) => [p[0], { ...p[1], weight: (p[0].weight * u) / (1 - u) }])
+        }}
+      />
 
       {S.map((s, i) => (
         <DragPoint3D
