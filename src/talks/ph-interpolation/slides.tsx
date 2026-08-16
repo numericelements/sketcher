@@ -53,6 +53,7 @@ import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import CanalSurfaceFigure from './CanalSurfaceFigure'
 import ConformalSphereFigure from './ConformalSphereFigure'
 import SpherePencilFigure from './SpherePencilFigure'
+import ThreeSphereFigure from './ThreeSphereFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -83,21 +84,93 @@ export const slides: SlideDefinition[] = [
       '|e|² ≡ 1 forces the leading coefficient to vanish. The polynomial object is the ' +
       'spinor A; the frame is rational because normalising by σ = |A|² is a division.',
   },
-
+  // ---------------------------------------------------------------------------
+  // 2 — THE MAP. The slide someone reads in thirty seconds to know what this is.
+  //
+  // This deck is circulated BEFORE the discussion, so slide 2 has to do two jobs at once: say what
+  // the object is, and say what is being asked. The table is the whole document in four cells — and
+  // the claim is visible in it, because the bottom-right cell has TWO entries and the second half of
+  // the deck is about why.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
         <h2>Outline</h2>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0.2em 0 0.7em 0.6em' }}>
+{`                       plane                    space
+
+     polynomial        r′ = w²                  r′ = 𝒜 i 𝒜*
+
+     rational          z = P/Q                  x = C·A⁻¹          the spinor column
+                                                ⟨P,P⟩ = 0          its square, in ℝ⁴′¹`}
+        </div>
+
+        <p style={{ marginBottom: '0.35em' }}>
+          <strong>I &mdash; Polynomial.</strong> The plane, then space, then why the frame has no
+          choice but to be rational.
+        </p>
+        <p style={{ marginBottom: '0.35em' }}>
+          <strong>II &mdash; Rational, twice.</strong> The same curves in two representations.
+          Möbius is linear in both; one is the <em>square</em> of the other.
+        </p>
+        <p style={{ marginBottom: '0.55em' }}>
+          <strong>III &mdash; What each one buys.</strong> A chart on one side, a solver on the
+          other, and the gap between them.
+        </p>
+
+        <p style={{ fontSize: '0.9em' }}>
+          <span style={{ color: '#64748b' }}>
+            Circulated for discussion. Where something is <em>known</em> the source is named; where it
+            is <em>ours</em> it says so and how far; where it is <em>measured</em> the number is given
+            with the test that holds it; and the open questions are collected at the end rather than
+            softened along the way.
+          </span>
+        </p>
       </>
     ),
     notes:
-      'Deliberately empty for now — filled once the acts settle. Planned shape: ' +
-      'I Counting (how many PH curves meet given data), II Choosing (the spatial ' +
-      'two-parameter family and the fairness landscape), III Moving (dragging as ' +
-      'transport; monodromy and holonomy), IV Frames (ERF, Frenet, RMF, RRMF), ' +
-      'V The frontier (arbitrary-degree RRMF construction — open in the survey\'s own words).',
+      'THIRTY SECONDS IS THE BUDGET for this slide, because the deck is read before the meeting. '
+      + 'Say the table out loud once: polynomial or rational, plane or space. Four cells, and the '
+      + 'bottom-right one has TWO entries -- that is the whole point of the second half. '
+      + 'THE THREE SECTIONS map onto the six things worth separating: 2D polynomial, 3D polynomial, '
+      + 'the rational frame; then the spinor column and the conformal model; then the chart and the '
+      + 'optimizer. Six is a list, three is a story, and the six survive as beats inside the three. '
+      + 'THE LAST PARAGRAPH IS A PROMISE and it should be kept on every slide: named sources for what '
+      + 'is known, an honest label for what is ours, a number for what is measured, and the open '
+      + 'questions collected at the end instead of dissolved into the prose.',
+  },
+  // ---------------------------------------------------------------------------
+  // SECTION I — POLYNOMIAL. One equation, one consequence.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'title',
+    content: (
+      <>
+        <h1>I &mdash; Polynomial</h1>
+        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+          r′ = w² &nbsp;&nbsp;⟶&nbsp;&nbsp; r′ = 𝒜 i 𝒜*
+        </div>
+        <div className="event note" style={{ marginTop: '1.6em' }}>
+          The square becomes a sandwich, and the square root becomes a <em>circle</em> of square roots.
+        </div>
+        <div className="event note" style={{ marginTop: '0.6em' }}>
+          And |e|² ≡ 1 forces the leading coefficient to vanish, so a moving unit frame can never be
+          polynomial &mdash; rational is not a choice.
+        </div>
+      </>
+    ),
+    notes:
+      'THE WHOLE SECTION IN TWO LINES. In the plane the hodograph is a complex SQUARE and the square '
+      + 'root is two-valued. In space it is a quaternion SANDWICH and the preimages form a CIRCLE -- '
+      + 'the Hopf gauge A -> A e^{i theta} moves no curve. That one change of algebra is what makes '
+      + 'the interpolation counts jump and what puts a free angle in every frame. '
+      + 'THE SECOND LINE IS THE FRAME ARGUMENT and it is worth saying slowly because it is the '
+      + 'strongest claim available: a non-constant unit vector field cannot be polynomial, since '
+      + '|e|^2 = 1 forces the leading coefficient to vanish. The polynomial object is the spinor; the '
+      + 'frame is rational because normalising by sigma = |A|^2 is a division. Nobody CHOSE rational '
+      + 'frames -- the alternative does not exist.',
   },
 
   // ---------------------------------------------------------------------------
@@ -401,6 +474,45 @@ export const slides: SlideDefinition[] = [
       'core/phSpatialSepticSpline, 19 tests; drags run 13–28ms at n=6–8 with class, C², twist and the ' +
       'joint jump all at machine zero throughout.',
   },
+  // ---------------------------------------------------------------------------
+  // SECTION II — RATIONAL, TWICE. The deck's actual claim lives here.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'title',
+    content: (
+      <>
+        <h1>II &mdash; Rational, twice</h1>
+        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+          x = C·A⁻¹ &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; ⟨P,P⟩ = 0
+        </div>
+        <div className="event note" style={{ marginTop: '1.6em' }}>
+          Möbius is <em>linear</em> in both &mdash; a constant matrix, so the degree never moves.
+        </div>
+        <div className="event note" style={{ marginTop: '0.6em' }}>
+          And Ĥ = U U† : the conformal model is the <em>square</em> of the column. The same circle is
+          degree 1 in one and degree 2 in the other.
+        </div>
+      </>
+    ),
+    notes:
+      'TWO REPRESENTATIONS OF THE SAME CURVES, and the relationship between them is exact rather than '
+      + 'analogical: H = U U-dagger. The conformal vector is the column SQUARED; the column is its '
+      + 'spinor square root. '
+      + 'WHAT EACH ONE IS. The column writes a point of R^3 as x = C A^{-1} with A and C quaternion '
+      + 'polynomials -- exactly z = P/Q one algebra up -- and Sp(1,1) acts on the column (A,C) '
+      + 'LINEARLY. The conformal model writes a point as a NULL VECTOR in R^{4,1} and O(4,1) acts on '
+      + 'it linearly too. Neither raises a degree under a Mobius map; ordinary rational Bezier '
+      + 'coordinates do, roughly doubling. '
+      + 'THE DEGREE IS THE THING TO SAY OUT LOUD. Because one is the square of the other, degrees '
+      + 'differ by a factor of two: a circle is degree 1 as a column and degree 2 as a curve of '
+      + 'spheres. Two representations that disagree about the degree of a circle, and both are right. '
+      + 'PROVENANCE, and say it plainly here rather than in the small print. The complete construction '
+      + 'of spatial rational PH curves is Kalkan, Scharler, Schrocker and Sir, CAGD 99 (2022); the '
+      + 'arc-length refinement is Schrocker and Sir. What is ours in the column is a covariant '
+      + 're-expression -- it solves no open problem, it removes a gauge singularity. The conformal '
+      + 'construction with the control polygon as WEIGHTED SPHERES is the one with no search hits so '
+      + 'far, and Choi, Lee and Moon is the paper to read before calling it new.',
+  },
 
   // ---------------------------------------------------------------------------
   // 10 — bend it with Möbius: a rational PH curve, frame intact
@@ -457,387 +569,6 @@ export const slides: SlideDefinition[] = [
       'live in the conformal model, not the Hopf model. In 2D it works because Möbius is a CONSTANT 2×2 ' +
       'matrix on (N : D) and a Farin point is a projective sum. ' +
       'core/phMobius (14 tests), core/conformal (22), core/phSpatialSeptic (25).',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 10A — A CURVE OF SPHERES. The unconstrained warm-up, placed before 11 so the room has played in
-  //       the space before two conditions arrive at once.
-  //
-  // BOTH DOORS ARE SHOWN FROM THE START, deliberately: collapse the spheres to points and you get
-  // slide 11; keep them and rationalise the ENVELOPE and you get MPH, canal surfaces and offsets.
-  // The second door is the one this deck does not take, and saying so here is what stops the atlas
-  // slides later reading as though there were only ever one way out.
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>A curve of spheres</h2>
-        <WhenActive>
-          <CanalSurfaceFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'THE ONLY UNCONSTRAINED FIGURE IN THE DECK, and open on that. Everything else here solves '
-      + 'something; this one is arithmetic, so it loads instantly and drags at frame rate. A control '
-      + 'point is a SPHERE -- centre, radius, weight -- and all three are yours. '
-      + 'AND A CURVE OF SPHERES IS NOT A CURVE. It has an ENVELOPE, and the envelope is a CANAL '
-      + 'SURFACE. In the plane the same object is the MEDIAL AXIS TRANSFORM: a shape described by the '
-      + 'discs that fill it rather than by its boundary. That is a whole literature (Choi-Lee-Moon; '
-      + 'Peternell-Pottmann; Kosinka-Lavicka), not a curiosity. '
-      + 'GET SOMEONE TO BREAK IT -- this is the beat of the slide. Pull a radius faster than its '
-      + 'centre moves and |cdot|^2 - rhodot^2 goes negative: the square root is imaginary and the '
-      + 'envelope STOPS EXISTING. Not clamped, not approximated -- the circles are simply not drawn. '
-      + 'It is the first constraint in this deck that fails visibly rather than as a residual, and it '
-      + 'earns every later slide where a constraint is a number in a readout. '
-      + 'THE SECOND FAILURE IS DIFFERENT: inflate until rho*kappa passes 1 and the tube '
-      + 'self-intersects. The envelope still exists; it just runs into itself. That is the one people '
-      + 'meet in practice when they thicken a canal surface, and the two failures are independent -- '
-      + 'measured, you can have either without the other. '
-      + 'THEN THE TWO DOORS, both named before moving on. COLLAPSE the spheres to points -- that is '
-      + 'the null condition -- and the family becomes a CURVE; ask its speed to be rational and you '
-      + 'have the next slide. Or KEEP the spheres and ask the ENVELOPE to be rational: the condition '
-      + 'is |cdot|^2 - rhodot^2 a perfect square, Pythagorean in the MINKOWSKI metric. That is MPH, '
-      + 'canal surfaces, offsets. It is the door this deck does not take. '
-      + 'DO NOT LET THE ROOM THINK THOSE ARE TWO SPELLINGS OF ONE CONDITION. |cdot|^2 - rhodot^2 is '
-      + 'the LAGUERRE invariant; <P-prime,P-prime> is the MOEBIUS one. Two subgroups of one Lie '
-      + 'sphere group in R^{4,2} (Krasauskas 2017, already cited by the light-cone deck). Moebius '
-      + 'keeps points and cannot see a sphere ORIENTATION; Laguerre keeps oriented contact and cannot '
-      + 'see a point. '
-      + 'IF ASKED WHY DEGREE 5 HERE when slide 11 abandoned it: because the parity theorem needs the '
-      + 'NULL condition to force a common factor. With no conditions there is no identity and nothing '
-      + 'is forced, so an odd degree is genuinely odd. The degree we retired next door is honest here, '
-      + 'and the reason is exactly the condition this slide has not imposed yet. '
-      + 'AND THE MEASUREMENT WORTH KEEPING IN YOUR POCKET, if anyone asks whether the two models are '
-      + 'really different or just two spellings: take two spheres of radius 0.7 with centres 3 apart, '
-      + 'so DISJOINT. Interpolate them cyclographically and you get a cone frustum, radius 0.7 in the '
-      + 'middle. Interpolate the same two in R^{4,1} and the midpoint has radius-squared -1.76 -- an '
-      + 'IMAGINARY sphere, because two non-intersecting spheres determine a pencil with no real '
-      + 'member between them. Same two spheres, same "straight line", two different answers. That is '
-      + 'also why this figure interpolates cyclographically: the Moebius version is not something you '
-      + 'can drag. '
-      + 'core/canalSphereSpline (7 tests: cylinder, cone, torus, both failure modes, and both models).',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 10A1 — THE ARITHMETIC, ONCE. Text and formulas only, no figure.
-  //
-  // Everything after this treats the five-number encoding as known. This slide is where it is
-  // actually shown: what you specify, why there are five slots, and one example carried all the way
-  // through by hand. It exists because the interactive slides kept raising the same question --
-  // "what am I even specifying?" -- and no figure answers that. A worked example does.
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Two spheres, by hand</h2>
-        <p style={{ marginBottom: '0.2em' }}>
-          <strong>What you specify is a centre and a radius.</strong> That is a sphere, and it is the
-          only thing you ever type in. (Plus a weight, exactly the rational-B&eacute;zier weight you
-          already use, and for the same reason.)
-        </p>
-        <p style={{ marginBottom: '0.2em' }}>
-          <strong>Why five numbers?</strong> Four for the sphere &mdash; centre and radius &mdash;
-          and one for the projective scale, the same extra slot that turns a 3D point into{' '}
-          <code>(w, wx, wy, wz)</code>. Nothing deeper than that.
-        </p>
-
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
-{`STORE      S  =  ( w ,  w·c ,  w(|c|² − ρ²)/2 )
-
-READ       centre  = (2nd, 3rd, 4th) / w
-           radius² = |centre|² − 2·(5th)/w`}
-        </div>
-
-        <p style={{ textAlign: 'center', margin: '0.3em 0 0.6em' }}>
-          <strong style={{ fontSize: '1.1em' }}>And a point is a sphere of radius zero.</strong>
-        </p>
-
-        <p style={{ marginBottom: '0.15em' }}>
-          <strong>One example, all the way through.</strong> Two spheres of radius{' '}
-          <code>0.7</code>, centres at <code>(0,0,0)</code> and{' '}
-          <code>(3,0,0)</code>, weights 1. Store them, average the five slots, read back:
-        </p>
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
-{`S₀ = ( 1, 0, 0, 0, (0 − 0.49)/2 )  =  ( 1, 0, 0, 0, −0.245 )
-S₁ = ( 1, 3, 0, 0, (9 − 0.49)/2 )  =  ( 1, 3, 0, 0,  4.255 )
-
-M  = (S₀ + S₁)/2                   =  ( 1, 1.5, 0, 0, 2.005 )
-
-centre  = (1.5, 0, 0)/1        =  (1.5, 0, 0)      the midpoint
-radius² = 1.5² − 2(2.005)/1    =  2.25 − 4.01  =  −1.76`}
-        </div>
-
-        <p style={{ marginBottom: '0.15em' }}>
-          Only the last slot of <code>S₁</code> and the answer change as the gap grows:
-        </p>
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
-{`gap 0.6    M = ( 1, 0.3, 0, 0, −0.155 )   radius² =  0.40   ρ = 0.632
-gap 1.4    M = ( 1, 0.7, 0, 0,  0.245 )   radius² =  0.00   ρ = 0        ← tangent
-gap 3.0    M = ( 1, 1.5, 0, 0,  2.005 )   radius² = −1.76   imaginary`}
-        </div>
-
-        <p>
-          <strong>The centre never surprises anyone; the radius always does.</strong> The centre comes
-          out of a <em>division</em> and lands on the midpoint. The radius comes out of a{' '}
-          <em>subtraction involving</em> <code>|centre|²</code> &mdash; which is quadratic, and
-          is the only place any non-obvious behaviour can enter.
-        </p>
-      </>
-    ),
-    notes:
-      'THE SLIDE THAT SHOULD HAVE COME FIRST. Every interactive slide after this treats the '
-      + 'five-number encoding as known, and no figure can answer "what am I even specifying?". A '
-      + 'worked example can, so this one is text and arithmetic with nothing to drag. '
-      + 'OPEN ON WHAT IS SPECIFIED: a centre and a radius. That is all anyone ever types in. The '
-      + 'sliders in the next figures are radii and the drag handles are centres -- nothing else. '
-      + 'THEN WHY FIVE. Four for the sphere, one for the projective scale. Say it is the SAME extra '
-      + 'slot that makes a 3D point into (w, wx, wy, wz) in any rational Bezier, because the room '
-      + 'already owns that idea and this is not a new one. '
-      + 'THE ONE IDEA ON THE SLIDE is that a POINT IS A SPHERE OF RADIUS ZERO. Points and spheres '
-      + 'stop being two kinds of object. Everything later -- the null condition, curves of points, '
-      + 'the whole conformal model -- is downstream of that single sentence. '
-      + 'WALK THE EXAMPLE SLOWLY and let the room do the arithmetic. Store, average, read back. The '
-      + 'centre lands on the midpoint, which nobody doubts. Then the radius comes out NEGATIVE, and '
-      + 'that is the moment worth pausing on: two perfectly ordinary spheres, averaged, give '
-      + 'something that is not a sphere at all. '
-      + 'CLOSE ON WHY. The centre is a division and behaves; the radius is a subtraction involving '
-      + '|centre|^2, which is QUADRATIC. All the surprise in this entire representation enters '
-      + 'through that one square. Say that and the next three slides stop being mysterious. '
-      + 'DO NOT MENTION the null cone, Moebius, PH or the signature here. This slide is arithmetic. '
-      + 'The (4,1) signature is only "radius squared is allowed to be negative", and it is better '
-      + 'earned by the −1.76 above than announced in advance.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 10A2 — TWO SPHERES. The smallest case, and the one that answers "why so many spheres".
-  //
-  // Degree ONE: a pencil. Every mechanism the later slides use is already here with two objects
-  // instead of seven, and it delivers a punchline no higher degree can — the only null curve of
-  // degree 1 is a single stationary point, because two point-spheres are orthogonal only when they
-  // coincide. Points do not interpolate to points.
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Two spheres</h2>
-        <WhenActive>
-          <SpherePencilFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'THE SMALLEST CASE, and run it slowly -- it is the slide that makes the next two make sense. '
-      + 'Two control spheres, P(t) = (1-t)C0 + tC1. Classically a PENCIL of spheres, and every '
-      + 'mechanism the later slides use is already here with two objects instead of seven. '
-      + 'DRIVE IT WITH THE GAP, and narrate the three regimes. While the spheres OVERLAP, every '
-      + 'sphere between them is real -- that is the classical pencil through their common circle. At '
-      + 'the moment they are TANGENT the middle one shrinks to a POINT: that is the bifurcation, and '
-      + 'it happens at gap = 2 rho exactly. Past that, TWO point-spheres appear and walk outwards, '
-      + 'and everything between them is IMAGINARY -- drawn as nothing, because there is nothing '
-      + 'there. Those two are the pencil-s classical LIMIT POINTS. '
-      + 'MEASURED, radius 0.7 each: gap 0.8 -> mid radius 0.574; 1.2 -> 0.361; 1.4 -> 0.000; '
-      + '2.0 -> -0.714 with points at t = 0.143 and 0.857; 3.0 -> -1.327 with points at 0.058 and '
-      + '0.942. The limit points are BORN at the centre and separate. '
-      + 'AND THEN THE PUNCHLINE, which only degree 1 can deliver. The next slides ask that EVERY '
-      + 'sphere on the curve be a point. Here that means <C0,C0> = <C0,C1> = <C1,C1> = 0: both '
-      + 'control spheres are points, AND they are orthogonal. But two point-spheres are orthogonal '
-      + 'only when they COINCIDE -- their inner product is -half the squared distance. So the only '
-      + 'null curve of degree one is a single stationary point. '
-      + 'SAY IT AS THE ANSWER TO "WHY SO MANY SPHERES": you cannot draw a segment of points this way. '
-      + 'Points do not interpolate to points. A curve of points has to be bought with DEGREE, and the '
-      + 'big well-separated control spheres two slides later are what pays for it. That is the whole '
-      + 'reason the constrained figure looks the way it does. '
-      + 'THE BEAD IS PURE GAUGE HERE, and it is worth a moment because it is the cleanest setting the '
-      + 'deck will ever have for it. With TWO control spheres the weight ratio is exactly the '
-      + 'reparametrisation: drag the bead and the drawn spheres REDISTRIBUTE along the pencil while '
-      + 'the two point-marks do not move at all. Measured -- weights 0.5, 1, 2, 4 put the limit '
-      + 'points at t = (0.250, 0.923), (0.143, 0.857), (0.077, 0.750), (0.040, 0.600), and the limit '
-      + 'SPHERES sit at x = +-0.7141 every time. The samples slide, the family does not. That is the '
-      + 'same thing Eric read off the degree-4 figure -- the dial does not change the curve, it moves '
-      + 'the Farin points -- with two objects instead of five. '
-      + 'DO NOT INTRODUCE PH HERE. This slide is about the null condition alone -- what it takes to '
-      + 'be a curve of POINTS. Speed and PH arrive two slides later and land harder for the wait. '
-      + 'core/canalSphereSpline: pointSphereParameters and the pencil table.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 10B — THE SAME RULE, NOTHING IMPOSED. The warm-up 10A was supposed to be and is not.
-  //
-  // 10A interpolates centre and radius SEPARATELY — intuitive, and what the canal literature does,
-  // but NOT the rule slide 11 uses, so it builds intuition for a different object. This slide uses
-  // slide 11's rule exactly and removes only the conditions. It also SEEDS FROM SLIDE 11'S OWN
-  // MEMBER, so it opens sitting on the constraint and the first drag is the lesson.
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>The same rule, with nothing imposed</h2>
-        <WhenActive>
-          <ConformalSphereFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'THE PREVIOUS SLIDE USED A DIFFERENT RULE, and say so plainly rather than letting anyone '
-      + 'discover it. There, centre and radius were interpolated SEPARATELY -- average the centres, '
-      + 'average the radii -- which is intuitive and is what the canal-surface literature does. Here, '
-      + 'and on the NEXT slide, the five-number VECTORS are averaged and the centre and radius are '
-      + 'read off the result. Same data, different rule, different curve. '
-      + 'SAME SEVEN SPHERES, TWO RULES, measured: control radii 0, 0.81, 0.67, 1.51, 0.62, 0.62, 0. '
-      + 'The canal rule gives radii 0, 0.71, 0.91, 0.63, 0 along the curve -- a tube. This rule gives '
-      + '0, 0, 0, 0, 0 -- a curve. '
-      + 'IT OPENS ON THE CONSTRAINT, which is the whole design. The seed IS the next slide\'s member, '
-      + 'so every sphere on the curve is a point and there is nothing to see but a curve. Then move '
-      + 'ANYTHING -- a centre, a radius -- and the spheres along the curve balloon. That is what the '
-      + 'null condition was holding down, shown by removing it rather than by writing it. '
-      + 'THEN THE MECHANISM, and this is the sentence to get across. Take two spheres of radius 0.7 '
-      + 'and separate them. The sphere BETWEEN them goes 0.633, 0.490, 0.000, -0.714, -1.327 as the '
-      + 'gap grows 0.6, 1.0, 1.4, 2.0, 3.0. It does not average -- separating drives it DOWN, through '
-      + 'zero, and out into IMAGINARY. And zero lands at gap 1.4 = 2 x 0.7, exactly where the two '
-      + 'spheres are TANGENT. '
-      + 'SO THE NULL CONDITION HAS A MEANING you can hold: keep every sphere on the curve at that '
-      + 'crossing point, at every t at once. Not an equation to admire -- a knife edge to sit on. '
-      + 'AND THAT ANSWERS THE QUESTION THE NEXT SLIDE ALWAYS RAISES: why are its control spheres '
-      + 'huge when the curve is a curve? Because big and well separated is exactly what drives the '
-      + 'in-between radius down to zero. Small ones would leave it fat. The scaffold has to be large '
-      + 'for the thing it scaffolds to be thin. '
-      + 'THE SHARPEST VERSION, if you have a moment: two POINT-spheres a unit apart already fail it -- '
-      + 'the sphere between them has radius squared -0.25. POINTS DO NOT INTERPOLATE TO POINTS. That '
-      + 'is why the null condition is a real condition and not bookkeeping. '
-      + 'core/canalSphereSpline, and the two-rule comparison is pinned there.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 11 — a rational PH curve built directly in the conformal model
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Or build it there in the first place</h2>
-        <WhenActive>
-          <RationalPHCurveFigure />
-        </WhenActive>
-      </>
-    ),
-    notes:
-      'THE POINT OF THIS SLIDE, against the previous one: nothing was bent. The control points are ' +
-      'placed directly in the conformal model. ' +
-      'DO NOT SAY "AND NOTHING COULD BEND TO THIS." That was this slide\'s headline and it is ' +
-      'withdrawn. The argument was: a Mobius image has EVEN conformal degree, so the ODD degrees are ' +
-      'unreachable by bending. The parity theorem then showed odd conformal degree is never GENUINELY ' +
-      'odd — a real root of w forces the whole member to factor, and a real odd-degree polynomial ' +
-      'always has one. The degree-5 member this figure used to load measured denominatorRealRoots = 1: ' +
-      'it was a QUARTIC in a quintic polygon, so one of its six control points was pure ' +
-      'reparametrisation and the unreachability argument did not apply to the curve on screen. Hence ' +
-      'degree 6, where w generically avoids the real axis (five members of five). ' +
-      'WHAT THE SLIDE ARGUES NOW, and it was always the better half: bending here is a CONSTANT ' +
-      'MATRIX, so the polygon maps one point for one point and the degree does not move — against ' +
-      'slide 10, where the same bend takes 8 control points to 15. ' +
-      'AND IF SOMEONE PRESSES ON "COULD BENDING REACH THIS ANYWAY", the honest answer is a DEGREE-4 ' +
-      'one, inherited from the retired quartic slide and sharper than anything available here. The ' +
-      'lift doubles the degree, so a Mobius image of a polynomial PH curve of degree d lands at ' +
-      'conformal degree 2d. Conformal 4 therefore comes from a polynomial PH QUADRATIC — and a PH ' +
-      'quadratic is a straight LINE, since |p-prime| = |at+b| forces p-prime = (at+b)u with u ' +
-      'constant. So at conformal degree 4, bending a polynomial produces ONLY circles and lines, while ' +
-      'building directly gives 13 dimensions of genuinely spatial curves (measured: curvature spread ' +
-      '0.39, out-of-plane 0.05). That is a QUALITATIVE gap and it lands two degrees below this one. ' +
-      'At conformal 6 the same question is subtler: it carries the polynomial PH CUBICS (a polynomial ' +
-      'PH quintic needs conformal degree 10), but a generic member here is not a bent cubic at all — ' +
-      'being a Mobius image of a polynomial needs a NULL S with <P,S> constant, and at degree 6 that ' +
-      'orthogonal complement measures ZERO-dimensional, so there is no candidate even to test. ' +
-      'WHY NOT DEGREE 3, and say this if anyone asks why not start smaller — it is a result, not ' +
-      'a preference. Four coefficients span at most a 4-dimensional subspace of R^{4,1}, so a vector S ' +
-      'is left orthogonal to all of them, and <P(x),S> = 0 confines every point of the curve to the ' +
-      'single sphere S. Measured, the span collapses further to rank 3 (sigma = 2.2, 1.5, 1.1, 6e-9), ' +
-      'which meets the null cone in a CIRCLE: flat to 1e-9, curvature spread 0.000. And it stays a ' +
-      'circle with the PH conditions REMOVED, so the null condition is doing it, not PH. The count ' +
-      'closes: null-only degree 3 is 13-dimensional = 6 for the circle in R^3 plus 7 for the degree-3 ' +
-      'rational maps onto it, and PH cuts 13 to 11 — so PH does not choose the shape there at all, only ' +
-      'how the circle is traversed. Degree 4 and up have no such confinement. ' +
-      'AND THE FIRST VERSION OF THIS FIGURE WAS DEGREE 3. It drew a circular arc under a caption about ' +
-      'general rational PH cubics, because findMember guarded radii, weights, span and the denominator ' +
-      'and NOT planarity — in a module whose own header carries the septic planar-trap warning. Eric ' +
-      'asked whether the curve was staying in a plane. It was. ' +
-      'THE DEFINITION IS TWO CONDITIONS AND NOTHING ELSE: P is NULL, so it is a curve of points, and ' +
-      '<P\u2032,P\u2032> is a PERFECT SQUARE, which is what PH means here. That second one is the find — ' +
-      'the exact analogue of "|A|\u00b2 is a polynomial" in the Hopf form, but stated with no ' +
-      'quaternions, no coordinates and no choice of origin. Verified to 1e-15, and a non-PH curve ' +
-      'fails it by 1.9e-2. ' +
-      'WHY NOTHING FIVE-DIMENSIONAL IS DRAWN: a conformal vector\u2019s five coordinates ARE weight + ' +
-      'centre + radius, because the infinity-component is fixed by the null condition. So the seven ' +
-      'sphere centres are the ordinary rational-Bezier control points, the ends have radius zero (they ' +
-      'are point-spheres), and — the load-bearing fact, verified to 1e-8 — the OUTER radii are ' +
-      'DETERMINED: rho_1 = |P1-P0| and rho_5 = |P5-P6|, so those two spheres GRIP the endpoints and are ' +
-      'drawn from the polygon with nothing stored. ' +
-      'THE REST OF THE DICTIONARY, if pressed — these are the DEGREE-3 forms, quoted because they are ' +
-      'the ones short enough to say out loud: w0w2 pow(P0,S2) = 3w1^2 rho_1^2, mirrored, and ' +
-      'w0w3|P0-P3|^2 + 9w1w2(|P1-P2|^2 - rho_1^2 - rho_2^2) = 0. Each is a null condition read as ' +
-      'geometry, all confirmed to 1e-11 or better. ' +
-      'THE WEIGHTS ARE FARIN BEADS and the count is exact: six legs, six weight ratios after the ' +
-      'overall scale. All six at the midpoints would mean polynomial, so the rationality is visibly ' +
-      'how far off-centre they sit; a bead leaving its segment would mean a negative weight ratio. Same ' +
-      'visual language as the sketcher\u2019s complex rational B-splines. ' +
-      'THEY ARE A READOUT AND NOT A HANDLE, in both modes, and the reason is worth a sentence because ' +
-      'it is a design principle rather than a limitation: in strict the four dials already spend the ' +
-      'slice, and in free the eleven dimensions are what the seven POINTS are for. A weight handle ' +
-      'competing with a point handle for the same dimensions is two controls for one freedom. So the ' +
-      'gesture is to move something else and watch the rationality answer on its own. (They were ' +
-      'draggable once and it read as dead, because dragFarin clamps each event to 0.03 in the ratio ' +
-      'and the bead crawled behind the cursor. That was the symptom; the line above is the cause.) ' +
-      'THE COST OF PH, at degree 3 where the elementary count is easy to state: an ordinary rational ' +
-      'cubic has 15 degrees of freedom and the PH ones 11 — measured two independent ways, as the rank ' +
-      'of the conformal system and as 15 minus the four conditions for ||q\u2032w-qw\u2032|| to be a ' +
-      'polynomial. CODIMENSION 4. So nothing moves alone here either: drag a point and the weights ' +
-      'answer, which is what the beads make visible. ' +
-      'THE MIDDLE RADII ARE WHY THE SPHERES CARRY CONTROLS AT ALL. b_1 = <C_0,C_1> and ' +
-      'b_{2n-1} = <C_{n-1},C_n> hold at EVERY degree, so the OUTER spheres always grip the endpoints ' +
-      'and are drawn from the polygon. At degree 3 that is all of them, so the spheres are a reveal ' +
-      'with nothing attached. Here rho_2, rho_3 and rho_4 are pinned to nothing — three genuine extra ' +
-      'dimensions, and the sphere picture becomes load-bearing instead of derived. ' +
-      'STRICT AND FREE, and this is the deck\'s gesture pair arriving on the rational curve. STRICT ' +
-      'holds the outer TWO at each end — P0, P1, P5, P6, twelve coordinates against seventeen — and ' +
-      'what is left is SIX, which decomposes as 1 projective scale + 1 parameter gauge + FOUR SHAPES. ' +
-      'Hence four dials and not three: rho_2, rho_3, rho_4 cut three of the four and the TOTAL ARC ' +
-      'LENGTH cuts the fourth. Measured one readout at a time, 6-5-4-3-2. FREE hides the dials, makes ' +
-      'every point a handle and holds the ends unless you grab one — eleven dimensions. ' +
-      'SAY THE DEGREE-4 FACT IF THERE IS TIME, because it is what makes the strict mode worth having: ' +
-      'two degrees down this gesture is IMPOSSIBLE. Pinning the four outer points of a quartic leaves ' +
-      'exactly one dimension and it is a pure weight direction — the middle point moves 1e-6 while ' +
-      'every weight moves 0.1 to 0.5. "There are dimensions left" and "this handle moves" are ' +
-      'different claims; degree 6 is where they agree. Measured: all four handles track to 100% with ' +
-      'the other three held to 1e-15, and the interior absorbs 0.32 on a 0.15 ask. ' +
-      'AND ONE DIAL IS FORBIDDEN HERE — a HALF arc length. Pinning control POINTS leaves the gauge ' +
-      'live (lambda^k moves no control point, so it satisfies the pins for free) and the half-lengths ' +
-      'are not gauge-invariant, so that slider would move every weight and bead with the curve ' +
-      'standing still. It is the dead dial that retired the degree-5 slide; dragPinned throws rather ' +
-      'than offering it. Radii and the TOTAL length are invariant, which is why those four are safe. ' +
-      'THEY ARE SLIDERS, NOT 3-D HANDLES, and if anyone asks, say why: a radius is a SCALAR. The old ' +
-      'handle asked for it with a point drag, was drawn at centre + (rho,0,0) so it teleported back to ' +
-      'the x-axis after every event, and read the radius as |cursor - centre| — so dragging AROUND the ' +
-      'sphere did nothing while dragging ACROSS it took the radius through zero. Eric found it by ' +
-      'using it. The solve runs on the UNBENT curve, because a bend changes the radii. ' +
-      'THE SHAPE BUDGET: 18 dimensions, 17 after the projective scale, of which TEN are Mobius ' +
-      'MOTIONS — the group is ten-dimensional — leaving 2n-5 = 7 shape moduli. Pinning the ends ' +
-      'freezes most of the motions, which is why they are pinned. ' +
-      'TWO NUMBERS THIS SLIDE USED TO CARRY ARE RETRACTED (RATIONAL_PH_STATE section 7): "9 Mobius ' +
-      'motions, 6 shape moduli" subtracted nine for a ten-dimensional group, and the comparison ' +
-      'figure below was NEVER MEASURED. Do not quote it. Kept only so nobody re-derives it: ' +
-      'OLD TEXT — "direct is 17-dimensional against the Mobius ' +
-      'orbit\u2019s measured 13 — 8 shape moduli against 4, twice as many." ' +
-      'THE TRAP, if the figure ever looks collapsed: the family has a large degenerate stratum, and ' +
-      'unguarded solves land on it — interior radii collapsing to 1e-3, weights going negative, the ' +
-      'curve spanning a hundredth of its polygon. The mechanism is in the dictionary: as rho_1 goes to ' +
-      'zero, P1 falls onto P0 and the cross condition drags P0 onto S2. Same shape of trap as the ' +
-      'septic\u2019s planar locus, hence the guards in findMember. ' +
-      'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w, so h is QUARTIC here and w is sextic. That degree drop ' +
-      'is where the one rank deficiency in the system came from, and it is pinned. ' +
-      'core/conformalPHCurve (22 tests), conformalPHFamily (10), conformal (28).',
   },
 
   // ---------------------------------------------------------------------------
@@ -1261,4 +992,558 @@ gap 3.0    M = ( 1, 1.5, 0, 0,  2.005 )   radius² = −1.76   imaginary`}
       + 'tests) and rationalPHDual.test.ts (6 tests).',
   },
 
+
+  // ---------------------------------------------------------------------------
+  // 10A — A CURVE OF SPHERES. The unconstrained warm-up, placed before 11 so the room has played in
+  //       the space before two conditions arrive at once.
+  //
+  // BOTH DOORS ARE SHOWN FROM THE START, deliberately: collapse the spheres to points and you get
+  // slide 11; keep them and rationalise the ENVELOPE and you get MPH, canal surfaces and offsets.
+  // The second door is the one this deck does not take, and saying so here is what stops the atlas
+  // slides later reading as though there were only ever one way out.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>A curve of spheres</h2>
+        <WhenActive>
+          <CanalSurfaceFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE ONLY UNCONSTRAINED FIGURE IN THE DECK, and open on that. Everything else here solves '
+      + 'something; this one is arithmetic, so it loads instantly and drags at frame rate. A control '
+      + 'point is a SPHERE -- centre, radius, weight -- and all three are yours. '
+      + 'AND A CURVE OF SPHERES IS NOT A CURVE. It has an ENVELOPE, and the envelope is a CANAL '
+      + 'SURFACE. In the plane the same object is the MEDIAL AXIS TRANSFORM: a shape described by the '
+      + 'discs that fill it rather than by its boundary. That is a whole literature (Choi-Lee-Moon; '
+      + 'Peternell-Pottmann; Kosinka-Lavicka), not a curiosity. '
+      + 'GET SOMEONE TO BREAK IT -- this is the beat of the slide. Pull a radius faster than its '
+      + 'centre moves and |cdot|^2 - rhodot^2 goes negative: the square root is imaginary and the '
+      + 'envelope STOPS EXISTING. Not clamped, not approximated -- the circles are simply not drawn. '
+      + 'It is the first constraint in this deck that fails visibly rather than as a residual, and it '
+      + 'earns every later slide where a constraint is a number in a readout. '
+      + 'THE SECOND FAILURE IS DIFFERENT: inflate until rho*kappa passes 1 and the tube '
+      + 'self-intersects. The envelope still exists; it just runs into itself. That is the one people '
+      + 'meet in practice when they thicken a canal surface, and the two failures are independent -- '
+      + 'measured, you can have either without the other. '
+      + 'THEN THE TWO DOORS, both named before moving on. COLLAPSE the spheres to points -- that is '
+      + 'the null condition -- and the family becomes a CURVE; ask its speed to be rational and you '
+      + 'have the next slide. Or KEEP the spheres and ask the ENVELOPE to be rational: the condition '
+      + 'is |cdot|^2 - rhodot^2 a perfect square, Pythagorean in the MINKOWSKI metric. That is MPH, '
+      + 'canal surfaces, offsets. It is the door this deck does not take. '
+      + 'DO NOT LET THE ROOM THINK THOSE ARE TWO SPELLINGS OF ONE CONDITION. |cdot|^2 - rhodot^2 is '
+      + 'the LAGUERRE invariant; <P-prime,P-prime> is the MOEBIUS one. Two subgroups of one Lie '
+      + 'sphere group in R^{4,2} (Krasauskas 2017, already cited by the light-cone deck). Moebius '
+      + 'keeps points and cannot see a sphere ORIENTATION; Laguerre keeps oriented contact and cannot '
+      + 'see a point. '
+      + 'IF ASKED WHY DEGREE 5 HERE when slide 11 abandoned it: because the parity theorem needs the '
+      + 'NULL condition to force a common factor. With no conditions there is no identity and nothing '
+      + 'is forced, so an odd degree is genuinely odd. The degree we retired next door is honest here, '
+      + 'and the reason is exactly the condition this slide has not imposed yet. '
+      + 'AND THE MEASUREMENT WORTH KEEPING IN YOUR POCKET, if anyone asks whether the two models are '
+      + 'really different or just two spellings: take two spheres of radius 0.7 with centres 3 apart, '
+      + 'so DISJOINT. Interpolate them cyclographically and you get a cone frustum, radius 0.7 in the '
+      + 'middle. Interpolate the same two in R^{4,1} and the midpoint has radius-squared -1.76 -- an '
+      + 'IMAGINARY sphere, because two non-intersecting spheres determine a pencil with no real '
+      + 'member between them. Same two spheres, same "straight line", two different answers. That is '
+      + 'also why this figure interpolates cyclographically: the Moebius version is not something you '
+      + 'can drag. '
+      + 'core/canalSphereSpline (7 tests: cylinder, cone, torus, both failure modes, and both models).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10A1 — THE ARITHMETIC, ONCE. Text and formulas only, no figure.
+  //
+  // Everything after this treats the five-number encoding as known. This slide is where it is
+  // actually shown: what you specify, why there are five slots, and one example carried all the way
+  // through by hand. It exists because the interactive slides kept raising the same question --
+  // "what am I even specifying?" -- and no figure answers that. A worked example does.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Two spheres, by hand</h2>
+        <p style={{ marginBottom: '0.2em' }}>
+          <strong>What you specify is a centre and a radius.</strong> That is a sphere, and it is the
+          only thing you ever type in. (Plus a weight, exactly the rational-B&eacute;zier weight you
+          already use, and for the same reason.)
+        </p>
+        <p style={{ marginBottom: '0.2em' }}>
+          <strong>Why five numbers?</strong> Four for the sphere &mdash; centre and radius &mdash;
+          and one for the projective scale, the same extra slot that turns a 3D point into{' '}
+          <code>(w, wx, wy, wz)</code>. Nothing deeper than that.
+        </p>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
+{`STORE      S  =  ( w ,  w·c ,  w(|c|² − ρ²)/2 )
+
+READ       centre  = (2nd, 3rd, 4th) / w
+           radius² = |centre|² − 2·(5th)/w`}
+        </div>
+
+        <p style={{ textAlign: 'center', margin: '0.3em 0 0.6em' }}>
+          <strong style={{ fontSize: '1.1em' }}>And a point is a sphere of radius zero.</strong>
+        </p>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          <strong>One example, all the way through.</strong> Two spheres of radius{' '}
+          <code>0.7</code>, centres at <code>(0,0,0)</code> and{' '}
+          <code>(3,0,0)</code>, weights 1. Store them, average the five slots, read back:
+        </p>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
+{`S₀ = ( 1, 0, 0, 0, (0 − 0.49)/2 )  =  ( 1, 0, 0, 0, −0.245 )
+S₁ = ( 1, 3, 0, 0, (9 − 0.49)/2 )  =  ( 1, 3, 0, 0,  4.255 )
+
+M  = (S₀ + S₁)/2                   =  ( 1, 1.5, 0, 0, 2.005 )
+
+centre  = (1.5, 0, 0)/1        =  (1.5, 0, 0)      the midpoint
+radius² = 1.5² − 2(2.005)/1    =  2.25 − 4.01  =  −1.76`}
+        </div>
+
+        <p style={{ marginBottom: '0.15em' }}>
+          Only the last slot of <code>S₁</code> and the answer change as the gap grows:
+        </p>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.4em 0 0.6em 1.2em' }}>
+{`gap 0.6    M = ( 1, 0.3, 0, 0, −0.155 )   radius² =  0.40   ρ = 0.632
+gap 1.4    M = ( 1, 0.7, 0, 0,  0.245 )   radius² =  0.00   ρ = 0        ← tangent
+gap 3.0    M = ( 1, 1.5, 0, 0,  2.005 )   radius² = −1.76   imaginary`}
+        </div>
+
+        <p>
+          <strong>The centre never surprises anyone; the radius always does.</strong> The centre comes
+          out of a <em>division</em> and lands on the midpoint. The radius comes out of a{' '}
+          <em>subtraction involving</em> <code>|centre|²</code> &mdash; which is quadratic, and
+          is the only place any non-obvious behaviour can enter.
+        </p>
+      </>
+    ),
+    notes:
+      'THE SLIDE THAT SHOULD HAVE COME FIRST. Every interactive slide after this treats the '
+      + 'five-number encoding as known, and no figure can answer "what am I even specifying?". A '
+      + 'worked example can, so this one is text and arithmetic with nothing to drag. '
+      + 'OPEN ON WHAT IS SPECIFIED: a centre and a radius. That is all anyone ever types in. The '
+      + 'sliders in the next figures are radii and the drag handles are centres -- nothing else. '
+      + 'THEN WHY FIVE. Four for the sphere, one for the projective scale. Say it is the SAME extra '
+      + 'slot that makes a 3D point into (w, wx, wy, wz) in any rational Bezier, because the room '
+      + 'already owns that idea and this is not a new one. '
+      + 'THE ONE IDEA ON THE SLIDE is that a POINT IS A SPHERE OF RADIUS ZERO. Points and spheres '
+      + 'stop being two kinds of object. Everything later -- the null condition, curves of points, '
+      + 'the whole conformal model -- is downstream of that single sentence. '
+      + 'WALK THE EXAMPLE SLOWLY and let the room do the arithmetic. Store, average, read back. The '
+      + 'centre lands on the midpoint, which nobody doubts. Then the radius comes out NEGATIVE, and '
+      + 'that is the moment worth pausing on: two perfectly ordinary spheres, averaged, give '
+      + 'something that is not a sphere at all. '
+      + 'CLOSE ON WHY. The centre is a division and behaves; the radius is a subtraction involving '
+      + '|centre|^2, which is QUADRATIC. All the surprise in this entire representation enters '
+      + 'through that one square. Say that and the next three slides stop being mysterious. '
+      + 'DO NOT MENTION the null cone, Moebius, PH or the signature here. This slide is arithmetic. '
+      + 'The (4,1) signature is only "radius squared is allowed to be negative", and it is better '
+      + 'earned by the −1.76 above than announced in advance.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10A2 — TWO SPHERES. The smallest case, and the one that answers "why so many spheres".
+  //
+  // Degree ONE: a pencil. Every mechanism the later slides use is already here with two objects
+  // instead of seven, and it delivers a punchline no higher degree can — the only null curve of
+  // degree 1 is a single stationary point, because two point-spheres are orthogonal only when they
+  // coincide. Points do not interpolate to points.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Two spheres</h2>
+        <WhenActive>
+          <SpherePencilFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE SMALLEST CASE, and run it slowly -- it is the slide that makes the next two make sense. '
+      + 'Two control spheres, P(t) = (1-t)C0 + tC1. Classically a PENCIL of spheres, and every '
+      + 'mechanism the later slides use is already here with two objects instead of seven. '
+      + 'DRIVE IT WITH THE GAP, and narrate the three regimes. While the spheres OVERLAP, every '
+      + 'sphere between them is real -- that is the classical pencil through their common circle. At '
+      + 'the moment they are TANGENT the middle one shrinks to a POINT: that is the bifurcation, and '
+      + 'it happens at gap = 2 rho exactly. Past that, TWO point-spheres appear and walk outwards, '
+      + 'and everything between them is IMAGINARY -- drawn as nothing, because there is nothing '
+      + 'there. Those two are the pencil-s classical LIMIT POINTS. '
+      + 'MEASURED, radius 0.7 each: gap 0.8 -> mid radius 0.574; 1.2 -> 0.361; 1.4 -> 0.000; '
+      + '2.0 -> -0.714 with points at t = 0.143 and 0.857; 3.0 -> -1.327 with points at 0.058 and '
+      + '0.942. The limit points are BORN at the centre and separate. '
+      + 'AND THEN THE PUNCHLINE, which only degree 1 can deliver. The next slides ask that EVERY '
+      + 'sphere on the curve be a point. Here that means <C0,C0> = <C0,C1> = <C1,C1> = 0: both '
+      + 'control spheres are points, AND they are orthogonal. But two point-spheres are orthogonal '
+      + 'only when they COINCIDE -- their inner product is -half the squared distance. So the only '
+      + 'null curve of degree one is a single stationary point. '
+      + 'SAY IT AS THE ANSWER TO "WHY SO MANY SPHERES": you cannot draw a segment of points this way. '
+      + 'Points do not interpolate to points. A curve of points has to be bought with DEGREE, and the '
+      + 'big well-separated control spheres two slides later are what pays for it. That is the whole '
+      + 'reason the constrained figure looks the way it does. '
+      + 'THE BEAD IS PURE GAUGE HERE, and it is worth a moment because it is the cleanest setting the '
+      + 'deck will ever have for it. With TWO control spheres the weight ratio is exactly the '
+      + 'reparametrisation: drag the bead and the drawn spheres REDISTRIBUTE along the pencil while '
+      + 'the two point-marks do not move at all. Measured -- weights 0.5, 1, 2, 4 put the limit '
+      + 'points at t = (0.250, 0.923), (0.143, 0.857), (0.077, 0.750), (0.040, 0.600), and the limit '
+      + 'SPHERES sit at x = +-0.7141 every time. The samples slide, the family does not. That is the '
+      + 'same thing Eric read off the degree-4 figure -- the dial does not change the curve, it moves '
+      + 'the Farin points -- with two objects instead of five. '
+      + 'DO NOT INTRODUCE PH HERE. This slide is about the null condition alone -- what it takes to '
+      + 'be a curve of POINTS. Speed and PH arrive two slides later and land harder for the wait. '
+      + 'core/canalSphereSpline: pointSphereParameters and the pencil table.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10A3 — THREE SPHERES. The inventory slide, and the only rung of the ladder the room can climb.
+  //
+  // 13 shows the null condition being UNREACHABLE (degree 1 gives a single stationary point). 15
+  // shows it at degree 6, where nobody could find it by hand — which is why that figure opens
+  // sitting on it. This slide is the one degree where the condition is reachable BY HAND: three
+  // spheres, fourteen handles, five numbers, nothing imposed and nothing that helps.
+  //
+  // No control points, no polygon, no Farin bead. Only spheres, and a point is a sphere of radius
+  // zero. Everything asserted is measured in core/__tests__/spherePolygonDegreeTwo.test.ts.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Three spheres</h2>
+        <WhenActive>
+          <ThreeSphereFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE SLIDE WHERE THEY GET TO DO IT. Two spheres could not be a curve of points at all. Seven '
+      + 'spheres, two slides from now, is a knife edge in seventeen dimensions that only a solver '
+      + 'finds. THREE is the one size where the condition is reachable by hand, so this is the only '
+      + 'rung of the ladder the room can climb, and it is worth taking slowly. '
+      + 'OPEN ON THE INVENTORY, and say it plainly: forget control points, forget the polygon, forget '
+      + 'the bead from the last slide. There are three SPHERES. A point is a sphere of radius zero. '
+      + 'Each sphere has a centre, a radius and a weight -- fifteen numbers, one of them an overall '
+      + 'scale, so FOURTEEN handles. Against them, FIVE numbers on the screen. Nothing here will move '
+      + 'them for you. '
+      + 'IT OPENS ON A STRAIGHT LINE, and that is worth reading out before touching anything: two '
+      + 'point-spheres, and between them the sphere on the segment as DIAMETER -- centre the '
+      + 'midpoint, radius half the chord, weights 1, 1, 1. Measured to 1e-14. All five numbers are '
+      + 'zero, so every sphere on the curve is a point and there is nothing to see but a segment. '
+      + 'The simplest curve there is, and it already needs three spheres to say. '
+      + 'NOW TOUCH ANYTHING, and this is the first lesson: move a centre, grow a radius, pull a '
+      + 'weight, and spheres appear all along the curve. What is really being built is a TUBE, and '
+      + 'the line was the one member where it had collapsed. Push further and the middle goes '
+      + 'IMAGINARY -- drawn as nothing, because nothing is there. That is slide 13-s gap between two '
+      + 'separated point-spheres arriving one degree later. '
+      + 'THEN DRIVE IT DOWN, ONE NUMBER AT A TIME, and let the readout lead. Shrink the first sphere '
+      + 'to a point: the first number goes out. Shrink the last: the fifth goes. Now the middle '
+      + 'sphere has to TOUCH both of those points -- that is two more numbers -- and its weight has '
+      + 'to balance its size, which is the fifth. Measured, and this is the sentence that makes the '
+      + 'readout worth showing: pushing the middle centre off the bisector plane breaks the FOURTH '
+      + 'number alone and leaves the rest at 1e-17. Five separate statements, one handle each. '
+      + 'THE TWO SIDES OF THE EDGE, and show both. With the ends as points and the middle sphere too '
+      + 'BIG, the tube is a spindle: radii 0, 0.765, 0.883, 0.765, 0. Too SMALL and it is 0, -0.437, '
+      + '-0.505, -0.437, 0 -- NEGATIVE, imaginary, drawn as nothing. There is a GAP where the curve '
+      + 'should be, which is slide 13-s two separated point-spheres arriving one degree later. The '
+      + 'null condition is the knife edge BETWEEN a fat tube and nothing at all. '
+      + 'AND WHAT YOU GET WHEN YOU LAND ON IT, said only after they see it: the curve is an ARC OF A '
+      + 'CIRCLE. Every time. At this degree there is nothing else -- measured, any two arcs have the '
+      + 'same invariant table, so up to a Mobius transformation there is exactly ONE curve here. All '
+      + 'nine remaining dimensions are placement. '
+      + 'THE FREE GIFT, if the room is with you. That arc is automatically PH -- the speed numerator '
+      + 'comes out a perfect square, measured, and nobody asked for it. Two slides from now PH will '
+      + 'be a second condition costing real freedom; here it arrives with the first one. That is not '
+      + 'luck, it is that degree 2 has no room to be anything but a circle. '
+      + 'WALKING THE FAMILY, which is the best thing to do with the last minute. Keep the middle '
+      + 'sphere touching BOTH ends and slide it along the plane that bisects the chord: the segment '
+      + 'bows into arcs, and the further out the sphere goes the FATTER the arc. Measured -- apex 0 '
+      + 'is the diameter sphere at radius 1; the quarter circle is centre 1.000, radius 1.414, weight '
+      + '0.707; near the half circle it is centre 19.5 with weight 0.05; and AT the half circle the '
+      + 'centre has run to infinity and the sphere has become a PLANE, which in this model is an '
+      + 'ordinary sphere. Past that it comes back from the other side with a NEGATIVE weight. '
+      + 'Nothing degenerates except the words "centre and radius". '
+      + 'DO NOT SAY EQUIVARIANT, DO NOT MENTION QUATERNIONS. The dictionary between this slide and '
+      + 'the spinor picture is real and measured, but it is not what this slide is for. '
+      + 'core/canalSphereSpline: nullCoefficients, conformalSphereAt.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10B — THE SAME RULE, NOTHING IMPOSED. The warm-up 10A was supposed to be and is not.
+  //
+  // 10A interpolates centre and radius SEPARATELY — intuitive, and what the canal literature does,
+  // but NOT the rule slide 11 uses, so it builds intuition for a different object. This slide uses
+  // slide 11's rule exactly and removes only the conditions. It also SEEDS FROM SLIDE 11'S OWN
+  // MEMBER, so it opens sitting on the constraint and the first drag is the lesson.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The same rule, with nothing imposed</h2>
+        <WhenActive>
+          <ConformalSphereFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE PREVIOUS SLIDE USED A DIFFERENT RULE, and say so plainly rather than letting anyone '
+      + 'discover it. There, centre and radius were interpolated SEPARATELY -- average the centres, '
+      + 'average the radii -- which is intuitive and is what the canal-surface literature does. Here, '
+      + 'and on the NEXT slide, the five-number VECTORS are averaged and the centre and radius are '
+      + 'read off the result. Same data, different rule, different curve. '
+      + 'SAME SEVEN SPHERES, TWO RULES, measured: control radii 0, 0.81, 0.67, 1.51, 0.62, 0.62, 0. '
+      + 'The canal rule gives radii 0, 0.71, 0.91, 0.63, 0 along the curve -- a tube. This rule gives '
+      + '0, 0, 0, 0, 0 -- a curve. '
+      + 'IT OPENS ON THE CONSTRAINT, which is the whole design. The seed IS the next slide\'s member, '
+      + 'so every sphere on the curve is a point and there is nothing to see but a curve. Then move '
+      + 'ANYTHING -- a centre, a radius -- and the spheres along the curve balloon. That is what the '
+      + 'null condition was holding down, shown by removing it rather than by writing it. '
+      + 'THEN THE MECHANISM, and this is the sentence to get across. Take two spheres of radius 0.7 '
+      + 'and separate them. The sphere BETWEEN them goes 0.633, 0.490, 0.000, -0.714, -1.327 as the '
+      + 'gap grows 0.6, 1.0, 1.4, 2.0, 3.0. It does not average -- separating drives it DOWN, through '
+      + 'zero, and out into IMAGINARY. And zero lands at gap 1.4 = 2 x 0.7, exactly where the two '
+      + 'spheres are TANGENT. '
+      + 'SO THE NULL CONDITION HAS A MEANING you can hold: keep every sphere on the curve at that '
+      + 'crossing point, at every t at once. Not an equation to admire -- a knife edge to sit on. '
+      + 'AND THAT ANSWERS THE QUESTION THE NEXT SLIDE ALWAYS RAISES: why are its control spheres '
+      + 'huge when the curve is a curve? Because big and well separated is exactly what drives the '
+      + 'in-between radius down to zero. Small ones would leave it fat. The scaffold has to be large '
+      + 'for the thing it scaffolds to be thin. '
+      + 'THE SHARPEST VERSION, if you have a moment: two POINT-spheres a unit apart already fail it -- '
+      + 'the sphere between them has radius squared -0.25. POINTS DO NOT INTERPOLATE TO POINTS. That '
+      + 'is why the null condition is a real condition and not bookkeeping. '
+      + 'core/canalSphereSpline, and the two-rule comparison is pinned there.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 11 — a rational PH curve built directly in the conformal model
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Or build it there in the first place</h2>
+        <WhenActive>
+          <RationalPHCurveFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE POINT OF THIS SLIDE, against the previous one: nothing was bent. The control points are ' +
+      'placed directly in the conformal model. ' +
+      'DO NOT SAY "AND NOTHING COULD BEND TO THIS." That was this slide\'s headline and it is ' +
+      'withdrawn. The argument was: a Mobius image has EVEN conformal degree, so the ODD degrees are ' +
+      'unreachable by bending. The parity theorem then showed odd conformal degree is never GENUINELY ' +
+      'odd — a real root of w forces the whole member to factor, and a real odd-degree polynomial ' +
+      'always has one. The degree-5 member this figure used to load measured denominatorRealRoots = 1: ' +
+      'it was a QUARTIC in a quintic polygon, so one of its six control points was pure ' +
+      'reparametrisation and the unreachability argument did not apply to the curve on screen. Hence ' +
+      'degree 6, where w generically avoids the real axis (five members of five). ' +
+      'WHAT THE SLIDE ARGUES NOW, and it was always the better half: bending here is a CONSTANT ' +
+      'MATRIX, so the polygon maps one point for one point and the degree does not move — against ' +
+      'slide 10, where the same bend takes 8 control points to 15. ' +
+      'AND IF SOMEONE PRESSES ON "COULD BENDING REACH THIS ANYWAY", the honest answer is a DEGREE-4 ' +
+      'one, inherited from the retired quartic slide and sharper than anything available here. The ' +
+      'lift doubles the degree, so a Mobius image of a polynomial PH curve of degree d lands at ' +
+      'conformal degree 2d. Conformal 4 therefore comes from a polynomial PH QUADRATIC — and a PH ' +
+      'quadratic is a straight LINE, since |p-prime| = |at+b| forces p-prime = (at+b)u with u ' +
+      'constant. So at conformal degree 4, bending a polynomial produces ONLY circles and lines, while ' +
+      'building directly gives 13 dimensions of genuinely spatial curves (measured: curvature spread ' +
+      '0.39, out-of-plane 0.05). That is a QUALITATIVE gap and it lands two degrees below this one. ' +
+      'At conformal 6 the same question is subtler: it carries the polynomial PH CUBICS (a polynomial ' +
+      'PH quintic needs conformal degree 10), but a generic member here is not a bent cubic at all — ' +
+      'being a Mobius image of a polynomial needs a NULL S with <P,S> constant, and at degree 6 that ' +
+      'orthogonal complement measures ZERO-dimensional, so there is no candidate even to test. ' +
+      'WHY NOT DEGREE 3, and say this if anyone asks why not start smaller — it is a result, not ' +
+      'a preference. Four coefficients span at most a 4-dimensional subspace of R^{4,1}, so a vector S ' +
+      'is left orthogonal to all of them, and <P(x),S> = 0 confines every point of the curve to the ' +
+      'single sphere S. Measured, the span collapses further to rank 3 (sigma = 2.2, 1.5, 1.1, 6e-9), ' +
+      'which meets the null cone in a CIRCLE: flat to 1e-9, curvature spread 0.000. And it stays a ' +
+      'circle with the PH conditions REMOVED, so the null condition is doing it, not PH. The count ' +
+      'closes: null-only degree 3 is 13-dimensional = 6 for the circle in R^3 plus 7 for the degree-3 ' +
+      'rational maps onto it, and PH cuts 13 to 11 — so PH does not choose the shape there at all, only ' +
+      'how the circle is traversed. Degree 4 and up have no such confinement. ' +
+      'AND THE FIRST VERSION OF THIS FIGURE WAS DEGREE 3. It drew a circular arc under a caption about ' +
+      'general rational PH cubics, because findMember guarded radii, weights, span and the denominator ' +
+      'and NOT planarity — in a module whose own header carries the septic planar-trap warning. Eric ' +
+      'asked whether the curve was staying in a plane. It was. ' +
+      'THE DEFINITION IS TWO CONDITIONS AND NOTHING ELSE: P is NULL, so it is a curve of points, and ' +
+      '<P\u2032,P\u2032> is a PERFECT SQUARE, which is what PH means here. That second one is the find — ' +
+      'the exact analogue of "|A|\u00b2 is a polynomial" in the Hopf form, but stated with no ' +
+      'quaternions, no coordinates and no choice of origin. Verified to 1e-15, and a non-PH curve ' +
+      'fails it by 1.9e-2. ' +
+      'WHY NOTHING FIVE-DIMENSIONAL IS DRAWN: a conformal vector\u2019s five coordinates ARE weight + ' +
+      'centre + radius, because the infinity-component is fixed by the null condition. So the seven ' +
+      'sphere centres are the ordinary rational-Bezier control points, the ends have radius zero (they ' +
+      'are point-spheres), and — the load-bearing fact, verified to 1e-8 — the OUTER radii are ' +
+      'DETERMINED: rho_1 = |P1-P0| and rho_5 = |P5-P6|, so those two spheres GRIP the endpoints and are ' +
+      'drawn from the polygon with nothing stored. ' +
+      'THE REST OF THE DICTIONARY, if pressed — these are the DEGREE-3 forms, quoted because they are ' +
+      'the ones short enough to say out loud: w0w2 pow(P0,S2) = 3w1^2 rho_1^2, mirrored, and ' +
+      'w0w3|P0-P3|^2 + 9w1w2(|P1-P2|^2 - rho_1^2 - rho_2^2) = 0. Each is a null condition read as ' +
+      'geometry, all confirmed to 1e-11 or better. ' +
+      'THE WEIGHTS ARE FARIN BEADS and the count is exact: six legs, six weight ratios after the ' +
+      'overall scale. All six at the midpoints would mean polynomial, so the rationality is visibly ' +
+      'how far off-centre they sit; a bead leaving its segment would mean a negative weight ratio. Same ' +
+      'visual language as the sketcher\u2019s complex rational B-splines. ' +
+      'THEY ARE A READOUT AND NOT A HANDLE, in both modes, and the reason is worth a sentence because ' +
+      'it is a design principle rather than a limitation: in strict the four dials already spend the ' +
+      'slice, and in free the eleven dimensions are what the seven POINTS are for. A weight handle ' +
+      'competing with a point handle for the same dimensions is two controls for one freedom. So the ' +
+      'gesture is to move something else and watch the rationality answer on its own. (They were ' +
+      'draggable once and it read as dead, because dragFarin clamps each event to 0.03 in the ratio ' +
+      'and the bead crawled behind the cursor. That was the symptom; the line above is the cause.) ' +
+      'THE COST OF PH, at degree 3 where the elementary count is easy to state: an ordinary rational ' +
+      'cubic has 15 degrees of freedom and the PH ones 11 — measured two independent ways, as the rank ' +
+      'of the conformal system and as 15 minus the four conditions for ||q\u2032w-qw\u2032|| to be a ' +
+      'polynomial. CODIMENSION 4. So nothing moves alone here either: drag a point and the weights ' +
+      'answer, which is what the beads make visible. ' +
+      'THE MIDDLE RADII ARE WHY THE SPHERES CARRY CONTROLS AT ALL. b_1 = <C_0,C_1> and ' +
+      'b_{2n-1} = <C_{n-1},C_n> hold at EVERY degree, so the OUTER spheres always grip the endpoints ' +
+      'and are drawn from the polygon. At degree 3 that is all of them, so the spheres are a reveal ' +
+      'with nothing attached. Here rho_2, rho_3 and rho_4 are pinned to nothing — three genuine extra ' +
+      'dimensions, and the sphere picture becomes load-bearing instead of derived. ' +
+      'STRICT AND FREE, and this is the deck\'s gesture pair arriving on the rational curve. STRICT ' +
+      'holds the outer TWO at each end — P0, P1, P5, P6, twelve coordinates against seventeen — and ' +
+      'what is left is SIX, which decomposes as 1 projective scale + 1 parameter gauge + FOUR SHAPES. ' +
+      'Hence four dials and not three: rho_2, rho_3, rho_4 cut three of the four and the TOTAL ARC ' +
+      'LENGTH cuts the fourth. Measured one readout at a time, 6-5-4-3-2. FREE hides the dials, makes ' +
+      'every point a handle and holds the ends unless you grab one — eleven dimensions. ' +
+      'SAY THE DEGREE-4 FACT IF THERE IS TIME, because it is what makes the strict mode worth having: ' +
+      'two degrees down this gesture is IMPOSSIBLE. Pinning the four outer points of a quartic leaves ' +
+      'exactly one dimension and it is a pure weight direction — the middle point moves 1e-6 while ' +
+      'every weight moves 0.1 to 0.5. "There are dimensions left" and "this handle moves" are ' +
+      'different claims; degree 6 is where they agree. Measured: all four handles track to 100% with ' +
+      'the other three held to 1e-15, and the interior absorbs 0.32 on a 0.15 ask. ' +
+      'AND ONE DIAL IS FORBIDDEN HERE — a HALF arc length. Pinning control POINTS leaves the gauge ' +
+      'live (lambda^k moves no control point, so it satisfies the pins for free) and the half-lengths ' +
+      'are not gauge-invariant, so that slider would move every weight and bead with the curve ' +
+      'standing still. It is the dead dial that retired the degree-5 slide; dragPinned throws rather ' +
+      'than offering it. Radii and the TOTAL length are invariant, which is why those four are safe. ' +
+      'THEY ARE SLIDERS, NOT 3-D HANDLES, and if anyone asks, say why: a radius is a SCALAR. The old ' +
+      'handle asked for it with a point drag, was drawn at centre + (rho,0,0) so it teleported back to ' +
+      'the x-axis after every event, and read the radius as |cursor - centre| — so dragging AROUND the ' +
+      'sphere did nothing while dragging ACROSS it took the radius through zero. Eric found it by ' +
+      'using it. The solve runs on the UNBENT curve, because a bend changes the radii. ' +
+      'THE SHAPE BUDGET: 18 dimensions, 17 after the projective scale, of which TEN are Mobius ' +
+      'MOTIONS — the group is ten-dimensional — leaving 2n-5 = 7 shape moduli. Pinning the ends ' +
+      'freezes most of the motions, which is why they are pinned. ' +
+      'TWO NUMBERS THIS SLIDE USED TO CARRY ARE RETRACTED (RATIONAL_PH_STATE section 7): "9 Mobius ' +
+      'motions, 6 shape moduli" subtracted nine for a ten-dimensional group, and the comparison ' +
+      'figure below was NEVER MEASURED. Do not quote it. Kept only so nobody re-derives it: ' +
+      'OLD TEXT — "direct is 17-dimensional against the Mobius ' +
+      'orbit\u2019s measured 13 — 8 shape moduli against 4, twice as many." ' +
+      'THE TRAP, if the figure ever looks collapsed: the family has a large degenerate stratum, and ' +
+      'unguarded solves land on it — interior radii collapsing to 1e-3, weights going negative, the ' +
+      'curve spanning a hundredth of its polygon. The mechanism is in the dictionary: as rho_1 goes to ' +
+      'zero, P1 falls onto P0 and the cross condition drags P0 onto S2. Same shape of trap as the ' +
+      'septic\u2019s planar locus, hence the guards in findMember. ' +
+      'AND THE SPEED IS (n-2)/n: |p\u2032| = h/w, so h is QUARTIC here and w is sextic. That degree drop ' +
+      'is where the one rank deficiency in the system came from, and it is pinned. ' +
+      'core/conformalPHCurve (22 tests), conformalPHFamily (10), conformal (28).',
+  },
+  // ---------------------------------------------------------------------------
+  // SECTION III — WHAT EACH ONE BUYS. The payoff, then the ask.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'title',
+    content: (
+      <>
+        <h1>III &mdash; What each one buys</h1>
+        <div className="subtitle" style={{ fontSize: '0.72em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre' }}>
+{`spinor      a chart      — but the price is integration
+conformal   no integration — but a solver, and no chart`}
+        </div>
+        <div className="event note" style={{ marginTop: '1.4em' }}>
+          The two cover <em>disjoint</em> strata, so there is nothing to hand a curve across in.
+        </div>
+      </>
+    ),
+    notes:
+      'THE ASYMMETRY IS THE POINT OF THIS SECTION. On the spinor side you get genuine COORDINATES -- '
+      + 'the lambda chart -- but the curve must be integrated, and killing the logarithms costs a '
+      + 'residue condition at every pole. On the conformal side nothing is integrated, because the '
+      + 'curve is built where it lives; the price is that dragging needs a constrained solver and '
+      + 'there are no coordinates at all. '
+      + 'AND THEY DO NOT OVERLAP, which is the real finding and the thing to put to the room. The '
+      + 'lambda chart needs every pole INVERTIBLE; the conformal construction lands where every pole '
+      + 'is SINGULAR (sigma = h w). Two disjoint charts are not an atlas -- nothing can be carried '
+      + 'from one to the other, because there is no shared region to hand it over in. '
+      + 'SO THE MIXED CELL -- some poles invertible, some singular -- is not an unexplored corner of a '
+      + 'classification. It is the connective tissue an atlas requires, and it currently belongs to '
+      + 'neither construction. That is what the last slide asks for help with.',
+  },
+  // ---------------------------------------------------------------------------
+  // THE LAST SLIDE — the questions, collected. This is what the discussion is for.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>What is open</h2>
+
+        <p style={{ marginBottom: '0.3em' }}>
+          <strong>1. Is the sphere polygon new?</strong> The ℝ⁴′¹ null-lift construction with the
+          control polygon as <em>weighted spheres</em> returned no search hits in two reading
+          sessions &mdash; which is &ldquo;not found&rdquo;, not &ldquo;new&rdquo;. Choi, Lee &amp;
+          Moon is the paper to settle it against, being the Clifford/spin representation of the
+          hodograph. <span style={{ color: '#64748b' }}>One expert can answer this in a minute.</span>
+        </p>
+
+        <p style={{ marginBottom: '0.3em' }}>
+          <strong>2. Does the mixed cell exist?</strong> Some poles invertible, some singular &mdash;
+          the region that would touch both charts. σ = |𝒜|² is multiplicative, so a product spinor
+          puts the zeros of σ exactly where one chooses; but the residue conditions do <em>not</em>
+          survive the product, for two measured reasons: the stray term
+          <code> vec(𝒜₁′(r)·N₂(r)·𝒜₁*(r))</code>, and the fact that Σ<sub>k</sub> = Σ<sub>l≠k</sub>
+          1/(r<sub>k</sub>−r<sub>l</sub>) moves when pole sets merge. So the product is an
+          <em> ansatz</em>, and the question is a solve.
+        </p>
+
+        <p style={{ marginBottom: '0.3em' }}>
+          <strong>3. Can the σ = 0 stratum be charted?</strong> Its rank-1 floor &mdash; where the
+          circle lives &mdash; is a cone over a Segre embedding, so the datum at a singular pole
+          should be a point of ℙ¹×ℙ¹ exactly where the invertible case carries one real λ. That would
+          buy <em>uniformity</em>, not coverage: the conformal construction already covers that
+          stratum. Untried.
+        </p>
+
+        <p style={{ marginBottom: '0.35em' }}>
+          <strong>4. And the one behind all of it.</strong> Local modification of 3D PH curves during
+          editing. The rational work is a detour taken to understand the object well enough to get
+          there.
+        </p>
+
+        <p style={{ fontSize: '0.86em', color: '#64748b' }}>
+          Retracted claims are kept, not deleted &mdash; conformal covariance dissolves the PH
+          obstruction but <em>not</em> the arc-length one (σ′(i) = 4i ≠ 0, and Möbius maps are not
+          isometries); the λ dial does not reach the circle, because it degenerates on the other
+          floor of the stratum.
+        </p>
+      </>
+    ),
+    notes:
+      'THIS IS THE SLIDE THE MEETING IS FOR, so leave it up and stop talking. '
+      + 'QUESTION 1 IS THE CHEAP ONE and the most valuable: is the weighted-sphere polygon already in '
+      + 'the literature? Two reading sessions found nothing, which is NOT a survey. Choi, Lee and Moon '
+      + 'is the paper to check it against. One person in the room may settle it in a minute, and that '
+      + 'either saves months or redirects them. '
+      + 'QUESTION 2 IS THE ONE WE TRIED. The product spinor idea is sound for the sigma PATTERN, which '
+      + 'is the hard half to arrange -- multiplicativity puts the zeros exactly where you choose. It '
+      + 'fails as a CONSTRUCTION for two measured reasons: a stray vector-part term, and the fact that '
+      + 'Sigma is not a property of a factor, so merging pole sets retunes every residue condition. '
+      + 'The honest state is that this turns C21 from a survival question into a solve. '
+      + 'QUESTION 3 IS THE STRUCTURAL ONE. Rank-1 matrices are outer products, the cone over the '
+      + 'Segre embedding, smooth away from zero -- so P1 x P1 coordinates ought to replace the single '
+      + 'real lambda at a singular pole. It buys one solver and one editing model instead of two. '
+      + 'Nobody has tried it. '
+      + 'DO NOT OVERSELL ANY OF THIS. The retraction line at the bottom is deliberate: it says what '
+      + 'covariance does not buy, and it says the lambda dial never reaches the circle. A deck that '
+      + 'admits two retractions is easier to argue with, which is the point of circulating it.',
+  },
 ]
+
