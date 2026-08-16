@@ -1,6 +1,6 @@
 // ============================================================================
-// Pythagorean–Hodograph Curves and Their Rational Frames
-//   Solution structure, selection, and interactive motion
+// Pythagorean–Hodograph Curves
+//   Solution structure, two representations, and interactive control
 //
 // An interactive monograph for readers who already know PH curves. It does NOT
 // introduce arc length, speed, or the hodograph — the audience teaches those.
@@ -62,8 +62,8 @@ export const slides: SlideDefinition[] = [
     type: 'title',
     content: (
       <>
-        <h1>Pythagorean–Hodograph Curves and Their Rational Frames</h1>
-        <div className="subtitle">Solution structure, selection, and interactive motion</div>
+        <h1>Pythagorean–Hodograph Curves</h1>
+        <div className="subtitle">Solution structure, two representations, and interactive control</div>
         <div className="author">Eric Demers</div>
         <div className="event">Polytechnique Montréal</div>
         {/* Italic because this slot is where cs2026 puts the conference and city, and
@@ -79,10 +79,28 @@ export const slides: SlideDefinition[] = [
       </>
     ),
     notes:
-      'Working title. "Rational frames" is the field\'s own term, and it is the strongest ' +
-      'available claim: a non-constant unit vector field can never be polynomial, since ' +
-      '|e|² ≡ 1 forces the leading coefficient to vanish. The polynomial object is the ' +
-      'spinor A; the frame is rational because normalising by σ = |A|² is a division.',
+      'THE TITLE IS BARE ON PURPOSE, and the subtitle pays for it. "Pythagorean-Hodograph Curves" is '
+      + 'the name of the field, so a specialist learns nothing from it -- which is fine only because '
+      + 'every word of the subtitle is earned by a section: SOLUTION STRUCTURE is the counting slides '
+      + '(ten degrees of freedom against nine conditions leaving a curve; fourteen against twelve '
+      + 'leaving a torus), TWO REPRESENTATIONS is the spine of the whole second half, and INTERACTIVE '
+      + 'CONTROL is what you do in both. '
+      + 'WHAT THE SUBTITLE USED TO SAY, and why it changed: "solution structure, selection, and '
+      + 'interactive motion" named the old five-act plan. Two of its three words had stopped pointing '
+      + 'at anything -- nothing in the deck SELECTS among interpolants any more, and "motion" meant '
+      + 'dragging-as-transport, monodromy and holonomy, which never got its slide. The fault was not '
+      + 'that the subtitle had three parts; it was that two of them were empty. '
+      + '"INTERACTIVE CONTROL" ECHOES THE OTHER DECK deliberately -- cs2026 is "Interactive Control of '
+      + 'Curvature Extrema and Inflections on B-Spline Curves". Read side by side the two titles say '
+      + 'one thing about the programme: interactive control over hard constrained curve families. '
+      + 'AND "RATIONAL FRAMES" CAME OFF, because frames hold three slides of twenty-nine and a '
+      + 'co-headline sends a frames specialist to the wrong document. The frame argument itself is not '
+      + 'lost -- it opens section I, where it belongs: |e|^2 = 1 forces the leading coefficient to '
+      + 'vanish, so a moving unit frame can never be polynomial. The polynomial object is the spinor; '
+      + 'the frame is rational because normalising by sigma = |A|^2 is a division. '
+      + 'WHAT IS DELIBERATELY NOT HERE: the sphere construction. It is the candidate contribution and '
+      + 'it is tempting, but RATIONAL_PH_STATE 12.4 says "not found", not "new" -- putting it in the '
+      + 'title would stake a claim the document itself declines to make.',
   },
   // ---------------------------------------------------------------------------
   // 2 — THE MAP. The slide someone reads in thirty seconds to know what this is.

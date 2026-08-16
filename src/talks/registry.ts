@@ -23,8 +23,8 @@ export const talks: TalkDefinition[] = [
   },
   {
     slug: 'ph-interpolation',
-    title: 'Pythagorean–Hodograph Curves and Their Rational Frames',
-    subtitle: 'Solution structure, selection, and interactive motion',
+    title: 'Pythagorean–Hodograph Curves',
+    subtitle: 'Solution structure, two representations, and interactive control',
     load: () => import('./ph-interpolation/slides').then((m) => m.slides),
   },
   {
