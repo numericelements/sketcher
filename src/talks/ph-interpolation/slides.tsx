@@ -51,6 +51,7 @@ import IndicatrixCubicFigure from './IndicatrixCubicFigure'
 import SharedIndicatrixFigure from './SharedIndicatrixFigure'
 import ComplexRationalPHFigure from './ComplexRationalPHFigure'
 import CanalSurfaceFigure from './CanalSurfaceFigure'
+import ConformalSphereFigure from './ConformalSphereFigure'
 import WhenActive from '../framework/slideContext'
 
 export const slides: SlideDefinition[] = [
@@ -516,6 +517,54 @@ export const slides: SlideDefinition[] = [
       + 'also why this figure interpolates cyclographically: the Moebius version is not something you '
       + 'can drag. '
       + 'core/canalSphereSpline (7 tests: cylinder, cone, torus, both failure modes, and both models).',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 10B — THE SAME RULE, NOTHING IMPOSED. The warm-up 10A was supposed to be and is not.
+  //
+  // 10A interpolates centre and radius SEPARATELY — intuitive, and what the canal literature does,
+  // but NOT the rule slide 11 uses, so it builds intuition for a different object. This slide uses
+  // slide 11's rule exactly and removes only the conditions. It also SEEDS FROM SLIDE 11'S OWN
+  // MEMBER, so it opens sitting on the constraint and the first drag is the lesson.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The same rule, with nothing imposed</h2>
+        <WhenActive>
+          <ConformalSphereFigure />
+        </WhenActive>
+      </>
+    ),
+    notes:
+      'THE PREVIOUS SLIDE USED A DIFFERENT RULE, and say so plainly rather than letting anyone '
+      + 'discover it. There, centre and radius were interpolated SEPARATELY -- average the centres, '
+      + 'average the radii -- which is intuitive and is what the canal-surface literature does. Here, '
+      + 'and on the NEXT slide, the five-number VECTORS are averaged and the centre and radius are '
+      + 'read off the result. Same data, different rule, different curve. '
+      + 'SAME SEVEN SPHERES, TWO RULES, measured: control radii 0, 0.81, 0.67, 1.51, 0.62, 0.62, 0. '
+      + 'The canal rule gives radii 0, 0.71, 0.91, 0.63, 0 along the curve -- a tube. This rule gives '
+      + '0, 0, 0, 0, 0 -- a curve. '
+      + 'IT OPENS ON THE CONSTRAINT, which is the whole design. The seed IS the next slide\'s member, '
+      + 'so every sphere on the curve is a point and there is nothing to see but a curve. Then move '
+      + 'ANYTHING -- a centre, a radius -- and the spheres along the curve balloon. That is what the '
+      + 'null condition was holding down, shown by removing it rather than by writing it. '
+      + 'THEN THE MECHANISM, and this is the sentence to get across. Take two spheres of radius 0.7 '
+      + 'and separate them. The sphere BETWEEN them goes 0.633, 0.490, 0.000, -0.714, -1.327 as the '
+      + 'gap grows 0.6, 1.0, 1.4, 2.0, 3.0. It does not average -- separating drives it DOWN, through '
+      + 'zero, and out into IMAGINARY. And zero lands at gap 1.4 = 2 x 0.7, exactly where the two '
+      + 'spheres are TANGENT. '
+      + 'SO THE NULL CONDITION HAS A MEANING you can hold: keep every sphere on the curve at that '
+      + 'crossing point, at every t at once. Not an equation to admire -- a knife edge to sit on. '
+      + 'AND THAT ANSWERS THE QUESTION THE NEXT SLIDE ALWAYS RAISES: why are its control spheres '
+      + 'huge when the curve is a curve? Because big and well separated is exactly what drives the '
+      + 'in-between radius down to zero. Small ones would leave it fat. The scaffold has to be large '
+      + 'for the thing it scaffolds to be thin. '
+      + 'THE SHARPEST VERSION, if you have a moment: two POINT-spheres a unit apart already fail it -- '
+      + 'the sphere between them has radius squared -0.25. POINTS DO NOT INTERPOLATE TO POINTS. That '
+      + 'is why the null condition is a real condition and not bookkeeping. '
+      + 'core/canalSphereSpline, and the two-rule comparison is pinned there.',
   },
 
   // ---------------------------------------------------------------------------

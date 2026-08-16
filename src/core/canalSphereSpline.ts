@@ -61,7 +61,7 @@
 // the parity theorem needs the null condition (⟨C,C⟩ ≡ 0 forcing ‖q‖² = 2w·c∞) to force a common
 // factor. With no conditions there is no identity and nothing is forced.
 // ============================================================================
-import type { Conformal } from './conformal'
+import { type Conformal, innerProduct } from './conformal'
 import { type Vec3, vadd, vcross, vnorm, vscale, vsub } from './quaternion'
 
 /**
@@ -222,4 +222,54 @@ export function worstOver(
     best = pick === 'min' ? Math.min(best, v) : Math.max(best, v)
   }
   return best
+}
+
+// ---------------------------------------------------------------------------
+// THE OTHER READING — the same control spheres, combined in ℝ^{4,1}
+// ---------------------------------------------------------------------------
+
+/**
+ * The MÖBIUS reading of the same control spheres: combine the five-number VECTORS and read centre
+ * and radius back off the result, instead of interpolating centre and radius separately.
+ *
+ * IT IS A DIFFERENT CURVE OF SPHERES THROUGH THE SAME DATA, and the difference is the point. Under
+ * this rule the in-between radius is NOT any kind of average of the control radii: separating two
+ * spheres drives it DOWN, through zero, and out the far side into imaginary. Three regimes —
+ *
+ *     close together   the spheres in between are fat
+ *     just right       the radius passes through ZERO
+ *     far apart        radius² is negative: an imaginary sphere
+ *
+ * — and `conformalPHCurve`'s null condition is the exact tuning of the middle case, at every t at
+ * once. That is why its control spheres must be large AND well separated, and why a curve of points
+ * comes out of a scaffold of big spheres. `nullDefect` is what that condition drives to zero.
+ */
+export function conformalSphereAt(
+  s: SphereSpline, t: number,
+): { centre: Vec3; radius: number; weight: number; nullDefect: number } {
+  const C = s.S.map(conformalOf)
+  let p = C.map((c) => [...c])
+  while (p.length > 1) {
+    const next: number[][] = []
+    for (let i = 0; i < p.length - 1; i++) next.push(p[i].map((v, k) => (1 - t) * v + t * p[i + 1][k]))
+    p = next
+  }
+  const V = p[0] as unknown as Conformal
+  const w = V[0]
+  const g = innerProduct(V, V) / (w * w)
+  return {
+    centre: { x: V[1] / w, y: V[2] / w, z: V[3] / w },
+    radius: g >= 0 ? Math.sqrt(g) : -Math.sqrt(-g),   // negative ⇒ IMAGINARY here, not an orientation
+    weight: w,
+    nullDefect: g,
+  }
+}
+
+/** Worst |⟨P,P⟩/w²| over the interval — zero exactly when every sphere on the curve is a point. */
+export function nullDefect(s: SphereSpline, samples = 96): number {
+  let worst = 0
+  for (let i = 0; i <= samples; i++) {
+    worst = Math.max(worst, Math.abs(conformalSphereAt(s, i / samples).nullDefect))
+  }
+  return worst
 }

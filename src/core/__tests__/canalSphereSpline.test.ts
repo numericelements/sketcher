@@ -8,7 +8,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   type ControlSphere, type SphereSpline,
-  characteristicCircle, conformalOf, envelopeTest, frameAt, pinchTest, sphereAt, worstOver,
+  characteristicCircle, conformalOf, conformalSphereAt, envelopeTest, frameAt, nullDefect,
+  pinchTest, sphereAt, worstOver,
 } from '../canalSphereSpline'
 import { innerProduct } from '../conformal'
 import { vnorm, vsub, type Vec3 } from '../quaternion'
@@ -127,5 +128,37 @@ describe('a Bézier curve of spheres', () => {
     console.log(`    disjoint spheres, midpoint radius:  cyclographic ${cyclo.toFixed(4)},  conformal² ${g.toFixed(4)}`)
     expect(cyclo, 'a cone frustum: real, and the obvious thing to draw').toBeCloseTo(0.7, 10)
     expect(g, 'the conformal pencil is imaginary in between').toBeLessThan(0)
+  })
+})
+
+describe('the same control spheres, read the OTHER way', () => {
+  it('separating two spheres drives the in-between radius DOWN, through zero, into imaginary', () => {
+    console.log('       gap    cyclographic ρ(½)    conformal ρ(½)')
+    for (const d of [0.6, 1.0, 1.4, 2.0, 3.0]) {
+      const S: SphereSpline = {
+        S: [sph({ x: 0, y: 0, z: 0 }, 0.7), sph({ x: d, y: 0, z: 0 }, 0.7)],
+      }
+      const cyc = sphereAt(S, 0.5).radius
+      const con = conformalSphereAt(S, 0.5).radius
+      console.log(`    ${d.toFixed(1).padStart(6)}    ${cyc.toFixed(4).padStart(12)}    ${con.toFixed(4).padStart(12)}`)
+    }
+    // the cyclographic rule never moves; the conformal one collapses and inverts
+    const near: SphereSpline = { S: [sph({ x: 0, y: 0, z: 0 }, 0.7), sph({ x: 0.6, y: 0, z: 0 }, 0.7)] }
+    const far: SphereSpline = { S: [sph({ x: 0, y: 0, z: 0 }, 0.7), sph({ x: 3, y: 0, z: 0 }, 0.7)] }
+    expect(sphereAt(near, 0.5).radius).toBeCloseTo(0.7, 12)
+    expect(sphereAt(far, 0.5).radius).toBeCloseTo(0.7, 12)
+    expect(conformalSphereAt(near, 0.5).radius, 'close: still fat').toBeGreaterThan(0.5)
+    expect(conformalSphereAt(far, 0.5).radius, 'far: imaginary').toBeLessThan(0)
+  })
+
+  it('and the null condition is that collapse tuned to ZERO everywhere at once', () => {
+    // two point-spheres a unit apart: the in-between radius is NOT zero, so a straight line
+    // between two points of the curve is not a curve of points — the condition is not automatic
+    const two: SphereSpline = { S: [sph({ x: 0, y: 0, z: 0 }, 0), sph({ x: 1, y: 0, z: 0 }, 0)] }
+    const mid = conformalSphereAt(two, 0.5)
+    console.log(`    two POINTS, 1 apart: the sphere between them has radius² = ${mid.nullDefect.toFixed(4)}`)
+    expect(mid.nullDefect, 'imaginary — points do not interpolate to points').toBeLessThan(0)
+    console.log(`    null defect over the segment: ${nullDefect(two).toFixed(4)}`)
+    expect(nullDefect(two)).toBeGreaterThan(0.2)
   })
 })
