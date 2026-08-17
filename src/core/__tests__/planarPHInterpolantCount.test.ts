@@ -118,7 +118,11 @@ describe('the number of planar PH interpolants is 2^(k−1)', () => {
     { k: 4, degree: 7, ts: [0.27, 0.53, 0.78, 1.0], w: [[0.9, 0.3], [0.4, -0.7], [-0.6, 0.5], [1.1, 0.2]] },
   ]
   for (const { k, degree, ts, w } of cases) {
-    it(`k = ${k} (degree ${degree}): ${2 ** (k - 1)} distinct curves`, () => {
+    // Generous timeout: this is 6000 random Newton starts by design — a deliberately
+    // INDEPENDENT method from core/phPlanarSepticInterp's homotopy, which finds the same
+    // eight in ~12ms. Two algorithms agreeing is the point, so the slow one stays; it
+    // just must not flake under full-suite parallel load, where it timed out at 5s.
+    it(`k = ${k} (degree ${degree}): ${2 ** (k - 1)} distinct curves`, { timeout: 120000 }, () => {
       const roots = countInterpolants(k, ts, w)
       console.log(`k=${k}  degree ${degree}  →  ${roots.length} distinct, predicted ${2 ** (k - 1)}`)
       // Bézout caps k−1 quadratics in k−1 unknowns at 2^{k−1}, so finding that many PROVES the count

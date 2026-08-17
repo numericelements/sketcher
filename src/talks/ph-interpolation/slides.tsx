@@ -35,6 +35,7 @@ import type { SlideDefinition } from '../framework/types'
 import ThreePointsFigure from './ThreePointsFigure'
 import PinnedEndsFigure from './PinnedEndsFigure'
 import QuinticHermiteFigure from './QuinticHermiteFigure'
+import PlanarSepticFigure from './PlanarSepticFigure'
 import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import RmErfFigure from './RmErfFigure'
@@ -399,7 +400,61 @@ in space    the same forms over ℍ      a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // 6 — the first spatial slide: finite choice becomes a continuum
+  // 6 — WHICH functionals, not how many: the same count gives 1 or 8
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Which five points you prescribe takes the count from one to eight</h2>
+        <PlanarSepticFigure />
+      </>
+    ),
+    notes:
+      'Degree 7 in the plane, asked twice. Both panels prescribe FIVE planar points on the same curve ' +
+      'type, so both impose ten real conditions on ten real degrees of freedom (w cubic = 8, plus the ' +
+      'translation = 2; the planar gauge w ↦ −w is DISCRETE and costs none). Both square. The counts ' +
+      'are 1 and 8. ' +
+      'THE POINT: for an ordinary Bézier, prescribing control points and prescribing points on the ' +
+      'curve are LINEARLY EQUIVALENT problems. For a PH curve they are not, because the unknown is the ' +
+      'GENERATOR, and only the control-point conditions factor through it by division. This is the ' +
+      'pitfall the whole deck keeps meeting, and it is the reason a dimension count alone never ' +
+      'settles anything — you must say WHICH functionals, not just how many. ' +
+      'LEFT, the cascade: N₀ = w₀², N₁ = w₀w₁, N₂ = (2/5)w₀w₂+(3/5)w₁², N₃ = (1/10)w₀w₃+(9/10)w₁w₂. A ' +
+      'square root — and the ± IS the entire gauge — then three divisions. No equation is ever solved, ' +
+      'so nothing branches and nothing fails: EVERY five control points carry exactly one curve, the ' +
+      'only degenerate case being a first leg of length zero. At degree 3 the same cascade reads ' +
+      'N₁² = N₀N₂, the oldest planar PH fact there is (the three legs in geometric progression). ' +
+      'RIGHT, the interpolation: substitute wⱼ = w₀rⱼ and w₀² cancels out of every condition, leaving ' +
+      'rᵀ(D₁Mᵢ − DᵢM₁)r = 0 for i = 2,3,4 — three quadratic forms in the 4-vector r, i.e. THREE QUADRICS ' +
+      'IN ℙ³, whose base locus is a Cayley octad: 2³ = 8. This is 2^{k−1} at k = 4, and Bézout is ' +
+      'attained EXACTLY, unlike anything in space, because the unknowns are complex: w has free complex ' +
+      'coefficients and ∫w² is a real plane curve whatever they are, so every Bézout root is a genuine ' +
+      'curve. The eight never vanish. They can only collide — which is monodromy, and the figure shows ' +
+      'it rather than hiding it. ' +
+      'WHY THE PANELS DO NOT SHARE THEIR POINTS, unlike slide 3\'s figure: the cascade has gain ≈ 10. A ' +
+      'drag of a tenth of a leg length doubles w₃ — the factor is C(6,3)/2, which is 1 for the cubic, 3 ' +
+      'for the quintic and 10 here, so the stiffness GROWS WITH DEGREE. Feeding the right panel\'s ' +
+      'spread-out points into the left as a control polygon gives a curve of arc length ~400 on data ' +
+      'spanning 5. The left panel\'s caption states the gain instead of hiding it; drag it and the curve ' +
+      'leaves the frame almost at once, which is that map\'s honest behaviour. Measured, not guessed — ' +
+      'see core/__tests__/phPlanarSeptic.test.ts. ' +
+      'SETS UP THE SPATIAL SEPTIC. The same control-point problem in SPACE takes SIX points (4k+2 = 18 ' +
+      'against 3 each) and has 0, 2, 4 or 6 real answers under a ceiling of 8 — measured, and half of ' +
+      'all arbitrary polygons carry NO real curve. The difference is exactly the gauge: in space each ' +
+      'cascade stage is polar(A₀,·): ℍ → ℝ³, four unknowns for three equations, leaving a one-dimensional ' +
+      'kernel per stage; here the stage is multiplication by w₀ on ℂ, which is invertible. The spatial ' +
+      'branching is MANUFACTURED BY THE CONTINUOUS HOPF GAUGE. See docs/SEPTIC_SIX_POINTS.md and ' +
+      'core/septicCascadeDegree.test.ts. ' +
+      'Implementation: the right panel solves globally by a total-degree homotopy (8 paths from x² = c), ' +
+      'and during a drag carries each branch by Newton from its own previous root — so branch identity ' +
+      'is preserved BY CONSTRUCTION and needs no permutation matching, unlike the two- and four-branch ' +
+      'figures. R = ∫|κ|ds diverges on a branch with a cusp; the readout says "cusp" rather than ' +
+      'printing a meaningless number.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 7 — the first spatial slide: finite choice becomes a continuum
   // ---------------------------------------------------------------------------
   {
     type: 'content',
