@@ -265,7 +265,69 @@ exactly what each construction guarantees. It is not evidence that the mixed cel
 construction can build one, so neither can look for one. That still needs the continuation below —
 and the indicator above is the per-pole probe it must log.
 
-### How to run question 1 — TODO, and the Lean side has narrowed it
+### Step 0b — the (n,m) match EXISTS, and it is the collapse row
+
+A continuation at fixed degree needs both endpoints in the same (n,m), and the two constructions had
+never been checked for an overlap. Measured:
+
+```
+conformal sextic          deg 𝒜 = 5, deg w = 6   →  (n,m) = (5,6)   all six poles complex, three pairs
+λ-chart familyBasis       needs m ≤ n+1          →  collapses AT (5,6): dimension zero
+rationalPHFreeLambda      built for n+1 ≤ m      →  solves (5,6), residual 3.6e-15
+```
+
+So the match is **(5,6) — exactly the collapse row m = n+1**, and the hard endpoint there must come
+from the free-λ solver, which is what that module exists for. The prerequisite is satisfied; it was
+not obvious in advance and is worth re-checking at any other degree before assuming a path can exist.
+
+### Step 0c — softness carries NO information at a real pole, and why both numbers are logged
+
+At a real r the spinor 𝒜(r) is a real quaternion, so the four squares share an argument and the
+triangle inequality is tight:
+
+```
+    σ(r) = a²+b²+c²+d² = ‖𝒜(r)‖²      ⇒   softness(r) = 1 EXACTLY
+```
+
+Measured to twelve digits at every real pole of two free-λ members. This is the equality case of the
+bound, not a near miss — so **at a real pole the indicator is identically 1 and tells you nothing.**
+That is the analytic face of the Lean side's `sigma_eval_eq_zero_iff_dvd`: at a real r, σ(r) = 0 ⟺
+(t−r) divides the spinor ⟺ the pole is fake. A soft real pole does not exist.
+
+**Two different degeneracies, and only both numbers separate them.** On the (5,6) free-λ member
+softness is 1 at all six poles (nothing is rank 1) while ‖𝒜(r)‖² falls to 3.9e-5 at one of them —
+that pole is close to 𝒜(r) = 0, i.e. close to being FAKE. Rank 1 and rank 0 are different failures
+and `softness` only sees the first.
+
+**Consequence for the experiment below: the ε-drive must target a COMPLEX pole.** Driving σ(r) → 0 at
+a real pole is provably not a route to the mixed cell — it is a route to a degree drop. So the minimal
+mixed candidate is m = 3, one real pole beside one conjugate pair, with the PAIR driven soft and the
+real pole hard by the theorem.
+
+### How to run question 1 — the ε-DRIVE, which replaces the endpoint connection
+
+Rather than connect a hard endpoint to a soft one, **drive one pole soft from the hard side.** Take a
+λ-chart member with m ≥ 3, adjoin σ(r₁) = ε as an extra equation, and continue ε → 0 while the other
+poles stay hard.
+
+```
+reach ε = 0     →  a mixed member has been CONSTRUCTED. C21 answered constructively.
+stall at ε* > 0 →  an obstruction WITH A NUMBER: σ(r₁) cannot go below ε*
+```
+
+Three advantages over connecting endpoints: no soft endpoint is needed, so the (n,m)-matching problem
+disappears; it targets the mixed cell directly instead of hoping a path passes through it; and failure
+is quantitative. ε is a natural homotopy parameter, so `continuationPath` takes it as-is, and for a
+complex pole σ(r̄₁) = conj(σ(r₁)) is automatic — **two real conditions, not four.**
+
+The m = 2 control becomes sharper too: run the same drive where `not_mixedPoles_of_conjugate_pair`
+says the two poles must go soft together. If ε on one drops while the other stays hard, the machinery
+is lying — a far better failure signal than "the path broke".
+
+The certified-endgame caveat still stands, but ε* helps: **a stall reporting a consistent ε* across
+seeds is evidence; one that stalls at random places is a solver.**
+
+### The older endpoint-connection plan, kept for the record
 
 **First, a proved constraint on where the mixed cell can be** (`not_mixedPoles_of_conjugate_pair`,
 Lean companion 2026-08-17): σ has REAL coefficients, so σ(r̄) = conj(σ(r)) — **a conjugate pair of

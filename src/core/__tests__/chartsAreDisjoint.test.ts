@@ -42,6 +42,7 @@ import { type Quat } from '../quaternion'
 import {
   cx, familyBasis, unpackSpinor, toMember, phDefect, type ComplexPoleParams,
 } from '../rationalPHComplexPoleSpatial'
+import { solveWithFreeLambda } from '../rationalPHFreeLambda'
 
 const C = (re: number, im = 0): Complex => ({ re, im })
 
@@ -124,5 +125,57 @@ describe('the two charts cover disjoint strata', () => {
     const hard = probe(unpackSpinor(x), C(0.5, 0.8)).softness
 
     expect(Math.log10(hard / Math.max(...soft))).toBeGreaterThan(8)
+  })
+})
+
+describe('the prerequisite the continuation plan did not name: a matching (n,m)', () => {
+  // A continuation at fixed degree needs BOTH endpoints in the same (n,m). If the two
+  // constructions never share one, a hard→soft path is impossible before any solver runs.
+  it('the conformal sextic sits at (n,m) = (5,6) — the collapse row, m = n+1', () => {
+    const s = sexticSeed()
+    const hf = hopfForm(s)!
+    const hg = hodograph(s)
+    expect(hf.A.length - 1).toBe(5)          // spinor degree n
+    expect(hg.w.length - 1).toBe(6)          // poles m
+    // All complex, in three conjugate pairs — which matters, see the real-pole fact below.
+    const poles = rootsOf(hg.w.map((c) => C(c)))
+    expect(poles.filter((p) => Math.abs(p.im) < 1e-9).length).toBe(0)
+  })
+
+  it('and the λ side reaches (5,6) too, so the match exists', () => {
+    // m = n+1 is exactly where familyBasis collapses to nothing, so the hard endpoint has
+    // to come from the free-λ solver — which is what that module was built for.
+    const roots = [-1.3, -0.7, -0.2, 0.35, 0.9, 1.6]
+    const sol = solveWithFreeLambda(roots, 5, 200)
+    expect(sol).not.toBeNull()
+    expect(sol!.residual).toBeLessThan(1e-12)
+    expect(sol!.lambdaFormResidual).toBeLessThan(1e-12)
+  })
+
+  it('softness is EXACTLY 1 at a real pole — so it carries no information there', () => {
+    // At real r the spinor 𝒜(r) is a real quaternion, so σ(r) = a²+b²+c²+d² = ‖𝒜(r)‖² and
+    // the ratio is 1 identically — the triangle inequality's equality case, four squares
+    // sharing an argument. Not "approximately hard": the maximum, to the last digit.
+    const roots = [-0.9, -0.3, 0.4, 1.1]
+    const sol = solveWithFreeLambda(roots, 3, 200)
+    expect(sol).not.toBeNull()
+    for (const r of roots) {
+      expect(Math.abs(probe(sol!.params.A, C(r)).softness - 1)).toBeLessThan(1e-12)
+    }
+  })
+
+  it('…so ‖𝒜(r)‖² is the ONLY degeneracy signal at a real pole, and it can be tiny', () => {
+    // The two degeneracies are different and the instrument needs both numbers. On the
+    // (5,6) member softness is 1 at every pole (not rank 1) while ‖𝒜(r)‖² falls to 4e-5 at
+    // one of them — that pole is close to 𝒜(r) = 0, i.e. close to being FAKE, which by the
+    // Lean side's sigma_eval_eq_zero_iff_dvd is what σ(r) = 0 at a real pole means.
+    const roots = [-1.3, -0.7, -0.2, 0.35, 0.9, 1.6]
+    const sol = solveWithFreeLambda(roots, 5, 200)!
+    const herms = roots.map((r) => probe(sol.params.A, C(r)).herm)
+    expect(Math.min(...herms)).toBeLessThan(1e-3)   // nearly a degree drop…
+    expect(Math.min(...herms)).toBeGreaterThan(0)   // …but not one
+    for (const r of roots) {
+      expect(Math.abs(probe(sol.params.A, C(r)).softness - 1)).toBeLessThan(1e-9)
+    }
   })
 })
