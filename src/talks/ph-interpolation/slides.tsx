@@ -119,20 +119,17 @@ export const slides: SlideDefinition[] = [
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0.2em 0 0.7em 0.6em' }}>
 {`                     plane                        space
 
-   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*      (𝒜 = u + v j)
-                     one complex polynomial       two — and the square root becomes a circle
+   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*
+                     one complex polynomial       two complex polynomials
 
-   rational          n and h free — the dual      r′ = 𝒜 i 𝒜* / (poles)²
-                     PH is an IDENTITY            and now 𝒜 is bound`}
+   rational          n and h free — the dual      integrate:  r′ = 𝒜 i 𝒜* / (poles)²
+                     PH is an IDENTITY            or don't:   ⟨P,P⟩ = 0     — points
+                                                              ⟨P′,P′⟩ = h²  — PH`}
         </div>
 
-        <p style={{ marginBottom: '0.6em', marginTop: '-0.2em' }}>
-          <strong>Leaving the plane does not make PH harder</strong> &mdash; the sandwich handles
-          that, and 𝒜 is as free in space as w is in the plane. It makes <strong>rationality</strong>{' '}
-          stop being free: the integral must stay rational, which binds 𝒜 pole by pole.{' '}
-          <span style={{ color: '#64748b' }}>
-            There are half a dozen ways to pay for that. This deck follows two.
-          </span>
+        <p style={{ fontSize: '0.82em', color: '#64748b', marginTop: '-0.35em', marginBottom: '0.7em' }}>
+          P is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
+          radius zero.
         </p>
 
         <p style={{ marginBottom: '0.35em' }}>
@@ -168,7 +165,16 @@ export const slides: SlideDefinition[] = [
       + 'rational PH an IDENTITY -- |n-prime|^2 = 4 u-prime^2 / delta^2 is a perfect square for every '
       + 'u, so n and h are free and there is nothing to solve. In space no representation does that. '
       + 'PH is still free, but the INTEGRAL must stay rational and that binds A pole by pole. '
-      + 'EXACTLY ONE CELL BINDS. That is the thesis and it is worth saying in those words. '
+      + 'EXACTLY ONE CELL BINDS. That is the thesis, and the table is left to say it. An earlier '
+      + 'version spelled it out underneath -- "leaving the plane does not make PH harder, it makes '
+      + 'rationality stop being free" -- and it was cut: a specialist would rather reach that from the '
+      + 'table than be told it, and a paragraph of interpretation under a clean table reads as if the '
+      + 'table could not stand on its own. Say it OUT LOUD instead, if the room needs it. '
+      + 'WHAT WENT WITH IT, and where it went: the line "half a dozen ways to pay for that, this deck '
+      + 'follows two". That was doing a real job -- pre-empting the specialist who spends twenty '
+      + 'minutes wondering whether Pottmann has been heard of. It belongs at the head of section II as '
+      + 'its own slide, where the alternatives can be SHOWN rather than asserted. Until that slide '
+      + 'exists, say the sentence aloud here. '
       + 'THE DENOMINATOR IS WRITTEN "(poles)" ON PURPOSE. The planar generator is w and the spatial '
       + 'denominator is also w in our own documents -- two different objects, one letter, and on this '
       + 'table they would sit side by side. Alpha is taken (the closure gauge angle in section I), so '
