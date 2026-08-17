@@ -150,14 +150,6 @@ export const slides: SlideDefinition[] = [
           </div>
         </div>
 
-        <p style={{ fontSize: '0.9em' }}>
-          <span style={{ color: '#64748b' }}>
-            Circulated for discussion. Where something is <em>known</em> the source is named; where it
-            is <em>ours</em> it says so and how far; where it is <em>measured</em> the number is given
-            with the test that holds it; and the open questions are collected at the end rather than
-            softened along the way.
-          </span>
-        </p>
       </>
     ),
     notes:
@@ -201,9 +193,15 @@ export const slides: SlideDefinition[] = [
       + 'THE THREE SECTIONS map onto the six things worth separating: 2D polynomial, 3D polynomial, '
       + 'the rational frame; then the two ways to build a rational PH curve; then the chart and the '
       + 'optimizer. Six is a list, three is a story, and the six survive as beats inside the three. '
-      + 'THE LAST PARAGRAPH IS A PROMISE and it should be kept on every slide: named sources for what '
-      + 'is known, an honest label for what is ours, a number for what is measured, and the open '
-      + 'questions collected at the end instead of dissolved into the prose.',
+      + 'THE PROMISE PARAGRAPH IS GONE, and it was made redundant rather than dropped. It said the '
+      + 'document is circulated for discussion (the title slide says that), that sources are named and '
+      + 'measurements carry their numbers (the slides do that where it matters, and saying so in '
+      + 'advance is weaker than doing it), and that the open questions are collected at the end -- '
+      + 'which the section list now SHOWS, since III ends on "what is open". A promise the structure '
+      + 'already keeps does not need making. '
+      + 'THE DISCIPLINE STILL HOLDS on every slide: named sources for what is known, an honest label '
+      + 'for what is ours and how far, a number with the test that holds it for what is measured, and '
+      + 'the open questions collected rather than softened along the way.',
   },
   // ---------------------------------------------------------------------------
   // SECTION I — POLYNOMIAL. One equation, one consequence.
