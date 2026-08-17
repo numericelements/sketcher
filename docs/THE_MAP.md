@@ -98,45 +98,70 @@ column's. You do not get to choose "Möbius linear" and "small" separately; the 
 
 ---
 
-## 4. The axis that was missing: μ, and which CLASS each row parametrises
+## 4. μ, and why the warning about it was withdrawn
 
-*Raised by the Lean companion, 2026-08-16, and it changes how a witness may be read.*
+*Raised by the Lean companion 2026-08-16, and settled the same day. Kept in full because the
+withdrawal is more useful than the warning was.*
 
-Differentiate form (9):
+**The observation.** Differentiate form (9):
 
 ```
 r = −2b/α        α b′ − α′ b = μ·(𝒜i𝒜*)        ⟹        r′ = −2 μ·N / α²
 ```
 
-Our spinor model fixes the hodograph as `N/w²`. **The dual's is `μ·N/α²`** — a strictly larger class.
-That μ is the common factor `h` of Dietz–Hoschek–Jüttler, and **it is not generally absorbable**:
+The spinor model fixes the hodograph as `N/w²`; the dual's is `μ·N/α²`. That μ is the common factor
+`h` of Dietz–Hoschek–Jüttler. The concern was that a witness found in the dual might live in a class
+the spinor model does not contain, so C21 would have been asked in a strictly narrower class than the
+answer inhabits.
+
+**Why it does not bite: μ is absorbable.** The argument for the concern was that `𝒜 ↦ s·𝒜` multiplies
+N by `s²`, so only a μ that is already a square can be pushed in — and a non-negative real polynomial
+need only be a *sum of two squares*. But real rescaling is not the only route. Take **c a complex
+polynomial in the i-plane** and set `ℬ = 𝒜·c`. Since c commutes with i,
 
 ```
-𝒜 ↦ s·𝒜   multiplies N by s²
+ℬ i ℬ*  =  𝒜 c i c* 𝒜*  =  𝒜 i 𝒜* · |c|²           |c|² = c₀² + c₁², a sum of TWO squares
 ```
 
-so only a μ that is *already the square of a real polynomial* can be pushed into the spinor. And a
-non-negative real polynomial need only be a **sum of two squares**, not a square. So:
+and every non-negative real univariate polynomial **is** a sum of two squares. So any such μ is
+absorbed by `𝒜 ↦ 𝒜·c`, which is the Hopf gauge acting with a polynomial instead of a constant phase.
+The narrower class is not narrower.
 
-- **μ constant** → the witness transcribes into the spinor model unchanged.
-- **μ non-constant and not a square** → the witness lives in a class the spinor model does not
-  contain, and the question it answers is not the question that was asked.
+**Consequences.** The standing "report μ with any candidate" requirement is **withdrawn**; §7's
+retraction in `RATIONAL_PH_STATE` is *not* reopened on these grounds. What a dual-form candidate does
+need checking for is different and cheap:
 
-**Concrete standing requirement: report μ alongside any candidate.** A witness without its μ cannot
-be transcribed safely.
+```
+isTrulyRational        α ∤ b — already in rationalPHDual, and already planned
+hodograph primitivity  reduce N before reading off the pole / σ pattern, since μ IS absorbable and an
+                       unreduced candidate can wear a σ pattern that its primitive form does not have
+w real                 the denominator must be a real polynomial for the member to be in the class
+```
 
-**And this reopens a retraction.** `RATIONAL_PH_STATE` §7 retracts *"the missing freedom is Kalkan's
-non-constant μ"* on the grounds that *"N is primitive, so there is no common factor to be μ."* The
-Lean side's C6 shows that justification does not generalise. The retraction may still be right for the
-specific N it was about, but its reason is no longer available — and the **mixed cell is exactly where
-one would go looking for a non-constant μ**. Two independent lines arriving at the same reopened
-question is worth the note.
+**And a speculation of mine, refuted.** I had guessed that the conformal row's condition `|N| = h·w`
+*was* the μ freedom under another name — which would have made the disjointness of rows 2 and 7 the
+same fact as C21's narrowness. It is not, and **the circle settles it**: `𝒜 = (1−t) + (1+t)k` has
+`σ = |𝒜|² = 2(1+t²) = 2w`, so `σ = h·w` with h constant and **μ = 1**. σ = h·w happens with no μ at
+all.
 
-**Speculative, flagged as such:** the conformal row's PH condition is `‖p′‖ = h/w`, i.e. `|N| = h·w`
-— which *already carries* a factor of w, the same shape as a non-constant μ. If that is the same
-freedom under another name, the μ axis may be what actually separates rows 2 and 7, and would explain
-why they land on disjoint strata (§13.8's `σ(r) ≠ 0` versus `σ = h·w`). **Not verified.** It is
-cheap to check and would be worth checking before the discussion.
+Measured independently on slide 16's own member (`conformalPHHopf`, pinned in its test file):
+
+```
+‖N‖ = h·w as polynomials       defect 4.6e-14
+A i A* == N          i.e. μ = 1, a sandwich OUTRIGHT      defect 1.9e-12
+|A|² == h·w                                               defect 8.3e-13
+```
+
+So the factor w sits **inside the spinor norm σ**, not outside as a common factor. Two different
+things:
+
+```
+μ            a common factor OUTSIDE the sandwich    — absorbable, hence not a real distinction
+σ = h·w      the sandwich's own spinor is NULL at the poles — the real content of row 7's stratum
+```
+
+The joint statement should not be formalised. The rank-scan method note (§6) is unaffected by any of
+this.
 
 ---
 
