@@ -132,17 +132,19 @@ export const slides: SlideDefinition[] = [
           radius zero.
         </p>
 
-        <p style={{ marginBottom: '0.35em' }}>
-          <strong>I &mdash; Polynomial.</strong> The plane, then space, then why the frame has no
-          choice but to be rational.
+        <p style={{ marginBottom: '0.3em' }}>
+          <strong>I &mdash; Polynomial.</strong> <span style={{ color: '#475569' }}>
+            the plane &nbsp;·&nbsp; space &nbsp;·&nbsp; and why the frame has no choice but to be
+            rational</span>
         </p>
-        <p style={{ marginBottom: '0.35em' }}>
-          <strong>II &mdash; Rational, twice.</strong> The same curves built two ways: integrate the
-          sandwich and pay a residue condition at every pole, or never integrate.
+        <p style={{ marginBottom: '0.3em' }}>
+          <strong>II &mdash; Rational, twice.</strong> <span style={{ color: '#475569' }}>
+            the spinor &mdash; integrate, and its chart &nbsp;·&nbsp; ℝ⁴′¹ &mdash; never integrate,
+            and its solver</span>
         </p>
         <p style={{ marginBottom: '0.55em' }}>
-          <strong>III &mdash; What each one buys.</strong> A chart on one side, a solver on the
-          other, and the gap between them.
+          <strong>III &mdash; The gap.</strong> <span style={{ color: '#475569' }}>
+            where the two do not meet &nbsp;·&nbsp; what is open</span>
         </p>
 
         <p style={{ fontSize: '0.9em' }}>
@@ -1522,18 +1524,29 @@ gap 3.0    M = ( 1, 1.5, 0, 0,  2.005 )   radius² = −1.76   imaginary`}
     type: 'title',
     content: (
       <>
-        <h1>III &mdash; What each one buys</h1>
-        <div className="subtitle" style={{ fontSize: '0.72em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre' }}>
-{`spinor      a chart      — but the price is integration
-conformal   no integration — but a solver, and no chart`}
+        <h1>III &mdash; The gap</h1>
+        <div className="subtitle" style={{ fontSize: '0.66em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre', lineHeight: 1.7 }}>
+{`the chart       needs every pole INVERTIBLE      σ(r) ≠ 0
+the spheres     land where every pole is SINGULAR σ = h·w`}
         </div>
-        <div className="event note" style={{ marginTop: '1.4em' }}>
-          The two cover <em>disjoint</em> strata, so there is nothing to hand a curve across in.
+        <div className="event note" style={{ marginTop: '1.5em' }}>
+          Two <em>disjoint</em> charts are not an atlas &mdash; there is nothing to hand a curve
+          across in.
+        </div>
+        <div className="event note" style={{ marginTop: '0.6em' }}>
+          The region that would touch both is the one neither construction has.
         </div>
       </>
     ),
     notes:
-      'THE ASYMMETRY IS THE POINT OF THIS SECTION. On the spinor side you get genuine COORDINATES -- '
+      'THIS SECTION CHANGED SHAPE, and the reason is worth knowing. It began as "what each one buys" '
+      + '-- a chart on one side, a solver on the other -- which was Eric-s original sixth item. It did '
+      + 'not survive contact with the deck: the chart IS the spinor thread and the solver IS the last '
+      + 'sphere slide, so both tools live inside section II and III had nothing left but a divider and '
+      + 'a question. It is now THE GAP, which is a different KIND of thing from I and II -- the object, '
+      + 'then the two ways to write it, then the frontier -- and it carries the material the meeting is '
+      + 'actually for. '
+      + 'THE ASYMMETRY IS STILL THE WAY IN. On the spinor side you get genuine COORDINATES -- '
       + 'the lambda chart -- but the curve must be integrated, and killing the logarithms costs a '
       + 'residue condition at every pole. On the conformal side nothing is integrated, because the '
       + 'curve is built where it lives; the price is that dragging needs a constrained solver and '
