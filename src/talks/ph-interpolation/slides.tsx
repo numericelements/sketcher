@@ -117,21 +117,22 @@ export const slides: SlideDefinition[] = [
         <h2>Outline</h2>
 
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0.2em 0 0.7em 0.6em' }}>
-{`                       plane                    space
+{`                     plane                        space
 
-     polynomial        r′ = w²                  r′ = 𝒜 i 𝒜*
+   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*      (𝒜 = u + v j)
+                     one complex polynomial       two — and the square root becomes a circle
 
-     rational          r′ = w²/q²               r′ = 𝒜 i 𝒜* / w²`}
+   rational          n and h free — the dual      r′ = 𝒜 i 𝒜* / (poles)²
+                     PH is an IDENTITY            and now 𝒜 is bound`}
         </div>
 
         <p style={{ marginBottom: '0.6em', marginTop: '-0.2em' }}>
+          <strong>Leaving the plane does not make PH harder</strong> &mdash; the sandwich handles
+          that, and 𝒜 is as free in space as w is in the plane. It makes <strong>rationality</strong>{' '}
+          stop being free: the integral must stay rational, which binds 𝒜 pole by pole.{' '}
           <span style={{ color: '#64748b' }}>
-            Across a row, the complex <em>square</em> becomes a quaternion <em>sandwich</em>. Down a
-            column, a denominator arrives &mdash; and with it the only real cost, because a rational
-            function does not integrate to a rational one.{' '}
+            There are half a dozen ways to pay for that. This deck follows two.
           </span>
-          <strong>Or refuse to integrate at all</strong>, and build the curve where Möbius is already
-          linear: <code>⟨P,P⟩ = 0</code> in ℝ⁴′¹.
         </p>
 
         <p style={{ marginBottom: '0.35em' }}>
@@ -159,11 +160,19 @@ export const slides: SlideDefinition[] = [
     ),
     notes:
       'THIRTY SECONDS IS THE BUDGET for this slide, because the deck is read before the meeting. '
-      + 'THE TABLE IS HODOGRAPHS THROUGHOUT, and that uniformity is the point -- every cell is the '
-      + 'same kind of statement, the PH condition. Read ACROSS a row and the complex square becomes a '
-      + 'quaternion sandwich; that is section I. Read DOWN a column and a denominator arrives, which '
-      + 'is the only thing that actually costs anything: PH stays free, but a rational function does '
-      + 'not integrate to a rational one, so the logarithms must be killed pole by pole. '
+      + 'READ THE TOP ROW ACROSS and it says what changes on leaving the plane: ONE complex polynomial '
+      + 'becomes TWO. That is the Hopf form -- A = u + v j -- and it is why the two-valued square root '
+      + 'becomes a CIRCLE of square roots, since (u,v) and (u e^{i theta}, v e^{-i theta}) give the '
+      + 'same hodograph. Section I is that sentence. '
+      + 'READ THE BOTTOM ROW ACROSS and it says what BREAKS. In the plane, Pottmann-s dual makes '
+      + 'rational PH an IDENTITY -- |n-prime|^2 = 4 u-prime^2 / delta^2 is a perfect square for every '
+      + 'u, so n and h are free and there is nothing to solve. In space no representation does that. '
+      + 'PH is still free, but the INTEGRAL must stay rational and that binds A pole by pole. '
+      + 'EXACTLY ONE CELL BINDS. That is the thesis and it is worth saying in those words. '
+      + 'THE DENOMINATOR IS WRITTEN "(poles)" ON PURPOSE. The planar generator is w and the spatial '
+      + 'denominator is also w in our own documents -- two different objects, one letter, and on this '
+      + 'table they would sit side by side. Alpha is taken (the closure gauge angle in section I), so '
+      + 'the honest fix is the word. Section II says it with the letter and labels it there. '
       + 'AN EARLIER VERSION OF THIS SLIDE PUT x = C A^{-1} in the bottom-right cell -- the H P^1 '
       + 'column from core/sp11RationalPH. It is a real object and Moebius is linear on it, but the '
       + 'deck never teaches it, so the outline was promising a representation that no slide delivers. '
@@ -520,7 +529,7 @@ export const slides: SlideDefinition[] = [
       <>
         <h1>II &mdash; Rational, twice</h1>
         <div className="subtitle" style={{ fontSize: '0.66em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre', lineHeight: 1.7 }}>
-{`r′ = 𝒜 i 𝒜* / w²     integrate — and kill a logarithm at every pole
+{`r′ = 𝒜 i 𝒜* / w²     integrate — and kill a logarithm at every pole   (w = the poles)
 ⟨P,P⟩ = 0            never integrate — build it where Möbius is linear`}
         </div>
         <div className="event note" style={{ marginTop: '1.5em' }}>

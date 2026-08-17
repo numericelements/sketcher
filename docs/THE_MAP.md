@@ -7,6 +7,12 @@ that a choice of representation is made against the alternatives instead of by h
 
 *Every row names its file. Where a claim is inferred rather than measured it says so.*
 
+**One notation warning, because it has already bitten.** `w` means two different things in this
+subject and they can end up side by side: in the plane it is the **generator**, `r′ = w²`; in space
+it is the **denominator**, `r′ = 𝒜i𝒜*/w²` — the pole polynomial `∏(t − r_k)`. The repo uses `w` for
+the denominator throughout, and Kalkan's form (9) calls it `α` (which is *also* taken here, as the
+closure gauge angle). The deck's outline sidesteps the whole thing by writing `(poles)`.
+
 ---
 
 ## 0. The shape of the whole thing, in four cells
@@ -64,7 +70,7 @@ nothing is built on it here, so it gets no row.)*
 
 ---
 
-## 2. Space, polynomial
+## 2. Space, polynomial — one row, two notations
 
 ```
 r′ = 𝒜 i 𝒜*        |r′| = |𝒜|² = σ        𝒜 FREE, integration free
@@ -74,6 +80,32 @@ The sandwich makes the speed a polynomial and costs nothing; a polynomial always
 polynomial. The only structure is the **gauge**: `𝒜 ↦ 𝒜·e^{iθ}` moves no curve, so the preimages of a
 given hodograph form a circle rather than the plane's two points. Farouki–Sakkalis (1994); the
 spin-representation view is Choi, Lee & Moon (2002).
+
+**The Hopf form is this row in complex coordinates, not another row.** Write `𝒜 = u + v j` with u, v
+complex polynomials, expand the sandwich, and out comes the classical Hopf triple
+(`conformalPHHopf.ts`, where `u†` is u with its coefficients conjugated):
+
+```
+N₁ = u u† − v v†        N₂ = 2 Im(uv)        N₃ = −2 Re(uv)        ‖N‖ = |𝒜|² = u u† + v v†
+```
+
+It carries through to the rational rows unchanged — `c′ = Hopf(u,v)/w²` — and it earns its keep three
+times over:
+
+- **It makes the plane→space step exact.** The plane has ONE complex polynomial, `r′ = w²`; space has
+  TWO. And the square root changes character with it: `±w` becomes a circle, because
+  `(u, v) ↦ (u e^{iθ}, v e^{−iθ})` leaves the hodograph alone. That substitution *is* `𝒜 ↦ 𝒜e^{iθ}`,
+  written where you can see it. So section I's whole story — "the square becomes a sandwich and the
+  square root becomes a circle of square roots" — is: **one complex polynomial becomes two, and their
+  common phase drops out.**
+- **It is the route BACKWARDS.** The sandwich takes 𝒜 to the hodograph; recovering 𝒜 from a hodograph
+  is a sum-of-two-squares factorisation, and that only works in these coordinates: `U = u u†`,
+  `V = v v†`, `G = u v`, keep one root of each conjugate pair, try all `2^{deg u}` selections and
+  verify by multiplying out. `hopfForm`. The quaternion notation states the forward map; the complex
+  notation inverts it.
+- **It makes the μ absorption transparent** (§4). `𝒜 ↦ 𝒜·c` with c complex in the i-plane reads as
+  `(u, v) ↦ (u c, v c̄)`, with `μ = |c|² = c c̄`. In quaternion notation you must know that c commutes
+  with i; here it is multiplication.
 
 ---
 
