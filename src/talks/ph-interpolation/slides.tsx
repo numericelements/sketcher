@@ -222,7 +222,7 @@ export const slides: SlideDefinition[] = [
 
 PH          xᵀ Qⱼ x = bⱼ               2ᵏ⁻¹
 
-in space    the same forms over ℍ      Tᵏ⁻¹
+in space    the same forms over ℍ      a family, not a count
 
                                        k = deg 𝒜 + 1`}
         </div>
@@ -251,11 +251,29 @@ in space    the same forms over ℍ      Tᵏ⁻¹
       + 'planarPHInterpolantCount.test.ts. Bezout is an upper bound, so finding 2^{k-1} distinct roots '
       + 'PROVES the count for that instance rather than suggesting it. The septic case had not been '
       + 'computed anywhere in this repo before. '
-      + 'T^{k-1} IS WEAKER AND SAY SO IF ASKED. The DIMENSION k-1 is arithmetic in space too: 4k '
-      + 'unknowns, less 1 for the gauge circle, less 3k conditions, leaves k-1. But that the family is '
-      + 'a TORUS -- a product of circles -- is topology, and it is verified only at k = 2 (the fibre is '
-      + 'the circle Z_0 exp(phi i), closed form on slide 7) and k = 3 (a torus, one dial per end, slide '
-      + '8). At k = 4 the dimension is 3 and the topology is unknown. '
+      + 'THE SPACE ROW CARRIES NO FORMULA, AND THAT IS DELIBERATE -- an earlier version said T^{k-1} '
+      + 'and it was WRONG. Two reasons, both worth knowing so it is not re-derived. '
+      + 'FIRST, THE DIMENSION DEPENDS ON THE DATA, not on k alone. With k+1 POINTS the surplus really '
+      + 'is k-1 (slide 7: ten degrees of freedom, nine conditions, a curve). With C1 HERMITE the nine '
+      + 'conditions do NOT grow with k, so the surplus is 4k - 10 (slide 8: twelve free, rank nine, a '
+      + 'torus at k = 3). Those two agree at k = 3 and nowhere else, and I connected slides 7 and 8 '
+      + 'with a formula that only worked because of that coincidence. RATIONAL_PH_STATE section 5 '
+      + 'already had the refutation in a table: at the degree-8 row, 16 free, rank 9, gives SIX, where '
+      + 'k-1 would predict three. '
+      + 'SECOND, THE THREE CIRCLES ARE CONDITIONS, NOT COEFFICIENTS. The (S1)^3/S1 derivation gets its '
+      + 'circles from the three Hermite conditions -- c-prime(0), c-prime(1), and closure -- so at '
+      + 'k = 4 there are still three of them and four coefficients, and "k links, one angle each" has '
+      + 'no fourth angle to offer. '
+      + 'AND THE TOPOLOGY WAS ALREADY WALKED BACK ONCE, section 8: at degree 6 the family is "a torus '
+      + 'OR A KLEIN BOTTLE -- orientability was not measured, so the docs and the slide say fibred in '
+      + 'circles over a circle and stop". Putting T back on a divider would undo a caution that was '
+      + 'installed on purpose. '
+      + 'WHAT IS SAFE TO SAY: the plane gives a COUNT and space gives a FAMILY. That holds in every '
+      + 'case measured, and it is the contrast the section actually demonstrates. '
+      + '2^{k-1} IS SAFE, with one qualification to state if pressed: it is the count for a SQUARE '
+      + 'system of k quadratic conditions on a k-coefficient generator -- so the problem scales with k '
+      + '(three points for the cubic, four for the quintic, five for the septic). For FIXED C1 Hermite '
+      + 'data the planar system stops being square too, at k = 4. '
       + 'WHAT x IS: the generator-s coefficient vector. Each interpolation condition is a QUADRATIC '
       + 'FORM in it, because the curve is the SQUARE of the unknown -- prescribing points squares the '
       + 'equations. That is the whole price of PH and it needs no introduction to state. '

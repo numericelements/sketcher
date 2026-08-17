@@ -22,10 +22,20 @@
 // so finding 2^{k−1} distinct roots PROVES the count for that instance. Measured below at k = 2, 3
 // and 4 — the last being the septic, where nothing in this repo had been before.
 //
-// WHAT IS NOT SETTLED HERE. In SPACE the same substitution gives 4k − 1 − 3k = k−1 dimensions of
-// freedom, so the family has dimension k−1 — that much is arithmetic. Whether it is a TORUS T^{k−1}
-// is a separate, topological claim, verified only at k = 2 (the fibre is the circle Z₀·exp(φi)) and
-// k = 3 (a torus, one dial per end). At k = 4 the dimension is 3 and the topology is unknown.
+// THE SCOPE, and it matters: this is the count for a SQUARE system — k quadratic conditions on a
+// k-coefficient generator — so the PROBLEM SCALES WITH k (three points for the cubic, four for the
+// quintic, five for the septic). For FIXED data the system stops being square: planar C¹ Hermite has
+// 8 real conditions whatever k is, so at k = 4 it is already underdetermined and there is no count at
+// all.
+//
+// AND THE SPATIAL ANALOGUE IS NOT k−1. An earlier version of this header claimed 4k − 1 − 3k = k−1
+// dimensions in space, which silently assumed the conditions grow as 3k. They only do for the
+// point-interpolation family (k+1 points): there the surplus really is k−1. For C¹ Hermite the nine
+// conditions do NOT grow with k, so the surplus is 4k − 10. The two agree at k = 3 and nowhere else —
+// and `RATIONAL_PH_STATE` §5 already measured the disagreement: the degree-8 row gives 16 free,
+// rank 9, hence SIX, where k−1 predicts three. The topology is weaker still: §8 records that at
+// degree 6 the family is "a torus OR A KLEIN BOTTLE — orientability was not measured", so the docs
+// say "fibred in circles over a circle" and stop.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { leastSquares } from '../linalg'
