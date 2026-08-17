@@ -231,6 +231,40 @@ not missing from the mathematics; they are missing from the chart. *"Chart σ = 
 3. **Is the sphere polygon new?** Two reading sessions found nothing, which is "not found", not "new".
    Choi, Lee & Moon is the paper to settle it against.
 
+### Step 0 is DONE — the two charts are now disjoint by MEASUREMENT, not only by construction
+
+`__tests__/chartsAreDisjoint.test.ts` (2026-08-17). Until now the rows were known to be disjoint
+because of what each construction *does* — row 2 divides by σ(r) so needs it nonzero; row 7 satisfies
+‖N‖ = h·w so kills σ at every root of w. That is an argument about the recipes, not a measurement of
+the objects, and the two σ's were not even being computed the same way.
+
+One scale-free indicator now compares them like with like, **per pole**:
+
+```
+    softness(r) = |σ(r)| / ‖𝒜(r)‖²  ∈ [0,1]      σ(r) = det 𝒜(r) = a²+b²+c²+d² over ℂ
+                                                  ‖𝒜(r)‖² = |a|²+|b|²+|c|²+|d|²
+
+    0   rank 1 — 𝒜(r) singular but NONZERO: the chart's hole      SOFT
+    1   as far from singular as a pole can be                     HARD
+```
+
+Dividing by the Hermitian norm is what makes it scale-free and what separates rank 1 from the degree
+drop, since ‖𝒜(r)‖² cannot vanish unless 𝒜(r) = 0.
+
+```
+conformal sextic   all SIX poles      softness ≈ 2e-11    ‖𝒜(r)‖² from 7.4e-2 to 15
+λ-chart members    (3,·) and (4,·)    softness 0.69 … 0.99
+```
+
+Ten orders of magnitude with **nothing in between**, and the conformal poles are genuinely rank 1
+rather than a degree drop in disguise. Two charts that do not overlap are not an atlas — which is
+precisely why the mixed cell matters.
+
+**What this does NOT show.** Every member measured is *uniformly* soft or *uniformly* hard, which is
+exactly what each construction guarantees. It is not evidence that the mixed cell is empty: neither
+construction can build one, so neither can look for one. That still needs the continuation below —
+and the indicator above is the per-pole probe it must log.
+
 ### How to run question 1 — TODO, and the Lean side has narrowed it
 
 **First, a proved constraint on where the mixed cell can be** (`not_mixedPoles_of_conjugate_pair`,
@@ -258,7 +292,10 @@ stage 2   m ≥ 3    the real test. Success answers C21 CONSTRUCTIVELY: witnesse
                    the path rather than having to be hunted.
 
 endpoints  hard  from rationalPHComplexPoleSpatial — one exists at (3,2), |σ(r)|/scale ≈ 1.1
-           soft  from rationalPHFreeLambda, which never divides
+           soft  NOT from rationalPHFreeLambda — it takes REAL roots, and at a real pole σ(r) is a
+                 sum of four real squares, so σ(r) = 0 forces 𝒜(r) = 0 (a degree drop, not rank 1);
+                 the module returns null there. The soft endpoint must come from the CONFORMAL row,
+                 which lands on σ = h·w with 𝒜(r) ≠ 0 — verified above.
            and VERIFY each endpoint's stratum by evaluating σ at the poles, rather than
            trusting which module produced it
 ```
