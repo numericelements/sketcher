@@ -121,7 +121,17 @@ const LEFT_WORLD = boxOf([
   ...LEFT_START,
 ])
 
-const RIGHT_SEED = septicInterpolants(RIGHT_START)
+/**
+ * Fairest first, so the deck opens on the curve the classical selector would choose
+ * rather than on whichever homotopy path happened to finish first. Sorted ONLY here and
+ * on a global re-solve: during a drag the branches are carried by continuation, which
+ * keeps identity by array position, and re-sorting each frame would make the selection
+ * hop between curves whenever two of them traded places in R.
+ */
+const byFairnessBranch = (a: SepticBranch, b: SepticBranch): number =>
+  byFairness(a.solution, b.solution)
+
+const RIGHT_SEED = [...septicInterpolants(RIGHT_START)].sort(byFairnessBranch)
 const RIGHT_WORLD = boxOf(RIGHT_SEED.flatMap((b) => sampleCurve(b.solution.controlPoints, 120)))
 
 const pathOf = (vp: Viewport, cps: readonly Complex[], n = 220): string => {
@@ -207,7 +217,7 @@ export default function PlanarSepticFigure() {
         branches:
           fresh.length === prev.branches.length
             ? trackOrder(fresh, prev.branches, branchCost)
-            : fresh,
+            : [...fresh].sort(byFairnessBranch),
       }
     })
 
