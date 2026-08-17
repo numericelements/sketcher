@@ -231,15 +231,60 @@ not missing from the mathematics; they are missing from the chart. *"Chart σ = 
 3. **Is the sphere polygon new?** Two reading sessions found nothing, which is "not found", not "new".
    Choi, Lee & Moon is the paper to settle it against.
 
-**How to run question 1, and this is a method note worth keeping.** A search can only answer *yes* —
-an empty search teaches nothing. The dual weakens that but does not remove it. The genuine
-improvement is that **row 4's system is linear**, so the solution dimension is computable exactly as a
-function of `(α, 𝒜)` rather than sampled. So:
+### How to run question 1 — TODO, and the Lean side has narrowed it
 
-> **Scan the rank across a family of (α, 𝒜). Do not hunt for a hit.**
+**First, a proved constraint on where the mixed cell can be** (`not_mixedPoles_of_conjugate_pair`,
+Lean companion 2026-08-17): σ has REAL coefficients, so σ(r̄) = conj(σ(r)) — **a conjugate pair of
+poles is both soft or both hard.** It needed a new lemma along the way, `pconj_eval` at an arbitrary
+complex argument (generalising the real-argument version), which is worth having independently.
 
-A negative result then upgrades from *"we did not find one"* to *"the rank is deficient across this
-family"*, which is a real statement. And whatever comes back, **report μ with it** (§4).
+The consequence is sharp and it restructures the experiment:
+
+```
+m = 2   one conjugate pair   →   MIXED IS IMPOSSIBLE — proved, not merely unobserved
+m ≥ 3   e.g. a real pole beside a pair   →   the first place mixed can occur
+```
+
+So an m = 2 run is a **control**, not a hopeful first attempt. If it fails, the machinery is broken
+and the geometry is not implicated; only at m ≥ 3 does a failure say anything at all.
+
+**The experiment they propose, in preference to a rank scan.** Two-stage continuation in
+`rationalPHVariety` (its analytic Jacobian and `continuationPath`), between a HARD endpoint and a
+SOFT endpoint at matched (n, m):
+
+```
+stage 1   m = 2    control. Predicted to succeed and never to enter the mixed cell — proved.
+stage 2   m ≥ 3    the real test. Success answers C21 CONSTRUCTIVELY: witnesses appear along
+                   the path rather than having to be hunted.
+
+endpoints  hard  from rationalPHComplexPoleSpatial — one exists at (3,2), |σ(r)|/scale ≈ 1.1
+           soft  from rationalPHFreeLambda, which never divides
+           and VERIFY each endpoint's stratum by evaluating σ at the poles, rather than
+           trusting which module produced it
+```
+
+**Log per pole, never as a norm.** The mixed signature is *one pole at σ ≈ 0 while another sits at
+O(1)* — a norm over the poles hides exactly that. Record pole locations, σ at each, Jacobian rank and
+degree.
+
+**The caveat that decides whether a stage-2 negative means anything.** Continuation on a SINGULAR
+variety is where predictor–corrector falls off the path, and `RATIONAL_PH_STATE` §11.4 says every
+member of interest is singular. Their own §7 retired a witness-set computation for path-failure
+reasons, and cites the need for certified endgames that report path failures. Without one, *"the path
+broke"* and *"the solver broke"* are the same observation — so a stage-2 failure is uninterpretable
+unless the endgame can tell them apart.
+
+**Why this over the rank scan.** C21 is a proxy for *can you drag between charts*; the continuation
+tests that directly, and **a successful path IS the dragging path**. The rank scan says whether the
+cell is non-empty but not whether it is positioned so you can travel through it. They are
+complementary; this one is cheaper and can only produce a yes, which — by the asymmetry argument
+below — is the outcome worth chasing first.
+
+**The older method note still stands for the rank scan itself.** A search can only answer *yes*; an
+empty search teaches nothing. What row 4 improves is that its system is **linear**, so the solution
+dimension is computable exactly as a function of (α, 𝒜) rather than sampled — *scan the rank across a
+family, do not hunt for a hit* — and a negative then upgrades from "we did not find one" to "the rank
+is deficient across this family".
 
 ---
 
