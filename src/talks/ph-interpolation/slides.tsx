@@ -217,18 +217,39 @@ export const slides: SlideDefinition[] = [
     content: (
       <>
         <h1>I &mdash; Polynomial</h1>
-        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
-          r′ = w² &nbsp;&nbsp;⟶&nbsp;&nbsp; r′ = 𝒜 i 𝒜*
-        </div>
-        <div className="event note" style={{ marginTop: '1.5em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.8, textAlign: 'left', display: 'inline-block' }}>
-{`one complex polynomial   →   two,  𝒜 = u + v j
-±w                       →   a circle:  (u, v) ~ (u e^{iθ}, v e^{−iθ})
-|e|² ≡ 1                 →   no moving unit frame is polynomial`}
+        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
+{`Bézier      c  =  Σ Bᵢ(t) Pᵢ           linear in the Pᵢ              one interpolant
+
+PH          c  =  c₀ + ∫ w²            QUADRATIC in w                two
+
+in space    c  =  c₀ + ∫ 𝒜 i 𝒜*        quadratic, and 𝒜 ~ 𝒜e^{iθ}    a family`}
         </div>
       </>
     ),
     notes:
-      'THE WHOLE SECTION IN TWO LINES. In the plane the hodograph is a complex SQUARE and the square '
+      'THE SECTION IS THREE ROWS AND THEY ARE THE THREE SLIDES THAT FOLLOW. Read the middle column: '
+      + 'linear, quadratic, quadratic-with-a-circle. Read the right one: one, two, a family. That is '
+      + 'the arc of section I, predicted before it is shown. '
+      + 'WHY QUADRATIC, and it needs no introduction with this audience: the unknown is the GENERATOR '
+      + 'and the curve is its SQUARE, so prescribing points squares the equations. Concretely for the '
+      + 'planar PH cubic through three points -- c(t) - c(0) = A(t)w0^2 + B(t)w0 w1 + C(t)w1^2 with '
+      + 'A, B, C REAL. Substituting w1 = r w0 factors out w0^2 and leaves ONE complex quadratic in r, '
+      + 'hence exactly two roots, and the gauge w -> -w fixes both q and r so it does not merge them. '
+      + 'Verified in phCubic.test.ts across many data sets. '
+      + 'THE COUNTS ARE MATCHED, and this is the point of putting the Bezier row first: both objects '
+      + 'have SIX real degrees of freedom and three interpolation points impose SIX real conditions. '
+      + 'Both square systems. One is linear and has one solution; the other is quadratic and has two. '
+      + 'Nothing about PH is harder to state than that. '
+      + 'THE THIRD ROW IS THE ONE THAT SURPRISES. In space the gauge A -> A e^{i theta} is a whole '
+      + 'CIRCLE rather than the plane-s two-fold w -> -w, and that one missing dimension is why the '
+      + 'plane gives a COUNT and space gives a FAMILY -- slide 7 a curve, slide 8 a torus. '
+      + 'WHAT THIS SLIDE USED TO SAY, so it is not restored by accident: two sentences, "the square '
+      + 'becomes a sandwich and the square root becomes a circle of square roots", and "|e|^2 = 1 '
+      + 'forces the leading coefficient to vanish, so a moving unit frame can never be polynomial". '
+      + 'Both were shaped to sound good rather than to be checked. The frame argument is not lost -- '
+      + 'slide 10 makes the positive version at the point of use: the frame is A k A* over sigma, and '
+      + 'RATIONAL because sigma = |A|^2 is a polynomial. Say it there, not here. '
+      + 'OLD NOTE, KEPT FOR THE FRAME SECTION. In the plane the hodograph is a complex SQUARE and the square '
       + 'root is two-valued. In space it is a quaternion SANDWICH and the preimages form a CIRCLE -- '
       + 'the Hopf gauge A -> A e^{i theta} moves no curve. That one change of algebra is what makes '
       + 'the interpolation counts jump and what puts a free angle in every frame. '
