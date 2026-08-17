@@ -220,12 +220,10 @@ export const slides: SlideDefinition[] = [
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
           r′ = w² &nbsp;&nbsp;⟶&nbsp;&nbsp; r′ = 𝒜 i 𝒜*
         </div>
-        <div className="event note" style={{ marginTop: '1.6em' }}>
-          The square becomes a sandwich, and the square root becomes a <em>circle</em> of square roots.
-        </div>
-        <div className="event note" style={{ marginTop: '0.6em' }}>
-          And |e|² ≡ 1 forces the leading coefficient to vanish, so a moving unit frame can never be
-          polynomial &mdash; rational is not a choice.
+        <div className="event note" style={{ marginTop: '1.5em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.8, textAlign: 'left', display: 'inline-block' }}>
+{`one complex polynomial   →   two,  𝒜 = u + v j
+±w                       →   a circle:  (u, v) ~ (u e^{iθ}, v e^{−iθ})
+|e|² ≡ 1                 →   no moving unit frame is polynomial`}
         </div>
       </>
     ),
