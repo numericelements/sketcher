@@ -132,16 +132,22 @@ export const slides: SlideDefinition[] = [
           radius zero.
         </p>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.78em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0 0 0.7em 0.6em' }}>
-{`   I    Polynomial        1  the plane
-                          2  space
-                          3  why the frame has no choice but to be rational
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.6em', rowGap: '0.5em', margin: '0.1em 0 0.8em 0.4em', lineHeight: 1.45 }}>
+          <div><strong>I &mdash; Polynomial</strong></div>
+          <div style={{ color: '#475569' }}>
+            the plane<br />space<br />rational frame
+          </div>
 
-   II   Rational, twice   1  the spinor — integrate, and its chart
-                          2  ℝ⁴′¹ — never integrate, and its solver
+          <div><strong>II &mdash; Rational, twice</strong></div>
+          <div style={{ color: '#475569' }}>
+            the spinor &mdash; integrate, and its chart<br />
+            ℝ⁴′¹ &mdash; never integrate, and its solver
+          </div>
 
-   III  The gap           1  where the two do not meet
-                          2  what is open`}
+          <div><strong>III &mdash; The gap</strong></div>
+          <div style={{ color: '#475569' }}>
+            where the two do not meet<br />what is open
+          </div>
         </div>
 
         <p style={{ fontSize: '0.9em' }}>
