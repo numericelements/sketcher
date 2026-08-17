@@ -119,7 +119,7 @@ export const slides: SlideDefinition[] = [
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0.2em 0 0.7em 0.6em' }}>
 {`                     plane                        space
 
-   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*
+   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*,   𝒜 = u + v j
                      one complex polynomial       two complex polynomials
 
    rational          n and h free — the dual      integrate:  r′ = 𝒜 i 𝒜* / (poles)²
@@ -160,7 +160,14 @@ export const slides: SlideDefinition[] = [
       + 'READ THE TOP ROW ACROSS and it says what changes on leaving the plane: ONE complex polynomial '
       + 'becomes TWO. That is the Hopf form -- A = u + v j -- and it is why the two-valued square root '
       + 'becomes a CIRCLE of square roots, since (u,v) and (u e^{i theta}, v e^{-i theta}) give the '
-      + 'same hodograph. Section I is that sentence. '
+      + 'same hodograph. Note the phases are OPPOSITE in the pair, which is what a common phase in the '
+      + 'quaternion looks like from here. Section I is that sentence. '
+      + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own convention: '
+      + 'Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls the complex pair '
+      + 'alpha, beta. Ours are their alpha and beta. The line under the equation says "two complex '
+      + 'polynomials" for exactly this reason -- and alpha was not available as a name, being the '
+      + 'closure gauge angle later in section I. If someone reads u and v as two of four reals and '
+      + 'asks where the other two went, that is the confusion, and it is answered in one sentence. '
       + 'READ THE BOTTOM ROW ACROSS and it says what BREAKS. In the plane, Pottmann-s dual makes '
       + 'rational PH an IDENTITY -- |n-prime|^2 = 4 u-prime^2 / delta^2 is a perfect square for every '
       + 'u, so n and h are free and there is nothing to solve. In space no representation does that. '
