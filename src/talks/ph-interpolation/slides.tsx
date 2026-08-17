@@ -116,7 +116,7 @@ export const slides: SlideDefinition[] = [
       <>
         <h2>Outline</h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.6em', rowGap: '0.5em', margin: '0.1em 0 0.8em 0.4em', lineHeight: 1.45 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.25em 0 1.1em 0.3em', lineHeight: 1.4, fontSize: '1.18em' }}>
           <div><strong>I &mdash; Polynomial</strong></div>
           <div style={{ color: '#475569' }}>
             the plane<br />space<br />rational frame
@@ -134,7 +134,7 @@ export const slides: SlideDefinition[] = [
           </div>
         </div>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0.1em 0 0.6em 0.6em' }}>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.1em 0 0.5em 0.6em', color: '#475569' }}>
 {`                     plane                        space
 
    polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*,   𝒜 = u + v j
@@ -145,7 +145,7 @@ export const slides: SlideDefinition[] = [
                                                               ⟨P′,P′⟩ = h²  — PH`}
         </div>
 
-        <p style={{ fontSize: '0.82em', color: '#64748b', marginTop: '-0.35em', marginBottom: '0.7em' }}>
+        <p style={{ fontSize: '0.72em', color: '#64748b', marginTop: '-0.25em', marginBottom: '0.5em' }}>
           P is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
           radius zero.
         </p>
