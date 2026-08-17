@@ -218,17 +218,33 @@ export const slides: SlideDefinition[] = [
       <>
         <h1>I &mdash; Polynomial</h1>
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
-{`Bézier      A x = b                        one
+{`Bézier      A x = b                    one
 
-PH          xᵀ Qⱼ x = bⱼ ,   j = 1 … k     2ᵏ,  halved by  x ~ −x     two, then four
+PH          xᵀ Qⱼ x = bⱼ               2ᵏ⁻¹
 
-in space    the same forms,  k < dim x     a family                   14 − 12 = 2`}
+in space    the same forms over ℍ      Tᵏ⁻¹
+
+                                       k = deg 𝒜 + 1`}
         </div>
       </>
     ),
     notes:
       'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
+      + 'WHAT k IS, because it will be asked: the number of COEFFICIENTS OF THE GENERATOR, not the '
+      + 'curve degree and not the curve-s control points. A PH curve of degree n has a generator of '
+      + 'degree (n-1)/2, so k = (n+1)/2. Cubic: w linear, k = 2. Quintic: w quadratic, k = 3. And '
+      + 'because the planar system is SQUARE, k is also the number of quadratic equations -- which is '
+      + 'why it sets the count. '
+      + 'THE TWO EXPONENTS ARE THE SAME MINUS ONE, and it is the gauge both times: in the plane divide '
+      + '2^k by the two-element group w ~ -w; in space quotient by the circle. Same exponent, '
+      + 'different group. Measured at both values: k = 2 gives two planar interpolants and, in space, '
+      + 'the fibre is the circle Z0 exp(phi i) -- slide 7 has the closed form. k = 3 gives four, and a '
+      + 'TORUS with one dial per end (phi_0, phi_2) -- slide 8. '
+      + 'THE HONEST STATUS OF THE FORMULAS: 2^{k-1} and T^{k-1} are confirmed at k = 2 and k = 3, '
+      + 'which is a pattern with two data points, not a theorem. k = 4 (the septic) is an '
+      + 'extrapolation and has not been checked here or looked up. Say "measured at cubic and quintic" '
+      + 'if pressed, and do not claim the general case. '
       + 'WHAT x IS: the generator-s coefficient vector. Each interpolation condition is a QUADRATIC '
       + 'FORM in it, because the curve is the SQUARE of the unknown -- prescribing points squares the '
       + 'equations. That is the whole price of PH and it needs no introduction to state. '
