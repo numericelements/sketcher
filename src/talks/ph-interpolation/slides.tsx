@@ -116,22 +116,6 @@ export const slides: SlideDefinition[] = [
       <>
         <h2>Outline</h2>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0.2em 0 0.7em 0.6em' }}>
-{`                     plane                        space
-
-   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*,   𝒜 = u + v j
-                     one complex polynomial       two complex polynomials
-
-   rational          n and h free — the dual      integrate:  r′ = 𝒜 i 𝒜* / (poles)²
-                     PH is an IDENTITY            or don't:   ⟨P,P⟩ = 0     — points
-                                                              ⟨P′,P′⟩ = h²  — PH`}
-        </div>
-
-        <p style={{ fontSize: '0.82em', color: '#64748b', marginTop: '-0.35em', marginBottom: '0.7em' }}>
-          P is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
-          radius zero.
-        </p>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.6em', rowGap: '0.5em', margin: '0.1em 0 0.8em 0.4em', lineHeight: 1.45 }}>
           <div><strong>I &mdash; Polynomial</strong></div>
           <div style={{ color: '#475569' }}>
@@ -150,10 +134,30 @@ export const slides: SlideDefinition[] = [
           </div>
         </div>
 
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8em', whiteSpace: 'pre', lineHeight: 1.6, margin: '0.1em 0 0.6em 0.6em' }}>
+{`                     plane                        space
+
+   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*,   𝒜 = u + v j
+                     one complex polynomial       two complex polynomials
+
+   rational          n and h free — the dual      integrate:  r′ = 𝒜 i 𝒜* / (poles)²
+                     PH is an IDENTITY            or don't:   ⟨P,P⟩ = 0     — points
+                                                              ⟨P′,P′⟩ = h²  — PH`}
+        </div>
+
+        <p style={{ fontSize: '0.82em', color: '#64748b', marginTop: '-0.35em', marginBottom: '0.7em' }}>
+          P is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
+          radius zero.
+        </p>
+
       </>
     ),
     notes:
       'THIRTY SECONDS IS THE BUDGET for this slide, because the deck is read before the meeting. '
+      + 'THE SECTIONS COME FIRST because this is an OUTLINE -- what is in the document and how it is '
+      + 'organised. The map underneath is the intellectual frame, and it used to sit on top, which '
+      + 'meant a reader met eight lines of equations before learning what they were reading. Structure '
+      + 'leads; the mathematics supports. '
       + 'READ THE TOP ROW ACROSS and it says what changes on leaving the plane: ONE complex polynomial '
       + 'becomes TWO. That is the Hopf form -- A = u + v j -- and it is why the two-valued square root '
       + 'becomes a CIRCLE of square roots, since (u,v) and (u e^{i theta}, v e^{-i theta}) give the '
