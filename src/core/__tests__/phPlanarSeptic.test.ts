@@ -7,6 +7,7 @@ import { type Complex, csub, cmul, cdiv, cscale, cnorm } from '../complex'
 import {
   type Spinor4,
   planarSepticFromControlPoints,
+  planarSepticFromSplitControlPoints,
   controlPointsOf,
   bezierAt,
   arcLengthOf,
@@ -103,6 +104,80 @@ describe('planar septic — the control-point cascade', () => {
       { re: 1, im: 0 }, { re: 1, im: 0 }, { re: 1, im: 0 }, { re: 1, im: 0 },
     ]
     for (const n of hodographCoefficients(w)) expect(dist(n, { re: 1, im: 0 })).toBeLessThan(1e-12)
+  })
+})
+
+describe('planar septic — the SPLIT prescription P₀P₁P₂ P₆P₇', () => {
+  const seedPolygon = (): Complex[] => {
+    const w: Spinor4 = [
+      { re: 1.5, im: 0 }, { re: 1.2, im: 1.0 }, { re: 1.3, im: -0.9 }, { re: 1.5, im: 0.2 },
+    ]
+    const cps = controlPointsOf(w, { re: -2.6, im: -0.15 })
+    return [cps[0], cps[1], cps[2], cps[6], cps[7]]
+  }
+
+  it('four curves, each honouring all five prescribed control points', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const rng = mulberry(seed * 6151 + 3)
+      const P: Complex[] = [0, 1, 2, 3, 4].map(() => ({ re: 5 * rng() - 2.5, im: 4 * rng() - 2 }))
+      const sols = planarSepticFromSplitControlPoints(P)
+      expect(sols.length).toBe(4)
+      for (const s of sols) {
+        const idx = [0, 1, 2, 6, 7]
+        idx.forEach((k, m) => expect(dist(s.controlPoints[k], P[m])).toBeLessThan(1e-7))
+      }
+    }
+  })
+
+  it('the four are genuinely distinct curves', () => {
+    const sols = planarSepticFromSplitControlPoints(seedPolygon())
+    for (let i = 0; i < 4; i++) {
+      for (let j = i + 1; j < 4; j++) {
+        const sep = Math.max(...sols[i].controlPoints.map((p, k) => dist(p, sols[j].controlPoints[k])))
+        expect(sep).toBeGreaterThan(1e-3)
+      }
+    }
+  })
+
+  it('the two w₂-branches are ISOMETRIC — equal arc length, different shape', () => {
+    // Not a coincidence: 2a·k = G₂₂·B identically, where k is the arc-length gradient in
+    // w₂ and B the quadratic's linear coefficient. Checked over many configurations.
+    for (let seed = 1; seed <= 40; seed++) {
+      const rng = mulberry(seed * 2749 + 17)
+      const P: Complex[] = [0, 1, 2, 3, 4].map(() => ({ re: 5 * rng() - 2.5, im: 4 * rng() - 2 }))
+      const sols = planarSepticFromSplitControlPoints(P)
+      if (sols.length !== 4) continue
+      // The solver emits the pairs consecutively: (w₃ = +√N₆, ±), then (w₃ = −√N₆, ±).
+      for (const [i, j] of [[0, 1], [2, 3]]) {
+        const rel = Math.abs(sols[i].arcLength - sols[j].arcLength) / sols[i].arcLength
+        expect(rel).toBeLessThan(1e-9)
+        // …and they are NOT the same curve.
+        const sep = Math.max(...sols[i].controlPoints.map((p, k) => dist(p, sols[j].controlPoints[k])))
+        expect(sep).toBeGreaterThan(1e-6)
+      }
+    }
+  })
+
+  it('is far better conditioned than the consecutive set', () => {
+    const split = seedPolygon()
+    const w: Spinor4 = [
+      { re: 1.5, im: 0 }, { re: 1.2, im: 1.0 }, { re: 1.3, im: -0.9 }, { re: 1.5, im: 0.2 },
+    ]
+    const cps = controlPointsOf(w, { re: -2.6, im: -0.15 })
+    const base = planarSepticFromSplitControlPoints(split)[0].arcLength
+
+    // Drag the far end by five leg-lengths — a big move on this polygon.
+    const D = 1.5
+    const moved = split.map((p, i) => (i === 3 ? { re: p.re, im: p.im + D } : p))
+    const after = planarSepticFromSplitControlPoints(moved)
+    expect(after.length).toBe(4)
+    expect(Math.max(...after.map((s) => s.arcLength)) / base).toBeLessThan(2)
+
+    // The consecutive set, same displacement, is two orders of magnitude worse: its
+    // gain is C(6,3)/2 = 10, which the split prescription never incurs.
+    const consec = cps.slice(0, 5).map((p, i) => (i === 4 ? { re: p.re, im: p.im + D } : p))
+    const cSol = planarSepticFromControlPoints(consec)!
+    expect(cSol.arcLength / base).toBeGreaterThan(100)
   })
 })
 

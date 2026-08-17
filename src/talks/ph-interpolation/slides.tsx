@@ -406,7 +406,7 @@ in space    the same forms over ℍ      a family, not a count
     type: 'content',
     content: (
       <>
-        <h2>Which five points you prescribe takes the count from one to eight</h2>
+        <h2>Not how many conditions — which ones</h2>
         <PlanarSepticFigure />
       </>
     ),
@@ -414,17 +414,34 @@ in space    the same forms over ℍ      a family, not a count
       'Degree 7 in the plane, asked twice. Both panels prescribe FIVE planar points on the same curve ' +
       'type, so both impose ten real conditions on ten real degrees of freedom (w cubic = 8, plus the ' +
       'translation = 2; the planar gauge w ↦ −w is DISCRETE and costs none). Both square. The counts ' +
-      'are 1 and 8. ' +
+      'are 4 and 8 — and a third arrangement of the SAME five control points gives 1. ' +
       'THE POINT: for an ordinary Bézier, prescribing control points and prescribing points on the ' +
       'curve are LINEARLY EQUIVALENT problems. For a PH curve they are not, because the unknown is the ' +
       'GENERATOR, and only the control-point conditions factor through it by division. This is the ' +
       'pitfall the whole deck keeps meeting, and it is the reason a dimension count alone never ' +
       'settles anything — you must say WHICH functionals, not just how many. ' +
-      'LEFT, the cascade: N₀ = w₀², N₁ = w₀w₁, N₂ = (2/5)w₀w₂+(3/5)w₁², N₃ = (1/10)w₀w₃+(9/10)w₁w₂. A ' +
-      'square root — and the ± IS the entire gauge — then three divisions. No equation is ever solved, ' +
-      'so nothing branches and nothing fails: EVERY five control points carry exactly one curve, the ' +
-      'only degenerate case being a first leg of length zero. At degree 3 the same cascade reads ' +
-      'N₁² = N₀N₂, the oldest planar PH fact there is (the three legs in geometric progression). ' +
+      'LEFT, the SPLIT prescription P₀P₁P₂ · P₆P₇. Three at the start fix legs N₀,N₁; two at the end fix ' +
+      'N₆; and the gap from P₂ to P₆ yields only their SUM, N₂+N₃+N₄+N₅ = 7(P₆−P₂). So w₀ = √N₀ (the ± ' +
+      'is the whole gauge), w₁ = N₁/w₀, then w₃ = ±√N₆ — a GENUINE branch, because the gauge is already ' +
+      'spent — and finally (3/5)w₂² + Bw₂ + (C−D) = 0. Two signs × two roots = FOUR. Closed form ' +
+      'throughout; no iteration. ' +
+      'THE COUNT RUNS 1, 2, 4, 8 OVER SUBSETS OF THE SAME FIVE. Measured: P{0,1,2,3,4} → 1, ' +
+      'P{0,1,2,3,7} → 2, P{0,1,2,6,7} → 4, P{0,1,3,5,7} → 8. The rule: after w₀ is fixed by the gauge, ' +
+      'each remaining condition is linear or quadratic in the unknowns it newly reaches, and the count ' +
+      'is the product — a gap stopping short of N₆ stays LINEAR in w₃, one swallowing N₆ = w₃² turns ' +
+      'quadratic. So prescribed control points can be exactly as branched as interpolation. ' +
+      'THE CONSECUTIVE SET P₀…P₄ gives ONE, by a cascade that never solves an equation: N₀ = w₀², ' +
+      'N₁ = w₀w₁, N₂ = (2/5)w₀w₂+(3/5)w₁², N₃ = (1/10)w₀w₃+(9/10)w₁w₂ — a square root and three ' +
+      'divisions, so nothing branches and nothing fails. At degree 3 that same cascade reads N₁² = N₀N₂, ' +
+      'the oldest planar PH fact there is (the three legs in geometric progression). It is NOT the panel ' +
+      'you can drag, though, because its gain is C(6,3)/2 = 10 — a drag of a tenth of a leg doubles w₃, ' +
+      'and five leg-lengths multiply arc length by 370. The split set takes w₃ from a square root of ' +
+      'prescribed data instead, never incurs the factor, and the same drag changes arc length by 1.5×. ' +
+      'The stiffness grows with degree: the factor is 1 for the cubic, 3 for the quintic, 10 here. ' +
+      'THE TWO w₂-BRANCHES ARE ISOMETRIC — equal arc length, different shape. Not a coincidence: the ' +
+      'difference between the roots is Re(Δ·conj(2a·k − G₂₂·B))/a² with k the arc-length gradient in w₂, ' +
+      'and 2a·k = G₂₂·B identically (both are (6/175)w₀ + (27/350)w₁ + (3/35)w₃). Verified over 40 random ' +
+      'configurations. The planar echo of the spatial cubic fibre\'s isometry two slides on. ' +
       'RIGHT, the interpolation: substitute wⱼ = w₀rⱼ and w₀² cancels out of every condition, leaving ' +
       'rᵀ(D₁Mᵢ − DᵢM₁)r = 0 for i = 2,3,4 — three quadratic forms in the 4-vector r, i.e. THREE QUADRICS ' +
       'IN ℙ³, whose base locus is a Cayley octad: 2³ = 8. This is 2^{k−1} at k = 4, and Bézout is ' +
@@ -432,13 +449,12 @@ in space    the same forms over ℍ      a family, not a count
       'coefficients and ∫w² is a real plane curve whatever they are, so every Bézout root is a genuine ' +
       'curve. The eight never vanish. They can only collide — which is monodromy, and the figure shows ' +
       'it rather than hiding it. ' +
-      'WHY THE PANELS DO NOT SHARE THEIR POINTS, unlike slide 3\'s figure: the cascade has gain ≈ 10. A ' +
-      'drag of a tenth of a leg length doubles w₃ — the factor is C(6,3)/2, which is 1 for the cubic, 3 ' +
-      'for the quintic and 10 here, so the stiffness GROWS WITH DEGREE. Feeding the right panel\'s ' +
-      'spread-out points into the left as a control polygon gives a curve of arc length ~400 on data ' +
-      'spanning 5. The left panel\'s caption states the gain instead of hiding it; drag it and the curve ' +
-      'leaves the frame almost at once, which is that map\'s honest behaviour. Measured, not guessed — ' +
-      'see core/__tests__/phPlanarSeptic.test.ts. ' +
+      'The panels do not share their points: the two problems want different seeds, and feeding ' +
+      'interpolation points into a control polygon gives arc length ~400 on data spanning 5. The left ' +
+      'seed was found by SEARCH rather than by hand — aspect near the panel\'s, four branches separated ' +
+      'by at least a quarter of the box diagonal, and one visibly smooth member against three loopier ' +
+      'ones; a near-straight seed makes all four coincide in a sliver. Everything measured here is in ' +
+      'core/__tests__/phPlanarSeptic.test.ts. ' +
       'SETS UP THE SPATIAL SEPTIC. The same control-point problem in SPACE takes SIX points (4k+2 = 18 ' +
       'against 3 each) and has 0, 2, 4 or 6 real answers under a ceiling of 8 — measured, and half of ' +
       'all arbitrary polygons carry NO real curve. The difference is exactly the gauge: in space each ' +

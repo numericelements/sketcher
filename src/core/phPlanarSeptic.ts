@@ -169,3 +169,74 @@ export function planarSepticFromControlPoints(
 
   return solutionFrom([w0, w1, w2, w3], P[0])
 }
+
+/**
+ * THE SPLIT PRESCRIPTION: P₀,P₁,P₂ and P₆,P₇ — five control points again, ten conditions
+ * again, and FOUR curves instead of one.
+ *
+ * What changes is not how many conditions but WHICH. Three at the start fix the legs
+ * N₀,N₁; two at the end fix N₆; and the gap from P₂ to P₆ yields only their SUM,
+ * N₂+N₃+N₄+N₅ = 7(P₆−P₂), where the consecutive set had four separate legs. So:
+ *
+ *     w₀ = √N₀                          the ± here is the whole gauge
+ *     w₁ = N₁/w₀
+ *     w₃ = ±√N₆                         a GENUINE branch — the gauge is already spent
+ *     (3/5)w₂² + B·w₂ + (C − D) = 0     quadratic, so two more
+ *
+ *     B = (2/5)w₀ + (9/10)w₁ + w₃       C = (3/5)w₁² + (1/10)w₀w₃ + (2/5)w₁w₃
+ *
+ * Two signs × two roots = four, and the count for other five-point subsets runs 1, 2, 4
+ * or 8 by the same reasoning (a gap that stops short of N₆ stays LINEAR in w₃; one that
+ * swallows N₆ = w₃² turns quadratic; the count is the product).
+ *
+ * AND IT IS WELL CONDITIONED, unlike the consecutive set. There w₃ came out of
+ * 10·(N₃ − …)/w₀, giving gain ≈ 10; here it is a square root of prescribed data and the
+ * factor never appears. Measured: dragging P₆ by five leg-lengths changes arc length by
+ * 1.5×, where the consecutive set changes it by 370×.
+ *
+ * THE TWO w₂-BRANCHES ARE ISOMETRIC. Arc length is ∫|w|² = G₂₂|w₂|² + 2Re(w̄₂k) + const
+ * with k = Σ_{j≠2} G₂ⱼwⱼ, and the difference between the two roots works out to
+ * Re(Δ·conj(2a·k − G₂₂·B))/a², which vanishes identically because 2a·k = G₂₂·B — both
+ * equal (6/175)w₀ + (27/350)w₁ + (3/35)w₃. So the pair differs in shape at exactly equal
+ * length, which is the planar echo of the spatial cubic fibre's isometry.
+ *
+ * Returns the branches in a deterministic order; a caller drawing them must still track
+ * identity across a drag (the ± of a principal square root is not continuous).
+ */
+export function planarSepticFromSplitControlPoints(
+  P: readonly Complex[],
+): PlanarSepticSolution[] {
+  if (P.length < 5) return []
+  const [p0, p1, p2, p6, p7] = P
+  const N0 = cscale(csub(p1, p0), 7)
+  const N1 = cscale(csub(p2, p1), 7)
+  const N6 = cscale(csub(p7, p6), 7)
+  const D = cscale(csub(p6, p2), 7)
+  if (cnorm(N0) < 1e-14) return []
+
+  const w0 = csqrt(N0)
+  const w1 = cdiv(N1, w0)
+  const a: Complex = { re: 3 / 5, im: 0 }
+  const out: PlanarSepticSolution[] = []
+  const seen: Spinor4[] = []
+
+  for (const s of [1, -1]) {
+    const w3 = cscale(csqrt(N6), s)
+    const B = cadd(cadd(cscale(w0, 2 / 5), cscale(w1, 9 / 10)), w3)
+    const C = cadd(
+      cadd(cscale(cmul(w1, w1), 3 / 5), cscale(cmul(w0, w3), 1 / 10)),
+      cscale(cmul(w1, w3), 2 / 5),
+    )
+    const disc = csqrt(csub(cmul(B, B), cscale(cmul(a, csub(C, D)), 4)))
+    for (const t of [1, -1]) {
+      const w2 = cdiv(cadd(cscale(B, -1), cscale(disc, t)), cscale(a, 2))
+      const w: Spinor4 = [w0, w1, w2, w3]
+      if (!w.every((z) => Number.isFinite(z.re) && Number.isFinite(z.im))) continue
+      // A vanishing discriminant (or N₆ = 0) merges a pair; do not list it twice.
+      if (seen.some((v) => v.every((z, j) => cnorm(csub(z, w[j])) < 1e-10))) continue
+      seen.push(w)
+      out.push(solutionFrom(w, p0))
+    }
+  }
+  return out
+}
