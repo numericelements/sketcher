@@ -4,9 +4,13 @@
 session unless marked otherwise. The slide does not exist yet; the mathematics for it does.*
 
 **The slide, in one line.** A degree-7 spatial PH Bézier with **six draggable control points**. Six is
-the maximum the family allows, and at six the answer set is finite: **four curves**. Draw the selected
-one black and the other three grey; click a grey one to select it — exactly the gesture the planar
-quintic figure already uses for its four interpolants.
+the maximum the family allows, and at six the answer set is finite — **at most eight curves, in
+practice 0, 2, 4 or 6, and the number changes while you drag**. Draw the selected one black and the
+others grey; click a grey one to select it — the gesture the planar quintic figure already uses.
+
+> **Read §1's count before building anything.** The "four curves" this document originally promised was
+> an artefact of two samples. The count is a *variable of the slide*, not a constant of the problem, and
+> that is the more interesting thing to show.
 
 ---
 
@@ -63,19 +67,30 @@ degree 7   family 18   6 points = 18   →  0        ← A COUNT
 degree 9   family 22   7 points = 21   →  1 left
 ```
 
-### The count: four
+### The count: 0, 2, 4 or 6 — never a constant
 
-**Measured: 4 distinct real curves**, on two independent data sets, ~250 and ~150 Newton convergences
-from random starts, and in both runs the member the data was generated from is among them.
+**Corrected 2026-08-17 by `src/core/septicCascadeDegree.test.ts`.** The earlier "4" came from
+random-start Newton on two data sets. That was under-sampling, not a count. Eliminating down to one
+polynomial (below) makes the count *exhaustive* rather than sampled, and it is not constant:
 
-The Bézout ceiling is **8** (Lean companion's cascade derivation, §3), but those are *complex* roots and
-the unknowns here are real — so half do not correspond to curves. Contrast the plane, where `2^{k−1}`
-is attained exactly (measured at k = 2, 3, 4) because there the unknown `r = w₁/w₀` is complex and
-every Bézout root is a genuine curve.
+| data | measured counts |
+|---|---|
+| eight polygons taken FROM a curve | 4, 2, 4, 6, 4, 6, 4, 4 — **4 is modal, not universal** |
+| forty ARBITRARY dragged polygons | **0 ×20**, 2 ×4, 4 ×14, 6 ×2 |
 
-**Four is a measurement, not a theorem.** Random-start Newton can miss a small basin, and the real
-count changes across discriminant walls — some placements of the six points will give 2, and some 0.
-**The figure must handle 0, 2 and 4 gracefully.**
+Two facts the figure cannot ignore. **Half of arbitrary six-point polygons carry no real septic PH
+curve at all** — the map is finite-to-one but far from onto over ℝ. And the count is always **even**,
+because it is the real-root count of one real polynomial, whose complex roots pair up.
+
+The exhaustive sweep and dense random-start Newton agreed on all eight curve-derived cases, so the
+sweep is not manufacturing roots.
+
+**The Bézout ceiling of 8 is CORRECT** — but not for the reason recorded. §3's derivation assumed the
+closing system stays quadratic; it does not (it is degree 4). The eliminated resultant is nonetheless
+**a degree-8 polynomial in t₁**, measured by Chebyshev fit on three data sets. Right number, wrong
+argument. Contrast the plane, where `2^{k−1}` is attained exactly (measured at k = 2, 3, 4) because
+there the unknown `r = w₁/w₀` is complex and every Bézout root is a genuine curve; here the unknowns
+are real and at most 6 of the 8 were ever real.
 
 ---
 
@@ -86,13 +101,15 @@ model        degree-7 spatial PH Bézier; generator 𝒜 cubic = 4 quaternion Be
              coefficients = 16 real unknowns
 data         P₀ … P₅ — six control points. P₀ is the translation; P₁…P₅ give five legs
              = 15 conditions on the spinor (its dimension less the gauge is exactly 15)
-solve        all real solutions, typically four
+solve        ALL real solutions — 0, 2, 4 or 6 of them, changing as the polygon is dragged
 draw         the selected curve BLACK, the others GREY; the six data points draggable;
              P₆ and P₇ derived, drawn hollow (they differ per branch)
 select       click a grey curve to take it — as QuinticHermiteFigure does for its four
-track        as the data moves, match branches by control-polygon distance so colours do
-             not swap: framework/branchTracking already does exactly this (4! = 24
-             permutations enumerated for the planar four)
+track        the count is NOT fixed, so a fixed permutation match will not do. Match by
+             nearest (N₅,N₆) fingerprint to the previous frame's branches, allow births
+             and deaths, and keep the selection on its own branch until that branch dies.
+             framework/branchTracking assumes a constant four — it needs generalising
+             or replacing for this figure.
 ```
 
 ### The legs, which are the conditions
@@ -116,7 +133,7 @@ invariant; the spinor is not).
 
 ### Two solve routes
 
-**(a) Brute force — works today.** Newton least-squares on 16 unknowns against the 15 conditions, from
+**(a) Brute force in 16 unknowns — superseded.** Newton least-squares on 16 unknowns against the 15 conditions, from
 random starts; de-duplicate by the `(N₅, N₆)` tail. Reject residual > 1e-9 and runaway tails > 1e4.
 Costed: ~1200 starts × 90 iterations ≈ 90 s in vitest, ~250 convergences, 4 distinct. **Too slow for a
 figure at frame rate.**
@@ -136,10 +153,27 @@ They verified the load-bearing step: `B ↦ polar(A,B)` is a 3×4 map of **rank 
 random samples, no exceptions), so every linear stage is surjective with a 1-dimensional kernel and
 none can obstruct. Fix `φ₀ = 0` to spend the gauge; the unknowns are the three kernel parameters.
 
-**Caution, unverified:** the closing system is quadratic in the three parameters *if* the cascade's
-substitutions stay quadratic. A₂ depends on A₁ᵢA₁* which is quadratic in t₁, so A₂ may be quadratic in
-t₁ and `N₄` could exceed degree 2 in the composite. **Check the actual degree before trusting Bézout
-= 8.** If it is higher, the ceiling rises and the measured 4 is still the real count.
+**The degree, settled 2026-08-17** (`septicCascadeDegree.test.ts`). The caution was justified — the
+closing system is *not* quadratic. Every linear stage is the SAME operator `B ↦ polar(A₀,B)`, whose
+kernel is exactly `ℝ·(A₀i)` — because `polar(A,B) = 2 Im(A i B*)` vanishes iff `A i B*` is real. So the
+kernel vector `k = A₀i` is **constant across all three stages**, and the substitution degrees are:
+
+```
+A₁ = a₁          + t₁k        affine in t₁
+A₂ = a₂(t₁)      + t₂k        a₂ QUADRATIC in t₁   (via A₁iA₁* in N₂)
+A₃ = a₃(t₁,t₂)   + t₃k        a₃ CUBIC in t₁       (via polar(A₁,A₂) in N₃)
+
+R = N₄(t) − N₄   multidegree (4, 2, 1) in (t₁, t₂, t₃);  total degree 4
+```
+
+All four numbers measured by Chebyshev fit, not asserted.
+
+**And that sparsity is the solver.** `t₃` enters *linearly*, with a coefficient `w(t₁)` that is affine
+in `t₁` and free of `t₂`. So `R = P_{t₁}(t₂) + t₃·w(t₁)` forces `P(t₂) ∥ w`, i.e. `P(t₂) × w = 0` —
+two quadratics in `t₂` whose resultant is a single polynomial in `t₁` alone, **of degree 8**. Every
+solution is a real root of that one univariate polynomial. Sweep it (`t₁ = tan(πs/2)` covers all of ℝ),
+bisect the sign changes, recover `t₂` from the common-root formula `(a₀b₂−a₂b₀)/(a₁b₂−a₂b₁)` and `t₃`
+by projection, then polish in the 3×3 system. That is exhaustive, and it is fast.
 
 ---
 
