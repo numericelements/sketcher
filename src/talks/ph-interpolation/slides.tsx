@@ -218,46 +218,47 @@ export const slides: SlideDefinition[] = [
       <>
         <h1>I &mdash; Polynomial</h1>
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
-{`Bézier      c  =  Σ Bᵢ(t) Pᵢ           linear in the Pᵢ              one interpolant
+{`Bézier      A x = b                        one
 
-PH          c  =  c₀ + ∫ w²            QUADRATIC in w                two
+PH          xᵀ Qⱼ x = bⱼ ,   j = 1 … k     2ᵏ,  halved by  x ~ −x     two, then four
 
-in space    c  =  c₀ + ∫ 𝒜 i 𝒜*        quadratic, and 𝒜 ~ 𝒜e^{iθ}    a family`}
+in space    the same forms,  k < dim x     a family                   14 − 12 = 2`}
         </div>
       </>
     ),
     notes:
-      'THE SECTION IS THREE ROWS AND THEY ARE THE THREE SLIDES THAT FOLLOW. Read the middle column: '
-      + 'linear, quadratic, quadratic-with-a-circle. Read the right one: one, two, a family. That is '
-      + 'the arc of section I, predicted before it is shown. '
-      + 'WHY QUADRATIC, and it needs no introduction with this audience: the unknown is the GENERATOR '
-      + 'and the curve is its SQUARE, so prescribing points squares the equations. Concretely for the '
-      + 'planar PH cubic through three points -- c(t) - c(0) = A(t)w0^2 + B(t)w0 w1 + C(t)w1^2 with '
-      + 'A, B, C REAL. Substituting w1 = r w0 factors out w0^2 and leaves ONE complex quadratic in r, '
-      + 'hence exactly two roots, and the gauge w -> -w fixes both q and r so it does not merge them. '
-      + 'Verified in phCubic.test.ts across many data sets. '
-      + 'THE COUNTS ARE MATCHED, and this is the point of putting the Bezier row first: both objects '
-      + 'have SIX real degrees of freedom and three interpolation points impose SIX real conditions. '
-      + 'Both square systems. One is linear and has one solution; the other is quadratic and has two. '
-      + 'Nothing about PH is harder to state than that. '
-      + 'THE THIRD ROW IS THE ONE THAT SURPRISES. In space the gauge A -> A e^{i theta} is a whole '
-      + 'CIRCLE rather than the plane-s two-fold w -> -w, and that one missing dimension is why the '
-      + 'plane gives a COUNT and space gives a FAMILY -- slide 7 a curve, slide 8 a torus. '
-      + 'WHAT THIS SLIDE USED TO SAY, so it is not restored by accident: two sentences, "the square '
-      + 'becomes a sandwich and the square root becomes a circle of square roots", and "|e|^2 = 1 '
-      + 'forces the leading coefficient to vanish, so a moving unit frame can never be polynomial". '
-      + 'Both were shaped to sound good rather than to be checked. The frame argument is not lost -- '
-      + 'slide 10 makes the positive version at the point of use: the frame is A k A* over sigma, and '
-      + 'RATIONAL because sigma = |A|^2 is a polynomial. Say it there, not here. '
-      + 'OLD NOTE, KEPT FOR THE FRAME SECTION. In the plane the hodograph is a complex SQUARE and the square '
-      + 'root is two-valued. In space it is a quaternion SANDWICH and the preimages form a CIRCLE -- '
-      + 'the Hopf gauge A -> A e^{i theta} moves no curve. That one change of algebra is what makes '
-      + 'the interpolation counts jump and what puts a free angle in every frame. '
-      + 'THE SECOND LINE IS THE FRAME ARGUMENT and it is worth saying slowly because it is the '
-      + 'strongest claim available: a non-constant unit vector field cannot be polynomial, since '
-      + '|e|^2 = 1 forces the leading coefficient to vanish. The polynomial object is the spinor; the '
-      + 'frame is rational because normalising by sigma = |A|^2 is a division. Nobody CHOSE rational '
-      + 'frames -- the alternative does not exist.',
+      'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
+      + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
+      + 'WHAT x IS: the generator-s coefficient vector. Each interpolation condition is a QUADRATIC '
+      + 'FORM in it, because the curve is the SQUARE of the unknown -- prescribing points squares the '
+      + 'equations. That is the whole price of PH and it needs no introduction to state. '
+      + 'WRITE x-TRANSPOSE, NOT x-STAR, and it matters. The form is complex BILINEAR, not Hermitian, '
+      + 'which is what keeps the system holomorphic -- and holomorphy is what makes the count 2^k by '
+      + 'Bezout. In real coordinates the same k complex equations become 2k real ones in 2k real '
+      + 'unknowns, where the real Bezout bound is 2^{2k}: wildly wrong, because the real system is far '
+      + 'from generic. The transpose is the flag that tells a specialist which regime we are in. '
+      + 'WHY HALVED: r-prime = w^2, so w and -w give the same curve. The algebraic system counts both; '
+      + 'each pair is ONE curve. Cubic through three points, k = 2: four solutions, two curves. C1 '
+      + 'Hermite on the quintic, k = 3: eight solutions, four curves. And the gauge does not merge the '
+      + 'roots -- substituting w1 = r w0 leaves r fixed under w -> -w, so the curves stay distinct. '
+      + 'WHY ONLY PLUS-OR-MINUS IN THE PLANE, and this is the cleanest statement of what changes in '
+      + 'space: (w e^{i theta})^2 = w^2 e^{2 i theta}, equal only when e^{2 i theta} = 1, so the gauge '
+      + 'is the square roots of unity. In the sandwich the phase appears once as e^{i theta} and once '
+      + 'as e^{-i theta} from the conjugate, and since e^{i theta} commutes with i they CANCEL -- so '
+      + 'every theta is gauge and the group is the whole circle. The plane-s {+1,-1} is the discrete '
+      + 'remnant of it. That is why the plane can be divided by two and space cannot. '
+      + 'THE THIRD ROW IS NOT CAUSED BY THE GAUGE, and an earlier version of this slide said it was. '
+      + 'The arithmetic: planar quintic 8 DOF against 8 conditions, square, so a count; spatial quintic '
+      + '14 against 12, so a two-parameter family. The 14 is ALREADY gauge-reduced (15 raw, less the '
+      + 'circle), so the circle SHRINKS the family from three to two rather than creating it. The '
+      + 'family comes from the system being UNDERDETERMINED. Slide 8-s note still reads as causal and '
+      + 'should be corrected when that slide is next touched. '
+      + 'WHAT THIS SLIDE USED TO SAY, so it is not restored by accident: "the square becomes a sandwich '
+      + 'and the square root becomes a circle of square roots", and "|e|^2 = 1 forces the leading '
+      + 'coefficient to vanish, so a moving unit frame can never be polynomial". Both were shaped to '
+      + 'sound good rather than to be checked. The frame argument is not lost -- slide 10 makes the '
+      + 'positive version at the point of use: the frame is A k A* over sigma, and RATIONAL because '
+      + 'sigma = |A|^2 is a polynomial. Say it there, not here.',
   },
 
   // ---------------------------------------------------------------------------
