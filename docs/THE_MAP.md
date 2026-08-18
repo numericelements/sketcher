@@ -222,9 +222,12 @@ not missing from the mathematics; they are missing from the chart. *"Chart σ = 
 
 ## 6. The open questions this map is for
 
-1. **Does the mixed cell exist** — some poles invertible, some singular? It is the connective tissue
-   an atlas needs, since the λ-chart and the conformal construction currently cover *disjoint* strata
-   and two disjoint charts are not an atlas.
+1. ~~**Does the mixed cell exist**~~ — **ANSWERED YES, CONSTRUCTIVELY (2026-08-17)**, by the ε-drive.
+   `__tests__/mixedCellExists.test.ts` builds a rational PH curve at m = 3 with the conjugate pair
+   SOFT (softness 1.3e-15, ‖𝒜(r₁)‖² = 0.33 — rank one, not a degree drop) and the real pole HARD
+   (softness 1, ‖𝒜(r₀)‖² = 7.7e-2 — not fake), driven from ε = 0.25 to exactly 0. Confirmed by
+   contour integration of N/w² around each pole at ~1e-14, which shares none of the algebra.
+   The connective tissue exists; the remaining atlas work is to CHART it, which is question 2.
 2. **Can the rank-1 floor be charted?** Rank-1 matrices are outer products — the cone over the Segre
    embedding, smooth away from zero — so the datum at a singular pole should be a point of `ℙ¹ × ℙ¹`
    exactly where the invertible case carries one real λ. Untried. Buys uniformity, not coverage.
@@ -304,7 +307,45 @@ a real pole is provably not a route to the mixed cell — it is a route to a deg
 mixed candidate is m = 3, one real pole beside one conjugate pair, with the PAIR driven soft and the
 real pole hard by the theorem.
 
-### How to run question 1 — the ε-DRIVE, which replaces the endpoint connection
+### How question 1 was run — the ε-DRIVE (DONE; kept because the method generalises)
+
+**The key realisation, and it reframes §5.** The no-log condition is CHART-FREE: with w = (t−r_k)v,
+partial fractions give the 1/(t−r_k) coefficient as
+
+```
+    b_k = [N′(r_k) − 2Σ_k N(r_k)] / v(r_k)²          N = 𝒜i𝒜*
+```
+
+a statement about **N**, not about 𝒜. The λ-form 𝒜′(r) = 𝒜(r)(Σ + λi) is what you get by DIVIDING it
+by 𝒜(r), which is exactly what needs σ(r) ≠ 0. So the residue condition reaches the σ = 0 stratum
+unaided, and the λ-chart's hole is a hole in the COORDINATES — which is what §5 concluded from the
+circle and is now the mechanism behind it.
+
+*(Cost of getting this wrong once: a hand-derived polarisation of the sandwich gave residual O(1) at a
+complex pole and looked like the condition failing there. Computing N as a polynomial with the tested
+`sandwichPolynomial` and differentiating THAT gives 2e-16. Do not hand-expand d/dt(𝒜i𝒜*).)*
+
+**Results.**
+
+```
+CONTROL m=2   start from the λ-chart member, softness 0.77 — genuinely hard
+              drive ε: 0.72 → 0 reached.  BOTH poles of the pair land at σ = 3.10e-17,
+              IDENTICAL to 1e-20, ‖𝒜‖² = 0.84.  not_mixedPoles_of_conjugate_pair holds
+              in the numerics, so the machinery is not manufacturing asymmetry.
+              (And note what this alone shows: at m = 2 a λ-chart member deforms
+              CONTINUOUSLY into a σ = 0 member at fixed poles. The strata are connected.)
+
+TEST m=3      real pole beside a pair, drive the PAIR.  8/8 seeds reach ε = 0.
+              Best witness: ε 0.25 → 0, pair softness 1.3e-15 with ‖𝒜(r₁)‖² = 0.33,
+              real pole softness 1 with ‖𝒜(r₀)‖² = 7.7e-2.  MIXED.
+```
+
+**And the trap that nearly produced eight worthless witnesses.** On six of the eight seeds ‖𝒜(r₀)‖²
+collapses to ~1e-6 — the "hard" real pole is then nearly FAKE, so the member is a two-pole curve
+wearing a third and is not mixed at all. `softness` cannot see this: it is identically 1 at a real
+pole. **Rank 1 and rank 0 are different degeneracies and only both numbers separate them** (§0c).
+
+### The ε-drive, as originally specified
 
 Rather than connect a hard endpoint to a soft one, **drive one pole soft from the hard side.** Take a
 λ-chart member with m ≥ 3, adjoin σ(r₁) = ε as an extra equation, and continue ε → 0 while the other
