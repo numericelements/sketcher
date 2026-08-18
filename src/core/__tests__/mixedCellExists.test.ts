@@ -304,9 +304,67 @@ describe('mixed → AllHard, and the atlas closes', () => {
       expect(defectOf(toSpinor(x), M4_POLES, REPS)).toBeLessThan(1e-12)
       if (hard && healthy) arrived++
     }
-    // One would settle connectivity. Twelve says the soft locus is not a barrier in any
-    // sampled direction FROM THIS WITNESS — which is a statement about one point of it,
-    // not about the whole stratum.
+    // One would settle connectivity. Twelve arrive — but they are SIX distinct paths
+    // doubled, not twelve: σ has real coefficients, so σ(r̄) = conj σ(r) forces the partner's
+    // target to e^{−iφ}, and the pair is unordered, so the +φ and −φ problems have the same
+    // solution set. The sampling statement is six directions, from ONE point of the stratum.
     expect(arrived).toBe(12)
+
+    // AND MOST OF THIS IS FREE. Arrival at small ε is guaranteed by the submersion, not
+    // measured: the target map is a submersion at a non-real pole with 𝒜(r) ≠ 0, so
+    // first-order motion exists in every direction. The content is survival to ε ≈ 1.
   })
+})
+
+// ---------------------------------------------------------------------------
+// A NEGATIVE RESULT, pinned so it is not rediscovered: ρ(φ) — the ε at which the
+// continuation stalls — is NOT a property of the variety.
+//
+// σ has real coefficients, so σ(r̄) = conj σ(r): targeting σ(r₂) = ε·e^{iφ} FORCES
+// σ(r₃) = ε·e^{−iφ} at the conjugate partner. The pair is unordered, so the curve solving
+// +φ, relabelled, solves −φ. Same solution set, same branch, hence ρ(φ) = ρ(−φ) — as a
+// statement about the VARIETY.
+//
+// Measured, with one schedule and a cap high enough that nothing merely hit it:
+//
+//     φ    30 vs 330    0.848 vs 1.189      φ   120 vs 240    0.683 vs 1.126
+//     φ    60 vs 300    0.760 vs 1.412      φ   150 vs 210    0.685 vs 0.876
+//     φ    90 vs 270    0.723 vs 1.563
+//
+// Every pair disagrees, and systematically — the negative half always travels further. So
+// ρ measures the SOLVER'S PATH, not the geometry, and the earlier note that "the hard
+// region seen from this point is not round" is withdrawn.
+//
+// THE DIAGNOSIS. The normalisation ‖x‖² = 1 fixes the projective SCALE but not the Hopf
+// PHASE, so a one-dimensional gauge orbit rides along unconstrained and the path is
+// whatever the minimum-norm step drifts onto — which has no reason to be
+// conjugation-equivariant. The φ = 270° run drifts to min ‖𝒜(r)‖² = 8e-3, near the rank-0
+// seam, which is the same symptom. Making ρ measurable needs the phase pinned by a
+// conjugation-equivariant condition; until then it is not a number about the variety.
+//
+// What survives: all six paths reach ε ≥ 0.68 with the residue conditions holding, which is
+// a LOWER BOUND on how far the hard region extends and is enough for connectivity.
+// ---------------------------------------------------------------------------
+describe('ρ(φ) is a solver artifact, not geometry', () => {
+  it('the ±φ pairs disagree, so the stall distance is not a measurement', () => {
+    const run = (phi: number): number => {
+      const dir = { re: Math.cos(phi), im: Math.sin(phi) }
+      let x = [...M4_WITNESS]
+      let eps = 0
+      let step = 0.02
+      for (let it = 0; it < 3000 && eps < 6; it++) {
+        const next = Math.min(eps + step, 6)
+        const y = newtonToResidue(x, M4_POLES, REPS,
+          { pole: 2, value: { re: dir.re * next, im: dir.im * next } }, 80)
+        if (y) { x = y; eps = next; step = Math.min(step * 1.4, 0.15) }
+        else { step /= 2; if (step < 1e-10) break }
+      }
+      return eps
+    }
+    const a = run(Math.PI / 2)          // +90°
+    const b = run((3 * Math.PI) / 2)    // −90°, the SAME problem up to relabelling
+    expect(Math.abs(a - b) / Math.max(a, b)).toBeGreaterThan(0.1)   // measured 0.72 vs 1.56
+    // Both still travel a long way, which is the part that means something.
+    expect(Math.min(a, b)).toBeGreaterThan(0.5)
+  }, 180000)
 })

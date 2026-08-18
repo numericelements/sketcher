@@ -551,16 +551,56 @@ Connectivity needed ONE φ to arrive. Twelve did, so the soft locus is not a bar
 direction *from this witness* — a statement about one point of the stratum, not about all of it.
 
 **Why the φ-parameterisation moves where a magnitude target cannot.** Targeting σ(r) = ε·e^{iφ} is TWO
-real equations whose Jacobian does not vanish at σ = 0: σ = Σaᵢ², so ∂σ/∂x = 2Σaᵢ ∂aᵢ/∂x, and at rank
-one the aᵢ are not all zero. Targeting |σ| = ε is ONE equation whose gradient IS zero there. Same
-submanifold, same starting point; one parameterisation moves and the other is stationary. The lesson
-generalises past this problem: **on a locus defined by a complex equation, target the complex quantity,
-not its magnitude.**
+real equations, and the target map is a submersion there (see the rank-2 argument below). Targeting
+|σ| = ε is ONE equation whose gradient IS zero at σ = 0. Same submanifold, same starting point; one
+parameterisation moves and the other is stationary.
 
-One observation, not a claim: the reachable ε before the continuation stalls is direction-dependent,
-from 0.68 at φ = 120° to the full 1.0 at φ ≥ 240°. Every direction had already reached AllHard well
-before stalling, so it does not bear on connectivity — but it is a hint that the hard region's shape
-seen from this point is not round, and it would be the thing to measure if anyone wants its geometry.
+The general statement, which catches far more than this problem:
+
+> **Any residual built as a SUM OF SQUARES has vanishing gradient exactly on its zero set. Such a
+> residual can be minimised toward zero and can never be driven away from it.**
+
+That covers |σ|², least-squares defect functionals, energy targets and distance-to-a-set — every one
+of which looks like a perfectly good continuation parameter right up until you start ON the zero set.
+"Target the complex quantity rather than its magnitude" is the instance; the operative check is not
+"is it complex" but **is the target map a submersion here**, and that is one differential.
+
+**WITHDRAWN: "the hard region is not round".** The stall distance ρ(φ) is not a property of the
+variety. σ has real coefficients, so σ(r̄) = conj σ(r), and targeting σ(r₂) = ε·e^{iφ} FORCES
+σ(r₃) = ε·e^{−iφ}; the pair being unordered, the curve solving +φ relabelled solves −φ. Same solution
+set, so ρ(φ) = ρ(−φ) must hold of the geometry. Measured on one schedule with a cap nothing reached:
+
+```
+  30 vs 330   0.848 vs 1.189      120 vs 240   0.683 vs 1.126
+  60 vs 300   0.760 vs 1.412      150 vs 210   0.685 vs 0.876
+  90 vs 270   0.723 vs 1.563
+```
+
+Every pair disagrees, systematically — the negative half always travels further. **The diagnosis:**
+‖x‖² = 1 fixes the projective SCALE but not the Hopf PHASE, so a one-dimensional gauge orbit rides
+along unconstrained and the path is wherever the minimum-norm step drifts, which has no reason to be
+conjugation-equivariant. (The φ = 270° run drifts to min ‖𝒜(r)‖² = 8e-3, at the rank-0 seam — the same
+symptom.) Making ρ measurable needs the phase pinned by a conjugation-equivariant condition. Pinned as
+a negative result in `mixedCellExists.test.ts` so it is not rediscovered.
+
+**And the twelve directions are SIX**, doubled by the same symmetry. Connectivity is untouched — one
+suffices — but the sampling statement is six, from one point of the stratum.
+
+**Most of the arrival was free.** The target map is a submersion at a non-real pole with 𝒜(r) ≠ 0, so
+first-order motion exists in EVERY direction and arrival at small ε is guaranteed rather than
+measured. The content is survival to ε ≈ 1 — all six reach ε ≥ 0.68 with the residue conditions
+holding, a lower bound on the hard region's extent.
+
+**Where the rank-2 comes from**, since the mechanism recorded earlier was one rank short. ∂σ/∂x =
+2Σaᵢ∂aᵢ/∂x gives rank ≥ 1, which alone would leave one real line of first-order motion and make most
+directions second-order at best. The rotation comes from the perturbation itself: perturbing α by c·p
+with p real-coefficient changes σ(r) to first order by `p(r)·(c·A′ + c̄·A)` with A = α(r) and
+A′ = (pconj α)(r). The bracket is real-linear in c with determinant |A′|² − |A|², genuinely rank one
+sometimes; **p(r) supplies the rotation**, since for p = u + vX and r ∉ ℝ, p(r) = u + vr sweeps all of
+ℂ. So rank 2 holds at any non-real pole with 𝒜(r) ≠ 0 — exactly "soft but not degenerate". On the real
+axis p(r) is real and A′ = conj A, so the rank is 1 and the image is ℝ — forced, because σ(t) is real
+there. **Real poles are hard and real poles are unrotatable for the same reason**, which is why
+soft→hard is only ever a question at a complex pole.
 
 **The asymmetry is structural, not numerical.** Soft is codimension 2 (σ(r) = 0 is one complex
 equation); hard is open. Hard→soft is a TARGETING problem, which is what the ε-drive does. Soft→hard
