@@ -39,6 +39,7 @@ import { cnorm, type Complex, cadd, cmul } from '../complex'
 import {
   type PoleSet, toSpinor, solveResidue, residueDefect, poleDiagnostics,
   contourResidue, coprimalityMargin, newtonToResidue, conditioningFloor, spinorAt,
+  hopfCoprimalityMargin, residueDefect as defectOf,
 } from '../rationalPHResidue'
 
 // Two conjugate pairs and no real pole. Chosen over m = 3 on FALSIFIABILITY: at m = 3 the
@@ -145,6 +146,18 @@ describe('the mixed cell is not empty', () => {
     expect(worst).toBeGreaterThan(0.1)   // measured 0.435
   })
 
+  it('(f) THE C21 CONDITION: the Hopf numerators n₁ = N₁, n₂ = −N₃ + iN₂ are COPRIME', () => {
+    // Not condition (d). A common root needs n₁(r) = 0 and n₂(r) = 0, the second being ONE
+    // COMPLEX equation — N₂ and N₃ need only satisfy N₃(r) = i·N₂(r), not vanish. The gap is
+    // the ISOTROPIC locus, which is exactly where a soft pole lives, so (d) is blind there.
+    //
+    // Finite by a theorem, not by sampling: σ² = n₁² + n₂·pconj(n₂), so every common root of
+    // the pair is a root of σ — a list of length 2n.
+    const A = toSpinor(M4_WITNESS)
+    const margin = hopfCoprimalityMargin(A, normSquaredPolynomial(A), rootsOf)
+    expect(margin).toBeGreaterThan(1e-2)      // measured 0.326, at z = (−0.294, 0.909)
+  })
+
   it('(d) gcd(N₁,N₂,N₃) is constant, and (e) N kills no pole', () => {
     const A = toSpinor(M4_WITNESS)
     expect(coprimalityMargin(A, rootsOf)).toBeGreaterThan(1e-2)          // measured 0.269
@@ -184,5 +197,59 @@ describe('the construction reaches what the charts cannot', () => {
     expect(conditioningFloor(sol!)).toBeGreaterThan(1e-2)
     const firstHit = solveResidue(poles, 4, { representatives: [0, 1], starts: 40, select: 'first' })
     expect(conditioningFloor(firstHit!)).toBeLessThan(1e-3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// THE FIRST HALF OF THE ATLAS: mixed → AllSoft.
+//
+// The walk runs OUTWARD from the witness rather than between two pure strata, which is
+// what makes it short and well-conditioned at both ends. Driving the hard pair soft is the
+// easy direction — soft is codimension 2 (σ(r) = 0 is one complex equation) and hard is
+// open, so this is a TARGETING problem, which is what the ε-drive does.
+//
+// The other direction is structurally harder and not merely ill-conditioned: σ = 0 is a
+// CRITICAL POINT of |σ|², since d(σσ̄) = σ̄dσ + σdσ̄ vanishes there. Gradient ascent on the
+// magnitude does not move at all. Leaving a submanifold has no canonical direction — the
+// normal space is a real 2-plane, so the escape directions form a circle — which is why
+// soft→hard needs σ(r) = ε·e^{iφ} with φ swept, not a magnitude target.
+// ---------------------------------------------------------------------------
+describe('mixed → AllSoft', () => {
+  it('the hard pair drives soft, and the curve stays rational and well conditioned', () => {
+    const A0 = toSpinor(M4_WITNESS)
+    const start = poleDiagnostics(A0, M4_POLES)[0]
+    expect(start.softness).toBeGreaterThan(0.5)
+
+    // Shrink σ(r₀) along its own direction — well defined because we start HARD.
+    const sigmaAt = (x: readonly number[], k: number): Complex => {
+      const q = spinorAt(toSpinor(x), M4_POLES[k])
+      let acc: Complex = { re: 0, im: 0 }
+      for (const v of q) acc = cadd(acc, cmul(v, v))
+      return acc
+    }
+    const s0 = sigmaAt(M4_WITNESS, 0)
+    const mag = Math.hypot(s0.re, s0.im)
+    const dir = { re: s0.re / mag, im: s0.im / mag }
+
+    let x = [...M4_WITNESS]
+    let eps = mag
+    let step = mag / 8
+    for (let it = 0; it < 400 && eps > 1e-13; it++) {
+      const next = Math.max(eps - step, 0)
+      const y = newtonToResidue(x, M4_POLES, REPS,
+        { pole: 0, value: { re: dir.re * next, im: dir.im * next } }, 80)
+      if (y) { x = y; eps = next; step = Math.min(step * 1.4, mag / 4) }
+      else { step /= 2; if (step < mag * 1e-12) break }
+    }
+    expect(eps).toBeLessThan(1e-12)                       // ε = 0 reached
+
+    const A = toSpinor(x)
+    const d = poleDiagnostics(A, M4_POLES)
+    for (const p of d) {
+      expect(p.softness).toBeLessThan(1e-10)              // ALL SOFT
+      expect(p.hermitian).toBeGreaterThan(0.4)            // and none near the rank-0 seam
+    }
+    expect(defectOf(A, M4_POLES, REPS)).toBeLessThan(1e-12)
+    for (let k = 0; k < 4; k++) expect(contourResidue(A, M4_POLES, k)).toBeLessThan(1e-10)
   })
 })

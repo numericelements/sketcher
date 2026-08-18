@@ -301,10 +301,10 @@ export function contourResidue(
 }
 
 /**
- * gcd(N₁,N₂,N₃) is constant — the primitivity the mixed-cell witness needs, and the
- * hypothesis that rules out a vacuous one. Returned as the smallest value, relative to the
- * scale of N, that max|N(z)| takes over the roots of any component: far from zero means no
- * common factor.
+ * gcd(N₁,N₂,N₃) — the WEAKER condition, and NOT the one C21 asks for. Kept because it is a
+ * meaningful primitivity statement in its own right, but see `hopfCoprimalityMargin` below:
+ * requiring all three components to vanish is three equations where the Hopf pair needs two,
+ * and the gap is exactly the isotropic locus where a mixed witness lives.
  */
 export function coprimalityMargin(A: readonly Quat[], rootsOf: (p: Complex[]) => Complex[]): number {
   const N = sandwichPolynomial(A)
@@ -314,6 +314,41 @@ export function coprimalityMargin(A: readonly Quat[], rootsOf: (p: Complex[]) =>
     for (const r of rootsOf(N[c].map((v) => C(v)))) {
       worst = Math.min(worst, Math.max(...[0, 1, 2].map((i) => cnorm(pevC(N[i], r)))) / scale)
     }
+  }
+  return worst
+}
+
+
+/**
+ * THE C21 CONDITION: are the Hopf numerators coprime?
+ *
+ *     n₁ = N₁              n₂ = −N₃ + i·N₂          (n₂ COMPLEX; it is 2uv in the Hopf form)
+ *
+ * A common root needs n₁(r) = 0 AND n₂(r) = 0 — the latter being ONE COMPLEX equation, so
+ * N₂ and N₃ need not vanish, only satisfy N₃(r) = i·N₂(r). That is strictly weaker than all
+ * three components vanishing, and the gap is precisely the ISOTROPIC locus — which is where
+ * a soft pole lives, so `coprimalityMargin` is blind on exactly the set that matters.
+ *
+ * THE CHECK IS FINITE, and by a theorem rather than by sampling. Since
+ * σ² = n₁² + n₂·pconj(n₂), any common root of (n₁,n₂) is a root of σ. So evaluating the pair
+ * at the roots of σ — a list of length 2n — decides it outright: no gcd, no root-distance
+ * heuristic, no false negatives.
+ *
+ * Returns the smallest max(|n₁|,|n₂|) over those roots, relative to the scale of N. Far from
+ * zero means coprime. A ZERO would not be a bad witness: it would mean C22′ fails there, so
+ * the fibre over that curve is strictly larger than the Hopf gauge and no chart is faithful
+ * at that point — a more interesting object than a clean mixed member.
+ */
+export function hopfCoprimalityMargin(
+  A: readonly Quat[], sigma: readonly number[], rootsOf: (p: Complex[]) => Complex[],
+): number {
+  const N = sandwichPolynomial(A)
+  const scale = Math.max(...N.flat().map(Math.abs), 1e-300)
+  let worst = Infinity
+  for (const z of rootsOf(sigma.map((v) => C(v)))) {
+    const n1 = pevC(N[0], z)
+    const n2 = cadd(cscale(pevC(N[2], z), -1), cmul(C(0, 1), pevC(N[1], z)))
+    worst = Math.min(worst, Math.max(cnorm(n1), cnorm(n2)) / scale)
   }
   return worst
 }

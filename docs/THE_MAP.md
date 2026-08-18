@@ -258,9 +258,15 @@ not missing from the mathematics; they are missing from the chart. *"Chart σ = 
    (softness 1, ‖𝒜(r₀)‖² = 7.7e-2 — not fake), driven from ε = 0.25 to exactly 0. Confirmed by
    contour integration of N/w² around each pole at ~1e-14, which shares none of the algebra.
    The connective tissue exists; the remaining atlas work is to CHART it, which is question 2.
-   **Primitivity checked** (the hypothesis that rules out a vacuous witness): gcd(N₁,N₂,N₃) is
-   constant — no root of any component comes closer than 0.27 (relative) to being common to all three
-   — and the nearest root of N to any pole is 0.50, so no pole is cancelled. C21 closes.
+   **The C21 hypothesis is satisfied**, checked in the form it is actually stated. `IsCoprime n₁ n₂`
+   with `n₁ = N₁` and `n₂ = −N₃ + iN₂`: a common root needs n₁(r) = 0 AND n₂(r) = 0, the second being
+   ONE COMPLEX equation, so N₂ and N₃ need only satisfy N₃(r) = i·N₂(r) rather than vanish. That is
+   strictly weaker than gcd(N₁,N₂,N₃) = 1, **and the gap is exactly the isotropic locus where a soft
+   pole lives** — so the first check I ran was blind on the very set the witness sits on.
+   The right check is FINITE by a theorem rather than by sampling: σ² = n₁² + n₂·pconj(n₂), so every
+   common root of the pair is a root of σ, a list of length 2n. Measured over those eight roots, the
+   worst max(|n₁|,|n₂|) is **0.326** — coprime, with margin. Plus the separate no-cancellation check,
+   nearest root of N to any pole = 0.50. **C21 closes.**
    **The primary witness is now m = 4, two conjugate pairs and no real pole** — the Lean side's
    suggestion, and better for a reason neither side had: at m = 3 the real pole is hard BY THEOREM, so
    "mixed" is nearly guaranteed once the pair softens and the test cannot fail informatively. With two
@@ -495,6 +501,59 @@ empty search teaches nothing. What row 4 improves is that its system is **linear
 dimension is computable exactly as a function of (α, 𝒜) rather than sampled — *scan the rank across a
 family, do not hunt for a hit* — and a negative then upgrades from "we did not find one" to "the rank
 is deficient across this family".
+
+---
+
+## 6b. Methodology — two questions that are not the same question
+
+> **"Which module builds this?" and "could this test have come out otherwise?" are different questions.**
+
+The first is about constructibility, the second about falsifiability, and only the second tells you
+whether a run can teach you anything. Promoted here out of a commit message because it has already
+caught four things in this ledger:
+
+- **the m = 3 mixed-cell design.** At m = 3 the real pole is hard BY THEOREM, so "mixed" is nearly
+  guaranteed once the pair softens — the test could only confirm. m = 4, two pairs, has nothing
+  compelling the second pair, so it can fail. The m = 3 run would have produced a true result by a
+  method that could not have produced a false one.
+- **`select: 'first'`** in `rationalPHResidue`, which returned a member at ‖𝒜(r)‖² = 4.6e-5 — nearly
+  fake, with `softness` sitting at 1 and unable to warn. The conditioning-aware default caught it.
+- **the σ/Σ collision**, where the name "σ at the pole" meant two unrelated quantities and reading the
+  wrong one would have measured nothing while looking like a result.
+- **the coprimality check**, where the condition I verified was strictly weaker than the one asked
+  for, and blind on precisely the locus the witness occupies.
+
+Every one of those is a run that would have come out "positive" for a reason unrelated to the
+question. The general form: before running, ask what a NEGATIVE would look like, and whether the setup
+admits one.
+
+---
+
+## 6c. The atlas walks — outward from the witness
+
+Nonemptiness is settled, connectivity is not. But the witness sits in the MIDDLE, well conditioned at
+both pairs, so the walks run outward from it rather than starting at a pure stratum and steering —
+each is shorter and better conditioned than anything beginning at an end.
+
+```
+mixed → AllSoft    DONE.  drive the hard pair: ε 1.27 → 0, all four poles soft, ‖𝒜(r)‖² = 1.19
+                   and 0.77, residue defect 2.8e-16, contour residues ~3e-16.
+mixed → AllHard    OPEN, and structurally harder — see below.
+```
+
+**The asymmetry is structural, not numerical.** Soft is codimension 2 (σ(r) = 0 is one complex
+equation); hard is open. Hard→soft is a TARGETING problem, which is what the ε-drive does. Soft→hard
+is a LEAVING-A-SUBMANIFOLD problem, and those have no canonical direction: the normal space is a real
+2-plane, so the escape directions form a circle.
+
+Worse, σ = 0 is a CRITICAL POINT of |σ|² — `d(σσ̄) = σ̄dσ + σdσ̄ = 0` there — so gradient ascent on the
+magnitude does not move at all. Stationary, not ill-conditioned; any method targeting a magnitude will
+sit still forever.
+
+**The operational consequence:** target σ(r) = ε·e^{iφ} with φ FIXED, continue in ε, and sweep φ over
+a handful of values. Only one φ needs to arrive for connectivity to hold, which makes success cheap —
+and makes a negative meaningful, since it would require every direction to fail, a geometric statement
+rather than a solver complaint.
 
 ---
 
