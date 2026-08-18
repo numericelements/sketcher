@@ -40,7 +40,7 @@ import { cnorm, type Complex, cadd, cmul } from '../complex'
 import {
   type PoleSet, toSpinor, solveResidue, residueDefect, poleDiagnostics,
   contourResidue, coprimalityMargin, newtonToResidue, conditioningFloor, spinorAt,
-  hopfCoprimalityMargin, residueDefect as defectOf,
+  hopfCoprimalityMargin, residueDefect as defectOf, hodographRank,
 } from '../rationalPHResidue'
 
 // Two conjugate pairs and no real pole. Chosen over m = 3 on FALSIFIABILITY: at m = 3 the
@@ -257,63 +257,45 @@ describe('mixed → AllSoft', () => {
 })
 
 // ---------------------------------------------------------------------------
-// THE SECOND HALF: mixed → AllHard, and with it the atlas.
+// THE SECOND HALF, RETRACTED 2026-08-18: mixed → AllHard DOES NOT HAPPEN, and the atlas
+// does not close.
 //
-// This is the direction with no canonical route. σ = 0 is a CRITICAL POINT of |σ|² —
-// d(σσ̄) = σ̄dσ + σdσ̄ vanishes there — so any method targeting the MAGNITUDE is stationary,
-// not merely slow. Soft is codimension 2 and hard is open, so where hard→soft is a
-// targeting problem, this is a leaving-a-submanifold problem, and the normal space is a
-// real 2-plane: the escape directions form a CIRCLE.
+// This block used to assert "every escape direction arrives — 12 of 12". They do not
+// arrive; they LEAVE THE VARIETY'S BRANCH. Measured in `softIsAbsorbing.test.ts`:
 //
-// The parameterisation that works, and why: target σ(r) = ε·e^{iφ} with φ FIXED. That is
-// TWO real equations whose Jacobian does NOT vanish at σ = 0 — σ = Σaᵢ², so ∂σ/∂x = 2Σaᵢ∂aᵢ/∂x,
-// and at rank one the aᵢ are not all zero. Targeting |σ| = ε is one equation whose gradient
-// IS zero. Same submanifold, same start; one parameterisation moves and the other cannot.
+//   · all twelve endpoints have hodographRank ONE — straight lines, N₁ N₂ N₃ proportional,
+//     second singular value at machine zero against a leading 1.9 — while the witness they
+//     start from is solidly rank 3 (1.374, 1.132, 0.482)
+//   · the FIRST step already lands 0.467 away on a unit-norm spinor, already at rank 1
+//   · with jumps rejected (a step must move the solution by O(Δε)), the continuation does
+//     not leave ε = 0 at all, in any direction
 //
-// Connectivity needs ONE φ to arrive. All twelve do.
+// THE MECHANISM, and it is why no repair is possible. On the residue variety, dσ(r) has
+// NO component off the constraint's row space wherever σ(r) = 0: residual 1e-10 at a soft
+// pole against 0.6–0.9 at a hard one, at (4,4), (5,4) and (7,6) alike. **Soft is
+// absorbing.** hard → soft is a targeting problem and works — the ε-drive above is real.
+// soft → hard is blocked to first order.
+//
+// The old note said arrival at small ε was "guaranteed by the submersion". σ(r) IS a
+// submersion as a map on its own; what governs a continuation is σ(r) RESTRICTED to the
+// residue variety, and that differential vanishes. The escape-direction circle was reasoned
+// about in the ambient space, where it is correct and irrelevant.
+//
+// AND THERE WAS NOWHERE TO ARRIVE. At (n, m) = (4, 4) with four complex poles, genuine
+// (rank-3) all-hard members do not exist at all — see `allHardExistence.test.ts` for the
+// boundary, n ≥ c + 1 in the number of NON-REAL poles.
+//
+// Everything ρ(φ) below was measured along this walk, hence on the straight-line branch.
+// It is kept, retitled, because it is a real measurement OF THAT BRANCH — but it says
+// nothing about the geometry of the soft/hard boundary, which is what it was read as.
 // ---------------------------------------------------------------------------
-describe('mixed → AllHard, and the atlas closes', () => {
-  // Twelve continuations of up to 600 Newton steps: it runs in ~5s alone and timed out at
-  // the 5s default under full-suite parallel load. An explicit budget, not a reduced
-  // measurement — dropping directions would weaken the only result the test carries.
-  it('every escape direction arrives — 12 of 12', { timeout: 180000 }, () => {
-    const sigmaAt = (x: readonly number[], k: number): Complex => {
-      const q = spinorAt(toSpinor(x), M4_POLES[k])
-      let a: Complex = { re: 0, im: 0 }
-      for (const v of q) a = cadd(a, cmul(v, v))
-      return a
-    }
-    expect(Math.hypot(sigmaAt(M4_WITNESS, 2).re, sigmaAt(M4_WITNESS, 2).im)).toBeLessThan(1e-12)
-
-    let arrived = 0
-    for (let p = 0; p < 12; p++) {
-      const phi = (2 * Math.PI * p) / 12
-      const dir = { re: Math.cos(phi), im: Math.sin(phi) }
-      let x = [...M4_WITNESS]
-      let eps = 0
-      let step = 0.02
-      for (let it = 0; it < 600 && eps < 1; it++) {
-        const next = Math.min(eps + step, 1)
-        const y = newtonToResidue(x, M4_POLES, REPS,
-          { pole: 2, value: { re: dir.re * next, im: dir.im * next } }, 80)
-        if (y) { x = y; eps = next; step = Math.min(step * 1.4, 0.1) }
-        else { step /= 2; if (step < 1e-9) break }
-      }
-      const d = poleDiagnostics(toSpinor(x), M4_POLES)
-      const hard = d[0].softness > 0.5 && d[2].softness > 0.5
-      const healthy = Math.min(...d.map((q) => q.hermitian)) > 0.05
-      expect(defectOf(toSpinor(x), M4_POLES, REPS)).toBeLessThan(1e-12)
-      if (hard && healthy) arrived++
-    }
-    // One would settle connectivity. Twelve arrive — but they are SIX distinct paths
-    // doubled, not twelve: σ has real coefficients, so σ(r̄) = conj σ(r) forces the partner's
-    // target to e^{−iφ}, and the pair is unordered, so the +φ and −φ problems have the same
-    // solution set. The sampling statement is six directions, from ONE point of the stratum.
-    expect(arrived).toBe(12)
-
-    // AND MOST OF THIS IS FREE. Arrival at small ε is guaranteed by the submersion, not
-    // measured: the target map is a submersion at a non-real pole with 𝒜(r) ≠ 0, so
-    // first-order motion exists in every direction. The content is survival to ε ≈ 1.
+describe('mixed → AllHard does NOT happen — the walk jumps to the straight-line branch', () => {
+  it('the escape target has no first-order motion on the variety', () => {
+    // The one-line version of the retraction: at the soft pole the constraint pins σ.
+    const d = poleDiagnostics(toSpinor(M4_WITNESS), M4_POLES)
+    expect(d[2].softness).toBeLessThan(1e-12)
+    expect(hodographRank(toSpinor(M4_WITNESS))).toBe(3)
+    // The full measurement, with controls, lives in softIsAbsorbing.test.ts.
   })
 })
 
@@ -351,7 +333,11 @@ describe('mixed → AllHard, and the atlas closes', () => {
 // has determinant −1 and sends e^{iα} to e^{−iα}. If the premise is the explanation, ρ(φ)
 // should become symmetric there and stay asymmetric off it.
 // ---------------------------------------------------------------------------
-describe('ρ(φ) is not a solver artifact', () => {
+// SCOPE, added with the retraction above: every ρ below is the stall of a continuation
+// running ON THE STRAIGHT-LINE BRANCH, since the walk jumps there at its first step. The
+// refutations of the two artifact explanations stand as measurements of that branch. What
+// does NOT stand is reading ρ as the distance to the soft/hard boundary in curve space.
+describe('ρ(φ) on the straight-line branch is not a solver artifact', () => {
   it('is stable under the continuation schedule and independent of the gauge', () => {
     const rho = (phi: number, maxStep: number, iters: number): number => {
       const dir = { re: Math.cos(phi), im: Math.sin(phi) }

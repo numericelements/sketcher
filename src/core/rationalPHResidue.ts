@@ -152,6 +152,55 @@ export interface PoleDiagnostic {
   readonly real: boolean
 }
 
+/**
+ * THE RANK OF N AS A 3 × (2n+1) COEFFICIENT MATRIX — the degeneracy guard.
+ *
+ *     3   a genuinely spatial curve
+ *     2   PLANAR: c′ stays in a fixed plane. A planar answer to a spatial problem.
+ *     1   a STRAIGHT LINE: N₁, N₂, N₃ proportional, so c′ ∥ a fixed vector.
+ *     0   a point.
+ *
+ * WHY IT EXISTS, and why the guards we already had do not cover it. A straight line
+ * satisfies the residue conditions, is a perfectly good rational PH curve, and wears a
+ * stratum label like any other: the specimen in `columnBCount.test.ts` reads "AllHard,
+ * softness 0.59 and 1.00, hermitian 2.18 and 0.26" — every existing diagnostic says
+ * healthy. It collapses the Column B PH Jacobian from rank 17 to 9 and NOTHING ELSE
+ * NOTICED. `hermitian` sees the rank-0 seam, the μ check (THE_MAP §3) sees a common scalar
+ * factor; neither sees this. Check it before believing any stratum label — and treat rank 2
+ * as a warning, not only rank 1, since a planar answer is exactly the failure THE_MAP §2c
+ * is about.
+ */
+export function hodographRank(A: readonly Quat[]): number {
+  const N = sandwichPolynomial(A)
+  const scale = Math.max(...N.flat().map(Math.abs))
+  if (scale < 1e-14) return 0
+  const cols = N[0].map((_, j) => [N[0][j] / scale, N[1][j] / scale, N[2][j] / scale])
+  // 3 × 3 Gram, then Jacobi — three singular values are all that is wanted.
+  const G = Array.from({ length: 3 }, (_, i) => Array.from({ length: 3 }, (_, j) =>
+    cols.reduce((t, c) => t + c[i] * c[j], 0)))
+  for (let sweep = 0; sweep < 60; sweep++) {
+    let off = 0
+    for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) off += G[i][j] * G[i][j]
+    if (off < 1e-30) break
+    for (let p = 0; p < 3; p++) for (let q = p + 1; q < 3; q++) {
+      if (Math.abs(G[p][q]) < 1e-20) continue
+      const th = (G[q][q] - G[p][p]) / (2 * G[p][q])
+      const t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1))
+      const c = 1 / Math.sqrt(t * t + 1), sn = t * c
+      for (let k = 0; k < 3; k++) {
+        const a1 = G[k][p], a2 = G[k][q]
+        G[k][p] = c * a1 - sn * a2; G[k][q] = sn * a1 + c * a2
+      }
+      for (let k = 0; k < 3; k++) {
+        const a1 = G[p][k], a2 = G[q][k]
+        G[p][k] = c * a1 - sn * a2; G[q][k] = sn * a1 + c * a2
+      }
+    }
+  }
+  const sv = [G[0][0], G[1][1], G[2][2]].map((v) => Math.sqrt(Math.max(0, v))).sort((a, b) => b - a)
+  return sv.filter((v) => v > sv[0] * 1e-8).length
+}
+
 /** Both numbers at every pole. Report PER POLE — a norm over poles hides mixing. */
 export function poleDiagnostics(A: readonly Quat[], poles: PoleSet): PoleDiagnostic[] {
   return poles.map((r) => {

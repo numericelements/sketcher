@@ -275,15 +275,74 @@ outcome, not a knife edge — which retires the framing that soft is rare and ha
 *Every all-hard solution is a straight line.* All 48 all-hard hits have **hodograph rank ONE** —
 N₁, N₂, N₃ proportional, so c′ is parallel to a fixed vector. Not one genuinely spatial all-hard
 curve appears in 240 starts. Since the λ-chart needs σ(r) ≠ 0 at EVERY pole, this says the λ-chart's
-home stratum is, as far as sampling reaches, **EMPTY at this configuration** — a better explanation
-of three weeks of chart trouble than ill-conditioning ever was. Sampling is not a proof; it is 240
-deterministic starts, and a homotopy count would settle it.
+home stratum is **EMPTY at this configuration** — a better explanation of three weeks of chart
+trouble than ill-conditioning ever was. Sampling is not a proof; it is 240 deterministic starts.
 
-**A new guard, and it is load-bearing.** `hodographRank(x)` — the rank of N as a 3 × (2n+1) matrix.
-The straight line reads "AllHard, softness 0.59 and 1.00" and collapses the Column B PH Jacobian
-from rank 17 to 9. §3's primitivity note warns about the scalar factor μ; this is a DIFFERENT
-degeneracy and the μ check does not catch it. Check the hodograph rank before believing any stratum
-label.
+**And the boundary has been mapped** (`__tests__/allHardExistence.test.ts`), 160 starts per
+configuration. The threshold is in the number of **non-real** poles, not in m — real poles are free,
+since softness is identically 1 there:
+
+```
+    genuine (rank-3) all-hard members exist  ⟺  deg 𝒜  ≥  c + 1        c = # COMPLEX poles
+
+    poles          c    n = c−1   n = c   n = c+1        threshold
+    m=2 (0 real)   2       0        0       84             n = 3
+    m=3 (1 real)   2       0       26       65             n = 3
+    m=4 (0 real)   4       0        0       38             n = 5
+    m=5 (1 real)   4       0       34       55             n = 5
+    m=6 (0 real)   6       0        0       12             n = 7
+```
+
+So the λ-chart is not broken; it is **empty below n = c + 1 and healthy above**. Every λ-chart
+member in this repository lives at m = 2 with deg 𝒜 = 3 or 4 — comfortably above its threshold, and
+all of them hodograph rank 3.
+
+**A new guard, and it is load-bearing.** `hodographRank(𝒜)` — now exported from
+`core/rationalPHResidue` — is the rank of N as a 3 × (2n+1) matrix: **3** spatial, **2 PLANAR**,
+**1 a straight line**, **0 a point**. The straight line reads "AllHard, softness 0.59 and 1.00,
+hermitian 2.18 and 0.26" — every existing diagnostic says healthy — and collapses the Column B PH
+Jacobian from rank 17 to 9. §3's primitivity note warns about the scalar factor μ; `hermitian` sees
+the rank-0 seam; NEITHER sees this. Check the hodograph rank before believing any stratum label, and
+treat **rank 2 as a warning too**: a planar answer to a spatial problem is exactly the failure §2c
+is about.
+
+### 6d. RETRACTED — "mixed → AllHard, and the atlas closes"
+
+`softIsAbsorbing.test.ts`. The atlas does **not** close, and the walk that appeared to close it was
+leaving the variety's branch.
+
+```
+    all twelve endpoints          hodographRank 1 — straight lines, 2nd sv at machine zero
+    the witness they start from   hodographRank 3, spectrum 1.374  1.132  0.482
+    the FIRST step                lands 0.467 away on a UNIT-NORM spinor, already rank 1
+    with jumps rejected           the continuation does not leave ε = 0, in any direction
+```
+
+**The mechanism, and it is why no repair is possible.** On the residue variety, dσ(r) has no
+component off the constraint's row space wherever σ(r) = 0:
+
+```
+    pole SOFT   residual of dσ(r) off span(residue rows)   1e-10     σ(r) is PINNED
+    pole HARD   the same residual                          0.6 … 0.9  σ(r) moves freely
+```
+
+measured at (n,m) = (4,4), (5,4) and (7,6), on AllSoft, Mixed and AllHard members alike. **Soft is
+absorbing.** hard → soft is a targeting problem and works — the ε-drive of §6c is real. soft → hard
+is blocked *to first order*, not merely ill-conditioned.
+
+The old argument said arrival at small ε was "guaranteed by the submersion". σ(r) IS a submersion as
+a map on its own; what governs a continuation is σ(r) **restricted to the residue variety**, and that
+differential vanishes. The escape-direction circle was reasoned about in the ambient space, where it
+is correct and beside the point.
+
+**What this costs §6c.** Every ρ(φ) was the stall of a continuation running on the straight-line
+branch. The two artifact refutations stand *as measurements of that branch*. What does not stand is
+reading ρ as a distance to the soft/hard boundary in curve space — including the axis fit, the kink
+at φ ≈ 112°, and the ±φ asymmetry as evidence about geometry. The Möbius resolution (§6c, `f07c1fd`)
+is unaffected: it is an algebraic identity about the transformation law, not a ρ measurement.
+
+**And there was nowhere to arrive.** At (4,4) genuine all-hard members do not exist at all (above).
+Connectivity of the strata is therefore back to: **mixed → AllSoft, arrived. Everything else, open.**
 
 **Validated on the m = 4 witness** (`mixedCellExists.test.ts`):
 
@@ -713,22 +772,21 @@ each is shorter and better conditioned than anything beginning at an end.
 ```
 mixed → AllSoft    DONE.  drive the hard pair: ε 1.27 → 0, all four poles soft, ‖𝒜(r)‖² = 1.19
                    and 0.77, residue defect 2.8e-16, contour residues ~3e-16.
-mixed → AllHard    DONE.  σ(r₂) = ε·e^{iφ}, ε: 0 → ~1, swept over TWELVE φ.  ALL TWELVE
-                   ARRIVE — softness 0.80…0.99 at both pairs, min ‖𝒜(r)‖² from 0.52 to 1.05,
-                   residue defects 1e-16…8e-15.
+mixed → AllHard    RETRACTED 2026-08-18 (§6d). The twelve walks do not arrive; they JUMP to
+                   the straight-line branch at their first step. Soft is absorbing: dσ(r) has
+                   no component off the constraint's row space wherever σ(r) = 0.
 ```
 
-**So the atlas closes.** AllSoft, the mixed cell and AllHard lie in one connected component, joined
-through the witness — and joined by paths that are short and well conditioned at both ends, which is
-what running outward bought.
+**The atlas does NOT close.** AllSoft and the mixed cell are joined through the witness — that half
+is real. AllHard is not reached from either, and at this configuration genuine all-hard members do
+not exist at all (§6b). Connectivity: **mixed → AllSoft, arrived. Everything else, open.**
 
-Connectivity needed ONE φ to arrive. Twelve did, so the soft locus is not a barrier in any sampled
-direction *from this witness* — a statement about one point of the stratum, not about all of it.
-
-**Why the φ-parameterisation moves where a magnitude target cannot.** Targeting σ(r) = ε·e^{iφ} is TWO
-real equations, and the target map is a submersion there (see the rank-2 argument below). Targeting
-|σ| = ε is ONE equation whose gradient IS zero at σ = 0. Same submanifold, same starting point; one
-parameterisation moves and the other is stationary.
+**Why the φ-parameterisation seemed to move where a magnitude target cannot.** Targeting σ(r) = ε·e^{iφ}
+is TWO real equations and the target map IS a submersion — as a map on its own. Targeting |σ| = ε is
+ONE equation whose gradient vanishes at σ = 0. That contrast is real and the general lesson below
+stands. What it does not deliver is motion ON THE VARIETY: restricted to the residue conditions the
+same differential is zero, which is why the "moving" solver was in fact re-solving on another branch.
+**The submersion test must be applied to the map restricted to the constraint set, not to the map.**
 
 The general statement, which catches far more than this problem:
 
