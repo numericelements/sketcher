@@ -247,8 +247,43 @@ soft STRATUM.
     what is wanted           rational PH curve, poles soft            ← PH unimposed
 ```
 
-**Nobody has run the count** — how many of the free (a, b) survive imposing PH. It could be plenty or
-almost none, and it is the one specific countable thing between here and Column B being real.
+**THE COUNT, run 2026-08-18** (`__tests__/columnBCount.test.ts`), at m = 4 poles and deg 𝒜 = 4,
+measured at an AllSoft member by singular values stable across h = 1e-4, 1e-5, 1e-6:
+
+```
+    COLUMN A   20 spinor reals − rank 12 (residue) − 1 gauge          dim 7
+    COLUMN B   20 params (3 P′ + 8 cone + 9 σ) − rank 13 (M·M − σ²)   dim 7
+    COLUMN B   24 params (3 P′ + 12 free V + 9 σ), same equations     dim 7
+
+    the cone block alone, 8 dialable reals            rank 7  →  ONE survives
+```
+
+So of the eight dialable cone parameters PH pins seven, and — the part that decides the trade — all
+three dimensions agree. **Column B reaches exactly what Column A does and nothing more.** It buys a
+CONSTRUCTION (no solving on the residue side, which is where every difficulty has been), not new
+curves. That is still worth having; it is not a new region.
+
+**And two things found on the way, both larger than the count.**
+
+*Softness costs nothing here.* The four rows d(σ(r₀), σ(r₂)) lie INSIDE the row space of the twelve
+residue conditions (residual 1e-8), and a FINITE walk — 0.27 in a unit-norm spinor, three independent
+kernel directions, Newton back onto the residue variety each time — stays soft to 1e-13. AllSoft is
+not a codimension-4 stratum at (n, m) = (4, 4); it is full-dimensional. Sampling agrees: **113
+AllSoft and 79 Mixed out of 240 deterministic Newton starts.** The soft region is the MAJORITY
+outcome, not a knife edge — which retires the framing that soft is rare and hard is generic.
+
+*Every all-hard solution is a straight line.* All 48 all-hard hits have **hodograph rank ONE** —
+N₁, N₂, N₃ proportional, so c′ is parallel to a fixed vector. Not one genuinely spatial all-hard
+curve appears in 240 starts. Since the λ-chart needs σ(r) ≠ 0 at EVERY pole, this says the λ-chart's
+home stratum is, as far as sampling reaches, **EMPTY at this configuration** — a better explanation
+of three weeks of chart trouble than ill-conditioning ever was. Sampling is not a proof; it is 240
+deterministic starts, and a homotopy count would settle it.
+
+**A new guard, and it is load-bearing.** `hodographRank(x)` — the rank of N as a 3 × (2n+1) matrix.
+The straight line reads "AllHard, softness 0.59 and 1.00" and collapses the Column B PH Jacobian
+from rank 17 to 9. §3's primitivity note warns about the scalar factor μ; this is a DIFFERENT
+degeneracy and the μ check does not catch it. Check the hodograph rank before believing any stratum
+label.
 
 **Validated on the m = 4 witness** (`mixedCellExists.test.ts`):
 
@@ -375,6 +410,12 @@ row 4  dual             never divides — reaches it, LINEARLY, and this is why 
 row 6  column           never divides — sp11Circle gets the circle straight out of it
 row 7  conformal        lands ON σ = h·w, i.e. every pole singular
 ```
+
+**And at (n, m) = (4, 4) row 2's stratum looks EMPTY.** AllSoft is exactly `w | σ`, i.e. `σ = h·w` —
+row 7's condition — so the measurement above says row 7's stratum is full-dimensional and the
+λ-chart's is not populated by any genuinely spatial curve at all (`columnBCount.test.ts`; 240 starts,
+every all-hard hit a straight line). The chart is not merely awkward there; there may be nothing for
+it to chart.
 
 **And the distinction that matters most here, measured in `sp11Circle.test.ts`:** the circle needs
 `A` **real**. It does not need quaternionic freedom at all. So what excluded it was never the
