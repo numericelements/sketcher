@@ -145,7 +145,7 @@ instead returns a member sitting at ‖𝒜(r)‖² = 4.6e-5, nearly fake, with 
 
 ---
 
-## 2c. Why σ = 0 is a SPATIAL phenomenon — the plane has no such stratum
+## 2c. Is σ = 0 a SPATIAL phenomenon? — the plane has no such stratum IN ITS OWN COORDINATES
 
 `__tests__/planarSoftForcesFake.test.ts`. Run because the plane is the one place with no continuous
 gauge (A ↦ −A is discrete), so nothing there can be blamed on a gauge orbit. The answer is stronger
@@ -172,10 +172,35 @@ which is a degree drop, not rank one. Measured: forcing σ = 0 on a pair leaves 
                                                 {soft, FAKE}, never {soft, soft}
 ```
 
-**And the fake pole cancels.** A(r) = 0 gives N = A² a double root at r while w² has one there, so
-c′ = N/w² is regular and r is not a pole of the curve at all. The planar σ = 0 configuration is a
-curve with FEWER poles wearing a larger pole set. That is why the plane never needed a chart for this
-stratum, and why the λ-chart's hole is a genuinely spatial difficulty rather than an inherited one.
+**And the "fake" pole does NOT cancel — corrected 2026-08-18, this section previously claimed it
+did.** A(r) = 0 gives N = A² a double root at r, so the HOLOMORPHIC combination x′ + iy′ = A²/w² is
+regular. But for real t the components are x′ = (A² + (A†)²)/(2w²) and y′ = (A² − (A†)²)/(2i·w²), and
+A†(r) = conj(A(r̄)) is the healthy partner — **nonzero**. Each real component keeps its double pole.
+The old test measured |N/(t−r)²|, which is bounded, and read that as the curve having fewer poles; it
+had measured the half that cancels.
+
+```
+    |N/(t−r)²|   3.0e-4 → 3.7e-6      bounded — the whole content of the old assertion
+    |x′ part|    7.6e+7 → 7.6e+9      ×100 per decade: the DOUBLE pole is still there
+    |y′ part|    7.6e+7 → 7.6e+9
+```
+
+**The circle is the explicit counterexample**, and needs no solve: its planar generator is
+A = (1−t) + i(1+t), so A(i) = 0 — "fake" by the dictionary above — while c_x = (1−t²)/(1+t²) has
+numerator 2 at t = i. A pole, in lowest terms, residue (−i, 1). Nothing cancelled.
+
+**And the rank is a MODEL ARTIFACT.** The same circle has spatial generator 𝒜 = (1−t) + (1+t)k with
+𝒜(i) ≠ 0 and σ(i) = 0: rank ONE, honestly soft. The planar model collides its coefficient field with
+its structural imaginary unit — A = a + ib carrying the same i as the pole — and that collision, not
+the geometry, makes A(i) vanish. Space keeps ℂ and k independent and sees no drop. So **{soft, FAKE}
+names a property of the planar COORDINATES, not of the curve**; the same trap as the four-component
+vs pair-model Hermitian norm.
+
+**What survives, and what does not.** The algebra survives: σ = A·A† is a product on ℂ ⊕ ℂ, so a
+planar σ(r) = 0 really does force a generator root onto a pole, and the plane really has no rank-1
+floor *in its own coordinates*. What does NOT survive is the corollary — "the plane never needed a
+chart for this stratum" — nor its use as evidence that the λ-chart's hole is exclusively spatial.
+Both are withdrawn pending a re-run; the section heading is left standing as a QUESTION.
 
 One more difference from the same algebra: the planar no-log condition A′(r_k) = Σ_k A(r_k) is
 **linear** in A, so the family is a linear subspace of complex dimension (n+1) − m (measured 3 at
@@ -211,6 +236,20 @@ the last three weeks has been on the residue side; nothing has gone wrong on the
 real — imposing "|c′|² is a perfect square" directly is exactly what spinors were invented to avoid —
 but it is a trade in the direction where the obstruction currently is.
 
+**SCOPE, and it is the whole open question.** The null cone has a rational parameterisation
+(a²−b², i(a²+b²), 2ab), so soft RESIDUES are dialable with no solving at all — that much is new and
+real. Soft **PH curves** are not: dialling on the cone gives a rational curve whose poles are soft,
+and PH is entirely unpaid. The honest phrasing is that the cone charts the soft CONDITION, not the
+soft STRATUM.
+
+```
+    what the cone gives      rational curve, poles soft by construction
+    what is wanted           rational PH curve, poles soft            ← PH unimposed
+```
+
+**Nobody has run the count** — how many of the free (a, b) survive imposing PH. It could be plenty or
+almost none, and it is the one specific countable thing between here and Column B being real.
+
 **Validated on the m = 4 witness** (`mixedCellExists.test.ts`):
 
 ```
@@ -220,7 +259,11 @@ but it is a trade in the direction where the obstruction currently is.
 ```
 
 An isotropic V = a + ib is CIRCULAR — real and imaginary parts orthogonal and of equal length —
-exactly as the unit circle's residue (−i, 1, 0) at t = i shows.
+exactly as the unit circle's residue (−i, 1, 0) at t = i shows. **And the circle is a legitimate
+specimen**, contrary to a doubt raised against it: its pole at t = i survives reduction to lowest
+terms (§2c), so the isotropic residue there is a genuine soft pole, not a bookkeeping artifact. The
+AllSoft walk's members, with ‖𝒜(r)‖² = 1.19 and 0.77, are the other kind of witness — rank one with
+nothing cancelling — and Column B has to reproduce both.
 
 **One correction.** |V·V|/(V·V̄) does NOT reproduce the softness cosine: 0.3978 against softness² =
 0.4678. Both vanish on the soft locus and both are Cauchy–Schwarz cosines, but on different spaces —

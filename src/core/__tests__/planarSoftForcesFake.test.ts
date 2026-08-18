@@ -23,11 +23,32 @@
 //     space   ℍ ⊗ ℂ ≅ M₂(ℂ)    rank 1 = nonzero singular    both poles SOFT and nonzero
 //     plane   ℂ ⊗ ℂ ≅ ℂ ⊕ ℂ    "rank 1" = a factor is 0     the pair is {soft, FAKE}
 //
-// AND THE FAKE POLE CANCELS. A(r) = 0 makes N = A² have a double root at r while w² has a
-// double root there, so c′ = N/w² is regular and r is not a pole of the curve at all. The
-// planar σ = 0 configuration is therefore a curve with fewer poles wearing a larger pole
-// set — which is exactly why the plane never needed a chart for it, and why the λ-chart's
-// hole is a genuinely spatial difficulty.
+// AND THE "FAKE" POLE DOES NOT CANCEL — a correction, measured below, that overturns what
+// this file used to assert. A(r) = 0 makes N = A² have a double root at r, so the
+// HOLOMORPHIC combination x' + iy' = A²/w² is regular there. But for real t
+//
+//     x' = (A² + (A†)²)/(2w²)          y' = (A² − (A†)²)/(2i·w²)
+//
+// and A†(r) = conj(A(r̄)) is the HEALTHY partner, nonzero. So each real component keeps its
+// double pole. The old test measured |N/(t−r)²| — bounded — and read that as the curve
+// having fewer poles. It measured the half that cancels.
+//
+// THE CIRCLE IS THE EXPLICIT COUNTEREXAMPLE, and it is unarguable. Its planar generator is
+// A = (1−t) + i(1+t), so A(i) = 0 — "fake" by the dictionary above — yet
+// c_x = (1−t²)/(1+t²) has numerator 2 at t = i. A pole, in lowest terms, with residue
+// (−i, 1). Nothing cancelled.
+//
+// AND THE RANK IS A MODEL ARTIFACT. The SAME circle has spatial generator
+// 𝒜 = (1−t) + (1+t)k with 𝒜(i) ≠ 0 and σ(i) = 0: rank ONE, honestly soft. The planar model
+// collides its coefficient field with its structural imaginary unit — A = a + ib with the
+// same i that carries the pole — and that collision, not the geometry, is what makes A(i)
+// vanish. Space keeps ℂ and k independent and sees no drop. So {soft, FAKE} names a
+// property of the PLANAR COORDINATES, not of the curve; it is the same trap as the
+// four-component vs pair-model Hermitian norm.
+//
+// What SURVIVES is the algebra: σ = A·A† really is a product on ℂ ⊕ ℂ, so a planar σ(r) = 0
+// really does force a generator root onto a pole. What does NOT survive is the corollary
+// that the plane therefore never needed a chart for the stratum.
 //
 // A second difference falls out of the same algebra: the planar no-log condition
 // A′(r_k) = Σ_k A(r_k) is LINEAR in A, so the family is a linear subspace of complex
@@ -35,6 +56,8 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { type Complex, cadd, csub, cmul, cdiv, cscale, cnorm, cconj } from '../complex'
+import { type Quat } from '../quaternion'
+import { poleDiagnostics } from '../rationalPHResidue'
 
 const C = (re: number, im = 0): Complex => ({ re, im })
 type CP = Complex[]
@@ -155,9 +178,9 @@ describe('planar rational PH: the σ = 0 stratum is degenerate', () => {
     expect(cnorm(evalAt(sigma, POLES[0]))).toBeGreaterThan(1)
   })
 
-  it('and the fake pole CANCELS — the curve has fewer poles than its pole set', () => {
-    // A(r) = 0 makes N = A² have a double root at r, and w² has a double root there, so
-    // c′ = N/w² is regular: r is not a pole of the curve at all.
+  it('the "fake" pole does NOT cancel — only the holomorphic half does', () => {
+    // The correction. |N/(t−r)²| is bounded, which is what the old assertion measured; the
+    // REAL components x' and y' diverge like 1/ε² at the very same pole.
     const extra = [Array.from({ length: DEG + 1 }, (_, j) => {
       const mono: CP = Array.from({ length: DEG + 1 }, (_, i) => (i === j ? C(1) : C(0)))
       return evalAt(mono, POLES[2])
@@ -165,16 +188,62 @@ describe('planar rational PH: the σ = 0 stratum is degenerate', () => {
     const B = nullspace(conditionRows(POLES, DEG, extra), DEG + 1)
     const A = combine(B, [C(1, 0.2), C(-0.5, 0.9)], DEG)
     const N = mul(A, A)
+    const Nd = mul(dagger(A), dagger(A))
     const r = POLES[2]
-    // N/(t−r)² stays finite as t → r: sample the quotient on a small circle.
-    let worst = 0
-    for (let j = 0; j < 32; j++) {
-      const th = (2 * Math.PI * j) / 32
-      const z = cadd(r, C(1e-4 * Math.cos(th), 1e-4 * Math.sin(th)))
-      const d = csub(z, r)
-      worst = Math.max(worst, cnorm(cdiv(evalAt(N, z), cmul(d, d))))
+
+    expect(cnorm(evalAt(A, r))).toBeLessThan(1e-10)            // the generator does vanish…
+    expect(cnorm(evalAt(dagger(A), r))).toBeGreaterThan(1)     // …and its dagger does not
+
+    const at = (eps: number) => {
+      const z = cadd(r, C(eps, 0))
+      const d2 = cmul(csub(z, r), csub(z, r))
+      const n = evalAt(N, z), nd = evalAt(Nd, z)
+      return {
+        holo: cnorm(cdiv(n, d2)),
+        x: cnorm(cdiv(cscale(cadd(n, nd), 0.5), d2)),
+        y: cnorm(cdiv(cdiv(cscale(csub(n, nd), 0.5), C(0, 1)), d2)),
+      }
     }
-    expect(Number.isFinite(worst)).toBe(true)
-    expect(worst).toBeLessThan(1e6)          // bounded: the double root really is there
+    const a = at(1e-3), b = at(1e-4)
+
+    expect(a.holo).toBeLessThan(1e-2)                 // bounded — the old test's whole content
+    expect(b.holo).toBeLessThan(1e-2)
+    expect(a.x).toBeGreaterThan(1e6)                  // the curve's own component blows up
+    expect(a.y).toBeGreaterThan(1e6)
+    expect(b.x / a.x).toBeGreaterThan(50)             // ×100 per decade: a DOUBLE pole
+    expect(b.y / a.y).toBeGreaterThan(50)
+  })
+
+  it('the circle: A(i) = 0 by the dictionary, and a genuine pole with residue (−i, 1)', () => {
+    // Fully explicit, no solve. A = (1−t) + i(1+t), N = A² = −4t + i(2−2t²), w = 1 + t².
+    const A: CP = [C(1, 1), C(-1, 1)]
+    expect(cnorm(evalAt(A, C(0, 1)))).toBeLessThan(1e-14)      // "fake"
+    expect(cnorm(evalAt(A, C(0, -1)))).toBeGreaterThan(1)
+
+    const cx = (z: Complex) => cdiv(csub(C(1), cmul(z, z)), cadd(C(1), cmul(z, z)))
+    const v = (eps: number) => cnorm(cx(cadd(C(0, 1), C(eps, 0))))
+    expect(v(1e-3)).toBeGreaterThan(500)
+    expect(v(1e-4) / v(1e-3)).toBeGreaterThan(5)               // 1/ε: a simple pole of c
+
+    // Residue of c at t = i is (−i, 1): the pole is not merely present, it is the isotropic
+    // one THE_MAP §2d cites. lim (t−i)·c.
+    const eps = 1e-6
+    const z = cadd(C(0, 1), C(eps, 0))
+    const rx = cmul(csub(z, C(0, 1)), cx(z))
+    const ry = cmul(csub(z, C(0, 1)), cdiv(cscale(z, 2), cadd(C(1), cmul(z, z))))
+    expect(cnorm(csub(rx, C(0, -1)))).toBeLessThan(1e-5)
+    expect(cnorm(csub(ry, C(1, 0)))).toBeLessThan(1e-5)
+  })
+
+  it('and the SAME circle is rank ONE in space — so "fake" is a coordinate, not a curve', () => {
+    // 𝒜 = (1−t) + (1+t)k. σ = |𝒜|² = 2(1+t²) vanishes at i; 𝒜(i) does not.
+    const A: Quat[] = [
+      { u: 1, v: 0, p: 0, q: 1 },
+      { u: -1, v: 0, p: 0, q: 1 },
+    ]
+    const [d] = poleDiagnostics(A, [C(0, 1)])
+    expect(d.sigma).toBeLessThan(1e-14)              // singular — the same σ = 0 as the plane
+    expect(d.hermitian).toBeGreaterThan(1)           // but NOT zero: rank one, not a drop
+    expect(d.softness).toBeLessThan(1e-14)
   })
 })
