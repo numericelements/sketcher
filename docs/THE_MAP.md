@@ -706,7 +706,32 @@ But the axis does not land on kθ_soft:
     all others                    ≥ 29%
 ```
 
-**A structural caveat before anyone calls that a refutation.** ρ has a KINK: its successive ratios run
+**RESOLVED (the one-curve test). The transformation law is RIGHT; its hypothesis does not hold for
+the witness.** Instead of fitting ρ, apply t ↦ 1/s to a single solution at a known target and read
+arg σ off the image — 𝒜_new(s) = sⁿ𝒜(1/s) is just the coefficient REVERSAL, so this is exact algebra
+with no sampling. Two runs settle it:
+
+```
+  n = 4 (the witness)   deg N = 2n = 8 = deg w²      IMAGE residue defect 3.4e-1   NOT a member
+  n = 3                 deg N = 6 < deg w² = 8       IMAGE residue defect 4.9e-16  a member
+                                                     exponent read off: 3.0000 = n
+```
+
+At n = 3 the image satisfies the residue conditions at the SAME poles to machine precision and
+preserves the soft/hard assignment, so the exponent is measured rather than assumed: **the weight is
+k = deg 𝒜**, exactly as the homogenisation argument says.
+
+**But at n = 4 the Möbius does not act on the problem at all.** With deg N = deg w² the curve has a
+pole at ∞, and t ↦ 1/s carries ∞ to 0 — turning a 4-pole configuration into a 5-pole one. The image is
+not a member, which is why its residue defect is 3.4e-1 rather than 1e-16.
+
+So the reflection prediction was being applied outside its domain. It requires **n ≤ m − 1** (so that
+∞ is not a pole), and the m = 4 witness has n = 4. That explains the fitted axis missing kθ_soft, the
+symmetry being only approximate (4.75%) rather than exact, and it removes any need for a Möbius
+account of the ρ asymmetry off the circle. The axis fit below stands as data about the continuation,
+not as a test of the law.
+
+**A structural caveat, still live for the ρ shape itself.** ρ has a KINK: its successive ratios run
 1.061, 1.071, 1.080, 1.088, 1.092, 1.094, 1.056, then jump to **0.875**, at φ ≈ 112°. That is exactly
 the CREASE predicted above if ρ is the min of two boundary functions (alignment and the rank-0 seam) —
 and a crease corrupts a single global reflection fit, since each piece could be symmetric about its
