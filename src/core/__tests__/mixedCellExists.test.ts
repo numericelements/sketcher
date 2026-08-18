@@ -215,7 +215,8 @@ describe('the construction reaches what the charts cannot', () => {
 // soft→hard needs σ(r) = ε·e^{iφ} with φ swept, not a magnitude target.
 // ---------------------------------------------------------------------------
 describe('mixed → AllSoft', () => {
-  it('the hard pair drives soft, and the curve stays rational and well conditioned', () => {
+  it('the hard pair drives soft, and the curve stays rational and well conditioned',
+    { timeout: 180000 }, () => {
     const A0 = toSpinor(M4_WITNESS)
     const start = poleDiagnostics(A0, M4_POLES)[0]
     expect(start.softness).toBeGreaterThan(0.5)
@@ -271,7 +272,10 @@ describe('mixed → AllSoft', () => {
 // Connectivity needs ONE φ to arrive. All twelve do.
 // ---------------------------------------------------------------------------
 describe('mixed → AllHard, and the atlas closes', () => {
-  it('every escape direction arrives — 12 of 12', () => {
+  // Twelve continuations of up to 600 Newton steps: it runs in ~5s alone and timed out at
+  // the 5s default under full-suite parallel load. An explicit budget, not a reduced
+  // measurement — dropping directions would weaken the only result the test carries.
+  it('every escape direction arrives — 12 of 12', { timeout: 180000 }, () => {
     const sigmaAt = (x: readonly number[], k: number): Complex => {
       const q = spinorAt(toSpinor(x), M4_POLES[k])
       let a: Complex = { re: 0, im: 0 }
