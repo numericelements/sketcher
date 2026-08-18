@@ -34,10 +34,11 @@
 // them. The seed pinned below keeps ‖𝒜(r₀)‖² at 7.7e-2.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { rootsOf } from '../conformalPHHopf'
+import { rootsOf, sandwichPolynomial, normSquaredPolynomial } from '../conformalPHHopf'
+import { cnorm, type Complex, cadd, cmul } from '../complex'
 import {
   type PoleSet, toSpinor, solveResidue, residueDefect, poleDiagnostics,
-  contourResidue, coprimalityMargin, newtonToResidue, conditioningFloor,
+  contourResidue, coprimalityMargin, newtonToResidue, conditioningFloor, spinorAt,
 } from '../rationalPHResidue'
 
 // Two conjugate pairs and no real pole. Chosen over m = 3 on FALSIFIABILITY: at m = 3 the
@@ -48,6 +49,12 @@ const M4_POLES: PoleSet = [
   { re: -0.5, im: 0.7 }, { re: -0.5, im: -0.7 },
 ]
 const REPS = [0, 2]
+
+const pevC = (p: readonly number[], z: Complex): Complex => {
+  let a: Complex = { re: 0, im: 0 }
+  for (let k = p.length - 1; k >= 0; k--) a = cadd(cmul(z, a), { re: p[k], im: 0 })
+  return a
+}
 
 /** Found by the chart-free solve, then pinned at full precision. n = 4, ‖𝒜‖ = 1. */
 const M4_WITNESS: number[] = [
@@ -93,10 +100,60 @@ describe('the mixed cell is not empty', () => {
     expect(Math.abs(d[2].sigma - d[3].sigma)).toBeLessThan(1e-12)
   })
 
-  it('and it is PRIMITIVE — gcd(N₁,N₂,N₃) constant, so the witness is not vacuous', () => {
-    // The hypothesis that rules out a trivial witness. Rank one at the soft pair says that
-    // pole is not fake; it says nothing about N sharing a factor elsewhere.
-    expect(coprimalityMargin(toSpinor(M4_WITNESS), rootsOf)).toBeGreaterThan(1e-2)
+  // ---- the primitivity battery, because "coprime" names several different conditions ----
+  //
+  // Rank one at the soft pair says that pole is not FAKE. It says nothing about common
+  // factors elsewhere, and "coprime" can mean at least five things here. Four hold with
+  // margin. The fifth cannot hold, for a reason that matters — see below.
+
+  it('(a) the SOFT pole is a genuine double pole — N(r) ≠ 0 though ‖N(r)‖² = σ(r)² = 0', () => {
+    // The subtle case, and the one that would have made the witness meaningless. The
+    // double-pole coefficient is a_k = N(r_k)/v(r_k)², so if N vanished at the soft pole the
+    // pole would be REMOVABLE and calling it soft would say nothing about any curve.
+    // Over ℂ, ‖N‖² = σ² = 0 does NOT force N = 0 — N(r) is ISOTROPIC, not zero — and here
+    // it is measurably nonzero.
+    const A = toSpinor(M4_WITNESS)
+    const N = sandwichPolynomial(A)
+    const scale = Math.max(...N.flat().map(Math.abs))
+    for (const k of [2, 3]) {
+      const v = N.map((p) => pevC(p, M4_POLES[k]))
+      expect(Math.max(...v.map(cnorm)) / scale).toBeGreaterThan(0.1)   // measured 0.556
+    }
+  })
+
+  it('(b) gcd(σ, w) ≠ 1 — and this is FORCED, not a defect of the witness', () => {
+    // A soft pole IS a common root of σ and w: that is what σ(r) = 0 at a root of w means.
+    // So no mixed member can ever be coprime in this sense, and a hypothesis demanding it
+    // would make the mixed cell empty by fiat rather than by geometry.
+    const A = toSpinor(M4_WITNESS)
+    const sigma = normSquaredPolynomial(A)
+    const scale = Math.max(...sigma.map(Math.abs))
+    expect(cnorm(pevC(sigma, M4_POLES[2])) / scale).toBeLessThan(1e-12)   // shares the root
+    expect(cnorm(pevC(sigma, M4_POLES[0])) / scale).toBeGreaterThan(0.1)  // but only there
+  })
+
+  it('(c) 𝒜(z) vanishes NOWHERE — no fake pole hiding off the pole set', () => {
+    // The strongest primitivity statement available: 𝒜 has no root at all, so its Hopf
+    // components share no factor and no pole anywhere is a degree drop.
+    const A = toSpinor(M4_WITNESS)
+    const sigma = normSquaredPolynomial(A)
+    let worst = Infinity
+    for (const z of rootsOf(sigma.map((v) => ({ re: v, im: 0 })))) {
+      const q = spinorAt(A, z)
+      worst = Math.min(worst, q.reduce((t, x) => t + x.re * x.re + x.im * x.im, 0))
+    }
+    expect(worst).toBeGreaterThan(0.1)   // measured 0.435
+  })
+
+  it('(d) gcd(N₁,N₂,N₃) is constant, and (e) N kills no pole', () => {
+    const A = toSpinor(M4_WITNESS)
+    expect(coprimalityMargin(A, rootsOf)).toBeGreaterThan(1e-2)          // measured 0.269
+    const N = sandwichPolynomial(A)
+    const scale = Math.max(...N.flat().map(Math.abs))
+    for (let k = 0; k < 4; k++) {
+      const v = N.map((p) => pevC(p, M4_POLES[k]))
+      expect(Math.max(...v.map(cnorm)) / scale).toBeGreaterThan(0.1)
+    }
   })
 
   it('the chart-free solve REACHES it — no drive, no chart, no search luck', () => {
