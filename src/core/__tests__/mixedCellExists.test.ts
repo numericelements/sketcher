@@ -426,3 +426,62 @@ describe('softness is an alignment cosine, and ρ is the distance to alignment',
     }
   }, 600000)
 })
+
+// ---------------------------------------------------------------------------
+// A GUARD, because the wrong Hermitian norm is invisible to every real-axis check.
+//
+// At a complex pole there are two candidate norms for 𝒜(z), and they differ:
+//
+//     four-component   Σᵢ |aᵢ(z)|²                               ← what this module uses
+//     pair-model       |a₀ + i·a₁|² + |a₂ + i·a₃|²               ← conflates the quaternion
+//                                                                  unit i with the complex i
+//     difference       2·Im(a₀ā₁ + a₂ā₃)
+//
+// The difference vanishes identically on the REAL axis, so the two agree on every
+// real-parameter sanity check and disagree everywhere else — measured here at 0.68 on a
+// quantity of size 1.86. Anything computing the pair form at a complex pole gets a number
+// that is neither a cosine nor conjugation-symmetric, and it would pass a real-axis test
+// cleanly.
+//
+// The cheap discriminator needs no knowledge of which form was written: only the
+// four-component norm is CONJUGATION-SYMMETRIC, because 𝒜(z̄) = conj 𝒜(z) componentwise.
+// The pair form is not, and the measurement says so.
+// ---------------------------------------------------------------------------
+describe('the Hermitian norm is the four-component one', () => {
+  const four = (q: Complex[]) => q.reduce((t, x) => t + x.re * x.re + x.im * x.im, 0)
+  const pairModel = (q: Complex[]) => {
+    const f = (a: Complex, b: Complex) => {
+      const z = { re: a.re - b.im, im: a.im + b.re }
+      return z.re * z.re + z.im * z.im
+    }
+    return f(q[0], q[1]) + f(q[2], q[3])
+  }
+
+  it('poleDiagnostics.hermitian is Σ|aᵢ|², exactly, and not the pair form', () => {
+    const A = toSpinor(M4_WITNESS)
+    const d = poleDiagnostics(A, M4_POLES)
+    M4_POLES.forEach((p, k) => {
+      const q = spinorAt(A, p)
+      expect(Math.abs(d[k].hermitian - four(q))).toBe(0)
+      expect(Math.abs(d[k].hermitian - pairModel(q))).toBeGreaterThan(0.1)   // measured 0.68
+    })
+  })
+
+  it('and only the four-component form is conjugation-symmetric — the discriminator', () => {
+    const A = toSpinor(M4_WITNESS)
+    for (const p of M4_POLES) {
+      const q = spinorAt(A, p)
+      const qb = spinorAt(A, { re: p.re, im: -p.im })
+      expect(Math.abs(four(q) - four(qb))).toBeLessThan(1e-14)
+      expect(Math.abs(pairModel(q) - pairModel(qb))).toBeGreaterThan(0.1)
+    }
+  })
+
+  it('the trap is invisible on the real axis — the two agree there exactly', () => {
+    const A = toSpinor(M4_WITNESS)
+    for (const t of [0.37, -1.2, 2.5]) {
+      const q = spinorAt(A, { re: t, im: 0 })
+      expect(Math.abs(four(q) - pairModel(q))).toBeLessThan(1e-14)
+    }
+  })
+})

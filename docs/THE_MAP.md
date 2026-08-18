@@ -131,6 +131,12 @@ stratum, hard or soft. Rows 2 and 6 need σ(r) ≠ 0 and reach only m = 2 pairs;
 REAL roots only; row 7 is soft by construction. None of them builds a hard member with a complex pole
 at m ≥ 3, which is what the mixed-cell experiment needed. This does, from a deterministic start.
 
+**The concrete payoff of the per-pole default**, since defaults like this usually get justified in the
+abstract and then quietly relaxed: at φ = 270° the driven pair sits at softness **exactly 1.0000**
+while an UNTOUCHED pole has ‖𝒜(r₀)‖² = **8e-3**. Two different walls in one run. A single aggregated
+number would have shown one anomaly with no way to tell which pole owned it — and the two are not even
+the same kind of failure (see below).
+
 Two things the module carries because the investigation paid for them. It reports BOTH `softness` and
 `hermitian` per pole, never a norm over poles — `softness` is identically 1 at a real pole, so it
 cannot see the rank-0 seam and `hermitian` is the only warning there. And `solveResidue` defaults to
@@ -650,6 +656,27 @@ Measured at the stall, over all twelve directions: the driven pair's softness li
 alignment surface. "The hard region is not round" upgrades from a statement about the solver's reach
 to one about a named object: **the hard region ends where 𝒜(p) aligns with 𝒜(p̄), and that surface is
 not round.**
+
+**The hard region is bounded by at least TWO distinct surfaces**, and they are different objects:
+
+```
+    alignment    𝒜(p) ∥ 𝒜(p̄)     softness → 1     the Cauchy–Schwarz ceiling
+    rank-0 seam  𝒜(p) = 0         hermitian → 0    soft in the DEGENERATE way
+```
+
+So ρ(φ) is the distance to whichever comes first in direction φ — a MIN of two functions. All twelve
+of the measured directions stall on alignment, so this configuration does not exhibit the crossing;
+but if some directions ended on alignment and others on degeneracy, the shape being called "not round"
+could be a CREASE where the two surfaces meet rather than a smooth boundary. Worth knowing before
+anyone fits a shape to ρ.
+
+**A guard the numbers depend on: the Hermitian norm must be the four-component one.** At a complex
+pole, Σᵢ|aᵢ(z)|² and the pair-model |a₀ + i·a₁|² + |a₂ + i·a₃|² differ by 2·Im(a₀ā₁ + a₂ā₃) — measured
+at 0.68 on a quantity of size 1.86 — and that difference vanishes identically on the real axis, so the
+wrong one passes every real-parameter check. Only the four-component form is conjugation-symmetric,
+which is the discriminator that needs no knowledge of which was written. Verified: this module's
+`hermitian` matches the four-component form to 0.0e+0 and the pair form to 0.68, so the cosine reading
+holds. Pinned in `mixedCellExists.test.ts`.
 
 *One correction to the mechanism.* The reading that the normalised spinor "piles its mass at the
 conjugate point" cannot happen — ‖𝒜(p̄)‖ = ‖𝒜(p)‖ identically, so no asymmetry between a pole and its
