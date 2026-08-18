@@ -63,7 +63,7 @@ function newton(F:(x:readonly number[])=>number[],x0:number[],iters=200):number[
   let x=[...x0]
   for(let it=0;it<iters;it++){const f=F(x);if(Math.max(...f.map(Math.abs))<1e-13)return x
     const J=f.map(()=>new Array(x.length).fill(0))
-    for(let j=0;j<x.length;j++){const h=1e-7*Math.max(1,Math.abs(x[j]));const u=[...x];u[j]+=h;const d=[...x];d[j]-=h
+    for(let j=0;j<x.length;j++){const h=1e-2*Math.max(1,Math.abs(x[j]));const u=[...x];u[j]+=h;const d=[...x];d[j]-=h
       const fu=F(u),fd=F(d);for(let i=0;i<f.length;i++)J[i][j]=(fu[i]-fd[i])/(2*h)}
     let s:number[];try{s=leastSquares(J,f.map(v=>-v),1e-12)}catch{return null}
     const n=Math.hypot(...s);x=x.map((v,i)=>v+(n>0.5?0.5/n:1)*s[i]);if(!x.every(Number.isFinite))return null}
@@ -161,4 +161,75 @@ describe('the ε-drive: can one pole be driven soft while another stays hard?', 
     expect(contourResidue(A, M3, 1, 0.12)).toBeLessThan(1e-10)
     expect(contourResidue(A, M3, 0, 0.12)).toBeLessThan(1e-10)
   }, 300000)
+})
+
+// ---------------------------------------------------------------------------
+// THE BETTER WITNESS: m = 4, two conjugate pairs, and no real pole at all.
+//
+// The Lean side proposed this over m = 3, and was right for a reason neither of us had:
+// at m = 3 the real pole is hard BY THEOREM, so "mixed" is nearly guaranteed once the pair
+// softens — the test cannot fail informatively. With two pairs nothing forces the second to
+// stay hard, so mixing here is observed where it is not compelled.
+//
+// It is also better conditioned. The m = 3 witness had ‖𝒜(r₀)‖² = 7.7e-2 at its hard pole;
+// this one has 1.86 and 0.58, both O(1), so neither pole is near the rank-0 seam. That was
+// the Lean side's conditioning note, applied.
+//
+// AND IT NEEDED NO DRIVE. The chart-free solve landed on a mixed member directly, from a
+// deterministic start — which says the mixed cell is not a thin set one has to steer into.
+// The member is pinned as coefficients so the claim does not depend on a search.
+// ---------------------------------------------------------------------------
+const M4_POLES = [C(0.6, 0.9), C(0.6, -0.9), C(-0.5, 0.7), C(-0.5, -0.7)]
+
+/** Found by the chart-free N-form solve, then pinned. n = 4, ‖𝒜‖ = 1. */
+const M4_WITNESS: number[] = [
+  -2.61410954817405838e-1,
+  -1.02794345890687866e-1,
+  1.44160147739611499e-1,
+  3.57770603829519918e-1,
+  -3.11332839155708141e-1,
+  3.37978328087302549e-1,
+  -3.77569614167863332e-1,
+  3.63845224869703776e-1,
+  -2.79058887177438597e-1,
+  -1.18446869927122875e-1,
+  -3.73720961521592926e-2,
+  -2.49469201630884457e-1,
+  -1.42605895681224559e-2,
+  6.86705384466648333e-2,
+  -1.08209948793829780e-1,
+  7.03363487622871292e-2,
+  1.52346407979708637e-1,
+  -4.08096667306168184e-2,
+  -3.18282588727410998e-2,
+  -2.88474360955877418e-1,
+]
+
+describe('m = 4: mixed with all poles complex, and neither pole near the seam', () => {
+  it('is a genuine rational PH curve — residue conditions and contour residues', () => {
+    const A = toQ(M4_WITNESS)
+    // The no-log conditions at one representative of each pair (conjugates are automatic).
+    expect(Math.max(...makeF(M4_POLES, [0, 2], null)(M4_WITNESS).slice(0, 12).map(Math.abs)))
+      .toBeLessThan(1e-12)
+    // Independent: a nonzero residue of N/w² is a logarithm, and a logarithm is not rational.
+    for (let k = 0; k < 4; k++) expect(contourResidue(A, M4_POLES, k, 0.15)).toBeLessThan(1e-10)
+  })
+
+  it('one pair HARD, the other SOFT — and both rank-healthy', () => {
+    const A = toQ(M4_WITNESS)
+    const at = (k: number) => { const a = evalA(A, M4_POLES[k]); return { s: cnorm(sigmaC(a)), h: hermC(a) } }
+    const [p0, p1, p2, p3] = [0, 1, 2, 3].map(at)
+
+    // Pair A: hard.
+    expect(p0.s / p0.h).toBeGreaterThan(0.5)
+    expect(p1.s / p1.h).toBeGreaterThan(0.5)
+    // Pair B: soft — σ = 0 with 𝒜(r) NONZERO, i.e. rank one.
+    expect(p2.s / p2.h).toBeLessThan(1e-10)
+    expect(p3.s / p3.h).toBeLessThan(1e-10)
+    // Neither pole is near the rank-0 seam: this is the conditioning the m=3 witness lacked.
+    for (const p of [p0, p1, p2, p3]) expect(p.h).toBeGreaterThan(0.4)
+    // The conjugate constraint holds inside each pair, to round-off.
+    expect(Math.abs(p0.s - p1.s)).toBeLessThan(1e-12)
+    expect(Math.abs(p2.s - p3.s)).toBeLessThan(1e-12)
+  })
 })

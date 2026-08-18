@@ -228,6 +228,12 @@ not missing from the mathematics; they are missing from the chart. *"Chart σ = 
    (softness 1, ‖𝒜(r₀)‖² = 7.7e-2 — not fake), driven from ε = 0.25 to exactly 0. Confirmed by
    contour integration of N/w² around each pole at ~1e-14, which shares none of the algebra.
    The connective tissue exists; the remaining atlas work is to CHART it, which is question 2.
+   **The primary witness is now m = 4, two conjugate pairs and no real pole** — the Lean side's
+   suggestion, and better for a reason neither side had: at m = 3 the real pole is hard BY THEOREM, so
+   "mixed" is nearly guaranteed once the pair softens and the test cannot fail informatively. With two
+   pairs nothing compels the second to stay hard. It is also better conditioned — ‖𝒜(r)‖² = 1.86 and
+   0.59, both O(1), against the m = 3 witness's 7.7e-2 — and it needed NO DRIVE at all: the chart-free
+   solve landed on it directly, so the mixed cell is not a thin set one has to steer into.
 2. **Can the rank-1 floor be charted?** Rank-1 matrices are outer products — the cone over the Segre
    embedding, smooth away from zero — so the datum at a singular pole should be a point of `ℙ¹ × ℙ¹`
    exactly where the invertible case carries one real λ. Untried. Buys uniformity, not coverage.
@@ -344,6 +350,37 @@ TEST m=3      real pole beside a pair, drive the PAIR.  8/8 seeds reach ε = 0.
 collapses to ~1e-6 — the "hard" real pole is then nearly FAKE, so the member is a two-pole curve
 wearing a third and is not mixed at all. `softness` cannot see this: it is identically 1 at a real
 pole. **Rank 1 and rank 0 are different degeneracies and only both numbers separate them** (§0c).
+
+### Two corrections to the plan that the run produced
+
+**There is no construction problem, because there is a fourth construction.** The Lean side asked
+which module builds a hard member with a complex pole at m ≥ 3, and correctly observed that none of
+the three does: free-λ takes REAL roots, the conformal row is soft by construction, and
+`rationalPHComplexPoleSpatial` only reaches m = 2. The answer is that the **chart-free N-form
+residue conditions, solved directly**, build members at ANY pole configuration — real, complex or
+mixed, hard or soft — precisely because they never divide. Measured: at the m = 3 mixed pole set the
+solve returns a start with the real pole hard at ‖𝒜(r₀)‖² = 0.109 and the pair hard at softness 0.303.
+This is what should be added to the modules as a construction in its own right.
+
+**The endpoint-migration obstacle is real and is now moot.** A hard→soft continuation between the
+free-λ (5,6) member and the conformal sextic would have to migrate six poles off the real axis,
+colliding pairwise — a discriminant crossing, not a step. The ε-drive never needs it, and the m = 4
+witness needs no path at all.
+
+**Step size, not an analytic Jacobian.** The augmented system is QUADRATIC in 𝒜 (N = 𝒜i𝒜* is, σ(r) =
+det 𝒜(r) is, the normalisation is), so central differences carry **no truncation error** — an analytic
+row would buy nothing. What they do carry is round-off ~ε/h, so a small step is pure loss. Measured on
+this system:
+
+```
+    h = 1e-7 vs 1e-3   2.85e-9      ← the 1e-7 column is round-off, not the 1e-3 one
+    h = 1e-3 vs 1e-2   2.14e-13
+    h = 1e-2 vs 1e-1   2.52e-14
+```
+
+The original h = 1e-7 was discarding seven digits for a truncation error that does not exist. Now
+1e-2. The §6 lesson stands — a differenced row in an exact Jacobian drifts — but here the whole map is
+quadratic, so differencing IS exact and the danger is the step size instead.
 
 ### The ε-drive, as originally specified
 
