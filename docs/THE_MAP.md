@@ -139,6 +139,44 @@ instead returns a member sitting at ‖𝒜(r)‖² = 4.6e-5, nearly fake, with 
 
 ---
 
+## 2c. Why σ = 0 is a SPATIAL phenomenon — the plane has no such stratum
+
+`__tests__/planarSoftForcesFake.test.ts`. Run because the plane is the one place with no continuous
+gauge (A ↦ −A is discrete), so nothing there can be blamed on a gauge orbit. The answer is stronger
+than a clean experiment: **the analogue of the mixed cell cannot exist in the plane.**
+
+A planar rational PH curve has N = A² for a complex polynomial A, and σ = A·A† with † conjugating
+COEFFICIENTS. Since A†(r) = conj(A(r̄)),
+
+```
+    σ(r) = A(r) · conj(A(r̄))          a PRODUCT      (verified to 1e-15)
+```
+
+so σ(r) = 0 forces A(r) = 0 or A(r̄) = 0 — the generator VANISHES on one of the two conjugate poles,
+which is a degree drop, not rank one. Measured: forcing σ = 0 on a pair leaves one member at
+|A(r)| = 2e-15 and its partner at 12.3.
+
+**The structural reason, and it is the sharpest statement of what makes space different:**
+
+```
+    space   𝒜(r) ∈ ℍ ⊗ ℂ ≅ M₂(ℂ)   σ = det   M₂(ℂ) HAS NONZERO SINGULAR MATRICES
+                                              → both poles soft AND nonzero: an honest rank-1 floor
+    plane   A(r) ∈ ℂ ⊗ ℂ ≅ ℂ ⊕ ℂ    σ = the PRODUCT of the two components
+                                              → singular means a component VANISHES; the pair is
+                                                {soft, FAKE}, never {soft, soft}
+```
+
+**And the fake pole cancels.** A(r) = 0 gives N = A² a double root at r while w² has one there, so
+c′ = N/w² is regular and r is not a pole of the curve at all. The planar σ = 0 configuration is a
+curve with FEWER poles wearing a larger pole set. That is why the plane never needed a chart for this
+stratum, and why the λ-chart's hole is a genuinely spatial difficulty rather than an inherited one.
+
+One more difference from the same algebra: the planar no-log condition A′(r_k) = Σ_k A(r_k) is
+**linear** in A, so the family is a linear subspace of complex dimension (n+1) − m (measured 3 at
+n = 6, m = 4). In space the same condition is quadratic, which is what the N-form solve exists for.
+
+---
+
 ## 3. Space, rational — the seven ways to pay
 
 `N = p′w − pw′` throughout; `σ = |𝒜|²`.
