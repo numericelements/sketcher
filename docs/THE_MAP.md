@@ -109,6 +109,36 @@ times over:
 
 ---
 
+## 2b. Row 0 — the N-FORM, which is what every other row is a chart OF
+
+`core/rationalPHResidue.ts`. Added 2026-08-18, and it is the construction that made §6's question
+answerable, so it belongs above the rows rather than inside a test file.
+
+A rational curve is ∫N/w² with no logarithms. With w = (t−r_k)·v, partial fractions give the
+1/(t−r_k) coefficient as `b_k = [N′(r_k) − 2Σ_k N(r_k)]/v(r_k)²`, so "no log at r_k" is exactly
+
+```
+    N-form   N′(r_k) = 2Σ_k N(r_k)              N = 𝒜i𝒜*     primitive, indifferent to pole type
+    λ-form   𝒜′(r_k) = 𝒜(r_k)(Σ_k + λi)                      the same thing PLUS invertibility
+```
+
+Setting X = 𝒜(r)⁻¹𝒜′(r), the N-form FORCES X = Σ_k + λi — so λ is not a modelling choice but the
+unique solution, and every step of that argument needs 𝒜(r)⁻¹, i.e. σ(r) ≠ 0. **The λ-chart is the
+N-form with an assumption bolted on, and dropping the assumption reaches everything the chart cannot.**
+
+What it builds that no other row can: **any pole configuration** — real, complex or MIXED — at any
+stratum, hard or soft. Rows 2 and 6 need σ(r) ≠ 0 and reach only m = 2 pairs; the free-λ row takes
+REAL roots only; row 7 is soft by construction. None of them builds a hard member with a complex pole
+at m ≥ 3, which is what the mixed-cell experiment needed. This does, from a deterministic start.
+
+Two things the module carries because the investigation paid for them. It reports BOTH `softness` and
+`hermitian` per pole, never a norm over poles — `softness` is identically 1 at a real pole, so it
+cannot see the rank-0 seam and `hermitian` is the only warning there. And `solveResidue` defaults to
+**`select: 'bestConditioned'`**, maximising the smallest ‖𝒜(r)‖²: taking the first converged start
+instead returns a member sitting at ‖𝒜(r)‖² = 4.6e-5, nearly fake, with nothing to flag it.
+
+---
+
 ## 3. Space, rational — the seven ways to pay
 
 `N = p′w − pw′` throughout; `σ = |𝒜|²`.
@@ -228,6 +258,9 @@ not missing from the mathematics; they are missing from the chart. *"Chart σ = 
    (softness 1, ‖𝒜(r₀)‖² = 7.7e-2 — not fake), driven from ε = 0.25 to exactly 0. Confirmed by
    contour integration of N/w² around each pole at ~1e-14, which shares none of the algebra.
    The connective tissue exists; the remaining atlas work is to CHART it, which is question 2.
+   **Primitivity checked** (the hypothesis that rules out a vacuous witness): gcd(N₁,N₂,N₃) is
+   constant — no root of any component comes closer than 0.27 (relative) to being common to all three
+   — and the nearest root of N to any pole is 0.50, so no pole is cancelled. C21 closes.
    **The primary witness is now m = 4, two conjugate pairs and no real pole** — the Lean side's
    suggestion, and better for a reason neither side had: at m = 3 the real pole is hard BY THEOREM, so
    "mixed" is nearly guaranteed once the pair softens and the test cannot fail informatively. With two
