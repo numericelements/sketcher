@@ -253,3 +253,56 @@ describe('mixed → AllSoft', () => {
     for (let k = 0; k < 4; k++) expect(contourResidue(A, M4_POLES, k)).toBeLessThan(1e-10)
   })
 })
+
+// ---------------------------------------------------------------------------
+// THE SECOND HALF: mixed → AllHard, and with it the atlas.
+//
+// This is the direction with no canonical route. σ = 0 is a CRITICAL POINT of |σ|² —
+// d(σσ̄) = σ̄dσ + σdσ̄ vanishes there — so any method targeting the MAGNITUDE is stationary,
+// not merely slow. Soft is codimension 2 and hard is open, so where hard→soft is a
+// targeting problem, this is a leaving-a-submanifold problem, and the normal space is a
+// real 2-plane: the escape directions form a CIRCLE.
+//
+// The parameterisation that works, and why: target σ(r) = ε·e^{iφ} with φ FIXED. That is
+// TWO real equations whose Jacobian does NOT vanish at σ = 0 — σ = Σaᵢ², so ∂σ/∂x = 2Σaᵢ∂aᵢ/∂x,
+// and at rank one the aᵢ are not all zero. Targeting |σ| = ε is one equation whose gradient
+// IS zero. Same submanifold, same start; one parameterisation moves and the other cannot.
+//
+// Connectivity needs ONE φ to arrive. All twelve do.
+// ---------------------------------------------------------------------------
+describe('mixed → AllHard, and the atlas closes', () => {
+  it('every escape direction arrives — 12 of 12', () => {
+    const sigmaAt = (x: readonly number[], k: number): Complex => {
+      const q = spinorAt(toSpinor(x), M4_POLES[k])
+      let a: Complex = { re: 0, im: 0 }
+      for (const v of q) a = cadd(a, cmul(v, v))
+      return a
+    }
+    expect(Math.hypot(sigmaAt(M4_WITNESS, 2).re, sigmaAt(M4_WITNESS, 2).im)).toBeLessThan(1e-12)
+
+    let arrived = 0
+    for (let p = 0; p < 12; p++) {
+      const phi = (2 * Math.PI * p) / 12
+      const dir = { re: Math.cos(phi), im: Math.sin(phi) }
+      let x = [...M4_WITNESS]
+      let eps = 0
+      let step = 0.02
+      for (let it = 0; it < 600 && eps < 1; it++) {
+        const next = Math.min(eps + step, 1)
+        const y = newtonToResidue(x, M4_POLES, REPS,
+          { pole: 2, value: { re: dir.re * next, im: dir.im * next } }, 80)
+        if (y) { x = y; eps = next; step = Math.min(step * 1.4, 0.1) }
+        else { step /= 2; if (step < 1e-9) break }
+      }
+      const d = poleDiagnostics(toSpinor(x), M4_POLES)
+      const hard = d[0].softness > 0.5 && d[2].softness > 0.5
+      const healthy = Math.min(...d.map((q) => q.hermitian)) > 0.05
+      expect(defectOf(toSpinor(x), M4_POLES, REPS)).toBeLessThan(1e-12)
+      if (hard && healthy) arrived++
+    }
+    // One would settle connectivity. Twelve says the soft locus is not a barrier in any
+    // sampled direction FROM THIS WITNESS — which is a statement about one point of it,
+    // not about the whole stratum.
+    expect(arrived).toBe(12)
+  })
+})

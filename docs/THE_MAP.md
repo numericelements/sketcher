@@ -538,8 +538,29 @@ each is shorter and better conditioned than anything beginning at an end.
 ```
 mixed → AllSoft    DONE.  drive the hard pair: ε 1.27 → 0, all four poles soft, ‖𝒜(r)‖² = 1.19
                    and 0.77, residue defect 2.8e-16, contour residues ~3e-16.
-mixed → AllHard    OPEN, and structurally harder — see below.
+mixed → AllHard    DONE.  σ(r₂) = ε·e^{iφ}, ε: 0 → ~1, swept over TWELVE φ.  ALL TWELVE
+                   ARRIVE — softness 0.80…0.99 at both pairs, min ‖𝒜(r)‖² from 0.52 to 1.05,
+                   residue defects 1e-16…8e-15.
 ```
+
+**So the atlas closes.** AllSoft, the mixed cell and AllHard lie in one connected component, joined
+through the witness — and joined by paths that are short and well conditioned at both ends, which is
+what running outward bought.
+
+Connectivity needed ONE φ to arrive. Twelve did, so the soft locus is not a barrier in any sampled
+direction *from this witness* — a statement about one point of the stratum, not about all of it.
+
+**Why the φ-parameterisation moves where a magnitude target cannot.** Targeting σ(r) = ε·e^{iφ} is TWO
+real equations whose Jacobian does not vanish at σ = 0: σ = Σaᵢ², so ∂σ/∂x = 2Σaᵢ ∂aᵢ/∂x, and at rank
+one the aᵢ are not all zero. Targeting |σ| = ε is ONE equation whose gradient IS zero there. Same
+submanifold, same starting point; one parameterisation moves and the other is stationary. The lesson
+generalises past this problem: **on a locus defined by a complex equation, target the complex quantity,
+not its magnitude.**
+
+One observation, not a claim: the reachable ε before the continuation stalls is direction-dependent,
+from 0.68 at φ = 120° to the full 1.0 at φ ≥ 240°. Every direction had already reached AllHard well
+before stalling, so it does not bear on connectivity — but it is a hint that the hard region's shape
+seen from this point is not round, and it would be the thing to measure if anyone wants its geometry.
 
 **The asymmetry is structural, not numerical.** Soft is codimension 2 (σ(r) = 0 is one complex
 equation); hard is open. Hard→soft is a TARGETING problem, which is what the ε-drive does. Soft→hard
