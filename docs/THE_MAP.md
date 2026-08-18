@@ -632,8 +632,30 @@ is real, has determinant −1, and sends e^{iα} ↦ e^{−iα} — exactly the 
 is the explanation, ρ should become symmetric for a unit-circle pole set and stay asymmetric off it.
 Not yet run.
 
-So "the hard region seen from this point is not round" is REINSTATED, now with both artifact
-explanations excluded rather than merely unexamined.
+**And ρ now has an object to measure.** σ(z) = ⟨𝒜(z), 𝒜(z̄)⟩ — because 𝒜 has REAL coefficients,
+𝒜(z̄) = conj 𝒜(z) and the sum of squares IS the Hermitian inner product (exact, bit for bit). Two
+consequences:
+
+```
+    ‖𝒜(z̄)‖ = ‖𝒜(z)‖  identically   ⇒   softness = |⟨𝒜(p),𝒜(p̄)⟩| / (‖𝒜(p)‖·‖𝒜(p̄)‖)
+```
+
+so **`softness` is the COSINE OF THE ANGLE** between the spinor at the pole and the spinor at its
+conjugate — 0 orthogonal (soft, rank one), 1 parallel (maximally hard) — and Cauchy–Schwarz is why it
+lies in [0,1] rather than that being a separate fact. At a real pole the two vectors coincide, which
+is the identical 1, `sigma_pos_on_real`, and the unrotatability of real poles, all at once.
+
+Measured at the stall, over all twelve directions: the driven pair's softness lies in **[0.946,
+1.000]**. So the continuation stops where 𝒜(p) ALIGNS with 𝒜(p̄), and ρ(φ) is the distance to that
+alignment surface. "The hard region is not round" upgrades from a statement about the solver's reach
+to one about a named object: **the hard region ends where 𝒜(p) aligns with 𝒜(p̄), and that surface is
+not round.**
+
+*One correction to the mechanism.* The reading that the normalised spinor "piles its mass at the
+conjugate point" cannot happen — ‖𝒜(p̄)‖ = ‖𝒜(p)‖ identically, so no asymmetry between a pole and its
+conjugate is available. The min ‖𝒜(r)‖² = 8e-3 at φ = 270° belongs to the OTHER pair (r₀), which is
+approaching its own rank-0 seam while the driven pair sits at softness exactly 1.0000. Two different
+walls, both present in that run.
 
 **And the twelve directions are SIX**, doubled by the same symmetry. Connectivity is untouched — one
 suffices — but the sampling statement is six, from one point of the stratum.

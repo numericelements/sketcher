@@ -130,10 +130,23 @@ export interface PoleDiagnostic {
   /** ‖𝒜(r)‖² = |a|²+|b|²+|c|²+|d|². Zero ⇒ 𝒜(r) = 0, a DEGREE DROP (a fake pole). */
   readonly hermitian: number
   /**
-   * |σ(r)|/‖𝒜(r)‖² ∈ [0,1]. Zero is rank one — the λ-chart's hole. One is as far from
-   * singular as a pole can be, and is FORCED at a real pole (the triangle inequality's
-   * equality case, since the four squares then share an argument), so it carries no
-   * information there — `hermitian` is the only degeneracy signal for a real pole.
+   * |σ(r)|/‖𝒜(r)‖² ∈ [0,1] — and it is the COSINE OF AN ANGLE, not merely a ratio.
+   *
+   * 𝒜 has REAL quaternion coefficients, so 𝒜(z̄) = conj 𝒜(z) componentwise and therefore
+   *
+   *     σ(z) = ⟨𝒜(z), 𝒜(z̄)⟩          the Hermitian inner product   (exact, bit for bit)
+   *     ‖𝒜(z̄)‖ = ‖𝒜(z)‖              identically
+   *
+   * so this quantity is |⟨𝒜(p),𝒜(p̄)⟩| / (‖𝒜(p)‖·‖𝒜(p̄)‖): the alignment of the spinor at
+   * the pole with the spinor at its conjugate. Cauchy–Schwarz is exactly why it lies in
+   * [0,1] — there is no separate bound to prove.
+   *
+   *     0   ORTHOGONAL — σ(r) = 0, rank one, the λ-chart's hole
+   *     1   PARALLEL   — as hard as a pole can be
+   *
+   * At a REAL pole 𝒜(t̄) = 𝒜(t), so the two vectors are the same vector and the value is 1
+   * identically: it carries no information there, and `hermitian` is the only degeneracy
+   * signal. That single identity also says why real poles cannot be rotated soft.
    */
   readonly softness: number
   readonly real: boolean

@@ -374,3 +374,55 @@ describe('ρ(φ) is not a solver artifact', () => {
     expect(Math.abs(coarse - mirror) / Math.max(coarse, mirror)).toBeGreaterThan(0.5)
   }, 600000)
 })
+
+// ---------------------------------------------------------------------------
+// WHAT ρ(φ) MEASURES: the distance to the ALIGNMENT boundary.
+//
+// σ(z) = ⟨𝒜(z), 𝒜(z̄)⟩ — because 𝒜 has real coefficients, so 𝒜(z̄) = conj 𝒜(z) and the sum
+// of squares IS the Hermitian inner product. Two consequences settle what `softness` is:
+//
+//     ‖𝒜(z̄)‖ = ‖𝒜(z)‖ identically   ⇒   softness = |⟨𝒜(p),𝒜(p̄)⟩| / (‖𝒜(p)‖‖𝒜(p̄)‖)
+//
+// the COSINE of the angle between the spinor at the pole and the spinor at its conjugate.
+// Cauchy–Schwarz is why it lies in [0,1]; 0 is orthogonal (soft, rank one) and 1 is parallel
+// (maximally hard). At a real pole the two vectors coincide, hence the identical 1.
+//
+// And the stall is the wall: at all twelve φ the driven pair's softness at ρ lies in
+// [0.946, 1.000]. The continuation stops where 𝒜(p) ALIGNS with 𝒜(p̄), so ρ(φ) is a
+// geometric distance to that surface — which upgrades "the hard region is not round" from a
+// statement about the solver's reach to one about a named object.
+// ---------------------------------------------------------------------------
+describe('softness is an alignment cosine, and ρ is the distance to alignment', () => {
+  it('σ(z) = ⟨𝒜(z),𝒜(z̄)⟩ exactly, and ‖𝒜(z̄)‖ = ‖𝒜(z)‖', () => {
+    const A = toSpinor(M4_WITNESS)
+    for (const p of M4_POLES) {
+      const az = spinorAt(A, p)
+      const azb = spinorAt(A, { re: p.re, im: -p.im })
+      let ip: Complex = { re: 0, im: 0 }
+      for (let i = 0; i < 4; i++) ip = cadd(ip, cmul(az[i], { re: azb[i].re, im: -azb[i].im }))
+      let sq: Complex = { re: 0, im: 0 }
+      for (const v of az) sq = cadd(sq, cmul(v, v))
+      expect(cnorm({ re: ip.re - sq.re, im: ip.im - sq.im })).toBeLessThan(1e-14)
+      const n = (q: Complex[]) => q.reduce((t, x) => t + x.re * x.re + x.im * x.im, 0)
+      expect(Math.abs(n(az) - n(azb))).toBeLessThan(1e-14)
+    }
+  })
+
+  it('the continuation stalls exactly at alignment', () => {
+    for (const phi of [Math.PI / 2, -Math.PI / 2, Math.PI]) {
+      const dir = { re: Math.cos(phi), im: Math.sin(phi) }
+      let x = [...M4_WITNESS]
+      let eps = 0
+      let step = 0.02
+      for (let it = 0; it < 3000 && eps < 6; it++) {
+        const next = Math.min(eps + step, 6)
+        const y = newtonToResidue(x, M4_POLES, REPS,
+          { pole: 2, value: { re: dir.re * next, im: dir.im * next } }, 80)
+        if (y) { x = y; eps = next; step = Math.min(step * 1.4, 0.15) }
+        else { step /= 2; if (step < 1e-10) break }
+      }
+      // Measured over all twelve directions: 0.946 … 1.000.
+      expect(poleDiagnostics(toSpinor(x), M4_POLES)[2].softness).toBeGreaterThan(0.94)
+    }
+  }, 600000)
+})
