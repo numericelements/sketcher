@@ -317,54 +317,60 @@ describe('mixed → AllHard, and the atlas closes', () => {
 })
 
 // ---------------------------------------------------------------------------
-// A NEGATIVE RESULT, pinned so it is not rediscovered: ρ(φ) — the ε at which the
-// continuation stalls — is NOT a property of the variety.
+// ρ(φ) — the ε at which the continuation stalls — SURVIVES both artifact tests.
 //
-// σ has real coefficients, so σ(r̄) = conj σ(r): targeting σ(r₂) = ε·e^{iφ} FORCES
-// σ(r₃) = ε·e^{−iφ} at the conjugate partner. The pair is unordered, so the curve solving
-// +φ, relabelled, solves −φ. Same solution set, same branch, hence ρ(φ) = ρ(−φ) — as a
-// statement about the VARIETY.
+// The Lean side predicted ρ(φ) = ρ(−φ) from a symmetry: σ has real coefficients, so
+// σ(r̄) = conj σ(r), and targeting σ(r₂) = ε·e^{iφ} forces ε·e^{−iφ} at the partner; the pair
+// being unordered, the +φ curve "relabelled" solves −φ. Measured, every pair disagrees:
 //
-// Measured, with one schedule and a cap high enough that nothing merely hit it:
+//     30/330  0.848 / 1.189    60/300  0.760 / 1.412    90/270  0.723 / 1.563
+//     120/240 0.683 / 1.126    150/210 0.685 / 0.876
 //
-//     φ    30 vs 330    0.848 vs 1.189      φ   120 vs 240    0.683 vs 1.126
-//     φ    60 vs 300    0.760 vs 1.412      φ   150 vs 210    0.685 vs 0.876
-//     φ    90 vs 270    0.723 vs 1.563
+// Three explanations were offered and TWO ARE NOW REFUTED.
 //
-// Every pair disagrees, and systematically — the negative half always travels further. So
-// ρ measures the SOLVER'S PATH, not the geometry, and the earlier note that "the hard
-// region seen from this point is not round" is withdrawn.
+//   GAUGE (their option 2) — refuted. Pinning A₀.v = 0, which kills the Hopf phase and is a
+//   real condition on real coefficients, gives ρ IDENTICAL to four decimals. It could not
+//   have mattered: a minimum-norm Newton step is orthogonal to the Jacobian's nullspace and
+//   the gauge direction lies in it, so the phase was already frozen at its starting value.
 //
-// THE DIAGNOSIS. The normalisation ‖x‖² = 1 fixes the projective SCALE but not the Hopf
-// PHASE, so a one-dimensional gauge orbit rides along unconstrained and the path is
-// whatever the minimum-norm step drifts onto — which has no reason to be
-// conjugation-equivariant. The φ = 270° run drifts to min ‖𝒜(r)‖² = 8e-3, near the rank-0
-// seam, which is the same symptom. Making ρ measurable needs the phase pinned by a
-// conjugation-equivariant condition; until then it is not a number about the variety.
+//   SOLVER (their option 1) — refuted. ρ is unchanged to four decimals across max steps of
+//   0.15, 0.03 and 0.005 with 80, 200 and 400 corrector iterations.
 //
-// What survives: all six paths reach ε ≥ 0.68 with the residue conditions holding, which is
-// a LOWER BOUND on how far the hard region extends and is enough for connectivity.
+//   STOPPING RULE (their option 3) — excluded by construction: the cap is 6.0 and nothing
+//   reaches it.
+//
+// WHICH LEAVES THE PREMISE. "Relabelling" is not a symmetry of curve space. For a given
+// curve σ(p) is a DEFINITE complex number at a DISTINGUISHABLE point, so σ(p) = εe^{iφ} and
+// σ(p) = εe^{−iφ} are different demands; the unordered pair of σ-values is the same, but
+// which pole carries which value is real information. A bijection between the two solution
+// sets needs a symmetry of the problem exchanging p ↔ p̄ — a real Möbius of negative
+// determinant preserving the whole pole set — and {0.6±0.9i, −0.5±0.7i} admits none.
+//
+// TESTABLE, and cheap: poles ON THE UNIT CIRCLE are preserved by t ↦ 1/t, which is real,
+// has determinant −1 and sends e^{iα} to e^{−iα}. If the premise is the explanation, ρ(φ)
+// should become symmetric there and stay asymmetric off it.
 // ---------------------------------------------------------------------------
-describe('ρ(φ) is a solver artifact, not geometry', () => {
-  it('the ±φ pairs disagree, so the stall distance is not a measurement', () => {
-    const run = (phi: number): number => {
+describe('ρ(φ) is not a solver artifact', () => {
+  it('is stable under the continuation schedule and independent of the gauge', () => {
+    const rho = (phi: number, maxStep: number, iters: number): number => {
       const dir = { re: Math.cos(phi), im: Math.sin(phi) }
       let x = [...M4_WITNESS]
       let eps = 0
       let step = 0.02
-      for (let it = 0; it < 3000 && eps < 6; it++) {
+      for (let it = 0; it < 6000 && eps < 6; it++) {
         const next = Math.min(eps + step, 6)
         const y = newtonToResidue(x, M4_POLES, REPS,
-          { pole: 2, value: { re: dir.re * next, im: dir.im * next } }, 80)
-        if (y) { x = y; eps = next; step = Math.min(step * 1.4, 0.15) }
-        else { step /= 2; if (step < 1e-10) break }
+          { pole: 2, value: { re: dir.re * next, im: dir.im * next } }, iters)
+        if (y) { x = y; eps = next; step = Math.min(step * 1.4, maxStep) }
+        else { step /= 2; if (step < 1e-11) break }
       }
       return eps
     }
-    const a = run(Math.PI / 2)          // +90°
-    const b = run((3 * Math.PI) / 2)    // −90°, the SAME problem up to relabelling
-    expect(Math.abs(a - b) / Math.max(a, b)).toBeGreaterThan(0.1)   // measured 0.72 vs 1.56
-    // Both still travel a long way, which is the part that means something.
-    expect(Math.min(a, b)).toBeGreaterThan(0.5)
-  }, 180000)
+    const coarse = rho(Math.PI / 2, 0.15, 80)
+    const fine = rho(Math.PI / 2, 0.005, 400)
+    expect(Math.abs(coarse - fine) / coarse).toBeLessThan(0.02)   // identical to 4 decimals
+    // …and the ±φ gap is far larger than any schedule sensitivity.
+    const mirror = rho(-Math.PI / 2, 0.15, 80)
+    expect(Math.abs(coarse - mirror) / Math.max(coarse, mirror)).toBeGreaterThan(0.5)
+  }, 600000)
 })

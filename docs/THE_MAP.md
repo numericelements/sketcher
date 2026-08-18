@@ -565,23 +565,37 @@ of which looks like a perfectly good continuation parameter right up until you s
 "Target the complex quantity rather than its magnitude" is the instance; the operative check is not
 "is it complex" but **is the target map a submersion here**, and that is one differential.
 
-**WITHDRAWN: "the hard region is not round".** The stall distance ρ(φ) is not a property of the
-variety. σ has real coefficients, so σ(r̄) = conj σ(r), and targeting σ(r₂) = ε·e^{iφ} FORCES
-σ(r₃) = ε·e^{−iφ}; the pair being unordered, the curve solving +φ relabelled solves −φ. Same solution
-set, so ρ(φ) = ρ(−φ) must hold of the geometry. Measured on one schedule with a cap nothing reached:
+**ρ(φ) survives both artifact tests — the asymmetry is real, and the SYMMETRY PREMISE is what fails.**
+The Lean side predicted ρ(φ) = ρ(−φ) and offered three explanations for the measured disagreement.
+Two are now refuted and the third excluded by construction:
 
 ```
-  30 vs 330   0.848 vs 1.189      120 vs 240   0.683 vs 1.126
-  60 vs 300   0.760 vs 1.412      150 vs 210   0.685 vs 0.876
-  90 vs 270   0.723 vs 1.563
+  30/330  0.848 / 1.189     60/300  0.760 / 1.412     90/270  0.723 / 1.563
+  120/240 0.683 / 1.126    150/210  0.685 / 0.876
 ```
 
-Every pair disagrees, systematically — the negative half always travels further. **The diagnosis:**
-‖x‖² = 1 fixes the projective SCALE but not the Hopf PHASE, so a one-dimensional gauge orbit rides
-along unconstrained and the path is wherever the minimum-norm step drifts, which has no reason to be
-conjugation-equivariant. (The φ = 270° run drifts to min ‖𝒜(r)‖² = 8e-3, at the rank-0 seam — the same
-symptom.) Making ρ measurable needs the phase pinned by a conjugation-equivariant condition. Pinned as
-a negative result in `mixedCellExists.test.ts` so it is not rediscovered.
+- **gauge (option 2) — REFUTED.** Pinning A₀.v = 0 kills the Hopf phase and is a real condition on
+  real coefficients; ρ comes out IDENTICAL to four decimals. It could not have mattered: a
+  minimum-norm Newton step is orthogonal to the Jacobian's nullspace, and the gauge direction lies in
+  it, so the phase was already frozen at its starting value and never free to drift.
+- **solver (option 1) — REFUTED.** ρ is unchanged to four decimals across max steps 0.15, 0.03 and
+  0.005 with 80, 200 and 400 corrector iterations.
+- **stopping rule (option 3) — excluded.** The cap is 6.0 and nothing reaches it.
+
+**Which leaves the premise, and it does not hold.** "Relabelling" is not a symmetry of curve space.
+For a given curve σ(p) is a DEFINITE complex number at a DISTINGUISHABLE point, so σ(p) = εe^{iφ} and
+σ(p) = εe^{−iφ} are different demands on that curve. The unordered PAIR of σ-values is the same under
+both — that much of the argument is right — but which pole carries which value is real information. A
+bijection between the two solution sets would need a symmetry of the problem exchanging p ↔ p̄: a real
+Möbius of negative determinant preserving the whole pole set. `{0.6±0.9i, −0.5±0.7i}` admits none.
+
+**A cheap decisive test, and a prediction.** Poles ON THE UNIT CIRCLE are preserved by t ↦ 1/t, which
+is real, has determinant −1, and sends e^{iα} ↦ e^{−iα} — exactly the missing symmetry. If the premise
+is the explanation, ρ should become symmetric for a unit-circle pole set and stay asymmetric off it.
+Not yet run.
+
+So "the hard region seen from this point is not round" is REINSTATED, now with both artifact
+explanations excluded rather than merely unexamined.
 
 **And the twelve directions are SIX**, doubled by the same symmetry. Connectivity is untouched — one
 suffices — but the sampling statement is six, from one point of the stratum.
