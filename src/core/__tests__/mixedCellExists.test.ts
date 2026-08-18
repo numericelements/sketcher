@@ -35,6 +35,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { rootsOf, sandwichPolynomial, normSquaredPolynomial } from '../conformalPHHopf'
+import { cdiv, csub } from '../complex'
 import { cnorm, type Complex, cadd, cmul } from '../complex'
 import {
   type PoleSet, toSpinor, solveResidue, residueDefect, poleDiagnostics,
@@ -483,5 +484,90 @@ describe('the Hermitian norm is the four-component one', () => {
       const q = spinorAt(A, { re: t, im: 0 })
       expect(Math.abs(four(q) - pairModel(q))).toBeLessThan(1e-14)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// THE RESIDUE-VECTOR DICTIONARY: soft ⟺ the residue is on the NULL CONE of ℂ³.
+//
+// Every construction in THE_MAP picks a generator, gets PH free from the sandwich, and pays
+// for rationality with residue conditions. The dual trade is to chart the curve in partial
+// fractions — c(t) = P(t) + Σ Vₖ/(t − rₖ) — where integration is not a condition but the
+// FORM, so there is nothing to satisfy, and pay for PH instead.
+//
+// What that does to the strata. With w = (t−rₖ)·v the residue is Vₖ = −N(rₖ)/v(rₖ)², so
+//
+//     Vₖ·Vₖ = σ(rₖ)² / v(rₖ)⁴        (the BILINEAR dot, not Hermitian)
+//
+// and a pole is SOFT exactly when its residue vector is ISOTROPIC. The three strata become
+// incidence conditions on an explicitly parameterised quadric — AllSoft every Vₖ on the
+// cone, AllHard none, Mixed some — rather than places where a division fails. On the cone
+// there is no division to fail.
+//
+// MEASURED, and the qualitative dictionary is exact:
+//
+//     soft pair   V·V = 6.9e-19       hard pair   V·V = 6.9e-3
+//
+// and the geometric reading holds to round-off: an isotropic V = a + ib is CIRCULAR, and at
+// the soft pole a·a = b·b to 1.6e-16 relative with a·b = 0 to 2.4e-16, where the hard pole
+// misses both (4e-2 and 4e-1).
+//
+// THE QUANTITATIVE CLAIM NEEDS CORRECTING. |V·V|/(V·V̄) does NOT reproduce the softness
+// cosine: it is 0.3978 against softness² = 0.4678. Both vanish exactly on the soft locus and
+// both are Cauchy–Schwarz cosines, but on DIFFERENT spaces —
+//
+//     |V·V|/(V·V̄)  = |σ|²/Σ|Nᵢ|²      a cosine on ℂ³
+//     softness²     = |σ|²/‖𝒜‖⁴        a cosine on ℍ⊗ℂ
+//     ratio          = ‖𝒜‖⁴/Σ|Nᵢ|²    measured 0.850 at the hard pair, 1.504 at the soft
+//
+// — so the sandwich map does not preserve the normalisation, and the two are not the same
+// function of the curve. Either is a valid softness indicator; they must not be conflated.
+// ---------------------------------------------------------------------------
+describe('soft ⟺ the residue vector is isotropic', () => {
+  const residueAt = (k: number): Complex[] => {
+    const N = sandwichPolynomial(toSpinor(M4_WITNESS))
+    let v: Complex = { re: 1, im: 0 }
+    for (let l = 0; l < 4; l++) if (l !== k) v = cmul(v, csub(M4_POLES[k], M4_POLES[l]))
+    const v2 = cmul(v, v)
+    return [0, 1, 2].map((i) => cdiv(pevC(N[i], M4_POLES[k]), v2))
+  }
+  const bilinear = (V: Complex[]): number => {
+    let s: Complex = { re: 0, im: 0 }
+    for (const x of V) s = cadd(s, cmul(x, x))
+    return cnorm(s)
+  }
+
+  it('V·V vanishes at the soft pair and not at the hard one', () => {
+    for (const k of [2, 3]) expect(bilinear(residueAt(k))).toBeLessThan(1e-15)
+    for (const k of [0, 1]) expect(bilinear(residueAt(k))).toBeGreaterThan(1e-4)
+  })
+
+  it('and the soft residue is CIRCULAR: a·a = b·b, a·b = 0', () => {
+    const V = residueAt(2)
+    const a = V.map((x) => x.re)
+    const b = V.map((x) => x.im)
+    const aa = a.reduce((t, x) => t + x * x, 0)
+    const bb = b.reduce((t, x) => t + x * x, 0)
+    const ab = a.reduce((t, x, i) => t + x * b[i], 0)
+    expect(Math.abs(aa - bb) / (aa + bb)).toBeLessThan(1e-12)
+    expect(Math.abs(ab) / Math.sqrt(aa * bb)).toBeLessThan(1e-12)
+    // the hard pole is not circular, so the property is discriminating rather than generic
+    const W = residueAt(0)
+    const a2 = W.map((x) => x.re)
+    const b2 = W.map((x) => x.im)
+    const aa2 = a2.reduce((t, x) => t + x * x, 0)
+    const bb2 = b2.reduce((t, x) => t + x * x, 0)
+    expect(Math.abs(aa2 - bb2) / (aa2 + bb2)).toBeGreaterThan(1e-3)
+  })
+
+  it('but |V·V|/(V·V̄) is NOT the softness cosine — a different normalisation', () => {
+    const V = residueAt(0)
+    let s: Complex = { re: 0, im: 0 }
+    for (const x of V) s = cadd(s, cmul(x, x))
+    const herm = V.reduce((t, x) => t + x.re * x.re + x.im * x.im, 0)
+    const coneCos = cnorm(s) / herm
+    const soft = poleDiagnostics(toSpinor(M4_WITNESS), M4_POLES)[0].softness
+    expect(coneCos).toBeGreaterThan(0.3)
+    expect(Math.abs(coneCos - soft * soft)).toBeGreaterThan(0.05)   // 0.398 vs 0.468
   })
 })

@@ -183,6 +183,53 @@ n = 6, m = 4). In space the same condition is quadratic, which is what the N-for
 
 ---
 
+## 2d. THE SECOND COLUMN — chart the CURVE, pay for PH
+
+Not row 8. The rows and row 0 all make the SAME decision — **generator first, integrate later** — and
+differ only in the details of paying for rationality. Drawing this as a second column is what makes
+that visible.
+
+```
+    COLUMN A  generator first        PH free (the sandwich makes |N| a square)
+              rows 0–7               PAY: residue / no-log conditions
+
+    COLUMN B  curve first            rationality free — partial fractions ARE the form,
+              c = P + Σ Vₖ/(t−rₖ)    nothing was differentiated and integrated back
+                                     PAY: PH, i.e. |c′|² a perfect square
+```
+
+**Why it is worth the trade.** With w = (t−rₖ)v the residue is Vₖ = −N(rₖ)/v(rₖ)², so
+
+```
+    Vₖ·Vₖ = σ(rₖ)² / v(rₖ)⁴        (BILINEAR dot)        soft  ⟺  Vₖ on the NULL CONE of ℂ³
+```
+
+The three strata stop being obstructions and become incidence conditions on an explicitly
+parameterised quadric — AllSoft every Vₖ on the cone, AllHard none, Mixed some. **The λ-chart's hole
+is a place where a division fails; on the cone there is no division to fail.** And every difficulty of
+the last three weeks has been on the residue side; nothing has gone wrong on the PH side. The cost is
+real — imposing "|c′|² is a perfect square" directly is exactly what spinors were invented to avoid —
+but it is a trade in the direction where the obstruction currently is.
+
+**Validated on the m = 4 witness** (`mixedCellExists.test.ts`):
+
+```
+    soft pair   V·V = 6.9e-19        hard pair   V·V = 6.9e-3
+    circularity at the soft pole: a·a = b·b to 1.6e-16, a·b = 0 to 2.4e-16
+                 at the hard pole: 4e-2 and 4e-1 — so the property discriminates
+```
+
+An isotropic V = a + ib is CIRCULAR — real and imaginary parts orthogonal and of equal length —
+exactly as the unit circle's residue (−i, 1, 0) at t = i shows.
+
+**One correction.** |V·V|/(V·V̄) does NOT reproduce the softness cosine: 0.3978 against softness² =
+0.4678. Both vanish on the soft locus and both are Cauchy–Schwarz cosines, but on different spaces —
+|σ|²/Σ|Nᵢ|² on ℂ³ versus |σ|²/‖𝒜‖⁴ on ℍ⊗ℂ, differing by ‖𝒜‖⁴/Σ|Nᵢ|² (measured 0.850 and 1.504 at the
+two pairs, so not even constant). The sandwich does not preserve the normalisation. Either is a valid
+indicator; they must not be conflated.
+
+---
+
 ## 3. Space, rational — the seven ways to pay
 
 `N = p′w − pw′` throughout; `σ = |𝒜|²`.
