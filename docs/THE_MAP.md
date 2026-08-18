@@ -633,10 +633,38 @@ both — that much of the argument is right — but which pole carries which val
 bijection between the two solution sets would need a symmetry of the problem exchanging p ↔ p̄: a real
 Möbius of negative determinant preserving the whole pole set. `{0.6±0.9i, −0.5±0.7i}` admits none.
 
-**A cheap decisive test, and a prediction.** Poles ON THE UNIT CIRCLE are preserved by t ↦ 1/t, which
-is real, has determinant −1, and sends e^{iα} ↦ e^{−iα} — exactly the missing symmetry. If the premise
-is the explanation, ρ should become symmetric for a unit-circle pole set and stay asymmetric off it.
-Not yet run.
+**RUN (2026-08-18). The reflection symmetry IS there; the axis is not where the prediction puts it.**
+Poles on the unit circle at ±0.9 and ±2.1, preserved by t ↦ 1/t. The chart-free solve landed on a
+mixed member there directly again — soft pair at θ = 0.9 (softness 1.9e-16), hard pair at 0.137, floor
+1.04, defect 1.3e-16. ρ swept at 24 angles, then the reflection axis fitted allowing one global scale
+(the Möbius renormalisation), as the Lean side specified.
+
+```
+    best axis      1.667 rad (95.5°)    residual 4.75%    scale 0.9995
+    median axis                         residual 32.9%
+    worst axis                          residual 41.8%
+```
+
+So the symmetry is a **sharp, genuine minimum** — seven times better than a typical axis — and the
+scale came out at essentially 1. The *existence* of the reflection is confirmed, which is the half of
+the prediction that matters for the premise: ρ(φ) is NOT symmetric about 0 off the circle and IS
+reflection-symmetric on it.
+
+But the axis does not land on kθ_soft:
+
+```
+    k=2   axis 1.800   residual  8.77%      ← closest, and off the fit by 0.133 rad (7.6°)
+    k=4   axis 0.458   residual 38.4%       ← k = deg 𝒜, the value the weight argument predicts
+    k=5   axis 1.358   residual 15.9%
+    all others                    ≥ 29%
+```
+
+**A structural caveat before anyone calls that a refutation.** ρ has a KINK: its successive ratios run
+1.061, 1.071, 1.080, 1.088, 1.092, 1.094, 1.056, then jump to **0.875**, at φ ≈ 112°. That is exactly
+the CREASE predicted above if ρ is the min of two boundary functions (alignment and the rank-0 seam) —
+and a crease corrupts a single global reflection fit, since each piece could be symmetric about its
+own axis. Splitting ρ at the kink and fitting the pieces separately is the next step; until then
+"the axis is 1.667 and not kθ_soft" is a fit to a function that may not be one function.
 
 **And ρ now has an object to measure.** σ(z) = ⟨𝒜(z), 𝒜(z̄)⟩ — because 𝒜 has REAL coefficients,
 𝒜(z̄) = conj 𝒜(z) and the sum of squares IS the Hermitian inner product (exact, bit for bit). Two
