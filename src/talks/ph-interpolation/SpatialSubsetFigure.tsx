@@ -401,8 +401,11 @@ export function lociOf(
       chart.naturalSteps ?? 0)
     const paths = new Map<number, [number, number, number][]>()
     const centre = period ? t[k] : (t0[k] ?? t[k])
-    for (const c of chart.sweep(k, t, centre - r, centre + r, steps)) {
-      const pts = controlPoints(c)
+    // built from the base, one sample at a time — see retractionChart on why marching is wrong
+    for (let i = 0; i <= steps; i++) {
+      const tt = [...t]
+      tt[k] = centre - r + (2 * r * i) / steps
+      const pts = controlPoints(chart.build(tt))
       for (let j = 0; j < pts.length; j++) {
         if (held.has(j)) continue
         if (!paths.has(j)) paths.set(j, [])
@@ -435,9 +438,11 @@ export default function SpatialSubsetFigure() {
     const r = period ? period / 2 : (ranges[k] ?? 0)
     if (!(r > 0)) return []
     const n = ghostCount(m)
-    return chart
-      .sweep(k, t, t[k] - r + r / n, t[k] + r - r / n, n - 1)
-      .map((c) => sampleCurve(c, 50))
+    return Array.from({ length: n }, (_, g) => {
+      const tt = [...t]
+      tt[k] = t[k] - r + (2 * r * (g + 0.5)) / n
+      return sampleCurve(chart.build(tt), 50)
+    })
   }, [mode, chart, t, ranges, m])
 
   /** Drag a held point: correct the curve onto the new targets, then re-chart around it. */

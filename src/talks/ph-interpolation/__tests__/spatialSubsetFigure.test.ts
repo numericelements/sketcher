@@ -293,4 +293,53 @@ describe('the spatial grip figure', () => {
     }
     expect(overall, 'the coarsest drawn path is still smooth').toBeLessThan(0.018)
   }, 900_000)
+
+  it('every control point SITS ON the fibre path drawn for it', () => {
+    // The path is the set of places that point can go, so the point had better be on it. It was
+    // not: sampling the dial by MARCHING the corrector — cheaper than rebuilding each sample —
+    // draws a genuine fibre path, but a different one from the one `build` addresses, and the
+    // control point missed it by 1.9e-2 at degree 7. Every sample is built from the base now.
+    const toPath = (p: readonly [number, number, number],
+      path: readonly [number, number, number][]): number => {
+      let best = Infinity
+      for (let i = 1; i < path.length; i++) {
+        const a = path[i - 1]
+        const b = path[i]
+        const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
+        const l2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2]
+        let u = l2 > 0
+          ? ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1] + (p[2] - a[2]) * d[2]) / l2
+          : 0
+        u = Math.max(0, Math.min(1, u))
+        best = Math.min(best, Math.hypot(p[0] - (a[0] + u * d[0]), p[1] - (a[1] + u * d[1]),
+          p[2] - (a[2] + u * d[2])))
+      }
+      return best
+    }
+
+    for (const m of MS) {
+      const seed = seedFor(m)
+      let worst = 0
+      let where = ''
+      for (const grip of allGrips(m)) {
+        const st = {
+          m, pinEnds: false, mode: 'strict' as const, free: null, order: grip,
+          targets: grip.map((i) => controlPoints(seed)[i]), ...reframe(m, grip, seed),
+        }
+        // at rest, and with every dial turned a quarter of its travel as a user would
+        for (const turned of [false, true]) {
+          const s2 = turned ? { ...st, t: st.t.map((v, k) => v + 0.25 * st.ranges[k]) } : st
+          const cps = controlPoints(currentCurve(s2))
+          for (const l of lociOf(s2)) {
+            const p = cps[l.point]
+            const d = toPath([p.x, p.y, p.z], l.pts)
+            if (d > worst) { worst = d; where = `{${grip}} P${l.point} dial ${l.dial + 1}` }
+          }
+        }
+      }
+      console.log(`    degree ${degreeOf(m)}: worst point-to-path ${worst.toExponential(2)} at ${where}`)
+      // what is left is the polyline chord under a curved path, not a disagreement
+      expect(worst, 'the point is on its own path').toBeLessThan(1e-3)
+    }
+  }, 900_000)
 })

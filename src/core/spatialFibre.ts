@@ -377,18 +377,6 @@ export interface FibreChart {
    */
   readonly period?: readonly number[]
   /**
-   * One dial swept from `from` to `to`, with the others held at `at` — the fibre path, drawn.
-   *
-   * It exists as its own method rather than a loop of `build` because a chart that SOLVES can
-   * warm-start: consecutive samples are a fraction of a dial apart, so the corrector starts from
-   * the neighbour instead of from the base curve and converges in one step rather than several.
-   * That is what makes a fine path affordable on the grips that have no closed form — measured at
-   * degree 7, where sampling by `build` cost 14.8ms and this costs a fraction of it.
-   */
-  readonly sweep: (
-    dial: number, at: readonly number[], from: number, to: number, steps: number,
-  ) => SpatialPHCurve[]
-  /**
    * The number of samples this chart can actually DISTINGUISH along a dial, where that is finite.
    *
    * Only a quantised chart has one: the cubic tour holds a traced list and snaps to the nearest
@@ -397,17 +385,6 @@ export interface FibreChart {
    * formula has no such number and does not set it.
    */
   readonly naturalSteps?: number
-}
-
-/** Sweep by rebuilding, for a chart that has nothing to warm-start. */
-function sweepByBuild(
-  build: (t: readonly number[]) => SpatialPHCurve,
-): FibreChart['sweep'] {
-  return (dial, at, from, to, steps) => Array.from({ length: steps + 1 }, (_, i) => {
-    const t = [...at]
-    t[dial] = from + ((to - from) * i) / steps
-    return build(t)
-  })
 }
 
 /** The cascade chart is one FibreChart among others; the old name still reads in its own file. */
@@ -470,7 +447,6 @@ export function cascadeChart(m: number, points: readonly Vec3[]): CascadeChart |
     dimension: m,
     // nothing here is solved, so the held points are hit exactly at every t
     residual: () => 0,
-    sweep: (dial, at, from, to, steps) => sweepByBuild(chart.build)(dial, at, from, to, steps),
     tOf: (c: SpatialPHCurve): number[] => {
       const A = align(c)
       const out: number[] = []
@@ -541,6 +517,13 @@ export function cascadeChart(m: number, points: readonly Vec3[]): CascadeChart |
  * The corrector can be pushed past where it converges, so `residual` is real here and a caller
  * calibrating a dial must consult it — otherwise the dial offers travel that stops holding the
  * points it says it holds.
+ *
+ * AND EVERY SAMPLE MUST BE BUILT FROM THE BASE. Sampling a dial by MARCHING — correct, step,
+ * correct — is 15–35% cheaper and draws a different curve: the minimum-norm projection depends on
+ * where it starts, so a marched chain and `build` land on different points of the same fibre.
+ * Measured at degree 5, they diverged by 0.357, and the drawn path then missed the control point
+ * it was supposed to pass through by two hundredths. The saving is not worth a path the figure
+ * cannot stand on; short arcs make the corrector converge quickly from the base anyway.
  */
 export function retractionChart(
   seed: SpatialPHCurve,
@@ -614,25 +597,6 @@ export function retractionChart(
     dimension: dirs.length,
     build: (t) => unpack(solve(t).x, m),
     residual: (t) => solve(t).residual,
-    /**
-     * WARM-STARTED, which is the whole reason this method exists. Each sample is one dial-step
-     * from the last, so the corrector starts from the neighbour and lands in a step or two rather
-     * than in several from the base. The predictor still adds the dial's own direction, so the
-     * chain is a genuine continuation and not a drift.
-     */
-    sweep: (dial, at, from, to, steps) => {
-      const first = [...at]
-      first[dial] = from
-      let x = solve(first).x
-      const out: SpatialPHCurve[] = [unpack(x, m)]
-      const d = dirs[dial]
-      const h = (to - from) / steps
-      for (let i = 1; i <= steps; i++) {
-        x = correct(d ? x.map((v, j) => v + h * d[j]) : x).x
-        out.push(unpack(x, m))
-      }
-      return out
-    },
     // a LOCAL inverse: the frame is the seed's, so this is exact near t = 0 and drifts with the
     // fibre's curvature further out. The figure only ever asks for the seed itself, where it is 0.
     tOf: (c) => {
@@ -733,7 +697,6 @@ export function quinticHermiteChart(points: readonly Vec3[]): FibreChart | null 
     dimension: 2,
     period: [TAU, TAU],
     build,
-    sweep: sweepByBuild(build),
     // exact by construction: the grip is the data, so every (φ₀,φ₂) holds it
     residual: () => 0,
     tOf: (c) => {
@@ -791,7 +754,6 @@ export function cubicTourChart(points: readonly Vec3[], grip: readonly number[])
     period: [TAU],
     naturalSteps: N,
     build,
-    sweep: sweepByBuild(build),
     residual: () => 0,
     tOf: (c) => {
       const mine = controlPoints(c)
