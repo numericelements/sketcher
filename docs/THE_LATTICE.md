@@ -151,8 +151,27 @@ spheres: `radii()` returns √⟨C,C⟩/w, and the degree-6 seed measures
 endpoints) and the five interior ones are **honest spheres of those radii**. So the control polygon
 is *already* a sphere family living off the cone, and ρ₂ going negative along slide 16's road is that
 sphere becoming **imaginary** (⟨C,C⟩ < 0). `[MEAS]`
-Well-posed and drawable, and not yet asked: **what do the control spheres envelope, and how does that
-envelope relate to the curve?** `[OPEN]`
+
+**And the radii are not decoration — the first two null equations ARE incidences of control
+spheres.** `⟨P,P⟩ ≡ 0` expands to `Σ_{j,k} ⟨C_j,C_k⟩ B_j B_k ≡ 0`, a condition on the PAIRWISE
+products; only four Gram entries are killed individually, and since `⟨S,P(x)⟩ = 0` says *x lies on
+the sphere S*, they read:
+
+```
+⟨C₀,C₀⟩ = ⟨C_n,C_n⟩ = 0      the two ends are POINTS
+⟨C₀,C₁⟩ = ⟨C_{n-1},C_n⟩ = 0  the neighbouring SPHERE passes through each end point
+```
+
+Measured on the degree-6 seed: those four entries at 0, 2.2e-17, −1.1e-17 and 1.1e-17 while every
+other Gram entry is O(1e-3), and correspondingly `ρ₁ = ‖P₁−P₀‖ = 0.80916` and `ρ₅ = ‖P₅−P₆‖ =
+0.61793` exactly. The middle spheres are constrained only JOINTLY — `ρ₂ = 0.674` against distances
+1.602 and 1.601, `ρ₃ = 1.511` against 2.075 and 2.371. (`conformalPHCurve.radii`'s doc generalised
+this to "the interior two"; that is a DEGREE-3 statement — there the interior two *are* C₁ and
+C_{n-1} — and false from degree 4 up. Corrected 2026-08-18.) `[MEAS]`
+→ `conformalControlSpheres.test.ts`
+
+Still open, and sharper now that the END spheres are pinned: **what do the MIDDLE control spheres
+envelope, and how does that envelope relate to the curve?** `[OPEN]`
 
 ### 2.6 Contact order is the other axis, and it has a third rung
 
@@ -185,6 +204,66 @@ Every observed doubling is the spinor → vector map being **quadratic**:
 `[OBSERVATION]` — each instance is measured or classical; the *unification* is a claim this document
 makes and the theory document must prove. It also explains, in one line, why classical PH degrees
 come out odd.
+
+---
+
+## 2.7 The COUNT of PH interpolants, and where the literature stops — 2026-08-19
+
+Prescribing control points on a PH curve has a solution COUNT rather than a solution, because the
+unknown is the generator and every leg is a quadratic form in it. The count depends on WHICH points
+are held — it is a property of the slice, not of the family — and it is certified subset by subset
+by total-degree homotopy in `planarPHSubsetCounts.test.ts`:
+
+```
+degree 1  1→1        degree 5  1→4 2→3 3→4 4→4
+degree 3  1→2 2→2    degree 7  1→6 2→8 3→4 4→10 5→8 6→8 7→4 8→8
+```
+
+with the maximum `2^{K−1}` attained only when both endpoints are held, pinning both endpoints
+forcing an EVEN count (degree 1 excepted), and the count-1 grips being exactly "K consecutive from
+one end plus one further point that is not the far endpoint" — those cascade, so they are genuine
+single-valued CHARTS.
+
+**What the literature already has, and the two halves are complementary.** `[LIT]` Zheng, Wang &
+Yang, *JCAM* **296** (2016) 212–227, *On control polygons of Pythagorean hodograph septic curves*,
+solve RECOGNITION: given a **complete** septic polygon, is it PH? — necessary and sufficient in leg
+lengths and angles, the septic analogue of the cubic's geometric-progression-plus-equal-angles. That
+**cuts out the variety**. (Read 2026-08-19, not merely abstracted: their algorithm takes a polygon
+and a tolerance and answers yes/no, and their "compatibility of solutions" is consistency between
+two groups of spinor coefficients, not a count of interpolants. So it does **not** contain the
+degree-7 histogram.)
+
+`[LIT]` Farouki, Pelosi & Sampoli, *CAGD* **103** (2023) 102192,
+*Construction of planar quintic PH curves by control-polygon constraints*, **count one slice** of
+it: canonical form
+`r(0)=0, r(1)=1` — exactly our ends-held mode — with two of the five legs prescribed, giving
+**two or four** curves. That is our ends-held range, and where their leg pairs coincide with our
+control-point subsets, `(L₁,L₂)`, `(L₄,L₅)`, `(L₁,L₅)`, the counts agree: 2, 2, 4. Only 3 of their
+10 cases correspond to control-point subsets at all, so the two case sets are different families of
+slices and this is corroboration on the overlap rather than duplication. Homotopy continuation is
+also established practice here (Jaklič–Kozak–Krajnc–Vitrih–Žagar, G² quintics), so the METHOD is
+not ours; sweeping every grip with it is what is unusual.
+
+**What was NOT found**, and the reading that must happen before any of it is claimed:
+
+- the **odd counts** (1 and 3). They require a free endpoint, which canonical form structurally
+  excludes, so that paper cannot contain them. `[OPEN]`
+- the **degree-7 histogram**. Zheng–Wang–Yang is recognition rather than counting, so the one paper
+  likely to overlap does not. `[OPEN]`
+- **`deg 𝒱 = 2^{K−1}`** as the organising statement — that the count IS the degree of the PH
+  variety, itself a quadratic (Veronese-type) image, and that a grip is a linear slice whose
+  genericity decides how much of that degree you see. The ingredient is textbook
+  (`deg(D_φ) = deg(φ)·deg(φ(X))` for a base-point-free system), but nothing found applies it to PH
+  curves, and the 2023 paper is case-by-case closed form with no variety language at all. `[OPEN]`
+
+**And that pairing is the `deg 𝒱` statement with a citation on each half**: Zheng–Wang–Yang's
+condition defines the variety, our count is how many of its points sit over a partial polygon, and
+`deg 𝒱 = 2^{K−1}` would be the invariant joining them. Still `[OPEN]`, but now well-posed rather
+than vague.
+
+**Still to read**, relevant to §2's Möbius row: *A Complete Characterization of Pythagorean-Hodograph Preserving
+Mappings* (arXiv 2512.19587), whose answer — the conformal maps whose dilation is the square of a
+real rational function — bears directly on which maps preserve PH.
 
 ---
 

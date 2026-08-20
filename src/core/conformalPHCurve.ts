@@ -153,8 +153,25 @@ export function controlPoints(s: ConformalPHCurve): Vec3[] {
 }
 
 /**
- * The radii. ⟨C,C⟩ = w²ρ², so ρ = √⟨C,C⟩/|w| — zero at the ends (they are points), and
- * for the interior two equal to the distance to the near endpoint (verified in the tests).
+ * The radii. ⟨C,C⟩ = w²ρ², so ρ = √⟨C,C⟩/|w| — zero at the ends, because those two are the
+ * only coefficients the null condition kills individually.
+ *
+ * WHY THE ENDS AND ONLY THE ENDS. ⟨P,P⟩ ≡ 0 is a condition on the CURVE, not on each
+ * coefficient: expanded, Σ_{j,k} ⟨C_j,C_k⟩ B_j B_k ≡ 0 constrains the PAIRWISE products. Its
+ * first and last Bernstein coefficients read ⟨C₀,C₀⟩ = 0 and ⟨C_n,C_n⟩ = 0, and the next ones
+ * in read ⟨C₀,C₁⟩ = 0 and ⟨C_{n-1},C_n⟩ = 0. Since ⟨S,P(x)⟩ = 0 says "x lies on the sphere S",
+ * that is an INCIDENCE:
+ *
+ *     C₀, C_n are POINTS (the curve's ends);  the neighbouring SPHERE passes through each,
+ *     hence  ρ₁ = ‖P₁ − P₀‖  and  ρ_{n-1} = ‖P_{n-1} − P_n‖  exactly.
+ *
+ * EARLIER THIS DOC SAID "for the interior two, the distance to the near endpoint", which is a
+ * DEGREE-3 statement (there the interior two ARE C₁ and C_{n-1}) and false from degree 4 up.
+ * Measured at degree 6: ρ₁ = ‖P₁−P₀‖ = 0.80916 and ρ₅ = ‖P₅−P₆‖ = 0.61793 to machine precision,
+ * while ρ₂ = 0.674 against distances 1.602 and 1.601, and ρ₃ = 1.511 against 2.075 and 2.371.
+ * The middle spheres are constrained only JOINTLY — no Gram entry of theirs vanishes.
+ * → conformalControlSpheres.test.ts
+ *
  * Negative ⟨C,C⟩ would mean an imaginary sphere; reported as a negative radius so a caller
  * can show it rather than hide it.
  */

@@ -25,10 +25,18 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"],
-  // These tests import Eric's closed-curve project (different, older tsconfig
-  // dialect) — vitest runs them (esbuild, no typecheck); keep them out of this
-  // strict program so tsc -b stays clean.
+  // Two groups are kept out of this program, for the same reason in both cases:
+  // vitest runs them (esbuild, no typecheck) and tsc -b should stay clean.
+  //
+  //  1. Tests importing Eric's closed-curve project (different, older tsconfig dialect).
+  //  2. `_`-prefixed SCRATCH PROBES. This program is the BROWSER one — `types: ["vite/client"]`
+  //     omits Node typings deliberately — so a probe that writes a diagnostic file with
+  //     `node:fs` fails to typecheck even though the code is fine. Adding "node" here would
+  //     leak Node globals into app code, which is the wrong trade. The `_` prefix is the
+  //     convention: it means throwaway, and it means untyped. Promote a probe to a real test
+  //     (drop the prefix) and it is typechecked again.
   "exclude": [
+    "src/core/__tests__/_*.test.ts",
     "src/core/__tests__/ericClosedCurveOracle.test.ts",
     "src/core/__tests__/labE1PinnedWeights.test.ts",
     "src/core/__tests__/labE7EricSolverCoreProblem.test.ts",
