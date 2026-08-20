@@ -149,6 +149,20 @@ export interface FreeDragOptions {
   readonly iterations?: number
   /** Levenberg damping on the normal equations (default 1e-9). */
   readonly regularization?: number
+  /**
+   * Control points to HOLD, beyond the ordinary hold weight — the free-mode editor's "the ends
+   * stay where they are unless you grab one". These get `pinWeight` instead of `holdWeight`, so
+   * the pin is a heavy least-squares term rather than a hard constraint: cheap, and it keeps the
+   * solve a single unconstrained least squares. The dragged index always wins over a pin, so
+   * grabbing a pinned endpoint moves it.
+   *
+   * The residual drift is measured in phFreeDragPinned.test.ts and is far below a pixel at the
+   * default weight; if a caller ever needs it exactly zero, the honest fix is a constrained
+   * solve (project onto the nullspace of the pin rows), not a bigger weight.
+   */
+  readonly pinned?: readonly number[]
+  /** Weight on a pinned point (default 4000 — ~66× the drag weight). */
+  readonly pinWeight?: number
 }
 
 export interface FreeDragResult {
@@ -188,11 +202,14 @@ export function dragPHFree(
   const holdWeight = options.holdWeight ?? 1
   const iterations = options.iterations ?? 3
   const reg = options.regularization ?? 1e-9
+  const pinWeight = options.pinWeight ?? 4000
+  const pinned = new Set(options.pinned ?? [])
   const m = from.generator.length - 1
 
   const before = freeControlPoints(from)
   const targets = before.map((p, j) => (j === index ? target : p))
-  const weights = before.map((_, j) => (j === index ? dragWeight : holdWeight))
+  const weights = before.map((_, j) =>
+    j === index ? dragWeight : pinned.has(j) ? pinWeight : holdWeight)
 
   let x = toVector(from)
   let used = 0

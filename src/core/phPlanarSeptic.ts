@@ -185,9 +185,21 @@ export function planarSepticFromControlPoints(
  *
  *     B = (2/5)w₀ + (9/10)w₁ + w₃       C = (3/5)w₁² + (1/10)w₀w₃ + (2/5)w₁w₃
  *
- * Two signs × two roots = four, and the count for other five-point subsets runs 1, 2, 4
- * or 8 by the same reasoning (a gap that stops short of N₆ stays LINEAR in w₃; one that
- * swallows N₆ = w₃² turns quadratic; the count is the product).
+ * Two signs × two roots = four.
+ *
+ * THE "1, 2, 4 or 8 BY A PRODUCT RULE" THIS PARAGRAPH USED TO CLAIM IS WRONG. It is right for
+ * the two subsets it was read off — this one and the cascade — and does not generalise.
+ * Certified by total-degree homotopy over all 56 five-of-eight subsets (16 paths each, every
+ * path accounted for as finite-or-divergent, zero failures), the count takes EVERY value 1…8:
+ *
+ *     count    1   2   3   4   5   6   7   8
+ *     subsets  6   8   4  10   8   8   4   8
+ *
+ * There is no reason the paths that stay finite should number a power of two — the ones that
+ * run to infinity are whatever the subset throws away. Two rules that DO hold, also certified:
+ * the maximum 2^{K−1} is attained only when both endpoints are prescribed, and pinning both
+ * endpoints forces an EVEN count at every degree above 1.
+ * → __tests__/planarPHSubsetCounts.test.ts
  *
  * AND IT IS WELL CONDITIONED, unlike the consecutive set. There w₃ came out of
  * 10·(N₃ − …)/w₀, giving gain ≈ 10; here it is a square root of prescribed data and the
