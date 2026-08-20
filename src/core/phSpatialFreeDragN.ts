@@ -176,6 +176,20 @@ export interface SpatialFreeDragOptions {
   readonly iterations?: number
   /** Ridge on the normal equations — also what absorbs the gauge's null direction. */
   readonly regularization?: number
+  /**
+   * Control points to HOLD, beyond the ordinary hold weight — the free-mode editor's "the ends
+   * stay where they are unless you grab one". These get `pinWeight` instead of `holdWeight`, so
+   * the pin is a heavy least-squares term rather than a hard constraint: cheap, and it keeps the
+   * solve a single unconstrained least squares. The dragged index always wins over a pin, so
+   * grabbing a pinned endpoint moves it. The planar twin is phFreeDrag's option of the same name.
+   *
+   * The drift is measured rather than assumed (phSpatialFreeDragPinned.test.ts); if a caller ever
+   * needs it exactly zero, the honest fix is a constrained solve — projecting onto the nullspace
+   * of the pin rows — and not a bigger weight.
+   */
+  readonly pinned?: readonly number[]
+  /** Weight on a pinned point (default 4000 — ~66× the drag weight). */
+  readonly pinWeight?: number
 }
 
 export interface SpatialFreeDragResult {
@@ -201,11 +215,14 @@ export function dragSpatialFree(
   const holdWeight = options.holdWeight ?? 1
   const iterations = options.iterations ?? 3
   const reg = options.regularization ?? 1e-8
+  const pinWeight = options.pinWeight ?? 4000
+  const pinned = new Set(options.pinned ?? [])
   const m = from.A.length - 1
 
   const before = controlPoints(from)
   const targets = before.map((p, j) => (j === index ? target : p))
-  const weights = before.map((_, j) => (j === index ? dragWeight : holdWeight))
+  const weights = before.map((_, j) =>
+    j === index ? dragWeight : pinned.has(j) ? pinWeight : holdWeight)
 
   let x = toVector(from)
   let used = 0

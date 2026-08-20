@@ -33,9 +33,8 @@
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import ThreePointsFigure from './ThreePointsFigure'
-import PinnedEndsFigure from './PinnedEndsFigure'
-import QuinticHermiteFigure from './QuinticHermiteFigure'
-import PlanarSepticFigure from './PlanarSepticFigure'
+import PlanarSubsetFigure from './PlanarSubsetFigure'
+import SpatialSubsetFigure from './SpatialSubsetFigure'
 import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import RmErfFigure from './RmErfFigure'
@@ -128,28 +127,29 @@ export const slides: SlideDefinition[] = [
                                                               ⟨P′,P′⟩ = h²  — PH`}
         </div>
 
-        <p style={{ fontSize: '0.72em', color: '#64748b', marginTop: '-0.25em', marginBottom: '0.5em' }}>
+        <p style={{ fontSize: '0.72em', color: '#64748b', marginTop: '-0.25em', marginBottom: '0.4em' }}>
           P is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
-          radius zero.
+          radius zero. In each cell the same gesture: hold control points and count the curves, or
+          hold one and let the solver place the rest.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.1em 0 0.6em 0.3em', lineHeight: 1.45 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.1em 0 0.5em 0.3em', lineHeight: 1.45 }}>
           <div><strong>I &mdash; Polynomial</strong></div>
           <div style={{ color: '#475569' }}>
-            the plane<br />space<br />rational frame
+            the plane &mdash; how many curves fit the points you hold<br />space<br />rational frame
           </div>
 
           <div><strong>II &mdash; Rational, twice</strong></div>
           <div style={{ color: '#475569' }}>
             the spinor &mdash; integrate, and its chart<br />
-            ℝ⁴′¹ &mdash; never integrate, and its solver
-          </div>
-
-          <div><strong>III &mdash; The gap</strong></div>
-          <div style={{ color: '#475569' }}>
-            where the two do not meet<br />what is open
+            ℝ⁴′¹ &mdash; never integrate, and its solver<br />
+            where the two do not meet, and what is open
           </div>
         </div>
+
+        <p style={{ fontSize: '0.72em', color: '#64748b', margin: '0 0 0.4em 0.3em' }}>
+          The aim is local editing with control over differential properties.
+        </p>
 
       </>
     ),
@@ -197,9 +197,19 @@ export const slides: SlideDefinition[] = [
       + 'honestly becomes three representations; until then it stays in the repo. '
       + 'THE FOURTH THING IS NOT A CELL, and say it that way: the conformal model is not another '
       + 'hodograph form, it is a refusal to integrate. That is the real dividing line of section II. '
-      + 'THE THREE SECTIONS map onto the six things worth separating: 2D polynomial, 3D polynomial, '
-      + 'the rational frame; then the two ways to build a rational PH curve; then the chart and the '
-      + 'optimizer. Six is a list, three is a story, and the six survive as beats inside the three. '
+      + 'THE SECTIONS map onto the things worth separating: 2D polynomial, 3D polynomial, the '
+      + 'rational frame; then the two ways to build a rational PH curve, and where they fail to meet. '
+      + 'THE GESTURE LINE UNDER THE TABLE is the deck-s spine and is worth reading aloud. Each cell '
+      + 'of the table can be shown twice: hold the maximum number of control points and the answer is '
+      + 'a COUNT (strict), or hold one and 2K spare degrees of freedom are spent by minimum-norm '
+      + '(free). Only the top-left cell has that figure today; the other three are the plan, which is '
+      + 'why the outline does not promise them. '
+      + 'THE AIM LINE AT THE BOTTOM is the reason the deck exists and was previously left implicit. '
+      + 'Section I already ends on what locality costs, so the deck arrives there either way — this '
+      + 'says it at the start instead. '
+      + 'III WAS FOLDED INTO II rather than deleted: "where the two do not meet, and what is open" is '
+      + 'the last line of section II. The two slides still exist in the deck. If they stay a separate '
+      + 'act, restore the third row. '
       + 'THE PROMISE PARAGRAPH IS GONE, and it was made redundant rather than dropped. It said the '
       + 'document is circulated for discussion (the title slide says that), that sources are named and '
       + 'measurements carry their numbers (the slides do that where it matters, and saying so in '
@@ -221,7 +231,8 @@ export const slides: SlideDefinition[] = [
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
 {`Bézier      A x = b                    one
 
-PH          xᵀ Qⱼ x = bⱼ               2ᵏ⁻¹
+PH          xᵀ Qⱼ x = bⱼ               2ᵏ⁻¹      points on the curve
+                                       1 … 2ᵏ⁻¹  control points
 
 in space    the same forms over ℍ      a family, not a count
 
@@ -232,6 +243,15 @@ in space    the same forms over ℍ      a family, not a count
     notes:
       'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
+      + 'THE MIDDLE ROW CARRIES TWO NUMBERS BECAUSE THERE ARE TWO PROBLEMS, and they are not the '
+      + 'same one for a PH curve even though they are for an ordinary Bezier. Prescribing POINTS ON '
+      + 'THE CURVE gives exactly 2^{k-1}, always -- five points on a septic give eight '
+      + '(planarPHInterpolantCount.test.ts, and phPlanarSepticInterp computes them by homotopy). '
+      + 'Prescribing CONTROL POINTS gives a RANGE, 1 to 2^{k-1}, and which value depends on WHICH '
+      + 'points are held: degree 7 takes every value from 1 to 8 across the 56 grips '
+      + '(planarPHSubsetCounts.test.ts). The difference is that a control-point condition factors '
+      + 'through the generator by division and a curve-point condition does not, so the control-point '
+      + 'systems can be triangular and lose roots to infinity. Both slides follow. '
       + 'WHAT k IS, because it will be asked: the number of COEFFICIENTS OF THE GENERATOR, not the '
       + 'curve degree and not the curve-s control points. A PH curve of degree n has a generator of '
       + 'degree (n-1)/2, so k = (n+1)/2. Cubic: w linear, k = 2. Quintic: w quadratic, k = 3. And '
@@ -250,8 +270,9 @@ in space    the same forms over ℍ      a family, not a count
       + 'the minus one lives. '
       + 'AND IT IS CHECKED AT k = 2, 3 AND 4: two, four and EIGHT distinct curves, in '
       + 'planarPHInterpolantCount.test.ts. Bezout is an upper bound, so finding 2^{k-1} distinct roots '
-      + 'PROVES the count for that instance rather than suggesting it. The septic case had not been '
-      + 'computed anywhere in this repo before. '
+      + 'PROVES the count for that instance rather than suggesting it. That is the POINTS-ON-THE-CURVE '
+      + 'problem; the derivation above is the same one, and for control points it gives the CEILING '
+      + 'rather than the count, because a grip can send roots to infinity. '
       + 'THE SPACE ROW CARRIES NO FORMULA, AND THAT IS DELIBERATE -- an earlier version said T^{k-1} '
       + 'and it was WRONG. Two reasons, both worth knowing so it is not re-derived. '
       + 'FIRST, THE DIMENSION DEPENDS ON THE DATA, not on k alone. With k+1 POINTS the surplus really '
@@ -336,137 +357,179 @@ in space    the same forms over ℍ      a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // 4 — codimension, felt: grab one point and two move
+  // 3b — the count is not a property of the FAMILY, it is a property of your GRIP
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Grab one control point and two move</h2>
-        <PinnedEndsFigure />
+        <h2>Choose which points you hold, and the number of answers changes</h2>
+        <PlanarSubsetFigure />
       </>
     ),
     notes:
-      'On the PH variety, "move one control point and freeze the others" is not a motion at all — it ' +
-      'leaves the variety. Codimension, not solver weakness, and worth hitting deliberately here ' +
-      'rather than letting someone discover it later as a bug. ' +
-      'STRICT: pin P₀,P₃ — 6 DOF − 4 conditions = 2, exactly one point of freedom (forced, not ' +
-      'chosen). One interior point is the handle and the other follows, via r² + r + (1 − D/q) = 0, ' +
-      'two branches. Click the grey curve for the other branch; click the hollow point to take hold ' +
-      'of IT instead, which is seamless because r identifies the CURVE, not which point you ' +
-      'prescribed (pinned as "THE SWAP IS CONTINUOUS" in phCubic.test.ts). ' +
-      'FREE: release the pins and any of the four is grabbable — 6 DOF against 2 conditions, so 4 ' +
-      'are spare and minimum-norm spends them (dragged point to the cursor, everything else as ' +
-      'little as possible). The PH residual readout sits at ~1e-16 throughout: the curve cannot ' +
-      'leave the manifold, because free mode parameterises by the generator. ' +
-      'The toggle is two rows of the trichotomy in one button, and it corrects an earlier claim of ' +
-      'mine — there is nothing for an optimizer to choose only while the ends are PINNED. ' +
-      'Not drawn: the cusp-forced segment (P₃ → P₀+(4/3)D, where every branch cusps) and the branch ' +
-      'point P₀+(4/3)D where the roots merge at r = −1/2. Both verified, both a second and third ' +
-      'lesson crowding the first; monodromy earns its own slide.',
+      'The previous slide fixes WHICH data is prescribed and counts. This one makes the choice the ' +
+      'gesture. dim = 2K+2 for a planar PH curve of degree 2K−1, each control point costs 2, so ' +
+      'exactly K+1 can be held — the FIFO selection enforces that, so no click can build an over- ' +
+      'or under-determined state. ' +
+      'THE COUNT IS A PROPERTY OF THE GRIP, NOT OF THE DATA: certified subset by subset in ' +
+      'planarPHSubsetCounts.test.ts, degree 5 gives 1→4 2→3 3→4 4→4 and degree 7 gives ' +
+      '1→6 2→8 3→4 4→10 5→8 6→8 7→4 8→8. All eight values occur, which killed an earlier ' +
+      '"1, 2, 4 or 8 by a product rule" claim in phPlanarSeptic. ' +
+      'TWO RULES WORTH SAYING OUT LOUD. Hold K in a row from one end plus one more that is not the ' +
+      'far endpoint and the answer is UNIQUE — the equations cascade (a square root, then ' +
+      'divisions), nothing branches, dragging is single-valued and needs no branch tracking. And ' +
+      'pinning both ends forces an EVEN count, with the maximum 2^(K−1) reachable ONLY that way; ' +
+      'so the "ends held" toggle is choosing between always-branching and possibly-unique editing. ' +
+      'STRICT vs FREE, and why free is here this early: strict spends every degree of freedom, so ' +
+      'the answer is a count and nothing is chosen; free holds one point and leaves 2K spare, so a ' +
+      'solver chooses, by minimum-norm. The spare room grows with degree — 2, 4, 6, 8 — so the ' +
+      'modes diverge as you climb. Free is the editing mode the whole deck is heading toward; ' +
+      'strict is how you learn what the space will allow. The ends hold in free mode unless you ' +
+      'grab one, drifting two hundredths of a pixel over a chord-long drag (phFreeDragPinned).',
   },
 
   // ---------------------------------------------------------------------------
-  // 5 — the classical count: C¹ Hermite has four PH quintic interpolants
+  // 3c — what is published, what we add, and the one equation under both
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>C¹ Hermite data: four interpolants, always</h2>
-        <QuinticHermiteFigure />
+        <h2>The number of solutions depends on which control points are held</h2>
+
+        <p style={{ fontSize: '0.82em', marginBottom: '0.15em' }}>
+          The unknown is the generator, and the control points are quadratic in it.
+        </p>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.68em', whiteSpace: 'pre', lineHeight: 1.55, color: '#475569', margin: '0.3em 0 0 0.2em' }}>
+{`    c′ = w²          w has K complex coefficients, and every leg is a quadratic form in them.
+                     Holding K+1 control points inverts a quadratic map: Bézout 2^K, halved
+                     by the gauge w ↦ −w.
+
+
+    KNOWN     whether a complete polygon is PH, as a condition on legs and angles
+                                        Zheng, Wang & Yang, JCAM 296 (2016) 212–227   (septic)
+              two of five legs, ends held  →  two or four curves
+                                        Farouki, Pelosi & Sampoli, CAGD 103 (2023) 102192  (quintic)
+
+              The first defines the variety. The second counts one of its slices.
+
+    OURS      any odd degree, any K+1 of the 2K control points
+              →  the range 1 … 2^(K−1), certified path by path
+
+                    degree 3    1→2  2→2
+                    degree 5    1→4  2→3  3→4  4→4
+                    degree 7    1→6  2→8  3→4  4→10  5→8  6→8  7→4  8→8
+
+              2^(K−1) requires both ends held, and holding both ends gives an even count.
+              The count is 1 for K in a row from an end plus one more that is not the far
+              end: there the equations are a square root and then divisions, so single-valued.
+
+
+    OPEN      deg 𝒱 = 2^(K−1)     the count is the degree of the PH variety,
+                                  and a grip is a linear slice of it.`}
+        </div>
+
+        <p style={{ fontSize: '0.62em', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
+          Canonical form <span style={{ fontFamily: 'ui-monospace, monospace' }}>r(0)=0, r(1)=1</span>{' '}
+          is the ends-held mode. Where their leg pairs coincide with control-point subsets, the
+          counts agree. The odd counts require a free endpoint, which canonical form excludes.
+        </p>
       </>
     ),
     notes:
-      'The classical result made draggable: "in general four distinct planar PH quintic interpolants ' +
-      'to given C¹ Hermite data always exist" (Farouki–Neff; 2019 survey §21). ' +
-      'Note ALWAYS — unlike the cubic there is no existence condition, because the unknowns are ' +
-      'COMPLEX: w₀ = ±√d₀ and w₂ = ±√d₁ always exist, and closure is a complex quadratic in w₁ with ' +
-      'two roots. Two relative signs (the overall sign is a gauge) × two roots = four. Contrast the ' +
-      'cubic, where the free unknown is a real POSITIVE magnitude, which is exactly why it can fail. ' +
-      'Dragging control points IS prescribing Hermite data for a quintic: P₁ = P₀ + d₀/5 and ' +
-      'P₄ = P₅ − d₁/5, so {P₀,P₁,P₄,P₅} is position + tangent at both ends. 8 real conditions on 8 ' +
-      'real DOF — square, and the lesson is that a square NONLINEAR system has a solution COUNT. ' +
-      'P₂ and P₃ are the two the data does not fix, drawn hollow. ' +
-      'R = ∫|κ|ds is the survey\'s recommended selector for the "good" interpolant (eq. 25); the ' +
-      'readout says whether the one you are on is the fairest. ' +
-      'This slide exists to set up the next one: in SPACE the same problem has a TWO-PARAMETER ' +
-      'FAMILY (14 DOF − 12 conditions), so finite choice becomes a continuum. That jump is the ' +
-      'deck\'s central move. ' +
-      'Four branches need continuous tracking or the colours jump as the data moves — matched by ' +
-      'control-polygon distance, exactly (4! = 24 permutations enumerated), see ' +
-      'framework/branchTracking. The world box is computed once from the starting data so all four ' +
-      'fit; some branches are far larger than others, so guessing it by hand gets it wrong.',
+      'THIS SLIDE COMES AFTER THE FIGURE ON PURPOSE: explain what they have just felt. ' +
+      'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
+      'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
+      'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
+      'inverting a quadratic map — K quadrics in K unknowns, Bézout 2^K, halved by the gauge w → −w. ' +
+      'IF THE CASCADE NEEDS SPELLING OUT, degree 3 does it in four lines. Hold P0,P1,P2: w0² = 3a ' +
+      'gives w0 up to a sign that IS the gauge, then w0w1 = 3b gives w1 by a DIVISION — no equation ' +
+      'is ever solved, so the answer is unique and the grip is a genuine chart. Hold P0,P1,P3 ' +
+      'instead: the gap swallows two legs at once, w0 and w1 couple, w0w1 + w1² = 3c is a real ' +
+      'quadratic — two curves. ' +
+      'WHY THE COUNTS ARE NOT POWERS OF TWO: Bézout counts projectively and a root at infinity is a ' +
+      'generator blowing up, which is not a curve. How many escape depends on the grip; the cascade ' +
+      'sends 14 of 16 away at degree 7. An earlier claim in phPlanarSeptic that the count "runs ' +
+      '1, 2, 4 or 8 by a product rule" was read off two grips and is false. ' +
+      'STATUS, checked 2026-08-19. PUBLISHED, and the two papers are complementary rather than ' +
+      'competing. Zheng, Wang & Yang, JCAM 296 (2016) 212-227, solve RECOGNITION: given a COMPLETE ' +
+      'septic polygon, is it PH? — necessary and sufficient in leg lengths and angles, the septic ' +
+      'analogue of the cubic\'s geometric progression plus equal angles. That CUTS OUT the variety. ' +
+      'Farouki, Pelosi & Sampoli, CAGD 103 (2023) 102192, COUNT one slice of it: canonical form ' +
+      'r(0)=0, r(1)=1 is exactly our ends-held mode; two of ' +
+      'five legs prescribed; two or four curves. Only 3 of their 10 leg-pairs correspond to ' +
+      'control-point subsets — (L1,L2), (L4,L5), (L1,L5) — and all three agree with ours (2, 2, 4; ' +
+      'the last is the classical Hermite four, which they reconcile from an apparent eight). ' +
+      'Homotopy continuation is also standard here (Jaklic-Kozak-Krajnc-Vitrih-Zagar, G2 quintics), ' +
+      'so the METHOD is not ours — sweeping every grip with it is. ' +
+      'NOT FOUND, so claim nothing yet: the odd counts (they need a free endpoint, which canonical ' +
+      'form structurally excludes), the degree-7 histogram (Zheng-Wang-Yang READ 2026-08-19 — it is ' +
+      'recognition, not counting, so it does not contain it), and deg V = 2^(K-1). The ingredient ' +
+      'for the last is textbook — deg(D_phi) = deg(phi)·deg(phi(X)) for a base-point-free system — ' +
+      'but nothing applies it to PH curves. ' +
+      'THE CLASSICAL CASE IS ONE POSITION OF THE SELECTOR, and worth naming aloud: C1 Hermite data '
+      + 'for a quintic IS the control-point grip {P0,P1,P4,P5}, since P1 = P0 + d0/5 and '
+      + 'P4 = P5 - d1/5. "In general four distinct planar PH quintic interpolants to given C1 Hermite '
+      + 'data always exist" (Farouki-Neff; 2019 survey section 21) — and ALWAYS, unlike the cubic, '
+      + 'because the unknowns are complex: w0 = ±sqrt(d0) and w2 = ±sqrt(d1) always exist and closure '
+      + 'is a complex quadratic in w1. Two relative signs times two roots, the overall sign being the '
+      + 'gauge. That is the 4 in the degree-5 row. '
+      + 'AND IT SETS UP SPACE. The same control-point problem in SPACE takes SIX points at degree 7 '
+      + '(4k+2 = 18 against 3 each) and has 0, 2, 4 or 6 REAL answers under a ceiling of 8 — half of '
+      + 'all arbitrary six-point polygons carry no real curve at all. The difference is the gauge: in '
+      + 'the plane w -> -w is DISCRETE and costs no dimension, in space A -> A e^{i theta} is a whole '
+      + 'circle. That one missing dimension is why the plane gives a count and space gives a family. '
+      + 'See docs/SEPTIC_SIX_POINTS.md and core/septicCascadeDegree.test.ts. '
+      + 'IF ASKED what the several answers ARE: sheets of a branched covering. Each grip is a ' +
+      'different projection of the same family onto the points you hold; crossing the discriminant ' +
+      'permutes them, which is why the figure carries branches by Newton rather than re-solving.',
   },
 
   // ---------------------------------------------------------------------------
-  // 6 — WHICH functionals, not how many: the same count gives 1 or 8
+  // 3d — DRAFT, placed for testing. The same grip in space. If it holds up it replaces the
+  //      spatial-cubic slide below, which it subsumes: {P₀,P₁,P₃} at degree 3 IS that slide.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Not how many conditions — which ones</h2>
-        <PlanarSepticFigure />
+        <h2>The same grip in space leaves a family</h2>
+        <SpatialSubsetFigure />
       </>
     ),
     notes:
-      'Degree 7 in the plane, asked twice. Both panels prescribe FIVE planar points on the same curve ' +
-      'type, so both impose ten real conditions on ten real degrees of freedom (w cubic = 8, plus the ' +
-      'translation = 2; the planar gauge w ↦ −w is DISCRETE and costs none). Both square. The counts ' +
-      'are 4 and 8 — and a third arrangement of the SAME five control points gives 1. ' +
-      'THE POINT: for an ordinary Bézier, prescribing control points and prescribing points on the ' +
-      'curve are LINEARLY EQUIVALENT problems. For a PH curve they are not, because the unknown is the ' +
-      'GENERATOR, and only the control-point conditions factor through it by division. This is the ' +
-      'pitfall the whole deck keeps meeting, and it is the reason a dimension count alone never ' +
-      'settles anything — you must say WHICH functionals, not just how many. ' +
-      'LEFT, the SPLIT prescription P₀P₁P₂ · P₆P₇. Three at the start fix legs N₀,N₁; two at the end fix ' +
-      'N₆; and the gap from P₂ to P₆ yields only their SUM, N₂+N₃+N₄+N₅ = 7(P₆−P₂). So w₀ = √N₀ (the ± ' +
-      'is the whole gauge), w₁ = N₁/w₀, then w₃ = ±√N₆ — a GENUINE branch, because the gauge is already ' +
-      'spent — and finally (3/5)w₂² + Bw₂ + (C−D) = 0. Two signs × two roots = FOUR. Closed form ' +
-      'throughout; no iteration. ' +
-      'THE COUNT RUNS 1, 2, 4, 8 OVER SUBSETS OF THE SAME FIVE. Measured: P{0,1,2,3,4} → 1, ' +
-      'P{0,1,2,3,7} → 2, P{0,1,2,6,7} → 4, P{0,1,3,5,7} → 8. The rule: after w₀ is fixed by the gauge, ' +
-      'each remaining condition is linear or quadratic in the unknowns it newly reaches, and the count ' +
-      'is the product — a gap stopping short of N₆ stays LINEAR in w₃, one swallowing N₆ = w₃² turns ' +
-      'quadratic. So prescribed control points can be exactly as branched as interpolation. ' +
-      'THE CONSECUTIVE SET P₀…P₄ gives ONE, by a cascade that never solves an equation: N₀ = w₀², ' +
-      'N₁ = w₀w₁, N₂ = (2/5)w₀w₂+(3/5)w₁², N₃ = (1/10)w₀w₃+(9/10)w₁w₂ — a square root and three ' +
-      'divisions, so nothing branches and nothing fails. At degree 3 that same cascade reads N₁² = N₀N₂, ' +
-      'the oldest planar PH fact there is (the three legs in geometric progression). It is NOT the panel ' +
-      'you can drag, though, because its gain is C(6,3)/2 = 10 — a drag of a tenth of a leg doubles w₃, ' +
-      'and five leg-lengths multiply arc length by 370. The split set takes w₃ from a square root of ' +
-      'prescribed data instead, never incurs the factor, and the same drag changes arc length by 1.5×. ' +
-      'The stiffness grows with degree: the factor is 1 for the cubic, 3 for the quintic, 10 here. ' +
-      'THE TWO w₂-BRANCHES ARE ISOMETRIC — equal arc length, different shape. Not a coincidence: the ' +
-      'difference between the roots is Re(Δ·conj(2a·k − G₂₂·B))/a² with k the arc-length gradient in w₂, ' +
-      'and 2a·k = G₂₂·B identically (both are (6/175)w₀ + (27/350)w₁ + (3/35)w₃). Verified over 40 random ' +
-      'configurations. The planar echo of the spatial cubic fibre\'s isometry two slides on. ' +
-      'RIGHT, the interpolation: substitute wⱼ = w₀rⱼ and w₀² cancels out of every condition, leaving ' +
-      'rᵀ(D₁Mᵢ − DᵢM₁)r = 0 for i = 2,3,4 — three quadratic forms in the 4-vector r, i.e. THREE QUADRICS ' +
-      'IN ℙ³, whose base locus is a Cayley octad: 2³ = 8. This is 2^{k−1} at k = 4, and Bézout is ' +
-      'attained EXACTLY, unlike anything in space, because the unknowns are complex: w has free complex ' +
-      'coefficients and ∫w² is a real plane curve whatever they are, so every Bézout root is a genuine ' +
-      'curve. The eight never vanish. They can only collide — which is monodromy, and the figure shows ' +
-      'it rather than hiding it. ' +
-      'The panels do not share their points: the two problems want different seeds, and feeding ' +
-      'interpolation points into a control polygon gives arc length ~400 on data spanning 5. The left ' +
-      'seed was found by SEARCH rather than by hand — aspect near the panel\'s, four branches separated ' +
-      'by at least a quarter of the box diagonal, and one visibly smooth member against three loopier ' +
-      'ones; a near-straight seed makes all four coincide in a sliver. Everything measured here is in ' +
-      'core/__tests__/phPlanarSeptic.test.ts. ' +
-      'SETS UP THE SPATIAL SEPTIC. The same control-point problem in SPACE takes SIX points (4k+2 = 18 ' +
-      'against 3 each) and has 0, 2, 4 or 6 real answers under a ceiling of 8 — measured, and half of ' +
-      'all arbitrary polygons carry NO real curve. The difference is exactly the gauge: in space each ' +
-      'cascade stage is polar(A₀,·): ℍ → ℝ³, four unknowns for three equations, leaving a one-dimensional ' +
-      'kernel per stage; here the stage is multiplication by w₀ on ℂ, which is invertible. The spatial ' +
-      'branching is MANUFACTURED BY THE CONTINUOUS HOPF GAUGE. See docs/SEPTIC_SIX_POINTS.md and ' +
-      'core/septicCascadeDegree.test.ts. ' +
-      'Implementation: the right panel solves globally by a total-degree homotopy (8 paths from x² = c), ' +
-      'and during a drag carries each branch by Newton from its own previous root — so branch identity ' +
-      'is preserved BY CONSTRUCTION and needs no permutation matching, unlike the two- and four-branch ' +
-      'figures. R = ∫|κ|ds diverges on a branch with a cusp; the readout says "cusp" rather than ' +
-      'printing a meaningless number.',
+      'THE SAME GESTURE, ONE GEOMETRY UP, and the answer changes in kind rather than in size. ' +
+      'dim = 4m+6 in space against 2K+2 in the plane, each held control point costs 3 instead of 2, ' +
+      'and the number you can always hold comes out the SAME in both: (n+3)/2, just over half the ' +
+      'control points. Degree 3 hold 3 of 4, degree 5 hold 4 of 6, degree 7 hold 5 of 8. What ' +
+      'differs is what is LEFT: nothing in the plane, so a count; m dimensions in space, so a family. ' +
+      'ONE DIAL PER DIMENSION, AT EVERY GRIP — m of them, and m = 4m+6-3(m+2) cannot see WHICH ' +
+      'points are held. If someone asks whether a different grip gives fewer dials: no. Measured at ' +
+      'every grip of every degree the figure offers, 4 + 15 + 56 of them, the dimension is m each ' +
+      'time. ' +
+      'WHAT THE GRIP DOES DECIDE IS THE SHAPE, and there is a rule for it. Hold both ends and one ' +
+      'point out of each consecutive pair (P1,P2), (P3,P4), ... — 2^m grips — and the family is ' +
+      'BOUNDED. Hold anything else and it runs to infinity. The same 2^m grips are exactly the ones ' +
+      'where the PLANAR problem attains its full 2^m interpolants; every other grip loses planar ' +
+      'branches and gains an unbounded spatial family. Swept exhaustively at degrees 3, 5 and 7. ' +
+      'Running away is proved, by exhibiting a path that leaves every bound; staying bounded is ' +
+      'strong evidence over 8000 walk samples, except at {P0,P1,P4,P5} where the closed form settles ' +
+      'it. So "ends held" opens on a good grip at every degree: {P0,P1,P3}, {P0,P1,P4,P5}, ' +
+      '{P0,P1,P3,P6,P7}. ' +
+      'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse with the cubic slide\'s ' +
+      'own continuation, so the dial wraps and the grey loop is the whole fibre. Degree 5 ends-held ' +
+      'IS the quintic Hermite grip — the next-but-one slide\'s grip, the same four points — so both ' +
+      'dials are the Hopf angles phi0 and phi2, they wrap, and the loci close to 1e-16. Degree 7 has ' +
+      'no closed form, so its dials are chart coordinates and the loci are drawn as the ARCS they ' +
+      'reach. Nothing claims a circle where there is not one. ' +
+      'PLACED FOR TESTING, not yet wired into the argument. If it holds up it should REPLACE the ' +
+      'spatial-cubic slide that follows, which it now contains outright: {P0,P1,P3} at degree 3 is ' +
+      'that slide, toured the same way. The spatial-quintic torus after it is a harder call than it ' +
+      'was — this figure reproduces its grip, its two angular dials and its closed loci — so what ' +
+      'that slide still owns alone is the alpha/beta CHANGE OF BASIS and the arc-length invariant, ' +
+      'which is its actual lesson.',
   },
 
   // ---------------------------------------------------------------------------

@@ -403,5 +403,7 @@ describe('the septic cascade — how many real solutions', () => {
     expect([...tally.keys()].every((n) => n % 2 === 0)).toBe(true)
     expect(tally.get(0)).toBeGreaterThan(10)
     expect(Math.max(...tally.keys())).toBeLessThanOrEqual(8)
-  })
+    // 40 resultant sweeps: about 5s alone, which is vitest's default, so it flaked under a busy
+    // suite while passing every time on its own. The timeout is the fix; the numbers are untouched.
+  }, 120_000)
 })
