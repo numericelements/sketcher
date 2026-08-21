@@ -26,15 +26,12 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { hodograph, rootsOf, type Poly } from '../conformalPHHopf'
+import { liftHardQuarticToConformal } from './hardQuarticWitness'
 import { type Complex, cadd, cmul, cnorm } from '../complex'
 import {
   type ConformalPHCurve, controlPoints, dragControlPoint, findMember, degreeOf,
 } from '../conformalPHCurve'
-import { type Conformal } from '../conformal'
-import {
-  type MultiPoleParams, familyBasis, projectToFamily, toMember, unpackSpinor,
-} from '../rationalPHMultiPoleSpatial'
-import type { Quat, Vec3 } from '../quaternion'
+import type { Vec3 } from '../quaternion'
 import { vnorm, vsub } from '../quaternion'
 
 const C0: Complex = { re: 0, im: 0 }
@@ -70,49 +67,6 @@ function poles(s: ConformalPHCurve): { degW: number; list: PoleReading[] } {
 
 // --- the λ-chart quartic with a GENUINE hard real pole, and its lift ------------------------
 const POLE = 1.7
-const binom = (n: number, k: number): number => {
-  if (k < 0 || k > n) return 0
-  let c = 1
-  for (let i = 0; i < k; i++) c = (c * (n - i)) / (i + 1)
-  return c
-}
-const toBern = (a: readonly number[], n: number): number[] =>
-  Array.from({ length: n + 1 }, (_, k) => {
-    let acc = 0
-    for (let j = 0; j <= Math.min(k, a.length - 1); j++) acc += (binom(k, j) / binom(n, j)) * a[j]
-    return acc
-  })
-const pmul = (a: readonly number[], b: readonly number[]): number[] => {
-  const o = new Array(a.length + b.length - 1).fill(0)
-  a.forEach((x, i) => b.forEach((y, j) => { o[i + j] += x * y }))
-  return o
-}
-const padd = (...ps: number[][]): number[] =>
-  Array.from({ length: Math.max(...ps.map((q) => q.length)) }, (_, i) => ps.reduce((s, q) => s + (q[i] ?? 0), 0))
-
-function liftHardQuartic(): { state: ConformalPHCurve; sigmaAtPole: number } {
-  const ZERO3: Quat[] = Array.from({ length: 3 }, () => ({ u: 0, v: 0, p: 0, q: 0 }))
-  const base: MultiPoleParams = { A: ZERO3, roots: [POLE], lambdas: [Math.tan((20 * Math.PI) / 180)] }
-  const B = familyBasis(base)
-  const x = new Array<number>(12).fill(0)
-  B.forEach((b, i) => { const a = 1.3 * Math.sin(1.7 * i + 0.6); for (let j = 0; j < 12; j++) x[j] += a * b[j] })
-  const m = toMember(projectToFamily({ ...base, A: unpackSpinor(x) }))
-  const w = [...m.w], q = m.p.map((c) => [...c])
-  const o = pmul(w, w).map((v) => 2 * v)
-  const xyz = q.map((c) => pmul(w, c).map((v) => 2 * v))
-  const inf = padd(pmul(q[0], q[0]), pmul(q[1], q[1]), pmul(q[2], q[2]))
-  const degree = Math.max(o.length, ...xyz.map((c) => c.length), inf.length) - 1
-  const cols = [toBern(o, degree), ...xyz.map((c) => toBern(c, degree)), toBern(inf, degree)]
-  return {
-    state: {
-      C: Array.from({ length: degree + 1 }, (_, k) =>
-        [cols[0][k], cols[1][k], cols[2][k], cols[3][k], cols[4][k]] as unknown as Conformal),
-      h: toBern([...m.sigma].map((v) => 2 * v), degree - 1),
-    },
-    sigmaAtPole: [...m.sigma].reduceRight((s, c) => s * POLE + c, 0),
-  }
-}
-
 describe('every pole of a conformal PH member is soft', () => {
   it('a generic degree-6 member: six genuine poles, every one isotropic', () => {
     const s = findMember(6)
@@ -130,7 +84,7 @@ describe('every pole of a conformal PH member is soft', () => {
   }, 120_000)
 
   it('AllHard lives on the non-reduced locus: a doubled pole with a cancelling numerator', () => {
-    const { state, sigmaAtPole } = liftHardQuartic()
+    const { state, sigmaAtPole } = liftHardQuarticToConformal()
     expect(Math.abs(sigmaAtPole), 'the source really is HARD: σ(1.7) ≠ 0').toBeGreaterThan(1)
     expect(degreeOf(state), 'the lift doubles the degree').toBe(8)
 
@@ -150,7 +104,7 @@ describe('every pole of a conformal PH member is soft', () => {
   }, 120_000)
 
   it('and ONE drag destroys it: the double root splits and every pole comes back soft', () => {
-    const { state } = liftHardQuartic()
+    const { state } = liftHardQuarticToConformal()
     const P0 = controlPoints(state)
     const chord = vnorm(vsub(P0[P0.length - 1], P0[0]))
     const base = P0[4]

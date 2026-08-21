@@ -34,15 +34,12 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { bernsteinToPower, rootsOf, type Poly } from '../conformalPHHopf'
+import { hardQuarticMember } from './hardQuarticWitness'
 import {
   type Rat, analyticJacobian, hodographN, numericJacobian, packRat, phResidual,
   projectiveNormalise, rowNormalise, singularValues, unpackRat,
 } from '../nurbsPH'
 import { type Complex, cadd, cmul, cnorm } from '../complex'
-import {
-  type MultiPoleParams, familyBasis, projectToFamily, toMember, unpackSpinor,
-} from '../rationalPHMultiPoleSpatial'
-import type { Quat } from '../quaternion'
 
 const DEG = 4
 
@@ -61,12 +58,7 @@ const toBern = (a: readonly number[], n: number): number[] =>
     return acc
   })
 function hardQuarticAsRat(): { rat: Rat; sigmaAtPole: number } {
-  const ZERO3: Quat[] = Array.from({ length: 3 }, () => ({ u: 0, v: 0, p: 0, q: 0 }))
-  const base: MultiPoleParams = { A: ZERO3, roots: [POLE], lambdas: [Math.tan((20 * Math.PI) / 180)] }
-  const B = familyBasis(base)
-  const x = new Array<number>(12).fill(0)
-  B.forEach((b, i) => { const a = 1.3 * Math.sin(1.7 * i + 0.6); for (let j = 0; j < 12; j++) x[j] += a * b[j] })
-  const m = toMember(projectToFamily({ ...base, A: unpackSpinor(x) }))
+  const m = hardQuarticMember()
   const wB = toBern([...m.w], DEG)
   const qB = [0, 1, 2].map((i) => toBern([...m.p[i]], DEG))
   return {
