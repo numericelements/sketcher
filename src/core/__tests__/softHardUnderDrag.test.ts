@@ -22,13 +22,29 @@
 //     projective, from a hard member   stays hard   (isotropy stays O(1))
 //     conformal,  from a hard member   CANNOT — the only hard pole the model can hold is a
 //                                      doubled one with a cancelling numerator, and any drag at
-//                                      all splits it into soft ones
+//                                      all splits it into eight soft ones
+//
+// The two sides are not measured by the same number, and that asymmetry IS the result: on the
+// conformal side ρ = h·W by construction, so W ∣ ρ holds identically and |ρ(r)| is vacuous there.
+// On the projective side ρ is an independent unknown and nothing ties it to W, so |ρ(r)| is the
+// whole question. Softness is automatic in one model and a condition in the other.
 //
 // So neither degenerates into the other under a drag. The prediction going in was the opposite —
 // ⟨q(r),q(r)⟩ = 0 is two real conditions at a complex pole, so the soft locus has codimension 2
 // and a generic motion "should" leave it at first order. It does not, and the reason the counting
 // misses is that W ∣ ρ is not a side condition on a single component: it cuts the variety into
 // cells that a continuous drag does not cross.
+//
+// SOFTNESS IS MEASURED AS ρ(r), NOT AS ISOTROPY, and the first version of this file got that
+// wrong in a way that made half of it prove nothing. Isotropy ⟨q,q⟩/|q|² is IDENTICALLY 1 at a
+// real pole — q(r) is then a real vector and ⟨q,q⟩ = |q|² — so a test reading it there returns 1.0
+// whatever the curve does. The λ-chart quartic's only pole is real, at 1.7, so "the hard member
+// stayed hard, isotropy 1.0" was true by arithmetic and could not have come out otherwise. (Its W
+// is genuinely degree 1; the other three roots were junk from a leading coefficient at 1e-17, so
+// they had to be trimmed away as well.) |ρ(r)|, normalised by the sum of its own term magnitudes,
+// is the honest instrument: it is the definition itself, it is well conditioned, and it separates
+// the two specimens by fifteen orders — 3.0e-1 against 1e-15 — at a real pole and a complex one
+// alike.
 //
 // WHAT THIS DOES NOT SETTLE. "The drag stayed in its cell" is not "the cells are separate
 // components". A path from all-soft to all-hard would have to pass through MIXED members — some
@@ -52,32 +68,60 @@ const cpeval = (p: Poly, z: Complex): Complex => {
   for (let k = p.length - 1; k >= 0; k--) acc = cadd(cmul(acc, z), { re: p[k], im: 0 })
   return acc
 }
-const formSquare = (v: Complex[]): Complex => v.reduce((a, z) => cadd(a, cmul(z, z)), C0)
-const hermitian = (v: Complex[]): number => Math.hypot(...v.map(cnorm))
 
-interface Pole { iso: number; qRel: number; real: boolean }
-
-function polesOf(Wp: Poly, qp: Poly[]): Pole[] {
-  const qScale = Math.max(...qp.flat().map(Math.abs), 1e-300)
-  return rootsOf(Wp.map((v) => ({ re: v, im: 0 }))).map((z) => {
-    const qv = qp.map((c) => cpeval(c, z))
-    return {
-      iso: cnorm(formSquare(qv)) / Math.max(hermitian(qv) ** 2, 1e-300),
-      qRel: hermitian(qv) / qScale,
-      real: Math.abs(z.im) < 1e-7,
-    }
-  })
+interface Pole {
+  /** |ρ(r)| relative to the sum of its term magnitudes: 0 is SOFT, O(1) is HARD. */
+  hardness: number
+  real: boolean
 }
-const ratPoles = (r: Rat): Pole[] => polesOf(
-  bernsteinToPower(r.w),
-  [0, 1, 2].map((i) => bernsteinToPower(r.P.map((p, k) => r.w[k] * p[i]))),
-)
-function conformalPoles(s: ConformalPHCurve): Pole[] {
+
+/** Trim a power polynomial to its true degree, or its junk roots pollute everything after. */
+function trimPoly(p: Poly): Poly {
+  const s = Math.max(...p.map(Math.abs), 1e-300)
+  const c = [...p]
+  while (c.length > 1 && Math.abs(c[c.length - 1]) < 1e-12 * s) c.pop()
+  return c
+}
+/** |f(z)| over Σ|aₖ||z|ᵏ — zero means a genuine root, not a cancellation the arithmetic invented. */
+function relValue(p: Poly, z: Complex): number {
+  const r = Math.hypot(z.re, z.im)
+  let terms = 0
+  for (let k = 0; k < p.length; k++) terms += Math.abs(p[k]) * r ** k
+  return cnorm(cpeval(p, z)) / Math.max(terms, 1e-300)
+}
+
+function polesOf(Wp: Poly, rhoP: Poly): Pole[] {
+  return rootsOf(trimPoly(Wp).map((v) => ({ re: v, im: 0 }))).map((z) => ({
+    hardness: relValue(rhoP, z),
+    real: Math.abs(z.im) < 1e-7,
+  }))
+}
+const ratPoles = (r: Rat): Pole[] =>
+  polesOf(bernsteinToPower(r.w), bernsteinToPower(r.rho))
+/**
+ * The conformal side has to be read differently, and reading it the same way proves NOTHING.
+ *
+ * There ρ = h·W by construction, so ρ(r) = h(r)·W(r) = 0 at any root of W whatever the curve does.
+ * |ρ(r)| is therefore vacuous here — it measures the parameterisation, not the pole. (It is a
+ * perfectly good instrument on the projective side, where ρ is an independent unknown and nothing
+ * ties it to W. That asymmetry IS the result: W ∣ ρ is automatic in one model and a condition in
+ * the other.)
+ *
+ * So the honest measure here is isotropy of the numerator, ⟨q,q⟩/|q|², which is what the identity
+ * ‖q‖² = 2·W·c∞ actually constrains — and it is limited by how far the dragged state has drifted
+ * off that identity, reported alongside.
+ */
+function conformalPoles(s: ConformalPHCurve): { iso: number; qRel: number }[] {
   const hd = hodograph(s)
-  const sc = Math.max(...hd.w.map(Math.abs))
-  const w = hd.w.slice()
-  while (w.length > 1 && Math.abs(w[w.length - 1]) < 1e-11 * sc) w.pop()
-  return polesOf(w, hd.q as unknown as Poly[])
+  const w = trimPoly(hd.w)
+  const q = hd.q as unknown as Poly[]
+  const qScale = Math.max(...q.flat().map(Math.abs), 1e-300)
+  return rootsOf(w.map((v) => ({ re: v, im: 0 }))).map((z) => {
+    const qv = q.map((c) => cpeval(c, z))
+    const herm = Math.hypot(...qv.map(cnorm))
+    const sq = qv.reduce((a, x) => cadd(a, cmul(x, x)), C0)
+    return { iso: cnorm(sq) / Math.max(herm ** 2, 1e-300), qRel: herm / qScale }
+  })
 }
 
 /**
@@ -184,19 +228,24 @@ describe('softness is W ∣ ρ, and a drag does not cross it', () => {
     const softPoles = ratPoles(soft.rat)
     console.log(`    conformal member, degree ${soft.d}: PH residual` +
       ` ${phRelativeResidual(soft.rat).toExponential(1)},  ρ ÷ W remainder ${softRem.toExponential(1)}`)
-    console.log(`      isotropies ${softPoles.map((p) => p.iso.toExponential(0)).join(' ')}  — all soft`)
+    console.log(`      |ρ(r)| at each pole ${softPoles.map((p) => p.hardness.toExponential(0)).join(' ')}` +
+      `  — all soft`)
     expect(phRelativeResidual(soft.rat), 'the import satisfies the projective equation').toBeLessThan(1e-11)
     expect(softRem, 'W divides ρ').toBeLessThan(1e-10)
-    for (const p of softPoles) expect(p.iso, 'so every pole is soft').toBeLessThan(1e-9)
+    for (const p of softPoles) expect(p.hardness, 'so ρ vanishes at every pole').toBeLessThan(1e-12)
 
     const hard = hardSpecimen()
     const hardRem = ratRemainder(hard.rat)
     const hardPoles = ratPoles(hard.rat)
     console.log(`    λ-chart quartic (pole ${HARD_POLE}): PH residual` +
       ` ${phRelativeResidual(hard.rat).toExponential(1)},  ρ ÷ W remainder ${hardRem.toExponential(1)}`)
-    console.log(`      isotropies ${hardPoles.map((p) => p.iso.toExponential(0)).join(' ')}  — all hard`)
+    console.log(`      W has true degree ${hardPoles.length};` +
+      ` |ρ(r)| at each pole ${hardPoles.map((p) => p.hardness.toExponential(0)).join(' ')}  — hard,` +
+      ` and the pole is REAL, where isotropy would have read 1.0 no matter what`)
     expect(hardRem, 'W does not divide ρ — not by a little').toBeGreaterThan(1)
-    expect(Math.max(...hardPoles.map((p) => p.iso)), 'so its poles are hard').toBeGreaterThan(0.5)
+    expect(hardPoles.every((p) => p.real), 'its pole is real — isotropy is blind here').toBe(true)
+    expect(Math.min(...hardPoles.map((p) => p.hardness)), 'and ρ does NOT vanish there')
+      .toBeGreaterThan(1e-2)
   }, 900_000)
 
   it('PROJECTIVE: a drag keeps a soft member soft and a hard member hard', () => {
@@ -206,10 +255,10 @@ describe('softness is W ∣ ρ, and a drag does not cross it', () => {
     for (const f of FRACTIONS) {
       const got = dragProjective(soft.rat, soft.d, f)
       // real poles are excluded: isotropy is identically 1 there and carries no information
-      const iso = ratPoles(got.rat).filter((p) => !p.real).map((p) => p.iso)
-      worstSoftIso = Math.max(worstSoftIso, ...iso)
+      const hs = ratPoles(got.rat).map((p) => p.hardness)
+      worstSoftIso = Math.max(worstSoftIso, ...hs)
       console.log(`      soft, drag ${(100 * f).toFixed(1)}%: ρ ÷ W remainder` +
-        ` ${ratRemainder(got.rat).toExponential(1)}, worst isotropy ${Math.max(...iso).toExponential(1)}` +
+        ` ${ratRemainder(got.rat).toExponential(1)}, worst |ρ(r)| ${Math.max(...hs).toExponential(1)}` +
         `  (residual ${got.residual.toExponential(1)})`)
     }
 
@@ -217,17 +266,17 @@ describe('softness is W ∣ ρ, and a drag does not cross it', () => {
     let leastHardIso = Infinity
     for (const f of FRACTIONS) {
       const got = dragProjective(hard.rat, hard.d, f)
-      const iso = ratPoles(got.rat).map((p) => p.iso)
-      leastHardIso = Math.min(leastHardIso, Math.max(...iso))
+      const hs = ratPoles(got.rat).map((p) => p.hardness)
+      leastHardIso = Math.min(leastHardIso, Math.max(...hs))
       console.log(`      hard, drag ${(100 * f).toFixed(1)}%: ρ ÷ W remainder` +
-        ` ${ratRemainder(got.rat).toExponential(1)}, worst isotropy ${Math.max(...iso).toExponential(1)}` +
+        ` ${ratRemainder(got.rat).toExponential(1)}, worst |ρ(r)| ${Math.max(...hs).toExponential(1)}` +
         `  (residual ${got.residual.toExponential(1)})`)
     }
     console.log(`    soft stayed under ${worstSoftIso.toExponential(1)};` +
-      ` hard stayed above ${leastHardIso.toExponential(1)} — six orders apart, no crossing`)
+      ` hard stayed above ${leastHardIso.toExponential(1)} — no crossing`)
 
-    expect(worstSoftIso, 'the soft member never hardens').toBeLessThan(1e-3)
-    expect(leastHardIso, 'and the hard member never softens').toBeGreaterThan(0.5)
+    expect(worstSoftIso, 'the soft member never hardens').toBeLessThan(1e-6)
+    expect(leastHardIso, 'and the hard member never softens').toBeGreaterThan(1e-2)
   }, 900_000)
 
   it('CONFORMAL: the doubled pole SPLITS, and softness returns as far as the state stays null', () => {
@@ -245,7 +294,7 @@ describe('softness is W ∣ ρ, and a drag does not cross it', () => {
     // structural change below is unambiguous at any of these defects.
     const { state, sigmaAtPole } = liftHardQuarticToConformal()
     expect(Math.abs(sigmaAtPole), 'the source is genuinely hard').toBeGreaterThan(1)
-    const beforePoles = conformalPoles(state).filter((p) => p.qRel > 1e-3)
+    const beforePoles = conformalPoles(state).filter((e) => e.qRel > 1e-3)
     console.log(`    before: σ = ${sigmaAtPole.toFixed(2)}, null residual` +
       ` ${nullResidual(state).toExponential(1)}, ${beforePoles.length} poles with a genuine numerator`)
     expect(beforePoles.length, 'the doubled pole cancels its numerator: nothing genuine').toBe(0)
@@ -261,8 +310,8 @@ describe('softness is W ∣ ρ, and a drag does not cross it', () => {
         z: P0[4].z + dir.z * f * chord,
       }
       const r = dragControlPoint(state, 4, target, { pinEnds: true, iterations: 200 })
-      const usable = conformalPoles(r.state).filter((p) => p.qRel > 1e-3)
-      const iso = usable.length ? Math.max(...usable.map((p) => p.iso)) : 0
+      const usable = conformalPoles(r.state).filter((e) => e.qRel > 1e-3)
+      const iso = usable.length ? Math.max(...usable.map((e) => e.iso)) : 0
       worstIso = Math.max(worstIso, iso)
       console.log(`      drag ${(100 * f).toFixed(1)}%: ${usable.length} genuine poles,` +
         ` worst isotropy ${iso.toExponential(1)};  reported defect ${r.defect.toExponential(1)}` +
@@ -270,7 +319,7 @@ describe('softness is W ∣ ρ, and a drag does not cross it', () => {
       expect(usable.length, 'the doubled pole split into eight genuine ones').toBe(8)
     }
     console.log(`    worst isotropy over every drag ${worstIso.toExponential(1)},` +
-      ` against 1.0 for the pole it started as — two orders, and the gap is the null drift`)
+      ` against 1.0 for a hard pole — and the gap to machine zero is the null drift above`)
     expect(worstIso, 'and none of them is hard').toBeLessThan(0.1)
   }, 900_000)
 })
