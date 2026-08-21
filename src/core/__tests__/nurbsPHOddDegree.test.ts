@@ -44,7 +44,20 @@ const cpeval = (p: Poly, z: Complex): Complex => {
   for (let k = p.length - 1; k >= 0; k--) acc = cadd(cmul(acc, z), { re: p[k], im: 0 })
   return acc
 }
-const csq = (z: Complex): Complex => cmul(z, z)
+/** Trim a power polynomial to its true degree, or junk roots pollute the count. */
+function trimPoly(p: Poly): Poly {
+  const s = Math.max(...p.map(Math.abs), 1e-300)
+  const c = [...p]
+  while (c.length > 1 && Math.abs(c[c.length - 1]) < 1e-12 * s) c.pop()
+  return c
+}
+/** |f(z)| over Σ|aₖ||z|ᵏ — 0 is a genuine root, O(1) is no cancellation at all. */
+function relValue(p: Poly, z: Complex): number {
+  const r = Math.hypot(z.re, z.im)
+  let terms = 0
+  for (let k = 0; k < p.length; k++) terms += Math.abs(p[k]) * r ** k
+  return cnorm(cpeval(p, z)) / Math.max(terms, 1e-300)
+}
 
 function rng(seed: number): () => number {
   let a = seed >>> 0
@@ -135,7 +148,7 @@ function judge(rat: Rat, d: number): Verdict {
   if (wLead < 1e-8 && qLead < 1e-8) return fail('degree-elevated, really degree < d')
 
   // common root: W(r) = 0 and q(r) = 0 together means the fraction reduces
-  const roots = rootsOf(Wp.map((v) => ({ re: v, im: 0 })))
+  const roots = rootsOf(trimPoly(Wp).map((v) => ({ re: v, im: 0 })))
   const qMag = Math.max(...qp.flat().map(Math.abs), 1e-300)
   let soft = 0
   let hard = 0
@@ -143,9 +156,11 @@ function judge(rat: Rat, d: number): Verdict {
     const qv = qp.map((c) => cpeval(c, r))
     const mag = Math.max(...qv.map(cnorm))
     if (mag < 1e-7 * qMag) return fail('common root, the fraction reduces')
-    // softness IS isotropy of the numerator at the pole: <q(r),q(r)> = 0
-    const iso = cnorm(qv.map(csq).reduce(cadd, C0)) / qv.reduce((s, z) => s + cnorm(z) ** 2, 0)
-    if (iso < 1e-6) soft++
+    // SOFTNESS IS rho(r) = 0, not isotropy. The identity rho(r)^2 = <q(r),q(r)>*W'(r)^2 makes
+    // them the same statement at a COMPLEX pole — but at a real one q(r) is a real vector, so
+    // <q,q> = |q|^2 and isotropy reads 1 whatever the curve does. An earlier version of this count
+    // used isotropy and therefore scored every real pole as hard by arithmetic.
+    if (relValue(bernsteinToPower(rat.rho), r) < 1e-9) soft++
     else hard++
   }
   // a real root in [0,1] means the curve blows up on its own parameter interval — still a
