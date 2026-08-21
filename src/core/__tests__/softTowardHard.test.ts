@@ -10,12 +10,38 @@
 // way — 1e-16 to 1e-4, so soft is NOT absorbing under driving, only under a small drag — and then
 // it stalls with the PH residual at 1e-7.
 //
-// AND NOTHING IS DEGENERATE AT THE WALL, which is what makes this inconclusive rather than a
-// result. Measured at the stall: W still of true degree 6, all six poles still complex, the closest
-// pair 0.12 apart, every weight the same sign and none near zero. There is no collision, no pole
-// arriving on the real axis, no reduction — nothing to point at and call the boundary of the cell.
+// HOW THE HARDENING HAPPENS, and it is not the gradual thing the codimension count suggests. Write
+// the numerator at a pole as q(r) = a + i·b with a, b real. Then ⟨q,q⟩ = |a|² − |b|² + 2i⟨a,b⟩, so
 //
-// SO THIS IS SOLVER-LIMITED, and it is the first question in this line that is. The residual at the
+//     SOFT  ⟺  |a| = |b|  AND  a ⊥ b
+//
+// — the real and imaginary parts perpendicular and equal in length. There are therefore TWO ways to
+// harden a pole, and only the first is continuous:
+//
+//   · tilt off that alignment. A randomly-solved "hard" member is barely off it: |a|/|b| = 0.983
+//     and the angle 85.3°, against 1.000000 and 90.00° for a soft one.
+//   · send the pole ONTO THE REAL AXIS. Then b = 0 identically, |a| = |b| forces a = 0 too, and
+//     softness is impossible unless the numerator vanishes — which is the fake pole. Nothing is
+//     gradual about it: a conjugate pair collides and the isotropy jumps to exactly 1.
+//
+// BOTH ROUTES HAVE BEEN OBSERVED, on different hard targets, which is worth knowing before anyone
+// generalises from one run:
+//
+//   · aiming at the target this test finds, the poles STAY complex — closest approach to the real
+//     axis 6.9e-3 — and the pair at 1.387 ± 0.062i tilts to |a|/|b| = 0.886 and 141.6°, while the
+//     other four stay at 1.000000 and 90.00° to the last digit;
+//   · aiming at a target from a slightly different search, the pair nearest the real axis
+//     (1.326 ± 0.0129i) COLLIDES by the sixth step and lands at 1.392 and 1.271 with |Im| ~ 1e-47.
+//
+// Either way it is TWO poles of six that harden and four that do not move off alignment at all.
+// The eleven orders are local to one conjugate pair, not a global rotation.
+//
+// AN EARLIER VERSION OF THIS FILE SAID THERE WAS "NOTHING TO POINT AT" AT THE WALL. There was: the
+// alignment of one pair had tilted badly. The quantity had simply not been measured — the end state
+// was checked for collisions, reductions and sign changes, none of which is what happened.
+//
+// AND IT IS STILL SOLVER-LIMITED, which the mechanism does not change: the drive stalls before the
+// remaining four poles do anything at all. The residual at the
 // stall is 1e-7, which is exactly the floor a drag on this model already showed (nurbsPHDrag: 1e-13
 // standing still, ~1e-8 under motion, and ten times the budget does not help). Smaller driving
 // steps do not get further — 21%, 19%, 17% at steps 0.02, 0.005, 0.001 — which is what an
@@ -130,6 +156,9 @@ describe('driving a soft member at a hard one', () => {
 
     let worstClosed = 0
     let endState: Rat = soft
+    let wentReal = 0
+    let minImEver = Infinity
+    let alignedThroughout = 0
     for (const step of [0.02, 0.005]) {
       let cur = soft
       let best = span
@@ -143,6 +172,11 @@ describe('driving a soft member at a hard one', () => {
         const got = settleToPH(pushed, D, { steps: 600 })
         if (got.residual > 1e-7) break
         cur = got.rat
+        // track the POLES ALONG THE PATH, not only at the end
+        const rs = polesOf(cur)
+        for (const z of rs) minImEver = Math.min(minImEver, Math.abs(z.im))
+        wentReal = Math.max(wentReal, rs.filter((z) => Math.abs(z.im) < 1e-12).length)
+        alignedThroughout = Math.max(alignedThroughout, rs.filter((z) => Math.abs(z.im) >= 1e-12).length)
         const d = polyDistance(cur.P, target)
         if (d < best - 1e-7) { best = d; stalls = 0 } else { stalls++ }
         if (stalls > 40 || d < 1e-4) break
@@ -164,25 +198,41 @@ describe('driving a soft member at a hard one', () => {
     expect(ended, 'and yet it never becomes hard before the drive stalls').toBeLessThan(1e-2)
     expect(worstClosed, 'the drive stalls well short of the target').toBeLessThan(0.5)
 
-    // NOTHING IS DEGENERATE AT THE WALL — which is why this is inconclusive, not a result.
+    // HOW it hardened: q(r) = a + i·b, and soft is |a| = |b| with a ⊥ b.
     const roots = polesOf(endState)
-    let closestPair = Infinity
-    let nearestReal = Infinity
+    const qp = [0, 1, 2].map((i) => bernsteinToPower(endState.P.map((p, j) => endState.w[j] * p[i])))
+    console.log(`    at the wall: W true degree ${roots.length}; alignment at each pole` +
+      ` (soft is 1.000000 at 90.00°):`)
     for (const z of roots) {
-      nearestReal = Math.min(nearestReal, Math.abs(z.im))
-      for (const o of roots) {
-        if (o === z) continue
-        closestPair = Math.min(closestPair, Math.hypot(z.re - o.re, z.im - o.im))
-      }
+      const qv = qp.map((c) => cpeval(c, z))
+      const a = qv.map((c) => c.re)
+      const b = qv.map((c) => c.im)
+      const na = Math.hypot(...a)
+      const nb = Math.hypot(...b)
+      const ang = (180 / Math.PI) * Math.acos(Math.max(-1, Math.min(1,
+        a.reduce((sm, v, i) => sm + v * b[i], 0) / Math.max(na * nb, 1e-300))))
+      console.log(`      r ${z.re.toFixed(3)}${z.im >= 0 ? '+' : '-'}${Math.abs(z.im).toFixed(4)}i` +
+        `  |a|/|b| ${(na / Math.max(nb, 1e-300)).toExponential(2)}  angle ${ang.toFixed(2)}°` +
+        `  ${Math.abs(z.im) < 1e-12 ? '<- REAL, so b = 0 and it CANNOT be soft' : ''}`)
     }
-    const weights = endState.w
-    console.log(`    at the wall: W true degree ${roots.length}, closest pole pair` +
-      ` ${closestPair.toFixed(3)}, nearest pole to the real axis ${nearestReal.toFixed(3)},` +
-      ` weights ${Math.min(...weights.map(Math.abs)).toFixed(3)}..${Math.max(...weights.map(Math.abs)).toFixed(3)}` +
-      ` all ${new Set(weights.map(Math.sign)).size === 1 ? 'one sign' : 'MIXED SIGN'}`)
+    // Which of the two routes did this run take?
+    const tilted = roots.filter((z) => {
+      if (Math.abs(z.im) < 1e-12) return false
+      const qv = qp.map((c) => cpeval(c, z))
+      const na = Math.hypot(...qv.map((c) => c.re))
+      const nb = Math.hypot(...qv.map((c) => c.im))
+      return Math.abs(na / Math.max(nb, 1e-300) - 1) > 1e-3
+    }).length
+    console.log(`    along the whole path: ${wentReal} pole(s) reached the real axis` +
+      ` (closest approach ${minImEver.toExponential(1)}), ${alignedThroughout} stayed complex;` +
+      ` ${tilted} tilted off |a| = |b| while staying complex`)
     expect(roots.length, 'the curve has not reduced').toBe(D)
-    expect(closestPair, 'no two poles have collided').toBeGreaterThan(0.05)
-    expect(nearestReal, 'no pole has reached the real axis').toBeGreaterThan(0.01)
-    expect(new Set(weights.map(Math.sign)).size, 'no weight has crossed zero').toBe(1)
+    expect(new Set(endState.w.map(Math.sign)).size, 'no weight has crossed zero').toBe(1)
+    // The mechanism, asserted without prescribing WHICH route: hardening happens at some poles by
+    // one of the two, and the rest keep their alignment exactly.
+    expect(wentReal + tilted, 'some pole either went real or left the |a| = |b| alignment')
+      .toBeGreaterThan(0)
+    expect(wentReal + tilted, 'and not all of them did — this is local to a conjugate pair')
+      .toBeLessThan(D)
   }, 900_000)
 })
