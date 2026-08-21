@@ -34,10 +34,8 @@
 import { describe, it, expect } from 'vitest'
 import { bernsteinToPower, rootsOf, type Poly } from '../conformalPHHopf'
 import { type Complex, cadd, cmul, cnorm } from '../complex'
-import { leastSquares } from '../linalg'
 import {
-  type Rat, analyticJacobian, hodographN, layout, packRat, phResidual, projectiveNormalise,
-  unpackRat,
+  type Rat, hodographN, layout, settleToPH,
 } from '../nurbsPH'
 
 const C0: Complex = { re: 0, im: 0 }
@@ -85,40 +83,10 @@ function seedRat(d: number, seed: number): Rat {
   return { P, w, rho }
 }
 
-/** Damped minimum-norm Gauss-Newton on the 4d-1 equations. */
-function solve(d: number, seed: number, steps = 400): { rat: Rat; residual: number } | null {
-  let rat = projectiveNormalise(seedRat(d, seed))
-  const scaleOf = (r: Rat): number => {
-    const N = hodographN(r)
-    return Math.max(1e-12, Math.max(...N.flat().map(Math.abs)) ** 2)
-  }
-  let lambda = 1e-6
-  let best = Infinity
-  for (let it = 0; it < steps; it++) {
-    const R = phResidual(rat)
-    const s = scaleOf(rat)
-    const rel = Math.max(...R.map(Math.abs)) / s
-    if (!Number.isFinite(rel)) return null
-    best = Math.min(best, rel)
-    if (rel < 1e-13) return { rat, residual: rel }
-    const J = analyticJacobian(rat)
-    let step: number[]
-    try { step = leastSquares(J, R.map((v) => -v), lambda * s) } catch { return null }
-    if (step.some((v) => !Number.isFinite(v))) return null
-    // backtrack until the residual actually falls
-    let h = 1
-    let moved = false
-    for (let k = 0; k < 24; k++) {
-      const x = packRat(rat).map((v, i) => v + h * step[i])
-      const cand = projectiveNormalise(unpackRat(x, d))
-      const cs = scaleOf(cand)
-      const cr = Math.max(...phResidual(cand).map(Math.abs)) / cs
-      if (Number.isFinite(cr) && cr < rel) { rat = cand; moved = true; lambda = Math.max(1e-12, lambda * 0.5); break }
-      h *= 0.5
-    }
-    if (!moved) { lambda *= 8; if (lambda > 1e3) break }
-  }
-  return best < 1e-11 ? { rat, residual: best } : null
+/** Damped minimum-norm Gauss-Newton on the 4d-1 equations (core/nurbsPH.settleToPH). */
+function solve(d: number, seed: number): { rat: Rat; residual: number } | null {
+  const got = settleToPH(seedRat(d, seed), d)
+  return got.residual < 1e-11 ? got : null
 }
 
 /** Rank of the hodograph's three coefficient vectors: 1 = a line, 2 = planar, 3 = spatial. */

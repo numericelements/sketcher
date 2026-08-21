@@ -31,6 +31,7 @@
 // THE GAUGE is (q, w, ρ) ↦ (λq, λw, λ²ρ), with P untouched: ρ scales by λ² because N is quadratic.
 // ============================================================================
 import { bernsteinMultiply } from './bernstein'
+import { leastSquares } from './linalg'
 
 export const layout = (d: number) => ({ nP: 3 * (d + 1), nW: d + 1, nR: 2 * d, total: 3 * (d + 1) + (d + 1) + 2 * d })
 export interface Rat { P: number[][]; w: number[]; rho: number[] }
@@ -146,3 +147,78 @@ export function projectiveNormalise(r: Rat): Rat {
   return { P: r.P, w: r.w.map((v) => v * lam), rho: r.rho.map((v) => v * lam * lam) }
 }
 
+// ---------------------------------------------------------------------------
+// SETTLING ONTO THE VARIETY
+// ---------------------------------------------------------------------------
+
+/** ‖N‖² at its largest — the scale the residual is relative to. */
+export const phScale = (r: Rat): number =>
+  Math.max(1e-12, Math.max(...hodographN(r).flat().map(Math.abs)) ** 2)
+
+/** Worst coefficient of ‖N‖² − ρ², relative to that scale. */
+export const phRelativeResidual = (r: Rat): number =>
+  Math.max(...phResidual(r).map(Math.abs)) / phScale(r)
+
+export interface SettleOptions {
+  readonly steps?: number
+  readonly tolerance?: number
+  /**
+   * Unknowns the solver may NOT change, as indices into the packed vector.
+   *
+   * Pinning is how a drag is posed here: put the grabbed control point exactly on the cursor,
+   * forbid the solver to move it back, and see whether the PH condition can still be met with what
+   * is left. Then "did it track" is not a question about the solver's willingness — tracking is
+   * exact by construction — and becomes the question worth asking, which is whether the curve can
+   * follow at all. A residual that stops falling IS the feasible limit.
+   */
+  readonly frozen?: readonly number[]
+}
+
+/**
+ * Damped minimum-norm Gauss–Newton onto ‖q′W − qW′‖² = ρ².
+ *
+ * Levenberg damping with backtracking, because this Jacobian has NO RANK GAP — its spectrum decays
+ * smoothly over eight orders — so an undamped step has no principled truncation level and can be
+ * arbitrarily wrong. The damping is what stands in for the rank decision that cannot be made.
+ */
+export function settleToPH(
+  rat: Rat, d: number, options: SettleOptions = {},
+): { rat: Rat; residual: number } {
+  const steps = options.steps ?? 400
+  const tolerance = options.tolerance ?? 1e-13
+  const frozen = new Set(options.frozen ?? [])
+  let cur = projectiveNormalise(rat)
+  let best = phRelativeResidual(cur)
+  let lambda = 1e-6
+  for (let it = 0; it < steps && best > tolerance; it++) {
+    const s = phScale(cur)
+    const R = phResidual(cur)
+    const J = analyticJacobian(cur).map((row) => row.map((v, i) => (frozen.has(i) ? 0 : v)))
+    let step: number[]
+    try { step = leastSquares(J, R.map((v) => -v), lambda * s) } catch { break }
+    if (step.some((v) => !Number.isFinite(v))) break
+    let h = 1
+    let moved = false
+    for (let k = 0; k < 24; k++) {
+      const x = packRat(cur).map((v, i) => (frozen.has(i) ? v : v + h * step[i]))
+      // renormalised EVERY candidate, not once at the start: the gauge rescale changes the
+      // Jacobian's row scaling, so where it is applied changes the iteration path and therefore
+      // the numbers the sweeps record
+      const cand = projectiveNormalise(unpackRat(x, d))
+      const cr = phRelativeResidual(cand)
+      if (Number.isFinite(cr) && cr < best) {
+        cur = cand
+        best = cr
+        lambda = Math.max(1e-12, lambda * 0.5)
+        moved = true
+        break
+      }
+      h *= 0.5
+    }
+    if (!moved) {
+      lambda *= 8
+      if (lambda > 1e4) break
+    }
+  }
+  return { rat: cur, residual: best }
+}
