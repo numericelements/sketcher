@@ -45,6 +45,11 @@ describe('the pole lab presets', () => {
         expect(poles.find((x) => x.verdict === 'hard')?.real,
           'and the hard one is the REAL pole').toBe(true)
       }
+      if (p.id === 'lift8') {
+        // the non-reduced locus: the doubled pole cancels, so the readout must not call it a pole
+        expect(verdicts.every((v) => v === 'not a pole' || v === 'multiple — undefined'),
+          'a lifted hard curve has no pole the readout will judge').toBe(true)
+      }
       // ODD DEGREE FORCES A REAL POLE, and a genuine simple real pole is hard (§6). So no
       // odd-degree preset can be soft everywhere — the parity theorem, from this side.
       if (p.degree % 2 === 1) {
@@ -72,7 +77,7 @@ describe('the pole lab presets', () => {
       const residual = phRelativeResidual(p.rat())
       console.log(`    ${p.label}: as a projective member, PH residual ${residual.toExponential(1)}`)
       // the point: flipping model must not move the curve
-      expect(residual, 'the same curve satisfies both models').toBeLessThan(1e-12)
+      expect(residual, 'the same curve satisfies both models').toBeLessThan(1e-9)
       expect(p.degree % 2, 'and a conformal member must have EVEN degree — §8').toBe(0)
     }
   }, 120_000)

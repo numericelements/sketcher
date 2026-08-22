@@ -35,6 +35,7 @@ import type { SlideDefinition } from '../framework/types'
 import ThreePointsFigure from './ThreePointsFigure'
 import PlanarSubsetFigure from './PlanarSubsetFigure'
 import SpatialSubsetFigure from './SpatialSubsetFigure'
+import PoleLab from './PoleLab'
 import SpatialCubicFigure from './SpatialCubicFigure'
 import QuinticHermiteSpatialFigure from './QuinticHermiteSpatialFigure'
 import RmErfFigure from './RmErfFigure'
@@ -531,6 +532,83 @@ in space    the same forms over ℍ      a family, not a count
       'that slide still owns alone is the alpha/beta CHANGE OF BASIS and the arc-length invariant, ' +
       'which is its actual lesson.',
   },
+
+  // ---------------------------------------------------------------------------
+  // 8 / 9 — THE POLE LAB. Two slides, one instrument, and the number beside the verdict.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>A pole is soft or hard, and one number decides it</h2>
+        <PoleLab model="projective" />
+      </>
+    ),
+    notes:
+      'THE LAB SLIDE, and the first of a pair. Rational PH curves have poles, and a pole is SOFT ' +
+      'or HARD. The whole decision is one number, and it is two lines of algebra to get to it: ' +
+      'for x = q/W, at a root r of W the hodograph numerator is N(r) = -q(r)W\'(r), because the ' +
+      'q\'W term dies. Substituting into the PH condition ||N||^2 = rho^2 gives ' +
+      'rho(r)^2 = <q(r),q(r)> * W\'(r)^2, so at a SIMPLE pole the pole is soft exactly when ' +
+      '<q(r),q(r)> = 0. Everything the button prints is that. docs/POLE_ALGEBRA.md has every step. ' +
+      'WHY THE READOUT SHOWS TWO VECTORS. At a complex pole q(r) is a complex 3-vector, which is ' +
+      'six numbers with i in them. Write q(r) = a + i*b and <q,q> = (|a|^2-|b|^2) + 2i<a,b>, so ' +
+      'SOFT means |a| = |b| AND a perpendicular to b -- two lengths and an angle, three real ' +
+      'numbers you can read aloud. That is the picture: two vectors of equal length at right ' +
+      'angles. Drag a control point here and watch them come apart. ' +
+      'THE NUMBER IS SHOWN BESIDE THE VERDICT ON PURPOSE. The threshold between soft and hard is ' +
+      'ours, not the mathematics\', so the slide shows what the label was read from. A test moves ' +
+      'that threshold to absurd values and checks the label flips while the number does not. ' +
+      'THE SPECIMENS ARE CHOSEN, NOT SAMPLED. Each is a curve whose character is settled by ' +
+      'algebra: the lambda-chart quartic has one real simple pole and sigma = 8.21; the MIXED one ' +
+      'carries two soft poles and one hard in the same curve; and two of them are cases where the ' +
+      'QUESTION IS MALFORMED and the readout says so instead of answering -- a DOUBLE real pole, ' +
+      'where W\'(r) = 0 makes N(r) = 0 whatever q does, and a pole whose numerator CANCELS, where ' +
+      'the fraction reduces and there is no pole at all. Those two are in the lab because they are ' +
+      'the cases that catch people, and one of them caught this deck: the first version of section ' +
+      '6 of the algebra document was FALSE for exactly the doubled-pole reason. ' +
+      'ODD DEGREE CARRIES A THEOREM HERE. A real polynomial of odd degree has a real root, so an ' +
+      'odd-degree curve always has a real pole -- and a genuine simple real pole is always hard. ' +
+      'So no odd-degree curve with genuine simple poles can be all-soft, which is the parity ' +
+      'theorem of the conformal model arrived at from this side with no conformal model in it. The ' +
+      'lab shows it by simply having no odd-degree soft specimen to offer.',
+  },
+
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>In the Möbius model you cannot make a pole hard</h2>
+        <PoleLab model="mobius" />
+      </>
+    ),
+    notes:
+      'THE SECOND OF THE PAIR, and the same instrument reading the same curves. What changes is ' +
+      'what a DRAG is allowed to do. ' +
+      'The conformal representation is C = (W, q, cinf) with the null condition <C,C> = 0, which ' +
+      'as a polynomial identity reads ||q||^2 = 2*W*cinf. Evaluate that at a root of W and the ' +
+      'right side is zero, so <q(r),q(r)> = 0 -- every pole is soft, automatically, with no ' +
+      'reference to PH at all. Nothing was chosen; the model cannot express anything else. So drag ' +
+      'wherever you like: |a| = |b| and the right angle do not move. ' +
+      'THE SAME CURVE, BOTH SLIDES. C converts to (P, w, rho) exactly, by P = q/W and rho = h*W, ' +
+      'so the conformal specimens are legal members of the projective slide too and the two open ' +
+      'on the same thing. Measured: the control points differ by 0.0e+0. The difference is the ' +
+      'solver, not the curve. ' +
+      'WHERE A HARD POLE HIDES, and the lab has the specimen. The identity above needed W\'(r) != 0. ' +
+      'At a DOUBLED root it says nothing -- and that is the only room a null curve has. Lift the ' +
+      'hard quartic as (2w^2, 2wq, ||q||^2) and it appears at conformal degree 8 with every pole ' +
+      'doubled and the numerator cancelling there. The readout refuses to call it a pole, which is ' +
+      'right: it is not a curve of the model\'s own degree. One drag splits the double root and ' +
+      'everything comes back soft. Hard to soft, never back. ' +
+      'AND THE DEGREES ARE EVEN, WHICH IS A THEOREM. ||q||^2 is a sum of real squares, so each of ' +
+      'its real roots has EVEN multiplicity; from ||q||^2 = 2*W*cinf that makes ' +
+      'mult(W) + mult(cinf) even, so (t-r) divides cinf exactly when mult(W) is odd. An odd-degree ' +
+      'W must have a real root of odd multiplicity, so an odd-degree member always factors -- it ' +
+      'is a lower-degree curve in disguise. That is why this slide offers only even degrees, and ' +
+      'it is not a limitation of the search. It already cost this deck two slides that were ' +
+      'drawing quartics inside quintic polygons.',
+  },
+
 
   // ---------------------------------------------------------------------------
   // 7 — the first spatial slide: finite choice becomes a continuum

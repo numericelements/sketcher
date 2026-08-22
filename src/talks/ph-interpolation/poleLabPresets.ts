@@ -29,7 +29,7 @@
 import { bernsteinMultiply } from '../../core/bernstein'
 import type { Conformal } from '../../core/conformal'
 import type { ConformalPHCurve } from '../../core/conformalPHCurve'
-import { hardQuarticMember, toBern } from '../../core/hardQuarticWitness'
+import { hardQuarticMember, liftHardQuarticToConformal, toBern } from '../../core/hardQuarticWitness'
 import { type Rat, settleToPH, hodographN } from '../../core/nurbsPH'
 
 /** A conformal member as it comes out of findMember: five coefficients per control sphere, plus h. */
@@ -234,6 +234,14 @@ export const PRESETS: Preset[] = [
     note: 'The same, one degree up. Odd degree again — which the Möbius model cannot hold at all (§8).',
     degree: 5,
     rat: () => mustBuild(randomHardRat(5, 9014), 'hard5r'),
+  },
+  {
+    id: 'lift8',
+    label: 'a hard curve, LIFTED (8)',
+    note: 'The λ-chart quartic in the Möbius model. It can only appear as a DOUBLED pole whose numerator cancels — the one place ⟨C,C⟩ ≡ 0 leaves for a hard pole. One drag destroys it.',
+    degree: 8,
+    conformal: liftHardQuarticToConformal().state,
+    rat: () => conformalAsRat(liftHardQuarticToConformal().state),
   },
   {
     id: 'double',

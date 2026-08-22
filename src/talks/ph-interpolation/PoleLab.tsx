@@ -1,0 +1,293 @@
+// ============================================================================
+// THE POLE LAB — one instrument, two models, and the number beside the verdict.
+//
+// Rational PH curves have poles, and a pole is SOFT or HARD. The whole decision is one number:
+// for x = q/W, at a root r of W the hodograph numerator is N(r) = −q(r)W′(r), so with ‖N‖² = ρ²
+//
+//     ρ(r)² = ⟨q(r), q(r)⟩ · W′(r)²        and at a SIMPLE pole,  soft ⟺ ⟨q(r),q(r)⟩ = 0
+//
+// The button shows that number and the verdict it was read from, because the threshold between
+// them is a choice of ours and the mathematics has no opinion about it. Everything the readout
+// prints is derived in docs/POLE_ALGEBRA.md; core/poleReadout computes it; this file only draws.
+//
+// TWO MODELS, ONE CURVE. The conformal presets are members of BOTH — C = (W, q, c∞) converts to
+// (P, w, ρ) exactly, by P = q/W and ρ = h·W — so the two slides can open on the same specimen and
+// the difference is what a DRAG is allowed to do to it:
+//
+//     projective   the unknowns are the control points and weights; nothing forces softness, and
+//                  dragging tilts |a| and |b| apart
+//     Möbius       ⟨C,C⟩ ≡ 0 forces the numerator isotropic at every pole, so the alignment holds
+//                  no matter where you drag
+//
+// WHY THE COMPLEX CASE IS TWO REAL VECTORS. q(r) = a + i·b gives ⟨q,q⟩ = (|a|²−|b|²) + 2i⟨a,b⟩, so
+// soft is "|a| = |b| and a ⊥ b" — three real numbers you can read aloud instead of six with i in
+// them. It matters because a genuine simple REAL pole is always hard (§6), so the case that
+// displays most simply is always the boring one.
+//
+// ONE SPHERE AT A TIME. A conformal control point IS a weighted sphere, and drawing all of them at
+// once was the thing that made the earlier sphere figures unreadable. Only the selected one is
+// drawn here.
+// ============================================================================
+import { useMemo, useState } from 'react'
+import { type ConformalPHCurve, dragControlPoint, radii } from '../../core/conformalPHCurve'
+import { project } from '../../core/conformal'
+import { type Rat, phRelativeResidual, settleToPH } from '../../core/nurbsPH'
+import { type PoleReading, poleLines, readPoles } from '../../core/poleReadout'
+import type { Vec3 } from '../../core/quaternion'
+import Figure3D, { type Bounds3D, Curve3D, DragPoint3D, Point3D } from '../framework/Figure3D'
+import { FIG } from '../framework/figureStyle'
+import { PRESETS, type Preset, conformalAsRat } from './poleLabPresets'
+
+export type LabModel = 'projective' | 'mobius'
+
+const tri = (p: readonly number[]): [number, number, number] => [p[0], p[1], p[2]]
+export const BOUNDS: Bounds3D = { min: [-2.2, -2.2, -2.2], max: [2.2, 2.2, 2.2] }
+
+const bern = (n: number, t: number): number[] => {
+  const out = new Array<number>(n + 1).fill(0)
+  out[0] = 1
+  for (let k = 1; k <= n; k++) {
+    for (let j = k; j >= 1; j--) out[j] = out[j] * (1 - t) + out[j - 1] * t
+    out[0] *= 1 - t
+  }
+  return out
+}
+
+/** x(t) = Σ wₖPₖBₖ / Σ wₖBₖ, sampled on [0,1]. */
+export function sampleRational(rat: Rat, n = 120): [number, number, number][] {
+  const d = rat.P.length - 1
+  const out: [number, number, number][] = []
+  for (let i = 0; i <= n; i++) {
+    const b = bern(d, i / n)
+    let W = 0
+    const q = [0, 0, 0]
+    for (let k = 0; k <= d; k++) {
+      W += rat.w[k] * b[k]
+      for (let c = 0; c < 3; c++) q[c] += rat.w[k] * rat.P[k][c] * b[k]
+    }
+    if (Math.abs(W) < 1e-12) continue
+    out.push([q[0] / W, q[1] / W, q[2] / W])
+  }
+  return out
+}
+
+/**
+ * Centre and scale a specimen to the view box — EXACTLY, not approximately.
+ *
+ * Translating the control points leaves N = q′W − qW′ unchanged, because the added term
+ * c·(w′W − wW′) is identically zero. Scaling them by λ scales N by λ, hence ρ by λ. So both are
+ * exact operations on a PH curve and the framing cannot make a specimen stop being PH.
+ */
+export function frame(rat: Rat, half = 1.6): Rat {
+  const pts = [...sampleRational(rat, 60), ...rat.P.map((p) => tri(p))]
+  const lo = [0, 1, 2].map((c) => Math.min(...pts.map((p) => p[c])))
+  const hi = [0, 1, 2].map((c) => Math.max(...pts.map((p) => p[c])))
+  const mid = [0, 1, 2].map((c) => (lo[c] + hi[c]) / 2)
+  const span = Math.max(...[0, 1, 2].map((c) => hi[c] - lo[c]), 1e-9)
+  const lam = (2 * half) / span
+  return {
+    P: rat.P.map((p) => p.map((v, c) => (v - mid[c]) * lam)),
+    w: [...rat.w],
+    rho: rat.rho.map((v) => v * lam),
+  }
+}
+
+/** A sphere as three great circles — the idiom the other conformal figures already use. */
+function greatCircles(centre: Vec3, radius: number, n = 64): [number, number, number][][] {
+  if (!(radius > 1e-6)) return []
+  const c = [centre.x, centre.y, centre.z]
+  const ring = (u: number[], v: number[]): [number, number, number][] =>
+    Array.from({ length: n + 1 }, (_, i) => {
+      const a = (2 * Math.PI * i) / n
+      return [0, 1, 2].map((k) => c[k] + radius * (Math.cos(a) * u[k] + Math.sin(a) * v[k])) as
+        [number, number, number]
+    })
+  return [
+    ring([1, 0, 0], [0, 1, 0]),
+    ring([0, 1, 0], [0, 0, 1]),
+    ring([0, 0, 1], [1, 0, 0]),
+  ]
+}
+
+interface State {
+  preset: Preset
+  rat: Rat
+  conformal: ConformalPHCurve | null
+  selected: number
+  pole: number
+  showPole: boolean
+}
+
+const presetsFor = (model: LabModel): Preset[] =>
+  model === 'mobius' ? PRESETS.filter((p) => p.conformal) : PRESETS
+
+export function freshState(model: LabModel, preset: Preset): State {
+  const conformal = model === 'mobius' ? (preset.conformal ?? null) : null
+  return {
+    preset,
+    rat: frame(preset.rat()),
+    conformal,
+    selected: 1,
+    pole: 0,
+    showPole: false,
+  }
+}
+
+export default function PoleLab({ model }: { model: LabModel }) {
+  const available = presetsFor(model)
+  const [st, setSt] = useState<State>(() => freshState(model, available[0]))
+  const [dragging, setDragging] = useState<number | null>(null)
+
+  const { preset, rat, conformal, selected, pole, showPole } = st
+
+  // In Möbius mode the conformal state is the truth and the projective form is derived from it, so
+  // the readout is reading the SAME curve either way.
+  const shown: Rat = useMemo(
+    () => (model === 'mobius' && conformal ? frame(conformalAsRat(conformal)) : rat),
+    [model, conformal, rat],
+  )
+  const poles = useMemo(() => readPoles(shown), [shown])
+  const cps = shown.P
+  const current: PoleReading | null = poles.length ? poles[Math.min(pole, poles.length - 1)] : null
+
+  const sphere = useMemo(() => {
+    if (model !== 'mobius' || !conformal) return []
+    const centre = project(conformal.C[Math.min(selected, conformal.C.length - 1)])
+    const r = radii(conformal)[Math.min(selected, conformal.C.length - 1)]
+    return centre ? greatCircles(centre, Math.abs(r)) : []
+  }, [model, conformal, selected])
+
+  const load = (p: Preset) => setSt(freshState(model, p))
+
+  /** Projective drag: the point goes exactly on the cursor, and the rest must follow. */
+  const dragProjective = (index: number, to: [number, number, number]) =>
+    setSt((prev) => {
+      const moved: Rat = {
+        P: prev.rat.P.map((p, k) => (k === index ? [...to] : [...p])),
+        w: [...prev.rat.w],
+        rho: [...prev.rat.rho],
+      }
+      const got = settleToPH(moved, prev.rat.P.length - 1, {
+        frozen: [3 * index, 3 * index + 1, 3 * index + 2],
+        steps: 160,
+      })
+      return got.residual > 1e-5 ? prev : { ...prev, rat: got.rat }
+    })
+
+  /** Möbius drag: the model's own solver, which cannot leave ⟨C,C⟩ = 0 by construction. */
+  const dragMobius = (index: number, to: [number, number, number]) =>
+    setSt((prev) => {
+      if (!prev.conformal) return prev
+      const r = dragControlPoint(prev.conformal, index, { x: to[0], y: to[1], z: to[2] },
+        { pinEnds: true, iterations: 60 })
+      return { ...prev, conformal: r.state }
+    })
+
+  const drag = model === 'mobius' ? dragMobius : dragProjective
+  const residual = phRelativeResidual(shown)
+
+  return (
+    <Figure3D
+      bounds={BOUNDS}
+      base={{ width: 900, height: 460 }}
+      notation={[
+        model === 'mobius' ? 'C = (W, q, c∞),  ⟨C,C⟩ ≡ 0' : 'x = q/W,  ‖q′W − qW′‖² = ρ²',
+        `degree ${cps.length - 1}`,
+        `${poles.length} pole${poles.length === 1 ? '' : 's'}`,
+      ]}
+      readouts={[
+        { label: 'model', value: model === 'mobius' ? 'Möbius (ℝ⁴,¹)' : 'projective (P, w, ρ)' },
+        { label: 'PH residual', value: residual.toExponential(1), tone: residual < 1e-8 ? 'ok' : 'warn' },
+        current
+          ? {
+            label: `pole ${Math.min(pole, poles.length - 1) + 1} of ${poles.length}`,
+            value: current.verdict.toUpperCase(),
+            tone: current.verdict === 'soft' ? 'ok' : 'plain',
+          }
+          : { label: 'poles', value: 'none' },
+      ]}
+      controls={
+        <span className="flex flex-wrap items-center gap-2">
+          <select
+            value={preset.id}
+            onChange={(e) => {
+              const p = available.find((x) => x.id === e.target.value)
+              if (p) load(p)
+            }}
+            className="px-2 py-[0.15em] rounded border border-slate-300 bg-white"
+            aria-label="specimen"
+          >
+            {available.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+          <span className="inline-flex items-center gap-1">
+            <button
+              onClick={() => setSt((p) => ({ ...p, pole: (p.pole + poles.length - 1) % Math.max(1, poles.length) }))}
+              className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
+              aria-label="previous pole"
+            >‹</button>
+            <button
+              onClick={() => setSt((p) => ({ ...p, pole: (p.pole + 1) % Math.max(1, poles.length) }))}
+              className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
+              aria-label="next pole"
+            >›</button>
+          </span>
+          <button
+            onClick={() => setSt((p) => ({ ...p, showPole: !p.showPole }))}
+            className={`px-2 py-[0.15em] rounded border border-slate-300 ${
+              showPole ? 'bg-slate-700 text-white' : 'hover:bg-slate-100'
+            }`}
+          >
+            show the pole
+          </button>
+          <button
+            onClick={() => load(preset)}
+            className="px-2 py-[0.15em] rounded border border-slate-300 hover:bg-slate-100"
+          >
+            reset
+          </button>
+        </span>
+      }
+      caption={
+        <>
+          {showPole && current ? (
+            <span className="block font-mono text-[0.82em] leading-[1.5] whitespace-pre bg-slate-50 border border-slate-200 rounded px-3 py-2 mb-2 overflow-x-auto">
+              {poleLines(current).join('\n')}
+            </span>
+          ) : null}
+          <b>{preset.label}.</b> {preset.note}{' '}
+          {model === 'mobius'
+            ? 'Each blue point is the centre of a control SPHERE; the selected one is drawn. ⟨C,C⟩ ≡ 0 forces every pole isotropic, so drag where you like — |a| = |b| and the right angle do not move.'
+            : 'Drag any control point: it goes exactly where you put it, and the PH condition is restored around it. Nothing here forces softness, so watch |a| and |b| come apart.'}{' '}
+          <span className="text-slate-400">Drag the view to rotate.</span>
+        </>
+      }
+    >
+      {sphere.map((ring, i) => (
+        <Curve3D key={`s${i}`} points={ring} color={FIG.color.derived} width={1.2} dashed={i > 0} />
+      ))}
+      <Curve3D points={cps.map(tri)} color={FIG.color.controlPolygon} width={1.2} dashed />
+      <Curve3D points={sampleRational(shown)} color={FIG.color.curve} width={3.5} />
+      {cps.map((p, i) => (
+        i === selected ? (
+          <DragPoint3D
+            key={i}
+            position={tri(p)}
+            onDrag={(q) => drag(i, q)}
+            onDragStart={() => setDragging(i)}
+            onDragEnd={() => setDragging(null)}
+            color={dragging === i ? FIG.color.dataPointDrag : FIG.color.dataPoint}
+            radius={0.075}
+          />
+        ) : (
+          <Point3D
+            key={i}
+            position={tri(p)}
+            derived
+            radius={0.05}
+            onPointerDown={(e) => { e.stopPropagation(); setSt((s) => ({ ...s, selected: i })) }}
+          />
+        )
+      ))}
+    </Figure3D>
+  )
+}
