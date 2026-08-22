@@ -662,25 +662,80 @@ furthest from zero. Three plausible predictors, all blind. The one column that s
 DEGREE PROFILE: W of true degree 2 inside a degree-8 basis, deg q − deg W = 3, hence a pole of
 multiplicity 3 at ∞.
 
-**"A badly curved neighbourhood" was wrong.** §15 suggested the λ-chart lift stays hard for several
-drag steps because it remains near the singular point. Applying the rate test AT each drag step
-instead of once per specimen refutes the shape of that:
+**"A badly curved neighbourhood" was wrong — and so was what replaced it.** §15 suggested the
+λ-chart lift stays hard for several drag steps because it remains near the singular point. Applying
+the rate test AT each drag step refuted the shape of that:
 
 ```
     lift8g   every step 0–6      1e-4 → 1e-10 → 1e-15        QUADRATIC throughout
-    lift8    steps 0–3           1e-4 → 6e-5 → 6e-5 …        STAGNANT, ratio 0.94–0.98
-    lift8    steps 4–6           ratio 0.61–0.68             improving, still not quadratic
+    lift8    steps 0–3           1e-4 → 6e-5 → 6e-5 …        stalls, ratio 0.94–0.98
+    lift8    steps 4–6           ratio 0.61–0.68             improving
 ```
 
-Stagnation at 0.94 is not linear-at-½; it is a step that cannot reduce the residual at all, which is
-a different and more severe failure than the classical simple singularity. The obvious explanation
-was checked and ruled out: those states ARE on the variety, at total residual 1e-9 to 1e-11, so the
-stagnation is not a floor inherited from an unconverged state. What it IS remains open.
+The first reading of that was "a failure more severe than a singular point". **It is not**, and the
+Lean companion was right to hold the phrase out of this document until it was checked. Two
+measurements retire it:
 
-## 18. What would be most useful
+- **The cokernel is empty.** Split the first residual by the SVD into the part inside range(J) and
+  the part outside: the outside fraction is **0.0 at every specimen measured**. Nothing is
+  unreachable, so "the step provably cannot reduce it" is false.
+- **It is the BASIN, not the geometry.** From a 1e-6 start, lift8 goes 1e-6 → 1.7e-11 in one step.
+  And `soft6` — the smoothest member in the lab — stalls just as badly from a 1e-2 start (ratio
+  0.982). A perturbation of 1e-4 is simply outside the quadratic basin for the awkward specimen.
 
+So a stall at ratio ≈ 1 means the test started too far out, and nothing about the curve. The rate
+test is only meaningful started INSIDE the basin, which for these members is 1e-6 or closer.
 
-§15 changed the question, and §16 made it urgent. The formula being sought was `4n − 1 − δ(deg w, deg q)`, and the all-hard
+## 18. THE DOUBLING EXPERIMENT IS CONFOUNDED, and unavoidably so
+
+Sorted by representation rather than by pole type, the evidence looked decisive — every doubled
+lift singular, nothing native or minimal singular — and the controlled test is obvious: take
+`soft6`, which is quadratic natively, and lift it doubled. Same curve, same poles, same degrees,
+only the representation changes. Run at two starting scales, with the residual sequence going five
+decades below the conditioning floor so it cannot be ill-conditioning:
+
+```
+    soft6 native      from 1e-4   1e-4 → 2.0e-9  → 3.5e-15               QUADRATIC
+                      from 1e-6   1e-6 → 1.9e-13 → 1.9e-16               QUADRATIC
+    soft6 DOUBLED     from 1e-4   1e-4 → 1.4e-8  → 3.8e-9 → 9.4e-10 …    step ratio 0.487
+                      from 1e-6   1e-6 → 1.4e-12 → 3.8e-13 → … → 7.1e-15 step ratio 0.511
+```
+
+Scale-invariant ½, running to 7e-15 against a conditioning floor near 1e-10. Genuinely singular.
+
+**But it does not isolate doubling.** `soft6` is ALL SOFT, so at every pole (t−r) already divides
+‖q‖²; doubling it is exactly the **over-doubling** of §10, with gcd(W, ‖q‖²) = W₀ of full degree.
+The experiment re-measures the degeneracy the minimal lift was invented to remove.
+
+**And the confound cannot be removed by choosing a better specimen.** In this model a simple root
+of W forces the pole soft, so a hard-pole curve has NO undoubled conformal representation at all.
+"Same curve, doubled versus not" is available exactly where doubling *is* over-doubling. The
+controlled comparison does not exist.
+
+### What the uncontaminated version says, which is: not yet
+
+Restricting to all-hard sources with gcd(W, ‖q‖²) = 1 — where doubling is not over-doubling — and
+lifting uniformly, started inside the basin at 1e-6:
+
+```
+    source degree   poles   real   lift degree    κ       step ratio
+    2               2       0      4              6e8       0.579     linear ½
+    2               2       2      4              8e7       0.213     quadratic-ish
+    3               3       1      6              1e8       0.488     linear ½
+    3               3       1      6              4e8       0.377     linear ½
+    4               4       0      8              4e7       0.283     quadratic-ish
+    5               5       1      10             1e8       0.549     linear ½
+    6               6       0      12             1e8       0.510     linear ½
+```
+
+No pattern in the number of real poles, none in the parity of the degree, and κ is 1e7–1e8
+throughout, so conditioning does not sort them either. Some all-hard lifts are singular and some are
+not, and **what separates them is unresolved.** Recorded as unresolved rather than fitted.
+
+## 19. What would be most useful
+
+§15 changed the question, §16 made it urgent, and §18 says the obvious experiment cannot settle it.
+The formula being sought was `4n − 1 − δ(deg w, deg q)`, and the all-hard
 cubic lift refutes it: balanced degrees, coprime gcd, simple poles, and still singular. The sharper
 question is now
 
@@ -693,7 +748,15 @@ history of awkward drags in this document without appealing to degree at all —
 editor working in this model meets the singular locus whenever the curve is hard, not rarely.
 
 If no, then what distinguishes the all-hard lift (linear at ½) from `mixedMin` and the native
-members (quadratic) is something else, and naming it is the open problem.
+members (quadratic) is something else, and naming it is the open problem. §18 narrows where to
+look: among all-hard lifts with gcd = 1, some are singular and some are not, and neither the count
+of real poles, the parity of the degree, nor the conditioning sorts them.
+
+**And one methodological rule earned twice.** The rate test is only meaningful started INSIDE the
+quadratic basin — 1e-6 or closer for these members. Started at 1e-4 the awkward lift stalls at
+ratio 0.94, and so does the smoothest member in the lab when started at 1e-2. A stall at ratio ≈ 1
+is a statement about the perturbation, not about the curve, and the cokernel projection (0.0
+everywhere) is how to tell the two apart.
 
 The count is a separate question from the mechanism, and after §15 it should stay separate: the
 rate test reads WHETHER a point is singular, not by how much.
