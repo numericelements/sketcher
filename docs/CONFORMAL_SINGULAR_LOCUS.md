@@ -213,7 +213,60 @@ why §9's payoff is a characterisation rather than a detector. An earlier draft 
 - `core/conformalPHCurve.definingJacobian` — the analytic 4n × (5(n+1)+n) Jacobian, if the
   companion wants the same numbers.
 
-## 9. What would be most useful
+## 9. THE FORMULA — confirmed for a ≠ b, and it fails at a = b
+
+The Lean companion derived, from the leading-coefficient relations rather than by fitting:
+
+```
+    δ  =  (n − 2) − deg h        equivalently, for a source x = q/w with a = deg w, b = deg q,
+    δ  =  max(0, |b − a| − 1)
+```
+
+Tested against sources built to order — w frozen at a chosen polynomial, q solved at a chosen
+degree, so (a, b) is set rather than found. Every lift verified to be ON the variety first.
+
+```
+    (a,b)    n     deg h   predicted δ   MEASURED   gap      note
+    (2,4)    8       5          1            1     2e6      resolves the row this doc called unresolved
+    (1,4)    8       4          2            2     5e10
+    (3,4)    8       6          0            0     4e8      SHARP: imbalanced yet δ = 0
+    (4,2)    8       5          1            1     2e8      SHARP: δ is symmetric in (a,b)
+    (1,6)   12       6          4            4     2e10     SHARP: far from the fitted points
+    (4,4)    8       6          0            2     5e10     ✗
+```
+
+**Five of six, including all three tests designed to break it.** In particular (3,4) kills the
+"graded in imbalance" reading this document previously offered: |b − a| = 1 is imbalanced and δ = 0.
+
+### Where it fails, and it is exactly the case the derivation treats separately
+
+At a = b the leading terms of q′w and qw′ cancel, which is why deg N drops to 2a − 2 and the
+balanced case is special. There the derivation's step "when the h-part is dead, the A-part is
+already in the span of the NULL rows" does not apply, because it relies on the top A_p being pure
+∞-multiples — true when W and q fall short of degree n, false when they do not.
+
+Empirically δ is **not constant** on a = b. Five (4,4) sources, every one with deg h = 6 = n − 2,
+every lift on the variety:
+
+```
+    w                              lift residual   δ    gap     tail
+    0.5t⁴−2t³+5t²−4t+1               2.3e-15       2    5e10    2e-5 8e-6 2e-16 5e-17 5e-18
+    (t−1.7)(t−2.3)(t²−3t+2.5)        2.0e-17       0    1e10    1e-6 5e-7 2e-7 4e-8 4e-18
+    (t²−3t+2.5)(t²−5t+7)             7.3e-13       0    6e4     mushy
+    (t−2)(t−3)(t−4)(t−5)             1.4e-18       2    4e2     mushy
+    t⁴+1                             8.8e-15       0    1e4     mushy
+```
+
+The two with a CLEAN gap — 5e10 and 1e10 — disagree: δ = 2 and δ = 0. The δ = 2 specimen was
+checked for every degeneracy that would explain it away and has none: w has four distinct roots,
+q is coprime to w (|q| = 9.6e-3 at the nearest root), the hodograph has rank 3, and the lift sits on
+the variety at 2.3e-15.
+
+**So δ is a function of (a, b) when a ≠ b, and is not a function of anything yet identified when
+a = b.** The three mushy rows cannot arbitrate — their sources will not refine further — so the
+open question is now narrow and specific rather than general.
+
+## 10. What would be most useful
 
 A statement of the form
 
