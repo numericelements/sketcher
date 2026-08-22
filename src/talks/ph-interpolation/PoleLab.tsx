@@ -251,17 +251,23 @@ export default function PoleLab({ model }: { model: LabModel }) {
    * soft or hard and says the state is off the model, with the number. A transient artifact is
    * fine to look at; an artifact dressed as geometry is not.
    *
-   * THE ESCALATION IS STILL WORTH IT, because it is what lets the specimen do its job. The
-   * non-reduced locus is a SINGULAR point of the variety — Newton needs more steps there than
-   * anywhere else and its convergence is not monotone in the size of the drag — so at a fixed 60
-   * iterations almost nothing lands. With [80, 300, 900]:
+   * THE ESCALATION IS STILL WORTH IT, because it is what lets the specimen do its job. On the
+   * awkward lift Newton needs more steps than anywhere else, and its convergence is not monotone
+   * in the size of the drag, so at a fixed 60 iterations almost nothing lands. With [80, 300, 900]:
    *
    *     first grab   300 iterations, 107ms  →  8 genuine poles, ALL SOFT, isotropy 4.5e-10
    *     after that    80 iterations, 1–3ms  →  still all soft, down to isotropy 2e-13
    *
    * The doubled pole splits into soft poles on the first touch, which is the whole content of
-   * "hard is only ever a boundary point of the soft cell", and every drag after it is ordinary
-   * because one step off the singular locus lands at a regular point.
+   * "hard is only ever a boundary point of the soft cell".
+   *
+   * WHICH LIFT IT IS DECIDES WHETHER THIS IS EASY, and NOT the fact of being non-reduced. That was
+   * the first explanation here and it is wrong: measured, a lift whose components all reach the
+   * full degree sits at the GENERIC rank 4n−1 and drags freely, doubled poles and all. The λ-chart
+   * lift is short two directions because its source denominator has true degree 1, so the lift
+   * carries a degree-2 denominator inside a degree-8 representation. The imbalance costs the rank,
+   * not the doubling. docs/CONFORMAL_SINGULAR_LOCUS.md states it properly and leaves the general
+   * question open.
    */
   const dragMobius = (index: number, to: [number, number, number]) =>
     setSt((prev) => {

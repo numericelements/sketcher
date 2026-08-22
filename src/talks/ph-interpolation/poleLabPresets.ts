@@ -196,9 +196,14 @@ function mustBuild(rat: Rat | null, id: string): Rat {
  *
  * The two HIGHEST degrees are the fastest, so the conformal degree is not the difficulty — the
  * specimen is. The λ-chart quartic is awkward because its denominator is genuinely degree 1 inside
- * a degree-4 basis, so the lift is a degree-8 member carrying a degree-2 denominator. The low
- * conformal degrees are awkward for the opposite reason: degree 4 has very little room (degree 3
- * is confined to a circle by the null condition alone), so there is nowhere for a corrector to go.
+ * a degree-4 basis, so the lift is a degree-8 member carrying a degree-2 denominator, and that
+ * imbalance costs two directions of rank in the defining Jacobian. The low conformal degrees are
+ * awkward for the opposite reason: degree 4 has very little room (degree 3 is confined to a circle
+ * by the null condition alone), so there is nowhere for a corrector to go.
+ *
+ * AND IT IS NOT ABOUT BEING NON-REDUCED, which was the first explanation given here and is wrong.
+ * This clean lift is non-reduced too — doubled poles, cancelling numerator — and sits at the
+ * GENERIC rank 4n−1. docs/CONFORMAL_SINGULAR_LOCUS.md has the measurements.
  */
 function liftGenericHard(): ConformalPHCurve {
   const rat = mustBuild(randomHardRat(4, 9000), 'lift8g')

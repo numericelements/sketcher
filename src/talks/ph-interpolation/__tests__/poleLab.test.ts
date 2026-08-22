@@ -209,15 +209,16 @@ describe('the pole lab', () => {
   }, 300_000)
 
   it('the LIFTED doubled pole SPLITS INTO SOFT POLES on the first touch', () => {
-    // This is what the specimen is for, and a fixed iteration budget hid it. The non-reduced locus
-    // is a singular point of the variety, so Newton needs more steps there than anywhere else and
-    // its convergence is not monotone in the size of the drag. Escalating the budget, exactly as
-    // the figure does, and refusing any step that leaves ⟨C,C⟩ = 0:
+    // This is what the specimen is for, and a fixed iteration budget hid it. On THIS lift Newton
+    // needs more steps than anywhere else and its convergence is not monotone in the size of the
+    // drag — see the rank test below for why, and note that it is NOT because the member is
+    // non-reduced: the other lift is non-reduced too and drags freely. Escalating the budget,
+    // exactly as the figure does:
     //
     //     first grab   300 iterations  →  8 genuine poles, ALL SOFT
     //     after that    80 iterations  →  still all soft, isotropy down to 2e-13
     //
-    // One step off the singular locus lands at a regular point, and everything after is ordinary.
+    // Everything after the first grab is ordinary.
     const p = PRESETS.find((x) => x.id === 'lift8')
     if (!p?.conformal) throw new Error('missing specimen')
     let conf = frameConformal(p.conformal)
