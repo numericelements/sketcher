@@ -251,22 +251,25 @@ export default function PoleLab({ model }: { model: LabModel }) {
    * soft or hard and says the state is off the model, with the number. A transient artifact is
    * fine to look at; an artifact dressed as geometry is not.
    *
-   * THE ESCALATION IS STILL WORTH IT, because it is what lets the specimen do its job. On the
-   * awkward lift Newton needs more steps than anywhere else, and its convergence is not monotone
-   * in the size of the drag, so at a fixed 60 iterations almost nothing lands. With [80, 300, 900]:
+   * THE ESCALATION IS KEPT, and one attempt to remove it is recorded here because it was
+   * plausible and wrong. On the RAW lift the solve is dramatically better with an equilibrated
+   * regularisation — 900 iterations to a defect of 5e-9 becomes 212 to 7e-15 — so the escalation
+   * looked like a workaround for bad scaling. But this figure drags the FRAMED lift, and framing
+   * already fixes the scaling: there the same change cost ten times the iterations and let a pole
+   * read HARD on one step of twenty, which is the one thing the slide must never show. Measured in
+   * conformalPHCurve.solveWith, where the reason now lives.
    *
-   *     first grab   300 iterations, 107ms  →  8 genuine poles, ALL SOFT, isotropy 4.5e-10
-   *     after that    80 iterations, 1–3ms  →  still all soft, down to isotropy 2e-13
+   *     first grab   300 iterations  →  8 genuine poles, ALL SOFT
+   *     after that    80 iterations  →  still all soft, isotropy down to 2e-13
    *
    * The doubled pole splits into soft poles on the first touch, which is the whole content of
    * "hard is only ever a boundary point of the soft cell".
    *
-   * WHICH LIFT IT IS DECIDES WHETHER THIS IS EASY, and NOT the fact of being non-reduced. That was
-   * the first explanation here and it is wrong: measured, a lift whose components all reach the
-   * full degree sits at the GENERIC rank 4n−1 and drags freely, doubled poles and all. The λ-chart
-   * lift is short two directions because its source denominator has true degree 1, so the lift
-   * carries a degree-2 denominator inside a degree-8 representation. The imbalance costs the rank,
-   * not the doubling. docs/CONFORMAL_SINGULAR_LOCUS.md states it properly and leaves the general
+   * WHICH LIFT IT IS DECIDES HOW MUCH WORK THIS TAKES, and NOT the fact of being non-reduced. That
+   * was the first explanation here and it is wrong: measured, a lift whose components all reach the
+   * full degree drags in fifteen iterations, doubled poles and all. The λ-chart lift is short two
+   * directions because its source denominator has true degree 1. The imbalance costs the rank, not
+   * the doubling. docs/CONFORMAL_SINGULAR_LOCUS.md states it properly and leaves the general
    * question open.
    */
   const dragMobius = (index: number, to: [number, number, number]) =>

@@ -460,6 +460,37 @@ interface Extra {
   /** Extra hard conditions beyond the 12, as functions of the state. */
   readonly rows: (s: ConformalPHCurve) => number[]
   readonly track?: (s: ConformalPHCurve) => number
+  /**
+   * The extra rows' Jacobian, when it is known in closed form. Optional: without it the rows are
+   * central-differenced, which costs 2·unknowns evaluations per iteration and caps the Jacobian's
+   * accuracy at about 1e-9 — enough for the easy specimens and not for the awkward ones.
+   */
+  readonly jacobian?: (s: ConformalPHCurve) => number[][]
+}
+
+/**
+ * The Jacobian of "control point i sits at a given place", in closed form.
+ *
+ * Pᵢ = (Cᵢ₁, Cᵢ₂, Cᵢ₃)/Cᵢ₀, so ∂Pᵢc/∂Cᵢ,c₊₁ = 1/Wᵢ and ∂Pᵢc/∂Cᵢ₀ = −Pᵢc/Wᵢ. Three nonzero entries
+ * per row, and every point-valued constraint in this file is built from these.
+ */
+export function pointConstraintRows(
+  s: ConformalPHCurve, points: readonly number[],
+): number[][] {
+  const P = controlPoints(s)
+  const cols = unknownCount(degreeOf(s))
+  const out: number[][] = []
+  for (const i of points) {
+    const W = (s.C[i] as unknown as number[])[0]
+    const p = [P[i].x, P[i].y, P[i].z]
+    for (let c = 0; c < 3; c++) {
+      const row = new Array<number>(cols).fill(0)
+      row[5 * i + 1 + c] = 1 / W
+      row[5 * i] = -p[c] / W
+      out.push(row)
+    }
+  }
+  return out
 }
 
 /**
@@ -491,14 +522,38 @@ function solveWith(from: ConformalPHCurve, extra: Extra, iterations: number): Dr
     const base = definingJacobian(unpack(x))
     const J: number[][] = Array.from({ length: E }, (_, e) =>
       e < base.length ? base[e].slice() : new Array(UNKNOWNS).fill(0))
-    const h = 1e-7
-    for (let c = 0; c < UNKNOWNS; c++) {
-      const xp = x.slice(); xp[c] += h
-      const xm = x.slice(); xm[c] -= h
-      const rp = extra.rows(unpack(xp))
-      const rm = extra.rows(unpack(xm))
-      for (let e = 0; e < rp.length; e++) J[base.length + e][c] = (rp[e] - rm[e]) / (2 * h)
+    if (extra.jacobian) {
+      const ex = extra.jacobian(unpack(x))
+      for (let e = 0; e < ex.length; e++) J[base.length + e] = ex[e].slice()
+    } else {
+      const h = 1e-7
+      for (let c = 0; c < UNKNOWNS; c++) {
+        const xp = x.slice(); xp[c] += h
+        const xm = x.slice(); xm[c] -= h
+        const rp = extra.rows(unpack(xp))
+        const rm = extra.rows(unpack(xm))
+        for (let e = 0; e < rp.length; e++) J[base.length + e][c] = (rp[e] - rm[e]) / (2 * h)
+      }
     }
+    /**
+     * The regularisation stays ABSOLUTE, and that was measured rather than assumed.
+     *
+     * Equilibrating the rows and columns first — making the 1e-11 relative — looks obviously right,
+     * because a badly scaled lift can carry coefficients spanning 29 orders. On the RAW λ-chart
+     * lift it is indeed dramatic: 900 iterations to a defect of 5e-9 becomes 212 to 7e-15. But the
+     * figure does not drag the raw lift, it drags the FRAMED one, and there the same change costs
+     * ten times the work and loses accuracy:
+     *
+     *     framed λ-chart lift, 20 drag steps      iterations   worst ⟨C,C⟩   steps reading HARD
+     *     absolute 1e-11 (this)                       463        2.6e-9             0 of 20
+     *     equilibrated, relative 1e-14               4891        5.0e-7             1 of 20
+     *
+     * Column equilibration changes what the minimum-norm step MINIMISES: a nearly-empty column
+     * becomes cheap to move, which is what frees the degenerate raw lift and what lets a
+     * well-scaled state wander. Framing already fixes the scaling, so the relative version buys
+     * nothing and pays for the freedom. Left absolute, with the reason recorded so it is not
+     * "improved" again.
+     */
     let step: number[]
     try { step = leastSquares(J, r.map((v) => -v), 1e-11) } catch { break }
     let lam = 1, moved = false
@@ -544,6 +599,7 @@ export function dragControlPoint(
       for (const i of held) out.push(P[i].x - before[i].x, P[i].y - before[i].y, P[i].z - before[i].z)
       return out
     },
+    jacobian: (s) => pointConstraintRows(s, [index, ...held]),
     track: (s) => vnorm(vsub(controlPoints(s)[index], target)),
   }, options.iterations ?? 60)
 }
