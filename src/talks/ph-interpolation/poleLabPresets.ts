@@ -34,6 +34,7 @@ import {
 } from '../../core/hardQuarticWitness'
 import { type Rat, settleToPH, hodographN } from '../../core/nurbsPH'
 import { bernsteinToPower } from '../../core/conformalPHHopf'
+import { liftToConformal } from '../../core/conformalLift'
 
 /** A conformal member as it comes out of findMember: five coefficients per control sphere, plus h. */
 interface CachedConformal { readonly C: number[][]; readonly h: number[] }
@@ -212,6 +213,28 @@ function liftGenericHard(): ConformalPHCurve {
   return liftRatToConformal(w, q, bernsteinToPower(rat.rho))
 }
 
+/**
+ * The MIXED cubic, lifted both ways — the pair that shows what the minimal lift is for.
+ *
+ * Two of its three poles are soft, so (t−r) already divides ‖q‖² there and the uniform lift doubles
+ * a factor all three components share. Dividing it out costs nothing and buys two things:
+ *
+ *     uniform   conformal degree 6,  rank 21 of 24,  δ = 2   — a singular point
+ *     MINIMAL   conformal degree 4,  rank 15 of 16,  δ = 0   — the generic rank
+ *
+ * The λ-chart specimen gains nothing from this, and that is worth seeing too: its δ is pure degree
+ * SHORTFALL (deg w = 1 against deg q = 4), which no lift can fix — only a better-balanced source.
+ */
+const liftMixed = (uniform: boolean): ConformalPHCurve => {
+  const rat = mustBuild(randomHardRat(3, 9002), 'mixed lift')
+  return liftToConformal(
+    bernsteinToPower(rat.w),
+    [0, 1, 2].map((i) => bernsteinToPower(rat.P.map((p, k) => rat.w[k] * p[i]))),
+    bernsteinToPower(rat.rho),
+    { uniform },
+  ).state
+}
+
 export interface Preset {
   readonly id: string
   readonly label: string
@@ -267,6 +290,22 @@ export const PRESETS: Preset[] = [
     note: 'The same, one degree up. Odd degree again — which the Möbius model cannot hold at all (§8).',
     degree: 5,
     rat: () => mustBuild(randomHardRat(5, 9014), 'hard5r'),
+  },
+  {
+    id: 'mixedMin',
+    label: 'MIXED, lifted MINIMALLY (4)',
+    note: 'Two of its three poles are soft, so the factor they share is divided out instead of doubled. Conformal degree 4 rather than 6, and at the GENERIC rank — a smooth point, where the uniform lift of the same curve is singular.',
+    degree: 4,
+    conformal: liftMixed(false),
+    rat: () => conformalAsRat(liftMixed(false)),
+  },
+  {
+    id: 'mixedUni',
+    label: 'MIXED, lifted uniformly (6)',
+    note: 'The same curve, doubling every pole including the soft ones. Two extra directions of rank are lost to a factor all three components already shared — δ = 2, and the drag feels it.',
+    degree: 6,
+    conformal: liftMixed(true),
+    rat: () => conformalAsRat(liftMixed(true)),
   },
   {
     id: 'lift8g',
