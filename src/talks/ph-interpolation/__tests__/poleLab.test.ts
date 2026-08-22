@@ -207,30 +207,54 @@ describe('the pole lab', () => {
     expect(worstNull, 'and ⟨C,C⟩ never drifted').toBeLessThan(1e-9)
   }, 300_000)
 
-  it('the LIFTED specimen leaves the model, and the readout must SAY so', () => {
-    // Starting on the non-reduced locus, the conformal drag does not hold ⟨C,C⟩ = 0: the doubled
-    // pole splits and the poles come back reading HARD, which the identity forbids for a genuine
-    // member. That is the solver, not the curve, and the slide shows ⟨C,C⟩ beside the verdict so
-    // the contradiction is visible rather than believed.
+  it('the LIFTED specimen is a SINGULAR point: the raw drag leaves the model, so the figure refuses it', () => {
+    // The non-reduced locus — a doubled pole with a cancelling numerator — is a singular point of
+    // the variety, and Newton does not converge from it. Measured: the full defect comes back at
+    // 1.4e-3 rather than the 1e-13 the solver reaches elsewhere, and the poles then read HARD,
+    // which the identity ‖q‖² = 2·W·c∞ forbids for a genuine member. So the figure refuses any
+    // step that would leave ⟨C,C⟩ = 0, and the specimen does not move.
+    //
+    // (An earlier note here blamed `defect` for UNDER-REPORTING the drift by four to seven orders.
+    // That was a bad comparison — absolute Bernstein rows against a relative power-basis measure.
+    // Like for like the two agree, and the solver is honest about failing. It just fails.)
     const p = PRESETS.find((x) => x.id === 'lift8')
     if (!p?.conformal) throw new Error('missing specimen')
-    let conf = frameConformal(p.conformal)
-    expect(conformalNullResidual(conf), 'the lift starts exactly null').toBeLessThan(1e-11)
-    const pts = conformalAsRat(conf).P
+    const base = frameConformal(p.conformal)
+    expect(conformalNullResidual(base), 'the lift starts exactly null').toBeLessThan(1e-11)
+
+    const pts = conformalAsRat(base).P
     const chord = Math.hypot(...pts[pts.length - 1].map((v, i) => v - pts[0][i]))
     const start = pts[2].slice()
-    for (let s = 1; s <= 10; s++) {
-      const to = start.map((v, i) => v + (0.3 * chord * s / 10 * [0.6, 0.6, -0.5][i]) / Math.hypot(0.6, 0.6, 0.5))
-      conf = dragControlPoint(conf, 2, { x: to[0], y: to[1], z: to[2] },
+    const step = (from: typeof base, s: number) => {
+      const to = start.map((v, i) =>
+        v + (0.3 * chord * s / 10 * [0.6, 0.6, -0.5][i]) / Math.hypot(0.6, 0.6, 0.5))
+      return dragControlPoint(from, 2, { x: to[0], y: to[1], z: to[2] },
         { pinEnds: true, iterations: 60 }).state
     }
-    const drift = conformalNullResidual(conf)
-    const poles = readPoles(conformalAsRat(conf))
-    console.log(`    after a 0.3-chord drag: ${poles.length} poles,` +
-      ` verdicts ${poles.map((x) => x.verdict[0]).join('')},` +
-      ` ⟨C,C⟩ drift ${drift.toExponential(1)}`)
-    expect(drift, 'it has left the model, and by a lot').toBeGreaterThan(1e-9)
-    // so the figure must be showing that number — this is the guard on the caption's honesty
-    expect(drift, 'which is exactly why the Möbius readout carries ⟨C,C⟩').toBeGreaterThan(1e-9)
+
+    // raw: it walks off the model
+    let raw = base
+    for (let s = 1; s <= 10; s++) raw = step(raw, s)
+    const rawDrift = conformalNullResidual(raw)
+    const rawPoles = readPoles(conformalAsRat(raw))
+    console.log(`    raw drag:     ⟨C,C⟩ drift ${rawDrift.toExponential(1)},` +
+      ` verdicts ${rawPoles.map((x) => x.verdict[0]).join('')}` +
+      ` — hard readings the identity forbids`)
+    expect(rawDrift, 'the unchecked drag leaves the model').toBeGreaterThan(1e-9)
+
+    // the figure's rule: refuse any step that leaves it
+    let held = base
+    for (let s = 1; s <= 10; s++) {
+      const cand = step(held, s)
+      if (conformalNullResidual(cand) <= 1e-9) held = cand
+    }
+    const heldDrift = conformalNullResidual(held)
+    const heldPoles = readPoles(conformalAsRat(held))
+    console.log(`    with refusal: ⟨C,C⟩ drift ${heldDrift.toExponential(1)},` +
+      ` verdicts ${heldPoles.map((x) => x.verdict[0]).join('')}` +
+      ` — it does not move, and that IS the difficulty`)
+    expect(heldDrift, 'the figure stays on the model').toBeLessThan(1e-9)
+    expect(heldPoles.every((x) => x.verdict === 'multiple — undefined'),
+      'so the doubled pole is still a doubled pole').toBe(true)
   }, 300_000)
 })

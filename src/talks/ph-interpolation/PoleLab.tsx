@@ -237,13 +237,28 @@ export default function PoleLab({ model }: { model: LabModel }) {
       return got.residual > 1e-5 ? prev : { ...prev, rat: got.rat }
     })
 
-  /** Möbius drag: the model's own solver, which cannot leave ⟨C,C⟩ = 0 by construction. */
+  /**
+   * Möbius drag — and a step that leaves ⟨C,C⟩ = 0 is REFUSED, not shown.
+   *
+   * Softness is forced in this model by that identity alone, so a state off it can display poles
+   * reading hard, and they would be the solver rather than the curve. The projective side has
+   * always rejected steps whose residual it could not restore; this side did not, and the lifted
+   * specimen walked straight off the model because of it — eight poles reading HARD at a null
+   * residual of 1.5e-5.
+   *
+   * WHAT THAT REFUSAL EXPOSES, and it is worth seeing rather than smoothing over. From the
+   * NON-REDUCED locus — a doubled pole with a cancelling numerator — this solver does not converge
+   * at all: the full defect comes back at 1.4e-3 rather than the 1e-13 it reaches elsewhere. That
+   * locus is a singular point of the variety, and Newton from a singular point is the known
+   * difficulty, not a tolerance to loosen. So the lifted specimen will not move, and the readout
+   * says why. A soft member a chord and a half away holds ⟨C,C⟩ at 2.4e-16 and drags freely.
+   */
   const dragMobius = (index: number, to: [number, number, number]) =>
     setSt((prev) => {
       if (!prev.conformal) return prev
       const r = dragControlPoint(prev.conformal, index, { x: to[0], y: to[1], z: to[2] },
         { pinEnds: true, iterations: 60 })
-      return { ...prev, conformal: r.state }
+      return conformalNullResidual(r.state) > 1e-9 ? prev : { ...prev, conformal: r.state }
     })
 
   const drag = model === 'mobius' ? dragMobius : dragProjective
@@ -331,8 +346,8 @@ export default function PoleLab({ model }: { model: LabModel }) {
           <b>{preset.label}.</b> {preset.note}{' '}
           {model === 'mobius'
             ? `Each blue point is the centre of a control SPHERE; the selected one is drawn. ⟨C,C⟩ ≡ 0 forces every pole isotropic, so drag where you like — |a| = |b| and the right angle do not move.${
-              nullOff > 1e-9
-                ? ' ⟨C,C⟩ has drifted off zero, though, so this state has LEFT the model and any hard reading below is the solver, not the curve.'
+              preset.id === 'lift8'
+                ? ' This one starts on the NON-REDUCED locus — a doubled pole with a cancelling numerator — which is a singular point of the variety, and the solver does not converge from it. Steps that would leave ⟨C,C⟩ = 0 are refused, so it will not move. That is the difficulty, shown rather than hidden.'
                 : ''
             }`
             : `Drag any control point: it goes exactly where you put it, and the PH condition is restored around it.${
