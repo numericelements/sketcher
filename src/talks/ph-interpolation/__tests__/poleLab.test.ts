@@ -239,28 +239,67 @@ describe('the pole lab', () => {
     for (let s = 1; s <= 20; s++) {
       const u = (0.6 * chord * s) / 20
       const to = start.map((v, i) => v + (u * dir[i]) / dn)
+      // the figure's rule: escalate, take the BEST solve, refuse nothing
       let took = 0
+      let best: typeof conf | null = null
+      let bestNull = Infinity
       for (const iterations of [80, 300, 900]) {
         const r = dragControlPoint(conf, 2, { x: to[0], y: to[1], z: to[2] },
           { pinEnds: true, iterations })
-        if (conformalNullResidual(r.state) <= 1e-9) { conf = r.state; took = iterations; break }
+        const off = conformalNullResidual(r.state)
+        if (off < bestNull) { bestNull = off; best = r.state; took = iterations }
+        if (off <= 1e-9) break
       }
-      if (!took) { refused++; continue }
+      if (!best) { refused++; continue }
+      conf = best
       if (!firstBudget) firstBudget = took
       const poles = readPoles(conformalAsRat(conf)).filter((x) => x.numerator > 1e-7)
       genuineCount = poles.length
-      worstIso = Math.max(worstIso, ...poles.map((x) => x.isotropy))
-      worstNull = Math.max(worstNull, conformalNullResidual(conf))
-      expect(poles.every((x) => x.verdict === 'soft'),
-        `every genuine pole is soft after ${(u / chord).toFixed(2)} chords`).toBe(true)
+      worstNull = Math.max(worstNull, bestNull)
+      // ON the model, every genuine pole must read soft — the identity leaves no choice.
+      // OFF it, the figure withholds the verdict rather than reporting one, so there is nothing
+      // to assert here except that the drift is visible, which the next test covers.
+      if (bestNull <= 1e-9) {
+        worstIso = Math.max(worstIso, ...poles.map((x) => x.isotropy))
+        expect(poles.every((x) => x.verdict === 'soft'),
+          `every genuine pole is soft after ${(u / chord).toFixed(2)} chords`).toBe(true)
+      } else {
+        refused++
+      }
     }
     console.log(`    the doubled pole split into ${genuineCount} genuine poles, all soft;` +
       ` first grab needed ${firstBudget} iterations`)
-    console.log(`    over 0.6 chords: worst isotropy ${worstIso.toExponential(1)},` +
-      ` worst ⟨C,C⟩ ${worstNull.toExponential(1)}, ${refused} of 20 steps refused`)
+    console.log(`    over 0.6 chords: worst isotropy ${worstIso.toExponential(1)} where ON the model,` +
+      ` worst ⟨C,C⟩ ${worstNull.toExponential(1)}, ${refused} of 20 steps drifted off it`)
     expect(genuineCount, 'the double root split — eight genuine poles where there were none').toBe(8)
     expect(worstIso, 'and every one of them is soft').toBeLessThan(1e-8)
-    expect(worstNull, 'without ever leaving the model').toBeLessThan(1e-9)
-    expect(refused, 'and most steps are accepted').toBeLessThan(6)
+    expect(refused, 'and most steps land ON the model').toBeLessThan(6)
+  }, 300_000)
+
+  it('a state OFF the model gets NO verdict — the figure withholds rather than points wrong', () => {
+    // The rule: never point the wrong way, and never hide either. Softness is forced here by
+    // ⟨C,C⟩ ≡ 0, so a drifted state can compute poles that read hard — reporting that as geometry
+    // would point exactly opposite to the theorem. Refusing the step hides the failure instead.
+    // So the step is taken, the drift is shown, and the LABEL is withheld.
+    const p = PRESETS.find((x) => x.id === 'lift8')
+    if (!p?.conformal) throw new Error('missing specimen')
+    let conf = frameConformal(p.conformal)
+    const pts = conformalAsRat(conf).P
+    const chord = Math.hypot(...pts[pts.length - 1].map((v, i) => v - pts[0][i]))
+    const start = pts[2].slice()
+    // a deliberately violent single step, at the cheap budget — the case that drifts
+    const to = start.map((v, i) => v + (1.2 * chord * [0.6, 0.6, -0.5][i]) / Math.hypot(0.6, 0.6, 0.5))
+    conf = dragControlPoint(conf, 2, { x: to[0], y: to[1], z: to[2] },
+      { pinEnds: true, iterations: 80 }).state
+    const off = conformalNullResidual(conf)
+    const poles = readPoles(conformalAsRat(conf))
+    console.log(`    a violent step at the cheap budget: ⟨C,C⟩ = ${off.toExponential(1)},` +
+      ` raw verdicts would read ${poles.map((x) => x.verdict[0]).join('')}`)
+    expect(off, 'this is the case where the arithmetic loses').toBeGreaterThan(1e-9)
+    // The figure's contract at this point: the readout shows ⟨C,C⟩ and does NOT print soft/hard.
+    // What is pinned here is that the drift is detectable at all, which is what the display keys
+    // off — if this ever stopped being true the caveat would silently stop appearing.
+    expect(conformalNullResidual(conf), 'and it is visible to the figure').toBeGreaterThan(1e-9)
+    expect(poles.length, 'while the poles are still computed and shown').toBeGreaterThan(0)
   }, 300_000)
 })

@@ -238,38 +238,44 @@ export default function PoleLab({ model }: { model: LabModel }) {
     })
 
   /**
-   * Möbius drag — with the budget ESCALATED, and a step that leaves ⟨C,C⟩ = 0 refused.
+   * Möbius drag — the budget is escalated, the BEST solve is taken, and nothing is refused.
    *
-   * Softness is forced in this model by that identity alone, so a state off it can show poles
-   * reading hard, and they would be the solver rather than the curve. Hence the refusal.
+   * THE RULE THIS FIGURE FOLLOWS: never point the wrong way, but never hide either. Softness is
+   * forced in this model by ⟨C,C⟩ ≡ 0 alone, so a state that has drifted off that identity can
+   * show poles reading hard — and displaying that as a fact about the curve would point exactly
+   * opposite to the theorem. But REFUSING the step, which is what this did first, hides the
+   * numerical failure instead of correcting it, and a viewer sees a frozen figure with no reason
+   * given. Both are wrong, in different directions.
    *
-   * BUT REFUSING AT A FIXED BUDGET WAS TOO BLUNT, and it hid the thing the lifted specimen is FOR.
-   * From the non-reduced locus — a doubled pole with a cancelling numerator, a singular point of
-   * the variety — Newton needs more steps than it does anywhere else, and its convergence is not
-   * monotone in the size of the drag. At 60 iterations almost nothing lands and the curve appears
-   * frozen. Escalate instead, and the doubled pole does exactly what it should:
+   * So the step is always taken, and when ⟨C,C⟩ has drifted the readout stops calling the poles
+   * soft or hard and says the state is off the model, with the number. A transient artifact is
+   * fine to look at; an artifact dressed as geometry is not.
    *
-   *     first grab   300 iterations, 107ms   →  8 genuine poles, ALL SOFT, isotropy 4.5e-10
-   *     after that    80 iterations, 1–3ms   →  still all soft, down to isotropy 2e-13
+   * THE ESCALATION IS STILL WORTH IT, because it is what lets the specimen do its job. The
+   * non-reduced locus is a SINGULAR point of the variety — Newton needs more steps there than
+   * anywhere else and its convergence is not monotone in the size of the drag — so at a fixed 60
+   * iterations almost nothing lands. With [80, 300, 900]:
    *
-   * So the double pole SPLITS INTO SOFT POLES on the first touch, which is the whole content of
-   * "hard is only ever a boundary point of the soft cell", and every drag after it is ordinary —
-   * because one step off the singular locus lands you at a regular point.
+   *     first grab   300 iterations, 107ms  →  8 genuine poles, ALL SOFT, isotropy 4.5e-10
+   *     after that    80 iterations, 1–3ms  →  still all soft, down to isotropy 2e-13
    *
-   * THE ACCEPTANCE LEVEL IS 1e-9 AND NOT LOOSER, and the reason is measured: the isotropy floor
-   * tracks the null residual at about ten times it, so at 3e-9 a pole reads 2.6e-8 and crosses the
-   * readout's soft threshold. That would be a wrong verdict bought for smoother motion. At 1e-9
-   * three steps of twenty are refused and every accepted one reads correctly.
+   * The doubled pole splits into soft poles on the first touch, which is the whole content of
+   * "hard is only ever a boundary point of the soft cell", and every drag after it is ordinary
+   * because one step off the singular locus lands at a regular point.
    */
   const dragMobius = (index: number, to: [number, number, number]) =>
     setSt((prev) => {
       if (!prev.conformal) return prev
+      let best: ConformalPHCurve | null = null
+      let bestNull = Infinity
       for (const iterations of [80, 300, 900]) {
         const r = dragControlPoint(prev.conformal, index, { x: to[0], y: to[1], z: to[2] },
           { pinEnds: true, iterations })
-        if (conformalNullResidual(r.state) <= 1e-9) return { ...prev, conformal: r.state }
+        const off = conformalNullResidual(r.state)
+        if (off < bestNull) { bestNull = off; best = r.state }
+        if (off <= 1e-9) break
       }
-      return prev
+      return best ? { ...prev, conformal: best } : prev
     })
 
   const drag = model === 'mobius' ? dragMobius : dragProjective
@@ -301,8 +307,10 @@ export default function PoleLab({ model }: { model: LabModel }) {
         current
           ? {
             label: `pole ${Math.min(pole, poles.length - 1) + 1} of ${poles.length}`,
-            value: current.verdict.toUpperCase(),
-            tone: current.verdict === 'soft' ? 'ok' : 'plain',
+            // ⟨C,C⟩ ≡ 0 is what FORCES softness here, so a drifted state has no verdict to give:
+            // saying "hard" would point opposite to the theorem, and saying "soft" would be luck.
+            value: nullOff > 1e-9 ? 'off the model' : current.verdict.toUpperCase(),
+            tone: nullOff > 1e-9 ? 'warn' : current.verdict === 'soft' ? 'ok' : 'plain',
           }
           : { label: 'poles', value: 'none' },
       ]}
@@ -351,7 +359,15 @@ export default function PoleLab({ model }: { model: LabModel }) {
         <>
           {showPole && current ? (
             <span className="block font-mono text-[0.82em] leading-[1.5] whitespace-pre bg-slate-50 border border-slate-200 rounded px-3 py-2 mb-2 overflow-x-auto">
-              {poleLines(current).join('\n')}
+              {(nullOff > 1e-9
+                ? [
+                  `⟨C,C⟩ = ${nullOff.toExponential(2)}, not 0 — this state has drifted OFF the model.`,
+                  'Softness is forced here by ⟨C,C⟩ ≡ 0, so the verdict below is arithmetic and',
+                  'not geometry. The numbers are shown as they are; the label is withheld.',
+                  '',
+                  ...poleLines(current).slice(0, 3),
+                ]
+                : poleLines(current)).join('\n')}
             </span>
           ) : null}
           <b>{preset.label}.</b> {preset.note}{' '}
