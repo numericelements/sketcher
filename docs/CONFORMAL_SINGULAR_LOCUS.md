@@ -512,7 +512,87 @@ retracting the drag comparison with its reason stated (a 1e-4 control) stopped a
 becoming a cited one. Both are in the record because the alternative is a document that reads
 cleaner than the work was.
 
-## 14. What would be most useful
+## 14. THE DEPENDENT ROW IN THE PROJECTIVE MODEL — two lines instead of six
+
+§13's mechanism needs the lift. The same conclusion follows in the projective model directly, and
+the step that costs a paragraph there is an evaluation here.
+
+The residual is `F = ‖N‖² − ρ²`, held coefficient by coefficient in the Bernstein basis. **Evaluate
+it at a root r of w** — that is, take the row combination `Σ_m B_m(r)·J[m,:]`:
+
+```
+    ∂F(r)/∂(P, w)  =  2·N(r)·∂N(r)          ∂F(r)/∂ρ  =  −2·ρ(r)·B(r)
+```
+
+At a **double** root `N(r) = 0` for every q, and `ρ(r)² = ‖N(r)‖² = 0`, so BOTH terms vanish: that
+row combination is identically zero — a dependent row, named, with no conformal model in it. At a
+simple pole `N(r) = −q(r)w′(r) ≠ 0` and it does not vanish.
+
+**And the soft pole is the case that decides the discriminator**, for the third time. At a soft pole
+`ρ(r) = 0`, so the second term vanishes there too — a ρ-based reading would call it dependent. It is
+not, because `N(r) ≠ 0`. Measured on the mixed cubic, at both members of its soft conjugate pair:
+
+```
+                            isotropy    |N(r)|    Σ B_m(r)·J[m,:]
+    DOUBLE root at 1.5      —           1.4e-15   7.5e-11   DEPENDENT
+    simple root at 1.5      1.0         4.8e-1    4.0e-2    independent
+    SOFT pole 0.220±0.787i  5.0e-12     1.3e+0    5.8e-2    independent
+```
+
+Pinned in `singularDirectionScaling.test.ts`.
+
+## 15. RANK BY PERTURBATION — a reading with no threshold in it
+
+Every δ in this document was read by counting singular values below a floor, and a settled state is
+never exactly on the variety, so each of those readings was a guess about what the accuracy floor
+hides. There is a better instrument, and it needs no floor: **push the member off the variety by t
+along a fixed direction and watch which singular values move.**
+
+```
+    σ FLAT in t              a genuine small singular value — ILL-CONDITIONING, not deficiency
+    σ ∝ t                    zero ON the variety only — this is what δ counts
+    σ ∝ t² (or 1e-16 flat)   zero EVERYWHERE — the universal redundancy, structural
+```
+
+The third signature is worth its own line: a relation that holds identically, at every point rather
+than only on the variety, cannot grow to first order when the point leaves the variety. So the
+universal redundancy is visibly a different kind of zero from a δ contribution, which is a
+distinction no threshold can make.
+
+Measured on the matched pair — two cubic sources differing only in whether w has a repeated root,
+both lifted to conformal degree 6:
+
+```
+    ALL-HARD cubic lift            t = 0     1e-2 5e-3 2e-3 4e-8 7e-9 6e-17
+                                   t = 1e-9  1e-2 5e-3 2e-3 4e-8 7e-9 4e-17
+                                   t = 1e-8  1e-2 5e-3 2e-3 4e-8 7e-9 3e-17
+                                   t = 1e-6  1e-2 5e-3 2e-3 3e-7 6e-9 1e-13
+
+    DOUBLE-pole lift               t = 0     4e-5 4e-8 2e-8 2e-9 2e-13 3e-17
+                                   t = 1e-9  4e-5 4e-8 2e-8 2e-9 8e-10 2e-17
+                                   t = 1e-8  4e-5 1e-7 3e-8 2e-9  2e-9  1e-17
+```
+
+The control's 4e-8 and 7e-9 do not move: **genuine, not zeros — δ = 0 confirmed, and the specimen
+is merely ill-conditioned at 1.4e8.** The double-pole lift carries one extra value that moves by
+four orders under a 1e-9 push: **a zero of the variety, δ = 1 confirmed.** Both readings survive
+the threshold-free test, and now they do not depend on the floor that produced them.
+
+### The convergence-rate measurement is BLOCKED, and this is why
+
+It was the measurement asked for, and it cannot be run honestly in double precision at these
+degrees. The δ = 0 control has condition number 1.4e8. Any Levenberg λ small enough to keep its
+1e-8 direction alive is below what the normal equations can carry — they square the condition
+number — and the exact truncated pseudo-inverse instead chases that direction and overshoots a
+quartic residual, needing eight to fourteen halvings per step. Every variant we ran made the
+**control** converge linearly at ratio ≈ 1/2, which is a statement about the regularisation and not
+about the curve. Reported as blocked rather than as a result; the predicted 1/2 is untested here.
+
+The perturbation test above answers the underlying question — is a double pole a singular point of
+the variety? — directly, and with no solver in it at all. Two instruments, two questions: the
+scaling test reads the RANK, the rate test would read the CONSEQUENCE for a solver.
+
+## 16. What would be most useful
 
 A statement of the form
 

@@ -40,13 +40,16 @@
 //     cannot restore is QUADRATIC convergence, so the expected behaviour is "converges linearly, to
 //     reduced accuracy", not "fails".
 //
-// WHICH CHANGES WHAT TO MEASURE, and the measurement is not yet run. Iteration counts depend on step
-// size, tolerance and damping schedule — which is why an earlier drag comparison stalled on both
-// specimens and was retracted. The decisive quantity is the CONVERGENCE RATE: 1e-3 → 1e-6 → 1e-12
-// is quadratic and means δ = 0; 1e-3 → 3e-4 → 1e-4 is linear and means δ ≥ 1. That is immune to
-// tolerances and needs a handful of iterations rather than nine hundred. It needs a control that is
-// verified δ = 0 first — properly hard simple poles at isotropy O(1), not the 1e-4 one that spoiled
-// the last attempt.
+// WHICH CHANGED WHAT TO MEASURE, and the answer came from a different instrument than the one
+// planned. The convergence-rate test — quadratic means δ = 0, linear at ratio 1/2 means δ ≥ 1 — is
+// BLOCKED in double precision at these degrees: the δ = 0 control has condition number 1.4e8, so
+// every regularisation that keeps its 1e-8 direction alive is below what the normal equations can
+// carry, and every variant made the CONTROL converge linearly at 1/2 too. What works instead needs
+// no solver at all: push a member off the variety by t and watch which singular values MOVE (flat =
+// genuine, ∝ t = a zero of the variety, ∝ t² = the universal redundancy). It confirms δ = 0 for the
+// all-hard lift and δ = 1 for the double-pole lift with no threshold in the reading. And the
+// dependent row of step 6 has a projective form that takes two lines rather than six. Both in
+// singularDirectionScaling.test.ts and docs/CONFORMAL_SINGULAR_LOCUS.md §14–15.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { rootsOf } from '../conformalPHHopf'
