@@ -442,7 +442,77 @@ Only a genuinely multiple pole is left, and it is a degenerate curve rather than
 drags into by accident. Whether an editor ever has to HOLD one is now the question that decides
 whether a singular-point solver is a requirement or an unused capability.
 
-## 13. What would be most useful
+## 13. WHY A MULTIPLE POLE COSTS RANK — the mechanism, and the wrong one it replaces
+
+**The wrong version, which shipped and was refuted in a minute.** "ρ(r) = 0 at a double pole, so the
+PH relation reads 0 = 0 there, so it constrains nothing, so rank is lost." A SOFT SIMPLE POLE
+refutes it: softness IS ⟨N(r),N(r)⟩ = 0, hence ρ(r) = 0, and a soft simple pole costs no rank once
+the lift is minimal.
+
+```
+    soft simple pole    ρ(r) = 0    N(r) ≠ 0 (isotropic)    δ contribution 0
+    DOUBLE pole         ρ(r) = 0    N(r) = 0                δ contribution 1
+```
+
+Measured on the mixed cubic: at its soft poles |ρ| = 3.9e-11 while |N| = 9.7e-1. **ρ(r) = 0 is not
+the discriminator; N(r) = 0 is** — the vector, not its square. Fifth appearance of the same family
+of error, a squared quantity standing in for a vector one.
+
+**The mechanism that works**, and it names the dependent row:
+
+```
+    1.  double pole:   w(r) = 0 AND w′(r) = 0
+    2.  N = q′w − qw′, so N(r) = 0 for EVERY q          — forced, not incidental
+    3.  in the lift, C(r) AND C′(r) are both pure ∞     — the separating step
+    4.  ∞ is null, so ⟨C′(r),C′(r)⟩ = 0 is FORCED BY NULL rather than imposed
+    5.  PH says ⟨C′,C′⟩ = h², so h(r) = 0 is forced
+    6.  that PH coefficient relation is implied by NULL — a dependent row
+```
+
+Step 3 is what a soft simple pole cannot do: there w′(r) ≠ 0, so C′(r) keeps its q-component.
+Measured at the same parameter of two cubics differing only in a repeated root:
+
+```
+    (t−1.5)(t−3)(t−4.5)   C(r) pure ∞ (1e-15)   C′(r) NOT (5.6e-1)     ⟨C′,C′⟩ = 3.5e-1
+    (t−1.5)²(t−3)         C(r) pure ∞ (8e-16)   C′(r) PURE ∞ (4e-16)   ⟨C′,C′⟩ = 2.3e-14
+```
+
+And unlike "the relation constrains nothing", this hands over the deflation: **h(r) = 0**, linear,
+with r already known as a root of w.
+
+### Two overstatements corrected with it
+
+- **"the speed reads 0/0"** — the limit exists. ρ vanishes to order 1 and w² to order 4, so ‖x′‖ has
+  a pole of order THREE. Measured: ‖x′‖·ε³ = 6.532, 6.467, 6.460 at ε = 1e-2, 1e-3, 1e-4. What is
+  undefined at a multiple pole is SOFTNESS, not the speed.
+- **"damping cannot rescue it"** — Levenberg does regularise a zero singular value, to λ. What it
+  cannot restore is QUADRATIC convergence, so the behaviour to expect is "converges linearly, to
+  reduced accuracy", not "fails".
+
+### The measurement this calls for, NOT YET RUN
+
+Iteration counts depend on step size, tolerance and damping schedule, which is why the drag
+comparison attempted here stalled on both specimens and was retracted. The decisive quantity is the
+CONVERGENCE RATE:
+
+```
+    quadratic   1e-3 → 1e-6 → 1e-12     δ = 0
+    linear      1e-3 → 3e-4 → 1e-4      δ ≥ 1
+```
+
+immune to tolerances, a handful of iterations rather than nine hundred, and a direct readout of the
+singularity rather than a proxy. It needs a control verified at δ = 0 first — properly hard simple
+poles at isotropy O(1), not the 1e-4 one that spoiled the previous attempt.
+
+### A habit worth keeping visible
+
+Twice this week a claim held back prevented a wrong one from shipping: recording δ(W4) as
+"unresolved" rather than rounding it to 0 saved the closed formula from looking refuted, and
+retracting the drag comparison with its reason stated (a 1e-4 control) stopped a confounded result
+becoming a cited one. Both are in the record because the alternative is a document that reads
+cleaner than the work was.
+
+## 14. What would be most useful
 
 A statement of the form
 
