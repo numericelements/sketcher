@@ -779,6 +779,49 @@ Rational roots are real roots, so every specimen this construction reaches has o
 hard — poles. Whether `δ = N − 2` survives a conjugate pair needs the same construction over ℚ(i).
 Until that is run, the law is established for real-pole lifts and untested for complex ones.
 
+### What δ = N − 2 MEANS — measured, not interpreted
+
+The residual is QUADRATIC in the unknowns, so for a kernel direction v,
+
+```
+    F(x + v)  =  F(x) + J·v + ½D²F(v,v)  =  ½D²F(v,v)        exactly, no differencing
+```
+
+A kernel direction is genuinely tangent when that second-order term can be absorbed — when it lies
+in the image of J. What cannot be absorbed is an **obstruction**: a direction the linearisation
+calls free and the next order blocks. Computed exactly over ℚ:
+
+```
+    lift degree 4    kernel 16 directions (generic 14)   second order restores 13 → 15 = 4N−1
+                     OBSTRUCTED 2   =  δ
+    lift degree 8    kernel 28 directions (generic 22)   second order restores 25 → 31 = 4N−1
+                     OBSTRUCTED 6   =  δ
+```
+
+So the sentence is: **the solver is offered N − 2 directions of freedom that do not exist.** The
+linearisation sees 3N + 4 ways to move; the true local dimension is the generic 2N + 6; second
+order takes back exactly the difference and restores the rank to 4N − 1 on the nose. That is the
+cone tip as arithmetic — at the apex every direction looks tangent, and the surface is not there.
+
+It also explains the drag behaviour without appealing to anything else. A Newton step picks a
+direction that may include phantom components, moves, discovers at second order that the constraint
+did not hold, and corrects — halving each time. The step ratio ½ measured all through §15–§18 is
+that loop.
+
+### The same number, read on the poles
+
+`W = 2w²` is a perfect square, so on ℙ¹ it has exactly `N/2` double roots, counting multiplicity and
+counting ∞. Then
+
+```
+    δ  =  N − 2  =  2·(N/2 − 1)  =  2·(number of doubled poles − 1)
+```
+
+**Two directions per doubled pole, with one doubling free.** And the doubling is not a choice: a
+simple root of W forces the pole soft (§7), so a HARD pole requires `W′(r) = 0`. Hardness buys the
+doubling, the doubling costs two directions, and there is no way to write it in this model that
+avoids the bill. (The `− 2` is not explained here; it is what the arithmetic says.)
+
 ### What it retires
 
 - **"Some all-hard lifts are singular and some are not, no pattern" (§18).** That split came from
@@ -786,7 +829,9 @@ Until that is run, the law is established for real-pole lifts and untested for c
   steps and could not be classified at all. Every exact specimen is singular, by a wide margin.
 - **The idea that the deficiency is small.** δ = 1 or 2 was the working assumption behind targeted
   deflation (§16). At degree 8 it is 6, which is why one deflation condition moved the rate a little
-  and left it linear.
+  and left it linear — and deflating a hard lift properly would need N − 2 conditions, eight of them
+  at degree 10. At that point the lift is simply the wrong place to work: in the PROJECTIVE model
+  hard poles are generic and the same curve is a smooth point (§14).
 
 ## 20. What would be most useful
 

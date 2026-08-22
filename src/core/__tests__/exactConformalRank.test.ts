@@ -37,8 +37,8 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import {
-  q, qNum, qIsZero, exactMember, phDefectQ, liftExact, definingJacobianQ, definingResidualQ,
-  rankQ, type Q, type QPoly,
+  q, qNum, qAdd, qSub, qIsZero, exactMember, phDefectQ, liftExact, definingJacobianQ,
+  definingResidualQ, rankQ, kernelQ, type Q, type QPoly, type ExactMember,
 } from '../exactRank'
 import { definingJacobian, residual, type ConformalPHCurve } from '../conformalPHCurve'
 import { singularValues } from '../nurbsPH'
@@ -129,4 +129,50 @@ describe('the exact rank of a lifted hard curve', () => {
       expect(live, `${id} is at the generic rank, not 3N+1`).toBe(4 * n - 1)
     }
   })
+
+  it('and δ counts the directions that are free at FIRST order and blocked at SECOND', () => {
+    // The residual is QUADRATIC in the unknowns, so for v in ker J,
+    //     F(x + v)  =  F(x) + J·v + ½D²F(v,v)  =  ½D²F(v,v)      exactly, no differencing.
+    // A kernel direction is genuinely tangent when that second-order term can be absorbed — when
+    // it lies in the image of J. What cannot be absorbed is an OBSTRUCTION: the direction looks
+    // free to the linearisation and is blocked one order down. That is the cone tip stated as
+    // arithmetic, and the count is exactly δ.
+    const packQ = (m: ExactMember): Q[] => [...m.C.flat(), ...m.h]
+    const unpackQ = (x: readonly Q[], n: number): ExactMember => ({
+      C: Array.from({ length: n + 1 }, (_, k) => x.slice(5 * k, 5 * k + 5)),
+      h: x.slice(5 * (n + 1)),
+      degree: n,
+    })
+    for (const [roots, lambdas, n] of [
+      [[q(2), q(3)], [q(1), q(1)], 2],
+      [[q(-1), q(2), q(3)], [q(1), q(1), q(1)], 3],
+    ] as [Q[], Q[], number][]) {
+      const lifted = liftExact(exactMember(roots, lambdas, n, [1, 0, 0, 0]))
+      const N = lifted.degree
+      const J = definingJacobianQ(lifted)
+      const rank = rankQ(J)
+      const delta = 4 * N - 1 - rank
+      const x0 = packQ(lifted)
+      const ker = kernelQ(J)
+      const Fof = (v: readonly Q[]): Q[] =>
+        definingResidualQ(unpackQ(x0.map((c, i) => qAdd(c, v[i])), N))
+      const image: Q[][] = Array.from({ length: x0.length }, (_, j) => J.map((row) => row[j]))
+      const base = rankQ(image)
+      const second: Q[][] = ker.map(Fof)
+      for (let a = 0; a < ker.length; a++) {
+        for (let b = a + 1; b < ker.length; b++) {
+          const sum = Fof(ker[a].map((c, i) => qAdd(c, ker[b][i])))
+          second.push(sum.map((c, i) => qSub(qSub(c, second[a][i]), second[b][i])))
+        }
+      }
+      const obstructed = rankQ([...image, ...second]) - base
+      console.log(`    degree ${N}: kernel of J is ${ker.length} directions,` +
+        ` generic would be ${x0.length - (4 * N - 1)} — ${delta} too many`)
+      console.log(`      second order restores rank ${base} → ${base + obstructed}` +
+        ` = 4N − 1 = ${4 * N - 1};  OBSTRUCTED directions ${obstructed}, δ = ${delta}`)
+      expect(obstructed, 'the obstruction dimension IS δ').toBe(delta)
+      expect(base + obstructed, 'and second order restores exactly the generic rank').toBe(4 * N - 1)
+      expect(ker.length - delta, 'so the true local dimension is the generic one').toBe(2 * N + 6)
+    }
+  }, 300_000)
 })
