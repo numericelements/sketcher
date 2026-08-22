@@ -12,8 +12,7 @@ import { BOUNDS, frame, frameConformal, freshState, sampleRational } from '../Po
 import { PRESETS, conformalAsRat } from '../poleLabPresets'
 import { project } from '../../../core/conformal'
 import { bernsteinToPower } from '../../../core/conformalPHHopf'
-import type { ConformalPHCurve } from '../../../core/conformalPHCurve'
-import { degreeOf, dragControlPoint, radii, residual, unknownCount } from '../../../core/conformalPHCurve'
+import { definingJacobian, degreeOf, dragControlPoint, radii } from '../../../core/conformalPHCurve'
 
 describe('the pole lab', () => {
   it('FRAMING is exact: it moves the curve into the box and changes no verdict', () => {
@@ -354,40 +353,30 @@ describe('the pole lab', () => {
     // Both are conformal degree 8, both are non-reduced, both have 32 rows against 53 unknowns.
     // What separates them is the SHAPE of the representation and, downstream of it, how much rank
     // the defining Jacobian keeps.
+    //
+    // Read from the ANALYTIC Jacobian, which is exact because the defining conditions are
+    // quadratic. That is not fastidiousness: by central difference the dead directions read 1e-11,
+    // which is the differencing noise floor and not the rank, so the tail would have been a
+    // statement about the step size. Analytically they are at 1e-17 and the count is the variety's.
     const trueDeg = (p: number[]): number => {
       const sc = Math.max(...p.map(Math.abs), 1e-300)
       let n = p.length - 1
       while (n > 0 && Math.abs(p[n]) < 1e-12 * sc) n--
       return n
     }
-    const pack = (s: ConformalPHCurve): number[] => [...s.C.flatMap((c) => [...c]), ...s.h]
-    const unpack = (x: number[], n: number): ConformalPHCurve => ({
-      C: Array.from({ length: n + 1 }, (_, k) => x.slice(5 * k, 5 * k + 5) as never),
-      h: x.slice(5 * (n + 1)),
-    })
-
     const seen: Record<string, { degs: number[]; live: number; smallest: number }> = {}
     for (const id of ['lift8g', 'lift8']) {
       const p = PRESETS.find((x) => x.id === id)
       if (!p?.conformal) throw new Error(`missing ${id}`)
       const st = frameConformal(p.conformal)
-      const n = degreeOf(st)
+      expect(degreeOf(st), 'both specimens are conformal degree 8').toBe(8)
       const degs = [0, 1, 2, 3, 4].map((i) => trueDeg(bernsteinToPower(st.C.map((c) => c[i]))))
 
-      const x0 = pack(st)
-      const U = unknownCount(n)
-      const rows = residual(st).length
-      const J: number[][] = Array.from({ length: rows }, () => new Array<number>(U).fill(0))
-      for (let j = 0; j < U; j++) {
-        const h = 1e-6 * Math.max(1, Math.abs(x0[j]))
-        const up = [...x0]
-        up[j] += h
-        const dn = [...x0]
-        dn[j] -= h
-        const fu = residual(unpack(up, n))
-        const fd = residual(unpack(dn, n))
-        for (let i = 0; i < rows; i++) J[i][j] = (fu[i] - fd[i]) / (2 * h)
-      }
+      // THE ANALYTIC ROWS, not finite differences. The defining conditions are quadratic, so
+      // definingJacobian is exact — and it matters here: measured by central difference the dead
+      // directions read 1e-11, which is the differencing noise floor rather than the rank. The
+      // analytic rows put them at 1e-17, so the count is a fact about the variety and not about h.
+      const J = definingJacobian(st)
       const sv = singularValues(J.map((r) => {
         const m = Math.hypot(...r)
         return m > 0 ? r.map((v) => v / m) : r
@@ -397,7 +386,7 @@ describe('the pole lab', () => {
       seen[id] = { degs, live, smallest }
       console.log(`    ${p.label}`)
       console.log(`      component true degrees: W ${degs[0]}, q ${degs[1]},${degs[2]},${degs[3]},` +
-        ` c∞ ${degs[4]}   —   ${rows} rows x ${U} unknowns`)
+        ` c∞ ${degs[4]}   —   ${J.length} rows x ${J[0].length} unknowns`)
       console.log(`      ${live} directions the Jacobian still sees,` +
         ` smallest ${smallest.toExponential(1)};` +
         ` tail ${sv.slice(-4).map((v) => (v / sv[0]).toExponential(0)).join(' ')}`)
