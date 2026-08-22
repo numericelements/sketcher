@@ -45,7 +45,7 @@ describe('the pole lab presets', () => {
         expect(poles.find((x) => x.verdict === 'hard')?.real,
           'and the hard one is the REAL pole').toBe(true)
       }
-      if (p.id === 'lift8') {
+      if (p.id === 'lift8' || p.id === 'lift8g') {
         // the non-reduced locus: the doubled pole cancels, so the readout must not call it a pole
         expect(verdicts.every((v) => v === 'not a pole' || v === 'multiple — undefined'),
           'a lifted hard curve has no pole the readout will judge').toBe(true)

@@ -302,4 +302,49 @@ describe('the pole lab', () => {
     expect(conformalNullResidual(conf), 'and it is visible to the figure').toBeGreaterThan(1e-9)
     expect(poles.length, 'while the poles are still computed and shown').toBeGreaterThan(0)
   }, 300_000)
+
+  it('the CLEAN lifted specimen splits in 80 iterations — degree was never the difficulty', () => {
+    // The obvious guess was that the lift is slow because it is conformal degree 8. It is not:
+    // grabbing each lift the same way, the two HIGHEST degrees are the fastest.
+    //
+    //     λ-chart quartic (W true degree 1)  → conformal 8   900 iters, 295ms, never clean
+    //     random hard degree 2               → conformal 4   900 iters,  87ms
+    //     random hard degree 3               → conformal 6   900 iters, 180ms
+    //     random hard degree 4               → conformal 8    80 iters,   3ms, ALL SOFT
+    //     random hard degree 5               → conformal 10   80 iters,   9ms, ALL SOFT
+    //
+    // So the specimen is the difficulty, not the degree, and the lab carries both: the clean one
+    // to show what the mathematics says, and the awkward one to show what the arithmetic costs.
+    const p = PRESETS.find((x) => x.id === 'lift8g')
+    if (!p?.conformal) throw new Error('missing specimen')
+    const conf = frameConformal(p.conformal)
+    expect(conformalNullResidual(conf), 'it starts exactly null').toBeLessThan(1e-11)
+    // NEITHER lift gets a verdict at the start, but they trip different checks first, and that is
+    // worth knowing: a lifted curve is non-reduced BOTH ways — the root is doubled AND the
+    // numerator cancels there. The λ-chart lift reads 2 × 'multiple', this one 8 × 'not a pole'.
+    // What they share is the only thing to assert: no soft-or-hard verdict is given.
+    const before = readPoles(conformalAsRat(conf))
+    expect(before.every((x) => x.verdict === 'not a pole' || x.verdict === 'multiple — undefined'),
+      'a lifted hard curve is non-reduced, so it gets no verdict').toBe(true)
+    expect(before.some((x) => x.verdict === 'soft' || x.verdict === 'hard'),
+      'and in particular it is never called soft or hard').toBe(false)
+
+    const pts = conformalAsRat(conf).P
+    const chord = Math.hypot(...pts[pts.length - 1].map((v, i) => v - pts[0][i]))
+    const to = pts[2].map((v, i) =>
+      v + (0.03 * chord * [0.6, 0.6, -0.5][i]) / Math.hypot(0.6, 0.6, 0.5))
+    const t0 = performance.now()
+    const r = dragControlPoint(conf, 2, { x: to[0], y: to[1], z: to[2] },
+      { pinEnds: true, iterations: 80 })
+    const ms = performance.now() - t0
+    const off = conformalNullResidual(r.state)
+    const after = readPoles(conformalAsRat(r.state)).filter((x) => x.numerator > 1e-7)
+    console.log(`    one touch at the CHEAPEST budget: 80 iterations in ${ms.toFixed(0)}ms,` +
+      ` ⟨C,C⟩ ${off.toExponential(1)},` +
+      ` ${after.length} genuine poles, worst isotropy` +
+      ` ${Math.max(...after.map((x) => x.isotropy)).toExponential(1)}`)
+    expect(off, 'stays on the model at the cheapest budget').toBeLessThan(1e-9)
+    expect(after.length, 'the double root split into eight').toBe(8)
+    expect(after.every((x) => x.verdict === 'soft'), 'and every one is soft').toBe(true)
+  }, 300_000)
 })

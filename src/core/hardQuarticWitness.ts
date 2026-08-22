@@ -77,6 +77,28 @@ const padd = (...ps: number[][]): number[] =>
     (_, i) => ps.reduce((s, q) => s + (q[i] ?? 0), 0))
 
 /**
+ * (W, q, ρ) ↦ (2W², 2Wq, ‖q‖²) with h = 2ρ — the lift, at ANY degree.
+ *
+ * Same construction as the quartic's below, written for a general projective member, because the
+ * pole lab wants more than one hard specimen to lift. h = 2ρ because ‖x′‖ = ρ/W² and in the lift
+ * ‖p′‖ = h/(2W²).
+ */
+export function liftRatToConformal(
+  w: readonly number[], q: readonly (readonly number[])[], rho: readonly number[],
+): ConformalPHCurve {
+  const o = pmul(w, w).map((v) => 2 * v)
+  const xyz = q.map((c) => pmul(w, c).map((v) => 2 * v))
+  const inf = padd(pmul(q[0], q[0]), pmul(q[1], q[1]), pmul(q[2], q[2]))
+  const degree = Math.max(o.length, ...xyz.map((c) => c.length), inf.length) - 1
+  const cols = [toBern(o, degree), ...xyz.map((c) => toBern(c, degree)), toBern(inf, degree)]
+  return {
+    C: Array.from({ length: degree + 1 }, (_, k) =>
+      [cols[0][k], cols[1][k], cols[2][k], cols[3][k], cols[4][k]] as unknown as Conformal),
+    h: toBern(rho.map((v) => 2 * v), degree - 1),
+  }
+}
+
+/**
  * (w, q) ↦ (2w², 2wq, ‖q‖²) — the lift, which DOUBLES the degree and every pole with it.
  *
  * That doubling is the whole point. ⟨C,C⟩ ≡ 0 forces the numerator isotropic at every root of the

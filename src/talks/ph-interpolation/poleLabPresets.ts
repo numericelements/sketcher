@@ -29,8 +29,11 @@
 import { bernsteinMultiply } from '../../core/bernstein'
 import type { Conformal } from '../../core/conformal'
 import type { ConformalPHCurve } from '../../core/conformalPHCurve'
-import { hardQuarticMember, liftHardQuarticToConformal, toBern } from '../../core/hardQuarticWitness'
+import {
+  hardQuarticMember, liftHardQuarticToConformal, liftRatToConformal, toBern,
+} from '../../core/hardQuarticWitness'
 import { type Rat, settleToPH, hodographN } from '../../core/nurbsPH'
+import { bernsteinToPower } from '../../core/conformalPHHopf'
 
 /** A conformal member as it comes out of findMember: five coefficients per control sphere, plus h. */
 interface CachedConformal { readonly C: number[][]; readonly h: number[] }
@@ -179,6 +182,31 @@ function mustBuild(rat: Rat | null, id: string): Rat {
   return rat
 }
 
+/**
+ * The lift of a GENERIC hard quartic — the specimen where the split is crisp.
+ *
+ * Degree turned out not to be what makes the lift hard to move, which was the obvious guess and
+ * the wrong one. Measured, grabbing each lift the same way at 80 iterations:
+ *
+ *     λ-chart quartic (W true degree 1)  → conformal 8   900 iters, 295ms, never clean
+ *     random hard degree 2               → conformal 4   900 iters,  87ms
+ *     random hard degree 3               → conformal 6   900 iters, 180ms, never reaches 1e-9
+ *     random hard degree 4               → conformal 8    80 iters,   3ms, ALL SOFT
+ *     random hard degree 5               → conformal 10   80 iters,   9ms, ALL SOFT
+ *
+ * The two HIGHEST degrees are the fastest, so the conformal degree is not the difficulty — the
+ * specimen is. The λ-chart quartic is awkward because its denominator is genuinely degree 1 inside
+ * a degree-4 basis, so the lift is a degree-8 member carrying a degree-2 denominator. The low
+ * conformal degrees are awkward for the opposite reason: degree 4 has very little room (degree 3
+ * is confined to a circle by the null condition alone), so there is nowhere for a corrector to go.
+ */
+function liftGenericHard(): ConformalPHCurve {
+  const rat = mustBuild(randomHardRat(4, 9000), 'lift8g')
+  const w = bernsteinToPower(rat.w)
+  const q = [0, 1, 2].map((i) => bernsteinToPower(rat.P.map((p, k) => rat.w[k] * p[i])))
+  return liftRatToConformal(w, q, bernsteinToPower(rat.rho))
+}
+
 export interface Preset {
   readonly id: string
   readonly label: string
@@ -236,9 +264,17 @@ export const PRESETS: Preset[] = [
     rat: () => mustBuild(randomHardRat(5, 9014), 'hard5r'),
   },
   {
+    id: 'lift8g',
+    label: 'a hard curve, LIFTED — the clean one (8)',
+    note: 'A generic hard quartic in the Möbius model. Touch it and the doubled pole SPLITS into eight genuine poles, every one soft — in 80 iterations and 3ms. Hard to soft, once, with no way back.',
+    degree: 8,
+    conformal: liftGenericHard(),
+    rat: () => conformalAsRat(liftGenericHard()),
+  },
+  {
     id: 'lift8',
     label: 'a hard curve, LIFTED (8)',
-    note: 'The λ-chart quartic in the Möbius model. It can only appear as a DOUBLED pole whose numerator cancels — the one place ⟨C,C⟩ ≡ 0 leaves for a hard pole. One drag destroys it.',
+    note: 'The λ-chart quartic in the Möbius model — and the AWKWARD one. Its denominator is genuinely degree 1 inside a degree-4 basis, so its lift is a degree-8 member with a degree-2 denominator, and the solver needs 900 iterations where the clean specimen needs 80. Nothing is hidden: when ⟨C,C⟩ drifts the verdict is withheld and the number shown.',
     degree: 8,
     conformal: liftHardQuarticToConformal().state,
     rat: () => conformalAsRat(liftHardQuarticToConformal().state),
