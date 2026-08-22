@@ -32,7 +32,7 @@ import { useMemo, useState } from 'react'
 import { type ConformalPHCurve, dragControlPoint, radii } from '../../core/conformalPHCurve'
 import { type Conformal, project } from '../../core/conformal'
 import { type Rat, phRelativeResidual, settleToPH } from '../../core/nurbsPH'
-import { type PoleReading, poleLines, readPoles } from '../../core/poleReadout'
+import { type PoleReading, conformalNullResidual, poleLines, readPoles } from '../../core/poleReadout'
 import type { Vec3 } from '../../core/quaternion'
 import Figure3D, { type Bounds3D, Curve3D, DragPoint3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
@@ -248,6 +248,10 @@ export default function PoleLab({ model }: { model: LabModel }) {
 
   const drag = model === 'mobius' ? dragMobius : dragProjective
   const residual = phRelativeResidual(shown)
+  // On the Möbius side softness is forced by ⟨C,C⟩ ≡ 0 alone, so a state that has drifted off that
+  // identity can show poles reading HARD — an artifact of the solver, not a fact about the curve.
+  // The slide claims the model cannot make a pole hard, so it has to show this number.
+  const nullOff = model === 'mobius' && conformal ? conformalNullResidual(conformal) : 0
 
   return (
     <Figure3D
@@ -261,6 +265,13 @@ export default function PoleLab({ model }: { model: LabModel }) {
       readouts={[
         { label: 'model', value: model === 'mobius' ? 'Möbius (ℝ⁴,¹)' : 'projective (P, w, ρ)' },
         { label: 'PH residual', value: residual.toExponential(1), tone: residual < 1e-8 ? 'ok' : 'warn' },
+        ...(model === 'mobius'
+          ? [{
+            label: '⟨C,C⟩',
+            value: nullOff.toExponential(1),
+            tone: (nullOff < 1e-9 ? 'ok' : 'warn') as 'ok' | 'warn',
+          }]
+          : []),
         current
           ? {
             label: `pole ${Math.min(pole, poles.length - 1) + 1} of ${poles.length}`,
@@ -319,7 +330,11 @@ export default function PoleLab({ model }: { model: LabModel }) {
           ) : null}
           <b>{preset.label}.</b> {preset.note}{' '}
           {model === 'mobius'
-            ? 'Each blue point is the centre of a control SPHERE; the selected one is drawn. ⟨C,C⟩ ≡ 0 forces every pole isotropic, so drag where you like — |a| = |b| and the right angle do not move.'
+            ? `Each blue point is the centre of a control SPHERE; the selected one is drawn. ⟨C,C⟩ ≡ 0 forces every pole isotropic, so drag where you like — |a| = |b| and the right angle do not move.${
+              nullOff > 1e-9
+                ? ' ⟨C,C⟩ has drifted off zero, though, so this state has LEFT the model and any hard reading below is the solver, not the curve.'
+                : ''
+            }`
             : `Drag any control point: it goes exactly where you put it, and the PH condition is restored around it.${
               cps.length - 1 >= 3
                 ? ' The two ends stay where they are unless you grab one of them.'

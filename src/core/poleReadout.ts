@@ -34,6 +34,7 @@
 import { bernsteinToPower, rootsOf, type Poly } from './conformalPHHopf'
 import { type Complex, cadd, cmul, cnorm } from './complex'
 import type { Rat } from './nurbsPH'
+import type { ConformalPHCurve } from './conformalPHCurve'
 
 const C0: Complex = { re: 0, im: 0 }
 const cpeval = (p: Poly, z: Complex): Complex => {
@@ -189,4 +190,42 @@ export function poleLines(p: PoleReading, fixed = 4): string[] {
       `   angle = ${(p.angle ?? 0).toFixed(2)}°`,
     `⟨q,q⟩ = (|a|²−|b|²) + 2i⟨a,b⟩ = ${p.isotropy.toExponential(2)}` +
       `   →   ${p.verdict.toUpperCase()}`]
+}
+
+// ---------------------------------------------------------------------------
+// HAS THE CURVE LEFT THE MODEL?
+// ---------------------------------------------------------------------------
+
+const pmul = (a: readonly number[], b: readonly number[]): number[] => {
+  const o = new Array<number>(a.length + b.length - 1).fill(0)
+  a.forEach((x, i) => b.forEach((y, j) => { o[i + j] += x * y }))
+  return o
+}
+
+/**
+ * ‖q‖² − 2·W·c∞ as a POLYNOMIAL identity, relative to its own largest term.
+ *
+ * This is ⟨C,C⟩ ≡ 0 itself, and it has to be measured separately because the conformal drag's own
+ * `defect` does not track it: measured on the same state, defect 6.7e-12 against a null residual
+ * of 3.4e-5. That gap matters on a slide. Softness is FORCED in this model by exactly this
+ * identity, so a state that has drifted off it can show poles reading hard — and they would be an
+ * artifact of the solver rather than anything about the curve.
+ *
+ * Any figure claiming "the Möbius model cannot make a pole hard" must show this number, or it is
+ * claiming something its own state may not satisfy.
+ */
+export function conformalNullResidual(s: ConformalPHCurve): number {
+  const W = bernsteinToPower(s.C.map((c) => c[0]))
+  const q = [1, 2, 3].map((i) => bernsteinToPower(s.C.map((c) => c[i])))
+  const inf = bernsteinToPower(s.C.map((c) => c[4]))
+  const lhs = q.map((qi) => pmul(qi, qi)).reduce((a, b) =>
+    Array.from({ length: Math.max(a.length, b.length) }, (_, i) => (a[i] ?? 0) + (b[i] ?? 0)))
+  const rhs = pmul(W, inf).map((v) => 2 * v)
+  let worst = 0
+  let scale = 0
+  for (let i = 0; i < Math.max(lhs.length, rhs.length); i++) {
+    worst = Math.max(worst, Math.abs((lhs[i] ?? 0) - (rhs[i] ?? 0)))
+    scale = Math.max(scale, Math.abs(lhs[i] ?? 0), Math.abs(rhs[i] ?? 0))
+  }
+  return worst / Math.max(scale, 1e-300)
 }

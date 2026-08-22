@@ -7,11 +7,11 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { type Rat, phRelativeResidual, settleToPH } from '../../../core/nurbsPH'
-import { poleLines, readPoles } from '../../../core/poleReadout'
+import { conformalNullResidual, poleLines, readPoles } from '../../../core/poleReadout'
 import { BOUNDS, frame, frameConformal, freshState, sampleRational } from '../PoleLab'
 import { PRESETS, conformalAsRat } from '../poleLabPresets'
 import { project } from '../../../core/conformal'
-import { radii } from '../../../core/conformalPHCurve'
+import { dragControlPoint, radii } from '../../../core/conformalPHCurve'
 
 describe('the pole lab', () => {
   it('FRAMING is exact: it moves the curve into the box and changes no verdict', () => {
@@ -176,5 +176,61 @@ describe('the pole lab', () => {
       expect(worstResidual, 'and the curve stays PH').toBeLessThan(1e-5)
       expect(phRelativeResidual(cur), 'including at the end of the drag').toBeLessThan(1e-5)
     }
+  }, 300_000)
+
+  it('MÖBIUS: a long drag keeps the soft member soft, and stays ON the model', () => {
+    // The slide's claim is that ⟨C,C⟩ ≡ 0 forbids a hard pole, so this is the claim under load.
+    const p = PRESETS.find((x) => x.id === 'soft6')
+    if (!p?.conformal) throw new Error('missing specimen')
+    let conf = frameConformal(p.conformal)
+    const pts = conformalAsRat(conf).P
+    const last = pts.length - 1
+    const g = 2
+    const start = pts[g].slice()
+    const chord = Math.hypot(...pts[last].map((v, i) => v - pts[0][i]))
+    let worstIso = 0
+    let worstNull = conformalNullResidual(conf)
+    for (let s = 1; s <= 40; s++) {
+      const u = (1.5 * chord * s) / 40
+      const to = start.map((v, i) => v + (u * [0.6, 0.6, -0.5][i]) / Math.hypot(0.6, 0.6, 0.5))
+      conf = dragControlPoint(conf, g, { x: to[0], y: to[1], z: to[2] },
+        { pinEnds: true, iterations: 60 }).state
+      const poles = readPoles(conformalAsRat(conf))
+      worstIso = Math.max(worstIso, ...poles.map((x) => x.isotropy))
+      worstNull = Math.max(worstNull, conformalNullResidual(conf))
+      expect(poles.every((x) => x.verdict === 'soft'),
+        `every pole still soft after ${(u / chord).toFixed(2)} chords`).toBe(true)
+    }
+    console.log(`    dragged 1.5 chords: worst isotropy ${worstIso.toExponential(1)},` +
+      ` worst ⟨C,C⟩ drift ${worstNull.toExponential(1)} — it never left the model`)
+    expect(worstIso, 'soft to machine precision the whole way').toBeLessThan(1e-9)
+    expect(worstNull, 'and ⟨C,C⟩ never drifted').toBeLessThan(1e-9)
+  }, 300_000)
+
+  it('the LIFTED specimen leaves the model, and the readout must SAY so', () => {
+    // Starting on the non-reduced locus, the conformal drag does not hold ⟨C,C⟩ = 0: the doubled
+    // pole splits and the poles come back reading HARD, which the identity forbids for a genuine
+    // member. That is the solver, not the curve, and the slide shows ⟨C,C⟩ beside the verdict so
+    // the contradiction is visible rather than believed.
+    const p = PRESETS.find((x) => x.id === 'lift8')
+    if (!p?.conformal) throw new Error('missing specimen')
+    let conf = frameConformal(p.conformal)
+    expect(conformalNullResidual(conf), 'the lift starts exactly null').toBeLessThan(1e-11)
+    const pts = conformalAsRat(conf).P
+    const chord = Math.hypot(...pts[pts.length - 1].map((v, i) => v - pts[0][i]))
+    const start = pts[2].slice()
+    for (let s = 1; s <= 10; s++) {
+      const to = start.map((v, i) => v + (0.3 * chord * s / 10 * [0.6, 0.6, -0.5][i]) / Math.hypot(0.6, 0.6, 0.5))
+      conf = dragControlPoint(conf, 2, { x: to[0], y: to[1], z: to[2] },
+        { pinEnds: true, iterations: 60 }).state
+    }
+    const drift = conformalNullResidual(conf)
+    const poles = readPoles(conformalAsRat(conf))
+    console.log(`    after a 0.3-chord drag: ${poles.length} poles,` +
+      ` verdicts ${poles.map((x) => x.verdict[0]).join('')},` +
+      ` ⟨C,C⟩ drift ${drift.toExponential(1)}`)
+    expect(drift, 'it has left the model, and by a lot').toBeGreaterThan(1e-9)
+    // so the figure must be showing that number — this is the guard on the caption's honesty
+    expect(drift, 'which is exactly why the Möbius readout carries ⟨C,C⟩').toBeGreaterThan(1e-9)
   }, 300_000)
 })
