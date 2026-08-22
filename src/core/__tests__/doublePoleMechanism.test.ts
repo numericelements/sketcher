@@ -40,16 +40,16 @@
 //     cannot restore is QUADRATIC convergence, so the expected behaviour is "converges linearly, to
 //     reduced accuracy", not "fails".
 //
-// WHICH CHANGED WHAT TO MEASURE, and the answer came from a different instrument than the one
-// planned. The convergence-rate test — quadratic means δ = 0, linear at ratio 1/2 means δ ≥ 1 — is
-// BLOCKED in double precision at these degrees: the δ = 0 control has condition number 1.4e8, so
-// every regularisation that keeps its 1e-8 direction alive is below what the normal equations can
-// carry, and every variant made the CONTROL converge linearly at 1/2 too. What works instead needs
-// no solver at all: push a member off the variety by t and watch which singular values MOVE (flat =
-// genuine, ∝ t = a zero of the variety, ∝ t² = the universal redundancy). It confirms δ = 0 for the
-// all-hard lift and δ = 1 for the double-pole lift with no threshold in the reading. And the
-// dependent row of step 6 has a projective form that takes two lines rather than six. Both in
-// singularDirectionScaling.test.ts and docs/CONFORMAL_SINGULAR_LOCUS.md §14–15.
+// WHICH CHANGED WHAT TO MEASURE, and the answer arrived from two instruments that disagreed. The
+// convergence-rate test — quadratic means smooth, linear at step ratio 1/2 means singular — was
+// reported blocked while the damped step went through the normal equations (they carry κ², and the
+// specimens run to κ = 1e8). Moré's augmented QR carries κ, and with that the measurement runs:
+// three well-conditioned members converge quadratically, and BOTH degree-6 lifts converge linearly
+// at 0.50. So the double pole is a singular point — and so is the ALL-HARD lift that was serving as
+// the smooth control, which retracts a reading this repository published one commit earlier. A
+// perturbation test cannot see a zero smaller than the state's own offset from the variety, and
+// that is where it was applied. See singularDirectionScaling.test.ts and
+// docs/CONFORMAL_SINGULAR_LOCUS.md §14–16.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { rootsOf } from '../conformalPHHopf'

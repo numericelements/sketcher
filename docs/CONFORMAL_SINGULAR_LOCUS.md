@@ -541,65 +541,88 @@ not, because `N(r) ≠ 0`. Measured on the mixed cubic, at both members of its s
 
 Pinned in `singularDirectionScaling.test.ts`.
 
-## 15. RANK BY PERTURBATION — a reading with no threshold in it
+## 15. RANK BY PERTURBATION, ITS FLOOR, AND THE RATE TEST THAT OVERRULED IT
 
 Every δ in this document was read by counting singular values below a floor, and a settled state is
 never exactly on the variety, so each of those readings was a guess about what the accuracy floor
-hides. There is a better instrument, and it needs no floor: **push the member off the variety by t
-along a fixed direction and watch which singular values move.**
+hides. Two better instruments, and they disagreed — which is how the wrong one was found.
+
+### The perturbation test, and its four signatures
+
+Push the member off the variety by t along a fixed direction and watch which singular values move.
+For a left-null vector u of J₀, `σ_min(J₀ + tJ₁) ≈ |uᵀJ₁v|·t`, so:
 
 ```
-    σ FLAT in t              a genuine small singular value — ILL-CONDITIONING, not deficiency
-    σ ∝ t                    zero ON the variety only — this is what δ counts
-    σ ∝ t² (or 1e-16 flat)   zero EVERYWHERE — the universal redundancy, structural
+    σ FLAT, nonzero      ill-conditioning — NOT a deficiency
+    σ ∝ t                zero ON the variety only — this is what δ counts
+    σ ∝ t²               uᵀJ₁ = 0 too: zero on the variety AND to first order off it
+    σ FLAT at ~1e-16     zero IDENTICALLY, at every point of the ambient space
 ```
 
-The third signature is worth its own line: a relation that holds identically, at every point rather
-than only on the variety, cannot grow to first order when the point leaves the variety. So the
-universal redundancy is visibly a different kind of zero from a δ contribution, which is a
-distinction no threshold can make.
+The fourth row is measured, not assumed: at a state **nowhere near** the variety (residual 1.4e+2)
+this Jacobian's spectrum bottoms out at 3.6e-4 with no zero at all. So the redundancy this document
+has been calling "structural" is **not identical** — it reads ∝ t² (2.0e-15 at t = 1e-7 → 1.4e-13
+at t = 1e-6), which is the third row, not the fourth. An earlier version of §15 had three rows and
+put "structural" on the t² one; the Lean companion caught it in one line — identical means it
+cannot grow at *any* order.
 
-Measured on the matched pair — two cubic sources differing only in whether w has a repeated root,
-both lifted to conformal degree 6:
+**And the test has a floor.** A settled state is itself an offset ε from the exact variety point,
+and along the degenerate direction the residual grows quadratically, so ε ≈ √(residual/c). A true
+zero then reads ≈ ε and stays flat for every t < ε — indistinguishable from a genuine small
+singular value. On the all-hard cubic lift, residual 2.4e-12 with residual ≈ 7.6e5·t² gives
+**ε ≈ 1.8e-9, the same order as the 4e-8 and 7e-9 it was being used to judge.** The instrument is
+sound; it was applied below its own resolution.
+
+### The rate test, unblocked
+
+It was reported blocked because the damped step went through the normal equations, which carry κ².
+The fix is Moré's augmented form, `min ‖[J ; √λ·I]·δ − [r ; 0]‖`, solved by QR — κ, not κ². With
+that one change the measurement runs, and it separates the specimens cleanly:
 
 ```
-    ALL-HARD cubic lift            t = 0     1e-2 5e-3 2e-3 4e-8 7e-9 6e-17
-                                   t = 1e-9  1e-2 5e-3 2e-3 4e-8 7e-9 4e-17
-                                   t = 1e-8  1e-2 5e-3 2e-3 4e-8 7e-9 3e-17
-                                   t = 1e-6  1e-2 5e-3 2e-3 3e-7 6e-9 1e-13
-
-    DOUBLE-pole lift               t = 0     4e-5 4e-8 2e-8 2e-9 2e-13 3e-17
-                                   t = 1e-9  4e-5 4e-8 2e-8 2e-9 8e-10 2e-17
-                                   t = 1e-8  4e-5 1e-7 3e-8 2e-9  2e-9  1e-17
+    soft6      native, degree 6    κ 7.4e3     1e-4 → 2.0e-9  → 3.5e-15     QUADRATIC
+    soft4      native, degree 4    κ 3.2e3     1e-4 → 1.2e-7  → 1.0e-12     QUADRATIC
+    mixedMin   minimal lift        κ 2.8e2     1e-4 → 2.4e-10 → 1.0e-15     QUADRATIC
+    ALL-HARD cubic LIFT            κ 1.4e8     step ratio 0.501             LINEAR at ½
+    DOUBLE-pole LIFT               κ 4.7e12    step ratio 0.470             LINEAR at ½
 ```
 
-The control's 4e-8 and 7e-9 do not move: **genuine, not zeros — δ = 0 confirmed, and the specimen
-is merely ill-conditioned at 1.4e8.** The double-pole lift carries one extra value that moves by
-four orders under a 1e-9 push: **a zero of the variety, δ = 1 confirmed.** Both readings survive
-the threshold-free test, and now they do not depend on the floor that produced them.
+Quadratic convergence exists in this system — three members show it — so the linear tail belongs to
+the specimen and not to the solver. And 0.501 across two and a half decades is Reddien's ½, not a
+stagnation.
 
-### The convergence-rate measurement is BLOCKED, and this is why
+### What that retracts
 
-It was the measurement asked for, and it cannot be run honestly in double precision at these
-degrees. The δ = 0 control has condition number 1.4e8. Any Levenberg λ small enough to keep its
-1e-8 direction alive is below what the normal equations can carry — they square the condition
-number — and the exact truncated pseudo-inverse instead chases that direction and overshoots a
-quartic residual, needing eight to fourteen halvings per step. Every variant we ran made the
-**control** converge linearly at ratio ≈ 1/2, which is a statement about the regularisation and not
-about the curve. Reported as blocked rather than as a result; the predicted 1/2 is untested here.
+**The all-hard cubic lift is not δ = 0.** One commit ago this document read it as a smooth point
+with two genuinely small singular values; the rate says those two are ZEROS. So the **uniform lift
+of an all-hard curve is a singular point of the variety**, and the reason is now the interesting
+question: it is not over-doubling (gcd(w, ‖q‖²) = 1 here, nothing to divide out), not degree
+shortfall (deg w = deg q = 3, the lift is 6/6/6), and not a multiple pole of the curve (all three
+poles are simple). **`δ = Σ(m_p − 1)` predicts 0 for this member and does not survive it.**
 
-The perturbation test above answers the underlying question — is a double pole a singular point of
-the variety? — directly, and with no solver in it at all. Two instruments, two questions: the
-scaling test reads the RANK, the rate test would read the CONSEQUENCE for a solver.
+What δ is there — 2 by counting the two zeros, 3 if it is one per hard pole — is left OPEN, because
+counting singular values is exactly the reading that just failed. The one structural fact available:
+in the conformal model a simple root of W forces the pole soft (null forces the numerator
+isotropic), so **hardness requires a repeated root of W** — every hard-pole member is carried on the
+discriminant locus of its own denominator. Whether that locus is the singular locus is the question
+§16 should now be asking.
 
 ## 16. What would be most useful
 
-A statement of the form
+§15 changed the question. The formula being sought was `4n − 1 − δ(deg w, deg q)`, and the all-hard
+cubic lift refutes it: balanced degrees, coprime gcd, simple poles, and still singular. The sharper
+question is now
 
-```
-    rank of the defining Jacobian at a lifted member  =  4n − 1 − δ(deg w, deg q)
-```
+> In the conformal model a simple root of W forces the pole SOFT, so every HARD pole needs a
+> repeated root of W. **Is the locus {W has a repeated root} the singular locus of the PH conformal
+> variety?**
 
-with δ identified, or a proof that no such formula exists because the rank depends on more than the
-degree profile. Either settles whether the awkward specimen is a curiosity or a whole stratum, and
-that decides whether an editor working in this model has to detect and avoid it.
+If yes, the Möbius model can only carry a hard pole at a singular point, which explains the whole
+history of awkward drags in this document without appealing to degree at all — and it means an
+editor working in this model meets the singular locus whenever the curve is hard, not rarely.
+
+If no, then what distinguishes the all-hard lift (linear at ½) from `mixedMin` and the native
+members (quadratic) is something else, and naming it is the open problem.
+
+The count is a separate question from the mechanism, and after §15 it should stay separate: the
+rate test reads WHETHER a point is singular, not by how much.
