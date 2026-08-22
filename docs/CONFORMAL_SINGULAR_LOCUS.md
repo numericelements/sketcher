@@ -607,9 +607,80 @@ isotropic), so **hardness requires a repeated root of W** — every hard-pole me
 discriminant locus of its own denominator. Whether that locus is the singular locus is the question
 §16 should now be asking.
 
-## 16. What would be most useful
+## 16. TARGETED DEFLATION — helps, is not enough, and must never be left on
 
-§15 changed the question. The formula being sought was `4n − 1 − δ(deg w, deg q)`, and the all-hard
+A singular point costs Newton its quadratic convergence, and the generic repair
+(Leykin–Verschelde–Zhao) finds the null direction by doubling the unknowns. We can skip that,
+because §13 NAMES the degeneracy. At a pole of multiplicity e the speed numerator vanishes to order
+e − 2:
+
+```
+    h(r) = h′(r) = … = h^(e−2)(r) = 0        e − 1 LINEAR conditions, r already known
+```
+
+Checked before use: on the double-pole lift |h(1.5)| reads 7.2e-10 relative, against 2.8e+0 for the
+all-hard control at the same parameter.
+
+```
+    from a starting residual of 1e-4              residual ratio   step ratio
+    double-pole lift, no deflation                    0.404          0.491     linear at ½
+    double-pole lift, + h(1.5) = 0                    0.214          0.425     STILL linear
+    double-pole lift, + h AND h′ (one too many)       0.544          1.230     worse than none
+    all-hard control, + h(1.5) = 0     stalls at 7.6e-5              0.851     DESTROYED
+```
+
+**It helps** — the first step improves fourfold and the sequence sits a decade lower. **It does not
+restore quadratic convergence** — the step ratio stays at ½. **And it destroys a specimen that was
+not degenerate**: at the control t = 1.5 is a simple pole with h(1.5) ≠ 0, so the extra equation is
+inconsistent and the solve stops moving. Deflation restricts the solve to the sublocus {W has a
+repeated root at r} — correct exactly while the degeneracy is intended, wrong the moment the drag
+should leave it. Anything built on it has to switch it with the degeneracy rather than carry it.
+
+### Why one condition is not enough, and it is not the count
+
+The double-pole lift has MORE THAN ONE degeneracy. The all-hard cubic lift — every pole simple, no
+multiple pole anywhere — is itself linear at ½ (§15). Deflating the multiplicity removes the source
+we can name and leaves the one we cannot, so **§17's question is now in the path of the solver
+work**: you cannot deflate a degeneracy you have not identified.
+
+## 17. TWO NULL RESULTS worth keeping
+
+**The weights do not see it.** The obvious check on a rational curve that drags badly is its
+weights, and on the λ-chart lift every weight-based measure says it is the EASIEST specimen in the
+lab:
+
+```
+    preset      weight max/min   Farin beads     min denominator   iterations needed
+    soft4            8.7             —                9.9e-1              80
+    mixedUni         3.5             —                6.3e-1              80
+    lift8g           3.7        0.56 … 0.43           4.3e-1              80
+    lift8            5.9        0.46 … 0.42           9.8e-1             300
+```
+
+Middling weight ratio, Farin beads at 0.42–0.46 (nearly polynomial), and the denominator that stays
+furthest from zero. Three plausible predictors, all blind. The one column that separates it is the
+DEGREE PROFILE: W of true degree 2 inside a degree-8 basis, deg q − deg W = 3, hence a pole of
+multiplicity 3 at ∞.
+
+**"A badly curved neighbourhood" was wrong.** §15 suggested the λ-chart lift stays hard for several
+drag steps because it remains near the singular point. Applying the rate test AT each drag step
+instead of once per specimen refutes the shape of that:
+
+```
+    lift8g   every step 0–6      1e-4 → 1e-10 → 1e-15        QUADRATIC throughout
+    lift8    steps 0–3           1e-4 → 6e-5 → 6e-5 …        STAGNANT, ratio 0.94–0.98
+    lift8    steps 4–6           ratio 0.61–0.68             improving, still not quadratic
+```
+
+Stagnation at 0.94 is not linear-at-½; it is a step that cannot reduce the residual at all, which is
+a different and more severe failure than the classical simple singularity. The obvious explanation
+was checked and ruled out: those states ARE on the variety, at total residual 1e-9 to 1e-11, so the
+stagnation is not a floor inherited from an unconverged state. What it IS remains open.
+
+## 18. What would be most useful
+
+
+§15 changed the question, and §16 made it urgent. The formula being sought was `4n − 1 − δ(deg w, deg q)`, and the all-hard
 cubic lift refutes it: balanced degrees, coprime gcd, simple poles, and still singular. The sharper
 question is now
 
