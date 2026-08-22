@@ -42,6 +42,13 @@ pole is removable.
 Throughout, ⟨u,v⟩ = Σ uⱼvⱼ is the **bilinear** form, extended to complex vectors without
 conjugation. That distinction is the whole subject: over ℂ it has nonzero null vectors.
 
+> **AND IT IS THE MOST EXPENSIVE MISTAKE IN THIS PROJECT — five wrong conclusions so far.** The
+> Hermitian norm |q|² = Σ|qⱼ|² vanishes only when q = 0, which asks whether the pole is FAKE.
+> The bilinear ⟨q,q⟩ = Σqⱼ² asks whether it is SOFT, and can vanish with q nowhere near zero.
+> Measured instance: a specimen with |q(r)| = 9.6e-3 — "comfortably coprime" — had ⟨q(r),q(r)⟩ =
+> 2e-15, a genuinely soft pole, and the Hermitian check declared it absent. If a question contains
+> the words soft, hard, isotropic, or gcd-with-‖q‖², it is bilinear.
+
 ### The standing hypothesis
 
 > **§2–§6 assume W is SQUAREFREE — every pole simple.** §7 and §8 deliberately leave that

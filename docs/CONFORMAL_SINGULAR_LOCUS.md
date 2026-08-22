@@ -266,7 +266,76 @@ the variety at 2.3e-15.
 a = b.** The three mushy rows cannot arbitrate — their sources will not refine further — so the
 open question is now narrow and specific rather than general.
 
-## 10. What would be most useful
+## 10. THE UNIFIED FORMULA — two sources of degeneracy, and they ADD
+
+The a = b failure had a mechanism, and I had checked the wrong quantity to rule it out.
+
+```
+    δ  =  max(0, |deg q − deg w| − 1)  +  deg gcd(w, ‖q‖²)
+          └──── degree shortfall ────┘    └── over-doubling ──┘
+```
+
+### Why the second term exists
+
+If a pole r is soft then ⟨q(r),q(r)⟩ = 0, so (t−r) divides ‖q‖² = c∞. It already divides w, hence
+2wq, and (t−r)² divides 2w². **All three components share the factor** — the doubled lift is
+over-doubled there. And the term is always EVEN: w and ‖q‖² are real, so their gcd is real, and a
+real common root would force q(r) = 0 by three real squares, which primitivity excludes. Only
+conjugate pairs survive, which is why the measurements read 0 and 2 and never 1.
+
+### Measured, ten specimens
+
+```
+    (a,b)   poles                shortfall + over-doubling = δ   MEASURED   gap
+    (2,4)   hard                     1     +     0        = 1        1      2e6    ✓
+    (1,4)   hard                     2     +     0        = 2        2      5e10   ✓
+    (3,4)   hard                     0     +     0        = 0        0      4e8    ✓
+    (4,2)   hard                     1     +     0        = 1        1      2e8    ✓
+    (1,6)   hard                     4     +     0        = 4        4      2e10   ✓
+    (4,4)   ONE SOFT PAIR            0     +     2        = 2        2      5e10   ✓
+    (4,4)   hard  ×3                 0     +     0        = 0        0      1e10   ✓ (one at 4e2 reads 2)
+```
+
+Nine of ten. The single miss is `(t−2)(t−3)(t−4)(t−5)`, whose gap is 4e2 — the least trustworthy
+reading in the set, flagged as mushy before the formula existed.
+
+### THE TRAP, and it is the fifth occurrence in this project
+
+This document previously ruled the mechanism out with "q coprime to w, |q| = 9.6e-3 at the nearest
+root". That is the HERMITIAN norm Σ|qᵢ|², which tests q(r) = 0. **Softness is the BILINEAR form
+Σqᵢ², no conjugation**, and at a complex root the two are entirely different numbers. Measured on
+that very specimen:
+
+```
+    isotropies at the four roots of w:   1e+0   2e-15   2e-15   1e+0
+```
+
+One conjugate pair soft to machine zero, while |q| sat at 9.6e-3 — comfortably nonzero, and blind.
+
+### The practical consequence: lift MINIMALLY
+
+With s = w / gcd(w, ‖q‖²), lift as **(2ws, 2qs, ‖q‖²·s/w)** and h = 2ρs/w. Nullity checks:
+‖2qs‖² = 4s²‖q‖² = 2·(2ws)·(‖q‖²s/w). The factors of two are load-bearing — dropping them gives a
+residual of 7e-2 rather than 2e-14.
+
+Measured on the δ = 2 specimen:
+
+```
+    UNIFORM  (2w², 2wq, ‖q‖²)         n = 8   rank 29 of 32   δ = 2   gap 5e10
+    MINIMAL  (2ws, 2qs, ‖q‖²s/w)      n = 6   rank 23 of 24   δ = 0   gap 4e11
+```
+
+s = w for an all-hard source (full doubling), s = 1 for all-soft (none), in between for mixed. So
+the answer to §9 is not only "avoid imbalanced sources":
+
+```
+    1.  keep |deg q − deg w| ≤ 1        kills the shortfall term
+    2.  lift MINIMALLY, not uniformly   kills the over-doubling term
+```
+
+and then δ = 0 by construction, with no detection needed.
+
+## 11. What would be most useful
 
 A statement of the form
 
