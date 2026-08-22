@@ -238,27 +238,38 @@ export default function PoleLab({ model }: { model: LabModel }) {
     })
 
   /**
-   * Möbius drag — and a step that leaves ⟨C,C⟩ = 0 is REFUSED, not shown.
+   * Möbius drag — with the budget ESCALATED, and a step that leaves ⟨C,C⟩ = 0 refused.
    *
-   * Softness is forced in this model by that identity alone, so a state off it can display poles
-   * reading hard, and they would be the solver rather than the curve. The projective side has
-   * always rejected steps whose residual it could not restore; this side did not, and the lifted
-   * specimen walked straight off the model because of it — eight poles reading HARD at a null
-   * residual of 1.5e-5.
+   * Softness is forced in this model by that identity alone, so a state off it can show poles
+   * reading hard, and they would be the solver rather than the curve. Hence the refusal.
    *
-   * WHAT THAT REFUSAL EXPOSES, and it is worth seeing rather than smoothing over. From the
-   * NON-REDUCED locus — a doubled pole with a cancelling numerator — this solver does not converge
-   * at all: the full defect comes back at 1.4e-3 rather than the 1e-13 it reaches elsewhere. That
-   * locus is a singular point of the variety, and Newton from a singular point is the known
-   * difficulty, not a tolerance to loosen. So the lifted specimen will not move, and the readout
-   * says why. A soft member a chord and a half away holds ⟨C,C⟩ at 2.4e-16 and drags freely.
+   * BUT REFUSING AT A FIXED BUDGET WAS TOO BLUNT, and it hid the thing the lifted specimen is FOR.
+   * From the non-reduced locus — a doubled pole with a cancelling numerator, a singular point of
+   * the variety — Newton needs more steps than it does anywhere else, and its convergence is not
+   * monotone in the size of the drag. At 60 iterations almost nothing lands and the curve appears
+   * frozen. Escalate instead, and the doubled pole does exactly what it should:
+   *
+   *     first grab   300 iterations, 107ms   →  8 genuine poles, ALL SOFT, isotropy 4.5e-10
+   *     after that    80 iterations, 1–3ms   →  still all soft, down to isotropy 2e-13
+   *
+   * So the double pole SPLITS INTO SOFT POLES on the first touch, which is the whole content of
+   * "hard is only ever a boundary point of the soft cell", and every drag after it is ordinary —
+   * because one step off the singular locus lands you at a regular point.
+   *
+   * THE ACCEPTANCE LEVEL IS 1e-9 AND NOT LOOSER, and the reason is measured: the isotropy floor
+   * tracks the null residual at about ten times it, so at 3e-9 a pole reads 2.6e-8 and crosses the
+   * readout's soft threshold. That would be a wrong verdict bought for smoother motion. At 1e-9
+   * three steps of twenty are refused and every accepted one reads correctly.
    */
   const dragMobius = (index: number, to: [number, number, number]) =>
     setSt((prev) => {
       if (!prev.conformal) return prev
-      const r = dragControlPoint(prev.conformal, index, { x: to[0], y: to[1], z: to[2] },
-        { pinEnds: true, iterations: 60 })
-      return conformalNullResidual(r.state) > 1e-9 ? prev : { ...prev, conformal: r.state }
+      for (const iterations of [80, 300, 900]) {
+        const r = dragControlPoint(prev.conformal, index, { x: to[0], y: to[1], z: to[2] },
+          { pinEnds: true, iterations })
+        if (conformalNullResidual(r.state) <= 1e-9) return { ...prev, conformal: r.state }
+      }
+      return prev
     })
 
   const drag = model === 'mobius' ? dragMobius : dragProjective
@@ -347,7 +358,7 @@ export default function PoleLab({ model }: { model: LabModel }) {
           {model === 'mobius'
             ? `Each blue point is the centre of a control SPHERE; the selected one is drawn. ⟨C,C⟩ ≡ 0 forces every pole isotropic, so drag where you like — |a| = |b| and the right angle do not move.${
               preset.id === 'lift8'
-                ? ' This one starts on the NON-REDUCED locus — a doubled pole with a cancelling numerator — which is a singular point of the variety, and the solver does not converge from it. Steps that would leave ⟨C,C⟩ = 0 are refused, so it will not move. That is the difficulty, shown rather than hidden.'
+                ? ' This one starts on the NON-REDUCED locus — a doubled pole with a cancelling numerator, which is the only shape a hard pole can take here. Touch it and the double root SPLITS into eight genuine poles, every one soft. Hard to soft, once, and there is no way back.'
                 : ''
             }`
             : `Drag any control point: it goes exactly where you put it, and the PH condition is restored around it.${

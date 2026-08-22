@@ -207,54 +207,60 @@ describe('the pole lab', () => {
     expect(worstNull, 'and ⟨C,C⟩ never drifted').toBeLessThan(1e-9)
   }, 300_000)
 
-  it('the LIFTED specimen is a SINGULAR point: the raw drag leaves the model, so the figure refuses it', () => {
-    // The non-reduced locus — a doubled pole with a cancelling numerator — is a singular point of
-    // the variety, and Newton does not converge from it. Measured: the full defect comes back at
-    // 1.4e-3 rather than the 1e-13 the solver reaches elsewhere, and the poles then read HARD,
-    // which the identity ‖q‖² = 2·W·c∞ forbids for a genuine member. So the figure refuses any
-    // step that would leave ⟨C,C⟩ = 0, and the specimen does not move.
+  it('the LIFTED doubled pole SPLITS INTO SOFT POLES on the first touch', () => {
+    // This is what the specimen is for, and a fixed iteration budget hid it. The non-reduced locus
+    // is a singular point of the variety, so Newton needs more steps there than anywhere else and
+    // its convergence is not monotone in the size of the drag. Escalating the budget, exactly as
+    // the figure does, and refusing any step that leaves ⟨C,C⟩ = 0:
     //
-    // (An earlier note here blamed `defect` for UNDER-REPORTING the drift by four to seven orders.
-    // That was a bad comparison — absolute Bernstein rows against a relative power-basis measure.
-    // Like for like the two agree, and the solver is honest about failing. It just fails.)
+    //     first grab   300 iterations  →  8 genuine poles, ALL SOFT
+    //     after that    80 iterations  →  still all soft, isotropy down to 2e-13
+    //
+    // One step off the singular locus lands at a regular point, and everything after is ordinary.
     const p = PRESETS.find((x) => x.id === 'lift8')
     if (!p?.conformal) throw new Error('missing specimen')
-    const base = frameConformal(p.conformal)
-    expect(conformalNullResidual(base), 'the lift starts exactly null').toBeLessThan(1e-11)
+    let conf = frameConformal(p.conformal)
+    expect(conformalNullResidual(conf), 'the lift starts exactly null').toBeLessThan(1e-11)
+    const before = readPoles(conformalAsRat(conf))
+    expect(before.every((x) => x.verdict === 'multiple — undefined'),
+      'and starts as a DOUBLED pole, where softness is undefined').toBe(true)
 
-    const pts = conformalAsRat(base).P
+    const pts = conformalAsRat(conf).P
     const chord = Math.hypot(...pts[pts.length - 1].map((v, i) => v - pts[0][i]))
     const start = pts[2].slice()
-    const step = (from: typeof base, s: number) => {
-      const to = start.map((v, i) =>
-        v + (0.3 * chord * s / 10 * [0.6, 0.6, -0.5][i]) / Math.hypot(0.6, 0.6, 0.5))
-      return dragControlPoint(from, 2, { x: to[0], y: to[1], z: to[2] },
-        { pinEnds: true, iterations: 60 }).state
-    }
+    const dir = [0.6, 0.6, -0.5]
+    const dn = Math.hypot(...dir)
 
-    // raw: it walks off the model
-    let raw = base
-    for (let s = 1; s <= 10; s++) raw = step(raw, s)
-    const rawDrift = conformalNullResidual(raw)
-    const rawPoles = readPoles(conformalAsRat(raw))
-    console.log(`    raw drag:     ⟨C,C⟩ drift ${rawDrift.toExponential(1)},` +
-      ` verdicts ${rawPoles.map((x) => x.verdict[0]).join('')}` +
-      ` — hard readings the identity forbids`)
-    expect(rawDrift, 'the unchecked drag leaves the model').toBeGreaterThan(1e-9)
-
-    // the figure's rule: refuse any step that leaves it
-    let held = base
-    for (let s = 1; s <= 10; s++) {
-      const cand = step(held, s)
-      if (conformalNullResidual(cand) <= 1e-9) held = cand
+    let refused = 0
+    let firstBudget = 0
+    let worstIso = 0
+    let worstNull = 0
+    let genuineCount = 0
+    for (let s = 1; s <= 20; s++) {
+      const u = (0.6 * chord * s) / 20
+      const to = start.map((v, i) => v + (u * dir[i]) / dn)
+      let took = 0
+      for (const iterations of [80, 300, 900]) {
+        const r = dragControlPoint(conf, 2, { x: to[0], y: to[1], z: to[2] },
+          { pinEnds: true, iterations })
+        if (conformalNullResidual(r.state) <= 1e-9) { conf = r.state; took = iterations; break }
+      }
+      if (!took) { refused++; continue }
+      if (!firstBudget) firstBudget = took
+      const poles = readPoles(conformalAsRat(conf)).filter((x) => x.numerator > 1e-7)
+      genuineCount = poles.length
+      worstIso = Math.max(worstIso, ...poles.map((x) => x.isotropy))
+      worstNull = Math.max(worstNull, conformalNullResidual(conf))
+      expect(poles.every((x) => x.verdict === 'soft'),
+        `every genuine pole is soft after ${(u / chord).toFixed(2)} chords`).toBe(true)
     }
-    const heldDrift = conformalNullResidual(held)
-    const heldPoles = readPoles(conformalAsRat(held))
-    console.log(`    with refusal: ⟨C,C⟩ drift ${heldDrift.toExponential(1)},` +
-      ` verdicts ${heldPoles.map((x) => x.verdict[0]).join('')}` +
-      ` — it does not move, and that IS the difficulty`)
-    expect(heldDrift, 'the figure stays on the model').toBeLessThan(1e-9)
-    expect(heldPoles.every((x) => x.verdict === 'multiple — undefined'),
-      'so the doubled pole is still a doubled pole').toBe(true)
+    console.log(`    the doubled pole split into ${genuineCount} genuine poles, all soft;` +
+      ` first grab needed ${firstBudget} iterations`)
+    console.log(`    over 0.6 chords: worst isotropy ${worstIso.toExponential(1)},` +
+      ` worst ⟨C,C⟩ ${worstNull.toExponential(1)}, ${refused} of 20 steps refused`)
+    expect(genuineCount, 'the double root split — eight genuine poles where there were none').toBe(8)
+    expect(worstIso, 'and every one of them is soft').toBeLessThan(1e-8)
+    expect(worstNull, 'without ever leaving the model').toBeLessThan(1e-9)
+    expect(refused, 'and most steps are accepted').toBeLessThan(6)
   }, 300_000)
 })
