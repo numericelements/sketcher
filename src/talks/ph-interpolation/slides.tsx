@@ -1,6 +1,6 @@
 // ============================================================================
 // Pythagorean–Hodograph Curves
-//   Solution structure, two representations, and interactive control
+//   Solution structure, representations, and interactive control
 //
 // An interactive monograph for readers who already know PH curves. It does NOT
 // introduce arc length, speed, or the hodograph — the audience teaches those.
@@ -64,7 +64,7 @@ export const slides: SlideDefinition[] = [
     content: (
       <>
         <h1>Pythagorean–Hodograph Curves</h1>
-        <div className="subtitle">Solution structure, two representations, and interactive control</div>
+        <div className="subtitle">Solution structure, representations, and interactive control</div>
         <div className="author">Eric Demers</div>
         <div className="event">Polytechnique Montréal</div>
         {/* Italic because this slot is where cs2026 puts the conference and city, and
