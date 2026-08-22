@@ -60,7 +60,7 @@ import {
 } from '../conformalPHCurve'
 import { type Rat, phRelativeResidual, settleToPH } from '../nurbsPH'
 import { type Vec3, vnorm, vsub } from '../quaternion'
-import { HARD_POLE, hardQuarticMember, liftHardQuarticToConformal, toBern } from './hardQuarticWitness'
+import { HARD_POLE, hardQuarticMember, liftHardQuarticToConformal, toBern } from '../hardQuarticWitness'
 
 const C0: Complex = { re: 0, im: 0 }
 const cpeval = (p: Poly, z: Complex): Complex => {

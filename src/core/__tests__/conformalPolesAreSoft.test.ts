@@ -26,7 +26,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { hodograph, rootsOf, type Poly } from '../conformalPHHopf'
-import { liftHardQuarticToConformal } from './hardQuarticWitness'
+import { liftHardQuarticToConformal } from '../hardQuarticWitness'
 import { type Complex, cadd, cmul, cnorm } from '../complex'
 import {
   type ConformalPHCurve, controlPoints, dragControlPoint, findMember, degreeOf,

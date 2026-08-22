@@ -34,7 +34,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { bernsteinToPower, rootsOf, type Poly } from '../conformalPHHopf'
-import { hardQuarticMember } from './hardQuarticWitness'
+import { hardQuarticMember } from '../hardQuarticWitness'
 import {
   type Rat, analyticJacobian, hodographN, numericJacobian, packRat, phResidual,
   projectiveNormalise, rowNormalise, singularValues, unpackRat,

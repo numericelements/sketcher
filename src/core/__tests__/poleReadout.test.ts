@@ -17,7 +17,7 @@ import { bernsteinMultiply } from '../bernstein'
 import { findMember } from '../conformalPHCurve'
 import { type Rat } from '../nurbsPH'
 import { readPoles, poleLines } from '../poleReadout'
-import { hardQuarticMember, toBern } from './hardQuarticWitness'
+import { hardQuarticMember, toBern } from '../hardQuarticWitness'
 
 const show = (label: string, rat: Rat): ReturnType<typeof readPoles> => {
   const ps = readPoles(rat)

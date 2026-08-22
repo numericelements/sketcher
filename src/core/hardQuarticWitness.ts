@@ -13,14 +13,15 @@
 // and was about to acquire a third. Two copies of a numerical fixture is two curves the day one of
 // them is edited, and the tests would go on agreeing about a specimen they no longer share.
 //
-// NOT a .test.ts file, so vitest does not collect it.
+// It lives in core rather than under __tests__ because the pole lab reads from it too:
+// a talk figure must not import out of a test directory.
 // ============================================================================
-import type { Conformal } from '../conformal'
-import type { ConformalPHCurve } from '../conformalPHCurve'
-import type { Quat } from '../quaternion'
+import type { Conformal } from './conformal'
+import type { ConformalPHCurve } from './conformalPHCurve'
+import type { Quat } from './quaternion'
 import {
   type MultiPoleParams, familyBasis, projectToFamily, toMember, unpackSpinor,
-} from '../rationalPHMultiPoleSpatial'
+} from './rationalPHMultiPoleSpatial'
 
 /** The real pole. */
 export const HARD_POLE = 1.7
