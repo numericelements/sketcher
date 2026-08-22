@@ -335,7 +335,50 @@ the answer to §9 is not only "avoid imbalanced sources":
 
 and then δ = 0 by construction, with no detection needed.
 
-## 11. What would be most useful
+## 11. THE SHORTFALL IS INTRINSIC — reparametrisation does not cure it
+
+The obvious hope, and it fails. `|deg q − deg w|` is a statement about a CHART: a degree-D form
+whose true degree is a has a root of multiplicity D − a at ∞. So a Möbius reparametrisation that
+moves ∞ to a finite parameter should balance the degrees and kill the shortfall term.
+
+It balances them. It does not kill δ.
+
+```
+    λ-chart quartic          deg w   deg q   δ     gap
+    as given                   1       4     2     5e9
+    reparam (1, 0, 0.4, 1)     4       4     2     7e7
+    reparam (1, 0.3, 0.25, 1)  4       4     2     2e8
+    reparam (2, −1, 0.5, 1)    4       4     2     6e10
+```
+
+Three reparametrisations, all landing at a balanced (4,4) where the formula predicts δ = 0, all
+measuring δ = 2 with clean gaps. **What moved was the location of the multiplicity, not its
+existence**: w = (t − 1.7)·s³ as a degree-4 form has a simple root and a TRIPLE root at ∞, and
+after reparametrising the triple root sits at a finite parameter instead.
+
+So the formula's first term is a chart-dependent proxy. The invariant statement is presumably about
+the multiplicity structure of w over ℙ¹ — consistent with every measurement so far:
+
+```
+    (a,b)   mult at ∞   shortfall   measured
+    (3,4)       1           0           0
+    (2,4)       2           1           1
+    (1,4)       3           2           2
+    (4,2)       2 (in q)    1           1
+    (1,6)       5           4           4
+```
+
+each one reading (multiplicity − 1). And a multiple pole is intrinsic to the curve, so **it cannot
+be represented away.**
+
+### Which is what makes the optimizer question real
+
+The over-doubling term is now avoidable by construction — lift minimally (§10). The shortfall term
+is NOT: a curve with a pole of multiplicity m ≥ 2 lands on a singular point of the variety no
+matter how it is written or parametrised. An editor that must accept such curves needs a solver
+that works AT a singular point, not one that avoids them.
+
+## 12. What would be most useful
 
 A statement of the form
 
