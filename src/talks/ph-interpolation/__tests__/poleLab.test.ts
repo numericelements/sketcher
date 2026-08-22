@@ -392,6 +392,14 @@ describe('the pole lab', () => {
         ` tail ${sv.slice(-4).map((v) => (v / sv[0]).toExponential(0)).join(' ')}`)
     }
 
+    // THE GENERIC RANK IS 4n − 1, measured at n = 4, 6 and 8 — one systematic redundancy, the
+    // leading power coefficient of h being pinned by the geometry. So a member at 31 of 32 is at a
+    // SMOOTH point, and one at 29 is not.
+    //
+    // Which refutes the obvious reading, and the one this file first carried: NON-REDUCED DOES NOT
+    // IMPLY SINGULAR. The clean lift is non-reduced — doubled poles, cancelling numerator — and
+    // sits at the generic rank. The doubling is not what costs rank. The degree IMBALANCE is.
+    expect(seen.lift8g.live, 'the clean lift is at the generic rank 4n−1 — a smooth point').toBe(31)
     // the clean one is BALANCED: every component at the full degree
     expect(seen.lift8g.degs.every((d) => d === 8), 'the clean lift is full degree throughout').toBe(true)
     // the awkward one is not: its denominator is degree 2 inside a degree-8 representation
@@ -400,7 +408,9 @@ describe('the pole lab', () => {
     // and that costs rank, which is what a corrector actually feels
     expect(seen.lift8.live, 'so the Jacobian sees fewer directions there')
       .toBeLessThan(seen.lift8g.live)
-    console.log(`    → the clean lift keeps ${seen.lift8g.live} directions, the λ-chart one` +
-      ` ${seen.lift8.live}. The missing ones are why Newton wanders instead of converging.`)
+    expect(seen.lift8.live, 'and the λ-chart lift is two short of it').toBe(29)
+    console.log(`    → generic rank is 4n−1 = 31. The clean lift reaches it (SMOOTH, though` +
+      ` non-reduced); the λ-chart one keeps ${seen.lift8.live}. The missing two are why Newton` +
+      ` wanders there instead of converging. See docs/CONFORMAL_SINGULAR_LOCUS.md.`)
   }, 300_000)
 })
