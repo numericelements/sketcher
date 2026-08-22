@@ -732,7 +732,64 @@ No pattern in the number of real poles, none in the parity of the degree, and κ
 throughout, so conditioning does not sort them either. Some all-hard lifts are singular and some are
 not, and **what separates them is unresolved.** Recorded as unresolved rather than fitted.
 
-## 19. What would be most useful
+## 19. THE EXACT RANK — δ as an integer, with no floor anywhere
+
+Every δ above was fought at a resolution limit: counted below a threshold, read at √residual, or
+classified from a convergence ratio that turned out to be a transient. `core/exactRank` removes the
+floor rather than arguing about it. A rational PH space curve is CONSTRUCTIBLE over ℚ end to end —
+F17's no-log condition `𝒜′(rₖ) = 𝒜(rₖ)(Σₖ + λₖ i)` is linear in the spinor, so with rational roots
+and twists the spinor is rational; `N = 𝒜i𝒜̄` and `σ = |𝒜|²` are then rational and **PH holds by
+substitution rather than by solving**; the lift and every Jacobian entry (binomial ratios times
+rational coefficients) stay rational. The rank comes back as an integer.
+
+The specimens are members *symbolically*: the PH defect `‖N‖² − ρ²` and all sixteen defining
+residual coefficients are **identically zero**, not small. And the exact Jacobian agrees with the
+production one entry by entry to 5.9e-17, so the two instruments validate each other.
+
+```
+    deg w   deg q   lift degree N   EXACT rank   4N − 1 − rank
+      1       2           4             13            2
+      2       2           4             13            2        ← balanced
+      2       3           6             19            4
+      1       4           8             25            6
+      3       4           8             25            6
+      2       5          10             31            8
+      4       5          10             31            8
+
+    rank = 3N + 1 EXACTLY  ⟹  δ = N − 2
+```
+
+48 specimens, 7 distinct degree profiles, every one on the nose. **Independent of the balance, of
+the degree profile, of the number of roots, and of the twist rates** — not a formula in
+(deg w, deg q) at all, but a formula in the lift degree alone. The search for `δ(deg w, deg q)` in
+§12 was looking for the wrong kind of object.
+
+### It is a statement about the LIFTS, not about the variety
+
+The native all-soft members sit at the generic rank: `soft6` reads 23 of 24 at degree 6 where this
+law would say 19, `soft4` reads 15 of 16 where it would say 13. So `δ = N − 2` does not describe the
+conformal PH variety — it describes where the LIFTS sit in it. Every specimen here has real rational
+roots, hence real poles, hence HARD ones, and **the deficiency of a hard lift grows linearly with
+its degree.** That is much stronger than "hard lifts are awkward": at degree 10 it is eight
+directions short.
+
+### The confound, stated
+
+Rational roots are real roots, so every specimen this construction reaches has only real — hence
+hard — poles. Whether `δ = N − 2` survives a conjugate pair needs the same construction over ℚ(i).
+Until that is run, the law is established for real-pole lifts and untested for complex ones.
+
+### What it retires
+
+- **"Some all-hard lifts are singular and some are not, no pattern" (§18).** That split came from
+  classifying floating-point rate sequences, most of which reached the machine floor within two
+  steps and could not be classified at all. Every exact specimen is singular, by a wide margin.
+- **The idea that the deficiency is small.** δ = 1 or 2 was the working assumption behind targeted
+  deflation (§16). At degree 8 it is 6, which is why one deflation condition moved the rate a little
+  and left it linear.
+
+## 20. What would be most useful
+
 
 §15 changed the question, §16 made it urgent, and §18 says the obvious experiment cannot settle it.
 The formula being sought was `4n − 1 − δ(deg w, deg q)`, and the all-hard
