@@ -378,7 +378,71 @@ is NOT: a curve with a pole of multiplicity m ≥ 2 lands on a singular point of
 matter how it is written or parametrised. An editor that must accept such curves needs a solver
 that works AT a singular point, not one that avoids them.
 
-## 12. What would be most useful
+## 12. THE THREE TERMS, SETTLED — two are artifacts, one is intrinsic
+
+Run in dependency order at the Lean companion's suggestion, and it resolves most of the document.
+
+### The invariant form of δ, confirmed
+
+```
+    δ  =  Σ_{p ∈ ℙ¹} ( m_p − 1 )        m_p = multiplicity of p as a pole of the SOURCE
+```
+
+`max(0, |deg q − deg w| − 1)` is that sum evaluated in a chart where all the excess sits at ∞: a
+degree-d form whose true degree is a carries a factor s^{d−a}, so ∞ is a pole of multiplicity
+d − a. Symmetry in (a, b) is forced rather than measured — O(4,1) acts linearly on C so it cannot
+change the Jacobian's rank, and inversion exchanges a pole at ∞ with a zero there.
+
+**The prediction, tested:** a source with a FINITE double pole and balanced degrees should read
+δ = 1, since Σ(m_p − 1) = (2−1) + (1−1).
+
+```
+    w = (t−1.5)²(t−3),  deg w 3,  deg q 3   →   lift n = 6,  rank 22 of 24,  δ = 1
+                                                gap 6e3,  residual 5e-16
+```
+
+Confirmed. The chart-dependent form is retired.
+
+### The shortfall is an artifact of solving in the ELEVATED space
+
+A member with profile W 2, q 5, c∞ 8 is degree 8 only formally. In its true degrees the system is
+smaller: NULL has 11 coefficients rather than 17, PH has 9 rather than 15 — **twelve of the
+equations imposed at uniform degree are vacuous**, and the dependent rows are among them.
+
+Rebuilt in the true profile, 20 equations in 35 unknowns:
+
+```
+    1e+0 8e-1 7e-1 7e-1 7e-1 6e-1 6e-1 5e-1 4e-1 3e-1
+    3e-1 2e-1 2e-1 1e-1 1e-1 9e-2 4e-2 3e-2 3e-3 5e-4
+```
+
+**Full rank, 20 of 20, smallest singular value 4.9e-4 — no zeros, not even the universal one.**
+Against rank 29 of 32 with δ = 2 for the same curve at uniform degree 8.
+
+> So: don't deflate, and don't inflate. Solve in the true degree profile and the shortfall
+> singularity is not there to work at. Elevate for DISPLAY if a uniform degree is wanted, but never
+> to solve.
+
+### A methodological note that cost a wrong reading here
+
+The "rank = position of the largest consecutive gap" heuristic is only valid when a cliff EXISTS.
+On the true-degree spectrum above it returns 18, by picking the biggest ratio in a smooth decay
+where every value is O(1e-4) or larger. Read the gap AND the absolute floor, or the heuristic
+invents a deficiency.
+
+### Where that leaves the three terms
+
+```
+    over-doubling      artifact   →  lift MINIMALLY (§10)                    fixed
+    degree shortfall   artifact   →  solve in TRUE degrees (above)           fixed
+    multiplicity       INTRINSIC  →  survives PGL(2,ℝ) and O(4,1) alike      open
+```
+
+Only a genuinely multiple pole is left, and it is a degenerate curve rather than a shape a user
+drags into by accident. Whether an editor ever has to HOLD one is now the question that decides
+whether a singular-point solver is a requirement or an unused capability.
+
+## 13. What would be most useful
 
 A statement of the form
 
