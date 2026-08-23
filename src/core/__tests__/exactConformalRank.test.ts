@@ -175,4 +175,37 @@ describe('the exact rank of a lifted hard curve', () => {
       expect(ker.length - delta, 'so the true local dimension is the generic one').toBe(2 * N + 6)
     }
   }, 300_000)
+
+  it('ONE doubled pole is free: δ = 2·max(0, m − 1)', () => {
+    // m = the number of DOUBLED poles on ℙ¹. For a lift W = 2w² is a perfect square, so m = N/2
+    // counting multiplicity and counting ∞ — which turns δ = N − 2 into
+    //
+    //     δ  =  2·max(0, m − 1)          two directions per doubled pole, one doubling FREE
+    //
+    // The m = 1 end is what matters for design: a member may keep ONE hard pole and still sit at a
+    // smooth point. Exactly here (though the m = 1 specimen this construction reaches is a straight
+    // line, the thinnest possible witness), and in floating point on mixedMin — degree 4, one
+    // doubled hard pole, two simple soft ones — which reads the generic rank and converges
+    // quadratically.
+    const found = new Map<number, number>()
+    for (const [roots, lambdas, n] of [
+      [[q(2)], [q(0)], 1], [[q(2)], [q(1)], 1], [[q(2), q(3)], [q(1), q(1)], 2],
+    ] as [Q[], Q[], number][]) {
+      for (const pick of [[1, 0, 0, 0], [0, 1, 1, 0], [1, 1, 0, 0], [2, 1, 3, 1]]) {
+        let src
+        try { src = exactMember(roots, lambdas, n, pick) } catch { continue }
+        if (!allZero(phDefectQ(src)) || src.q.every((c) => trueDeg(c) === 0)) continue
+        const lifted = liftExact(src)
+        if (!allZero(definingResidualQ(lifted)) || lifted.degree < 2) continue
+        const N = lifted.degree
+        found.set(N / 2, 4 * N - 1 - rankQ(definingJacobianQ(lifted)))
+      }
+    }
+    for (const [m, delta] of [...found].sort((a, b) => a[0] - b[0])) {
+      console.log(`    m = ${m} doubled pole${m === 1 ? '' : 's'}: δ = ${delta},` +
+        ` 2·max(0, m−1) = ${2 * Math.max(0, m - 1)}`)
+      expect(delta, `m = ${m}`).toBe(2 * Math.max(0, m - 1))
+    }
+    expect(found.has(1), 'the m = 1 case was reached').toBe(true)
+  }, 300_000)
 })
