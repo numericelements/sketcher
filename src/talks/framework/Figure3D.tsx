@@ -223,6 +223,20 @@ export interface Figure3DProps {
   bounds: Bounds3D
   /** Aspect ratio of the canvas — match the SVG figures' base to match their height. */
   base?: BaseSize3D
+  /**
+   * Ceiling on the canvas height, as a percentage of the VIEWPORT height.
+   *
+   * The aspect box below sizes the canvas from its WIDTH, so on a wide window the figure grows
+   * taller in proportion and pushes the readouts, controls and caption off the bottom of the
+   * slide — Eric hit this on both lab slides and had to narrow the window to reach the button.
+   * Capping the height (by capping the width it is derived from) keeps the whole figure, its
+   * numbers and its controls on one screen at any width, and changes nothing on a narrow one,
+   * where the width limit binds first.
+   *
+   * Safe to express in vh because this deck runs reveal at width/height 100% with no transform
+   * scaling (useReveal), so a viewport unit means what it says.
+   */
+  maxHeightVh?: number
   notation?: readonly string[]
   readouts?: readonly { label: string; value: string; tone?: 'ok' | 'warn' | 'plain' }[]
   caption?: ReactNode
@@ -241,6 +255,7 @@ const DEFAULT_BASE: BaseSize3D = { width: 900, height: 420 }
 export default function Figure3D({
   bounds,
   base = DEFAULT_BASE,
+  maxHeightVh = 56,
   notation,
   readouts,
   caption,
@@ -260,27 +275,38 @@ export default function Figure3D({
       )}
 
       {/* Percentage padding-bottom rather than `aspect-ratio`: the site has to run on
-          Safari 15.6 (iPad 6), and this trick works everywhere. */}
+          Safari 15.6 (iPad 6), and this trick works everywhere. The wrapper turns a height
+          ceiling into the width ceiling that produces it — height = width · (h/w), so a
+          maximum height of H vh is a maximum width of H · (w/h) vh. */}
       <div
         style={{
-          position: 'relative',
           width: '100%',
-          paddingBottom: `${(100 * base.height) / base.width}%`,
-          background: FIG.color.background,
-          border: `1px solid ${FIG.color.border}`,
+          maxWidth: `${((maxHeightVh * base.width) / base.height).toFixed(2)}vh`,
+          marginLeft: 'auto',
+          marginRight: 'auto',
         }}
-        className="rounded overflow-hidden touch-none"
       >
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <ControlsContext.Provider value={controlsRef}>
-            <Canvas camera={{ fov: 40, up: [0, 0, 1], near: 0.01, far: 500 }}>
-              <Rig bounds={bounds} />
-              <ambientLight intensity={0.65} />
-              <directionalLight position={[4, -5, 6]} intensity={0.75} />
-              <directionalLight position={[-4, 3, -2]} intensity={0.25} />
-              {children}
-            </Canvas>
-          </ControlsContext.Provider>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            paddingBottom: `${(100 * base.height) / base.width}%`,
+            background: FIG.color.background,
+            border: `1px solid ${FIG.color.border}`,
+          }}
+          className="rounded overflow-hidden touch-none"
+        >
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <ControlsContext.Provider value={controlsRef}>
+              <Canvas camera={{ fov: 40, up: [0, 0, 1], near: 0.01, far: 500 }}>
+                <Rig bounds={bounds} />
+                <ambientLight intensity={0.65} />
+                <directionalLight position={[4, -5, 6]} intensity={0.75} />
+                <directionalLight position={[-4, 3, -2]} intensity={0.25} />
+                {children}
+              </Canvas>
+            </ControlsContext.Provider>
+          </div>
         </div>
       </div>
 
