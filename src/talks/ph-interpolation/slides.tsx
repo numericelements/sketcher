@@ -31,12 +31,19 @@
 //   * 2D where the picture is COMPLETE (a plane region is fully visible);
 //     3D where the phenomenon is genuinely 3D (gauge, frames, torsion, families)
 //
-// CUT TO NINE SLIDES (2026-08-24): the deck now ends at the Möbius pole lab, and everything
-// after it — the rest of section I (spatial counting, the torus, the RMF slides), all of
-// section II, the gap, and "what is open" — is PARKED VERBATIM in ../ph-interpolation-wip/,
-// unlisted, while these nine are refined. Slides graduate back one at a time. Two artifacts of
-// the cut to fix as part of that refinement: the OUTLINE slide still promises section II, and
-// the header above still describes the full arc.
+// CUT AT THE MÖBIUS POLE LAB (2026-08-24): everything after it — the dedicated spatial-cubic and
+// torus slides, the RMF slides, the old section II (spinor chart, Möbius bend, spheres), the gap,
+// and "what is open" — is PARKED VERBATIM in ../ph-interpolation-wip/, unlisted, while this deck
+// is refined. Slides graduate back one at a time, notes and all.
+//
+// THE DECK IS NOW TWO ACTS, TEN SLIDES: title, outline, then
+//   I  — POLYNOMIAL (divider + 3 figures + 1 provenance slide): the count is a property of the
+//        grip, and in space the same grip leaves a family. The spatial grip slide absorbed the
+//        cubic and torus slides on its way in.
+//   II — RATIONAL (divider + the pole pair): one denominator, one new actor — the pole — and the
+//        same curve written two ways: (P, w, ρ), where softness is a property a solver defends,
+//        and ℝ⁴′¹, where the model cannot write a hard pole at all.
+// The outline's map matches this and no longer promises the parked act.
 // ============================================================================
 import type { SlideDefinition } from '../framework/types'
 import ThreePointsFigure from './ThreePointsFigure'
@@ -69,10 +76,12 @@ export const slides: SlideDefinition[] = [
     notes:
       'THE TITLE IS BARE ON PURPOSE, and the subtitle pays for it. "Pythagorean-Hodograph Curves" is '
       + 'the name of the field, so a specialist learns nothing from it -- which is fine only because '
-      + 'every word of the subtitle is earned by a section: SOLUTION STRUCTURE is the counting slides '
-      + '(ten degrees of freedom against nine conditions leaving a curve; fourteen against twelve '
-      + 'leaving a torus), TWO REPRESENTATIONS is the spine of the whole second half, and INTERACTIVE '
-      + 'CONTROL is what you do in both. '
+      + 'every word of the subtitle is earned by a section, and at NINE SLIDES it still is: SOLUTION '
+      + 'STRUCTURE is the grip slides (the count is a property of which points you hold, and in space '
+      + 'the same grip leaves a family), REPRESENTATIONS is the pole pair (the same curve written two '
+      + 'ways, and only one of them can express a hard pole), and INTERACTIVE CONTROL is what every '
+      + 'figure does. The cut to nine (2026-08-24) shrank each word-s referent without emptying any '
+      + 'of them, which is why the subtitle survived the cut unchanged. '
       + 'WHAT THE SUBTITLE USED TO SAY, and why it changed: "solution structure, selection, and '
       + 'interactive motion" named the old five-act plan. Two of its three words had stopped pointing '
       + 'at anything -- nothing in the deck SELECTS among interpolants any more, and "motion" meant '
@@ -81,10 +90,11 @@ export const slides: SlideDefinition[] = [
       + '"INTERACTIVE CONTROL" ECHOES THE OTHER DECK deliberately -- cs2026 is "Interactive Control of '
       + 'Curvature Extrema and Inflections on B-Spline Curves". Read side by side the two titles say '
       + 'one thing about the programme: interactive control over hard constrained curve families. '
-      + 'AND "RATIONAL FRAMES" CAME OFF, because frames hold three slides of twenty-nine and a '
-      + 'co-headline sends a frames specialist to the wrong document. The frame argument itself is not '
-      + 'lost -- it opens section I, where it belongs: |e|^2 = 1 forces the leading coefficient to '
-      + 'vanish, so a moving unit frame can never be polynomial. The polynomial object is the spinor; '
+      + 'AND "RATIONAL FRAMES" CAME OFF, because frames held three slides of twenty-nine and a '
+      + 'co-headline sends a frames specialist to the wrong document. Since the cut the frame slides '
+      + 'are parked in ph-interpolation-wip entirely, so the decision is doubly right. The argument '
+      + 'itself is worth keeping in the pocket: |e|^2 = 1 forces the leading coefficient to vanish, '
+      + 'so a moving unit frame can never be polynomial -- the polynomial object is the spinor, and '
       + 'the frame is rational because normalising by sigma = |A|^2 is a division. '
       + 'WHAT IS DELIBERATELY NOT HERE: the sphere construction. It is the candidate contribution and '
       + 'it is tempting, but RATIONAL_PH_STATE 12.4 says "not found", not "new" -- putting it in the '
@@ -94,9 +104,11 @@ export const slides: SlideDefinition[] = [
   // 2 — THE MAP. The slide someone reads in thirty seconds to know what this is.
   //
   // This deck is circulated BEFORE the discussion, so slide 2 has to do two jobs at once: say what
-  // the object is, and say what is being asked. The table is the whole document in four cells — and
-  // the claim is visible in it, because the bottom-right cell has TWO entries and the second half of
-  // the deck is about why.
+  // the object is, and say what is being asked. Two rows, two acts: the polynomial row is the
+  // counting argument (plane → a count, space → a family), and the rational row names the TWO
+  // WRITINGS the pole pair actually shows. The old four-cell map promised the spinor chart and the
+  // integrate-or-don't dividing line — that whole act is parked in ph-interpolation-wip, and this
+  // slide stopped promising it the day the deck was cut to nine.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -105,14 +117,11 @@ export const slides: SlideDefinition[] = [
         <h2>Outline</h2>
 
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.2em 0 0.45em 0.6em', color: '#475569' }}>
-{`                     plane                        space
+{`   polynomial     plane:  r′ = w²  →  a COUNT        space:  r′ = 𝒜 i 𝒜*,  𝒜 = u + v j  →  a FAMILY
+                  one complex polynomial              two complex polynomials
 
-   polynomial        r′ = w²                      r′ = 𝒜 i 𝒜*,   𝒜 = u + v j
-                     one complex polynomial       two complex polynomials
-
-   rational          n and h free — the dual      integrate:  r′ = 𝒜 i 𝒜* / (poles)²
-                     PH is an IDENTITY            or don't:   ⟨P,P⟩ = 0     — points
-                                                              ⟨P′,P′⟩ = h²  — PH`}
+   rational       x = q/W:  ‖q′W − qW′‖² = ρ²        ℝ⁴′¹:  ⟨P,P⟩ = 0,   ⟨P′,P′⟩ = h²
+                  nothing forces softness             a pole cannot be hard`}
         </div>
 
         <p style={{ fontSize: '0.72em', color: '#64748b', marginTop: '-0.25em', marginBottom: '0.4em' }}>
@@ -124,14 +133,15 @@ export const slides: SlideDefinition[] = [
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.1em 0 0.5em 0.3em', lineHeight: 1.45 }}>
           <div><strong>I &mdash; Polynomial</strong></div>
           <div style={{ color: '#475569' }}>
-            the plane &mdash; how many curves fit the points you hold<br />space<br />rational frame
+            the plane &mdash; the price of PH is a quadratic, so a count<br />
+            the count is a property of WHICH points you hold<br />
+            space &mdash; the same grip leaves a family
           </div>
 
-          <div><strong>II &mdash; Rational, twice</strong></div>
+          <div><strong>II &mdash; Rational</strong></div>
           <div style={{ color: '#475569' }}>
-            the spinor &mdash; integrate, and its chart<br />
-            ℝ⁴′¹ &mdash; never integrate, and its solver<br />
-            where the two do not meet, and what is open
+            (P, w, ρ) &mdash; a pole is soft or hard, and one number decides it<br />
+            ℝ⁴′¹ &mdash; the model that cannot make a pole hard
           </div>
         </div>
 
@@ -150,60 +160,34 @@ export const slides: SlideDefinition[] = [
       + 'first it read correctly but lost the map-as-opening. Small-grey-on-top is the arrangement '
       + 'that gives both. '
       + 'READ THE TOP ROW ACROSS and it says what changes on leaving the plane: ONE complex polynomial '
-      + 'becomes TWO. That is the Hopf form -- A = u + v j -- and it is why the two-valued square root '
-      + 'becomes a CIRCLE of square roots, since (u,v) and (u e^{i theta}, v e^{-i theta}) give the '
-      + 'same hodograph. Note the phases are OPPOSITE in the pair, which is what a common phase in the '
-      + 'quaternion looks like from here. Section I is that sentence. '
+      + 'becomes TWO, and a COUNT becomes a FAMILY. The form is Hopf -- A = u + v j -- and it is why '
+      + 'the two-valued square root becomes a CIRCLE of square roots, since (u,v) and '
+      + '(u e^{i theta}, v e^{-i theta}) give the same hodograph. Note the phases are OPPOSITE in the '
+      + 'pair, which is what a common phase in the quaternion looks like from here. Section I is that '
+      + 'sentence. '
       + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own convention: '
       + 'Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls the complex pair '
       + 'alpha, beta. Ours are their alpha and beta. The line under the equation says "two complex '
-      + 'polynomials" for exactly this reason -- and alpha was not available as a name, being the '
-      + 'closure gauge angle later in section I. If someone reads u and v as two of four reals and '
+      + 'polynomials" for exactly this reason. If someone reads u and v as two of four reals and '
       + 'asks where the other two went, that is the confusion, and it is answered in one sentence. '
-      + 'READ THE BOTTOM ROW ACROSS and it says what BREAKS. In the plane, Pottmann-s dual makes '
-      + 'rational PH an IDENTITY -- |n-prime|^2 = 4 u-prime^2 / delta^2 is a perfect square for every '
-      + 'u, so n and h are free and there is nothing to solve. In space no representation does that. '
-      + 'PH is still free, but the INTEGRAL must stay rational and that binds A pole by pole. '
-      + 'EXACTLY ONE CELL BINDS. That is the thesis, and the table is left to say it. An earlier '
-      + 'version spelled it out underneath -- "leaving the plane does not make PH harder, it makes '
-      + 'rationality stop being free" -- and it was cut: a specialist would rather reach that from the '
-      + 'table than be told it, and a paragraph of interpretation under a clean table reads as if the '
-      + 'table could not stand on its own. Say it OUT LOUD instead, if the room needs it. '
-      + 'WHAT WENT WITH IT, and where it went: the line "half a dozen ways to pay for that, this deck '
-      + 'follows two". That was doing a real job -- pre-empting the specialist who spends twenty '
-      + 'minutes wondering whether Pottmann has been heard of. It belongs at the head of section II as '
-      + 'its own slide, where the alternatives can be SHOWN rather than asserted. Until that slide '
-      + 'exists, say the sentence aloud here. '
-      + 'THE DENOMINATOR IS WRITTEN "(poles)" ON PURPOSE. The planar generator is w and the spatial '
-      + 'denominator is also w in our own documents -- two different objects, one letter, and on this '
-      + 'table they would sit side by side. Alpha is taken (the closure gauge angle in section I), so '
-      + 'the honest fix is the word. Section II says it with the letter and labels it there. '
-      + 'AN EARLIER VERSION OF THIS SLIDE PUT x = C A^{-1} in the bottom-right cell -- the H P^1 '
-      + 'column from core/sp11RationalPH. It is a real object and Moebius is linear on it, but the '
-      + 'deck never teaches it, so the outline was promising a representation that no slide delivers. '
-      + 'Corrected. If the sigma = 0 work makes the column load-bearing it earns slides and the title '
-      + 'honestly becomes three representations; until then it stays in the repo. '
-      + 'THE FOURTH THING IS NOT A CELL, and say it that way: the conformal model is not another '
-      + 'hodograph form, it is a refusal to integrate. That is the real dividing line of section II. '
-      + 'THE SECTIONS map onto the things worth separating: 2D polynomial, 3D polynomial, the '
-      + 'rational frame; then the two ways to build a rational PH curve, and where they fail to meet. '
-      + 'THE GESTURE LINE UNDER THE TABLE is the deck-s spine and is worth reading aloud. Each cell '
-      + 'of the table can be shown twice: hold the maximum number of control points and the answer is '
-      + 'a COUNT (strict), or hold one and 2K spare degrees of freedom are spent by minimum-norm '
-      + '(free). Only the top-left cell has that figure today; the other three are the plan, which is '
-      + 'why the outline does not promise them. '
+      + 'READ THE BOTTOM ROW ACROSS and it is the pole pair in one line: the SAME curve written two '
+      + 'ways. In (P, w, rho) the PH condition is imposed and nothing forces the numerator isotropic '
+      + 'at a root of W, so a pole is soft or hard and dragging moves it between them. In R^{4,1} '
+      + 'the null identity <P,P> = 0 evaluated at a root of W forces <q,q> = 0 with no reference to '
+      + 'PH at all -- softness is not maintained, it is UNSAYABLE otherwise. Two writings, one '
+      + 'geometric fact each: that is what "representations" in the subtitle now points at. '
+      + 'WHAT THIS SLIDE NO LONGER PROMISES, and where it went (2026-08-24). The old four-cell map '
+      + 'carried the spinor chart (integrate, and kill a logarithm at every pole), Pottmann-s planar '
+      + 'dual, and the integrate-or-don-t dividing line -- the whole second act. That act is parked '
+      + 'VERBATIM in ph-interpolation-wip, notes included, and this outline stopped promising it the '
+      + 'day the deck was cut to nine slides. When those slides graduate back, their rows return '
+      + 'here with them; the git history has the old table if the wording is wanted. '
+      + 'THE GESTURE LINE UNDER THE MAP is the deck-s spine and is worth reading aloud. Each cell '
+      + 'can be shown twice: hold the maximum number of control points and the answer is a COUNT '
+      + '(strict), or hold one and the spare degrees of freedom are spent by minimum-norm (free). '
+      + 'The planar and spatial grip slides show exactly that toggle; the pole lab is the same '
+      + 'gesture with a solver holding the model instead of a count. '
       + 'THE AIM LINE AT THE BOTTOM is the reason the deck exists and was previously left implicit. '
-      + 'Section I already ends on what locality costs, so the deck arrives there either way — this '
-      + 'says it at the start instead. '
-      + 'III WAS FOLDED INTO II rather than deleted: "where the two do not meet, and what is open" is '
-      + 'the last line of section II. The two slides still exist in the deck. If they stay a separate '
-      + 'act, restore the third row. '
-      + 'THE PROMISE PARAGRAPH IS GONE, and it was made redundant rather than dropped. It said the '
-      + 'document is circulated for discussion (the title slide says that), that sources are named and '
-      + 'measurements carry their numbers (the slides do that where it matters, and saying so in '
-      + 'advance is weaker than doing it), and that the open questions are collected at the end -- '
-      + 'which the section list now SHOWS, since III ends on "what is open". A promise the structure '
-      + 'already keeps does not need making. '
       + 'THE DISCIPLINE STILL HOLDS on every slide: named sources for what is known, an honest label '
       + 'for what is ours and how far, a number with the test that holds it for what is measured, and '
       + 'the open questions collected rather than softened along the way.',
@@ -248,8 +232,10 @@ in space    the same forms over ℍ      a family, not a count
       + 'THE TWO EXPONENTS ARE THE SAME MINUS ONE, and it is the gauge both times: in the plane divide '
       + '2^k by the two-element group w ~ -w; in space quotient by the circle. Same exponent, '
       + 'different group. Measured at both values: k = 2 gives two planar interpolants and, in space, '
-      + 'the fibre is the circle Z0 exp(phi i) -- slide 7 has the closed form. k = 3 gives four, and a '
-      + 'TORUS with one dial per end (phi_0, phi_2) -- slide 8. '
+      + 'the fibre is the circle Z0 exp(phi i) -- the spatial grip slide tours it at degree 3. k = 3 '
+      + 'gives four, and a TORUS with one dial per end (phi_0, phi_2) -- the same slide-s degree-5 '
+      + 'ends-held grip, whose two dials ARE those angles. (The dedicated cubic and torus slides are '
+      + 'parked in ph-interpolation-wip; the grip slide subsumed both.) '
       + '2^{k-1} IS A DERIVATION, NOT A PATTERN, and this is the argument to give if pressed. '
       + 'Substitute w_j = w_0 r_j with r_0 = 1. Every condition is quadratic in w, so it becomes '
       + 'w_0^2 Q_j(r) = b_j; divide each by the first and w_0^2 CANCELS, leaving k-1 quadratics in the '
@@ -264,7 +250,8 @@ in space    the same forms over ℍ      a family, not a count
       + 'THE SPACE ROW CARRIES NO FORMULA, AND THAT IS DELIBERATE -- an earlier version said T^{k-1} '
       + 'and it was WRONG. Two reasons, both worth knowing so it is not re-derived. '
       + 'FIRST, THE DIMENSION DEPENDS ON THE DATA, not on k alone. With k+1 POINTS the surplus really '
-      + 'is k-1 (slide 7: ten degrees of freedom, nine conditions, a curve). With C1 HERMITE the nine '
+      + 'is k-1 (ten degrees of freedom, nine conditions, a curve -- the grip slide-s degree-3 tour). '
+      + 'With C1 HERMITE the nine '
       + 'conditions do NOT grow with k, so the surplus is 4k - 10. MEASURED, in '
       + 'spatialHermiteFamilyDimension.test.ts: '
       + 'k=3 degree 5, rank 9 of 9, family 2 (the torus); k=4 degree 7, family SIX where k-1 predicts '
@@ -311,18 +298,20 @@ in space    the same forms over ℍ      a family, not a count
       + 'The arithmetic: planar quintic 8 DOF against 8 conditions, square, so a count; spatial quintic '
       + '14 against 12, so a two-parameter family. The 14 is ALREADY gauge-reduced (15 raw, less the '
       + 'circle), so the circle SHRINKS the family from three to two rather than creating it. The '
-      + 'family comes from the system being UNDERDETERMINED. Slide 8-s note still reads as causal and '
-      + 'should be corrected when that slide is next touched. '
+      + 'family comes from the system being UNDERDETERMINED. The parked torus slide-s note still '
+      + 'reads as causal and should be corrected if that slide graduates back from '
+      + 'ph-interpolation-wip. '
       + 'WHAT THIS SLIDE USED TO SAY, so it is not restored by accident: "the square becomes a sandwich '
       + 'and the square root becomes a circle of square roots", and "|e|^2 = 1 forces the leading '
       + 'coefficient to vanish, so a moving unit frame can never be polynomial". Both were shaped to '
-      + 'sound good rather than to be checked. The frame argument is not lost -- slide 10 makes the '
-      + 'positive version at the point of use: the frame is A k A* over sigma, and RATIONAL because '
-      + 'sigma = |A|^2 is a polynomial. Say it there, not here.',
+      + 'sound good rather than to be checked. The frame argument is not lost -- the parked '
+      + 'Moebius-bend slide makes the positive version at the point of use (the frame is A k A* over '
+      + 'sigma, RATIONAL because sigma = |A|^2 is a polynomial), and until it graduates back the '
+      + 'title notes keep the pocket version. Say it there, not here.',
   },
 
   // ---------------------------------------------------------------------------
-  // 3 — the price of PH, stated as a dimension count
+  // 4 — the price of PH, stated as a dimension count
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -345,7 +334,7 @@ in space    the same forms over ℍ      a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // 3b — the count is not a property of the FAMILY, it is a property of your GRIP
+  // 5 — the count is not a property of the FAMILY, it is a property of your GRIP
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -378,7 +367,7 @@ in space    the same forms over ℍ      a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // 3c — what is published, what we add, and the one equation under both
+  // 6 — what is published, what we add, and the one equation under both
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -476,8 +465,13 @@ in space    the same forms over ℍ      a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // 3d — DRAFT, placed for testing. The same grip in space. If it holds up it replaces the
-  //      spatial-cubic slide below, which it subsumes: {P₀,P₁,P₃} at degree 3 IS that slide.
+  // 7 — THE spatial slide. The same grip, one geometry up: the count becomes a family.
+  //
+  // PROMOTED FROM DRAFT (2026-08-24). It entered as "placed for testing — if it holds up it
+  // replaces the spatial-cubic slide below", and the cut to nine forced the verdict: the cubic and
+  // torus slides it subsumed are parked in ph-interpolation-wip, and this is section I's closing
+  // argument. {P₀,P₁,P₃} at degree 3 IS the old cubic slide, toured the same way; degree 5
+  // ends-held IS the torus grip, its two dials the Hopf angles.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -506,22 +500,81 @@ in space    the same forms over ℍ      a family, not a count
       'strong evidence over 8000 walk samples, except at {P0,P1,P4,P5} where the closed form settles ' +
       'it. So "ends held" opens on a good grip at every degree: {P0,P1,P3}, {P0,P1,P4,P5}, ' +
       '{P0,P1,P3,P6,P7}. ' +
-      'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse with the cubic slide\'s ' +
-      'own continuation, so the dial wraps and the grey loop is the whole fibre. Degree 5 ends-held ' +
-      'IS the quintic Hermite grip — the next-but-one slide\'s grip, the same four points — so both ' +
-      'dials are the Hopf angles phi0 and phi2, they wrap, and the loci close to 1e-16. Degree 7 has ' +
-      'no closed form, so its dials are chart coordinates and the loci are drawn as the ARCS they ' +
-      'reach. Nothing claims a circle where there is not one. ' +
-      'PLACED FOR TESTING, not yet wired into the argument. If it holds up it should REPLACE the ' +
-      'spatial-cubic slide that follows, which it now contains outright: {P0,P1,P3} at degree 3 is ' +
-      'that slide, toured the same way. The spatial-quintic torus after it is a harder call than it ' +
-      'was — this figure reproduces its grip, its two angular dials and its closed loci — so what ' +
-      'that slide still owns alone is the alpha/beta CHANGE OF BASIS and the arc-length invariant, ' +
-      'which is its actual lesson.',
+      'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse with the parked cubic ' +
+      'slide\'s own continuation, so the dial wraps and the grey loop is the whole fibre. Degree 5 ' +
+      'ends-held IS the quintic Hermite grip, so both dials are the Hopf angles phi0 and phi2, they ' +
+      'wrap, and the loci close to 1e-16. Degree 7 has no closed form, so its dials are chart ' +
+      'coordinates and the loci are drawn as the ARCS they reach. Nothing claims a circle where ' +
+      'there is not one. ' +
+      'THIS SLIDE ABSORBED TWO OTHERS, and the ledger should be said if a specialist asks where ' +
+      'they went. The spatial-cubic slide ({P0,P1,P3}: ten degrees of freedom, nine conditions, the ' +
+      'tenth a curve) is the degree-3 tour here; the quintic-Hermite torus slide is the degree-5 ' +
+      'ends-held grip, same four points, same two angles. Both parked slides live in ' +
+      'ph-interpolation-wip, and what the torus slide still owns alone — the alpha/beta CHANGE OF ' +
+      'BASIS and the arc-length-depends-on-beta invariant — goes with it. If that lesson is wanted ' +
+      'back, it graduates as its own slide rather than being folded in here.',
   },
 
   // ---------------------------------------------------------------------------
-  // 8 / 9 — THE POLE LAB. Two slides, one instrument, and the number beside the verdict.
+  // SECTION II — RATIONAL. One denominator, one new actor, two writings.
+  //
+  // The pole pair had no act header after the cut: everything through the spatial grip slide is
+  // polynomial, and slide 9 opened cold on x = q/W. This divider does for the rational act what
+  // the section-I divider does for counting — one equation, one consequence, and the rows are the
+  // slides that follow. (The OLD section-II divider — "Rational, twice", integrate or don't — is
+  // parked with its act in ph-interpolation-wip; this one promises only what the pole pair shows.)
+  // ---------------------------------------------------------------------------
+  {
+    type: 'title',
+    content: (
+      <>
+        <h1>II &mdash; Rational</h1>
+        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
+{`x = q/W          ‖q′W − qW′‖² = ρ²           the same PH, one denominator later
+
+W(r) = 0         a POLE, and N(r) = −q(r)·W′(r)
+                 soft  ⟺  ⟨q(r), q(r)⟩ = 0
+
+two writings     (P, w, ρ)                   nothing forces softness
+                 ⟨P,P⟩ = 0,  ⟨P′,P′⟩ = h²    softness is an identity`}
+        </div>
+      </>
+    ),
+    notes:
+      'ONE DENOMINATOR, ONE NEW ACTOR. The PH condition barely changes on becoming rational: '
+      + 'x = q/W gives x-prime = N/W^2 with N = q-prime W - q W-prime, and PH still says "a perfect '
+      + 'square" -- ||N||^2 = rho^2, the same demand one denominator later. What is genuinely new is '
+      + 'the root of W: the curve has a POLE there, and the whole act is about what happens to the '
+      + 'SPEED at one. This deck does not argue what rationality BUYS (exact arc lengths, circles, '
+      + 'the Moebius orbit) -- that argument belongs to the parked second half; here rationality is '
+      + 'taken and the pole is studied. '
+      + 'THE MIDDLE ROW IS TWO LINES OF ALGEBRA, and it is worth doing them aloud once, here, so the '
+      + 'lab slides can just point. At a SIMPLE root r of W the q-prime W term of N dies, so '
+      + 'N(r) = -q(r) W-prime(r); substitute into ||N||^2 = rho^2 and '
+      + 'rho(r)^2 = <q(r),q(r)> * W-prime(r)^2. So the speed numerator survives the pole exactly '
+      + 'when <q(r),q(r)> = 0 -- SOFT -- and that single number is the act-s protagonist. '
+      + 'SAY BILINEAR, NOT HERMITIAN, because at a complex pole the temptation is |q|^2. The form '
+      + 'is <q,q> = sum q_i^2, complex BILINEAR: with q = a + i b it reads '
+      + '(|a|^2 - |b|^2) + 2i<a,b>, so soft is |a| = |b| AND a perpendicular to b -- two vectors of '
+      + 'equal length at right angles, which is what the readout draws. |q|^2 = 0 would force '
+      + 'q(r) = 0 outright, a different and wrong condition. '
+      + 'THE THIRD ROW IS THE EXPERIMENT DESIGN, and it should be announced as one: the SAME '
+      + 'specimens, written two ways, and the only thing that changes between the two slides is '
+      + 'what a DRAG is allowed to do. In (P, w, rho) the PH condition is restored around your '
+      + 'gesture and nothing protects <q,q> at the poles -- watch |a| and |b| come apart. In '
+      + 'R^{4,1}, <P,P> = 0 evaluated at a root of W forces <q,q> = 0 identically, so softness '
+      + 'cannot break because the model cannot write the broken state. A property maintained by a '
+      + 'solver versus a property carried by the representation -- that is the pair, and it is the '
+      + 'deck-s "two representations" claim at its smallest. '
+      + 'PROVENANCE, so the claim discipline holds at the act boundary too: the (P, w, rho) side is '
+      + 'the standard rational Bezier data with PH imposed coefficient by coefficient; the R^{4,1} '
+      + 'side is the conformal construction whose weighted-sphere control polygon has NO search '
+      + 'hits so far -- "not found", not "new", and Choi, Lee & Moon is the paper to read before '
+      + 'anyone says otherwise.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 9 / 10 — THE POLE LAB. Two slides, one instrument, and the number beside the verdict.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
