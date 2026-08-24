@@ -427,34 +427,34 @@ in space    the same forms over ℍ      a family, not a count
 
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.68em', whiteSpace: 'pre', lineHeight: 1.55, color: '#475569', margin: '0.3em 0 0 0.2em' }}>
 {`    c′ = w²          w has K complex coefficients, and every leg is a quadratic form in them.
-                     Holding K+1 control points inverts a quadratic map: Bézout 2^K, halved
-                     by the gauge w ↦ −w.
+                     K quadratic equations in w's K coefficients: Bézout 2^K solutions, in
+                     pairs {w, −w} that draw the same curve — so at most 2^(K−1) curves.
 
 
-    KNOWN     whether a complete polygon is PH, as a condition on legs and angles
-                  Zheng, Wang & Yang, "On control polygons of Pythagorean hodograph septic
-                  curves", JCAM 296 (2016) 212–227
+    PUBLISHED   whether a complete polygon is PH, as a condition on legs and angles
+                    Zheng, Wang & Yang, "On control polygons of Pythagorean hodograph septic
+                    curves", JCAM 296 (2016) 212–227
 
-              two of five legs, ends held  →  two or four curves
-                  Farouki, Pelosi & Sampoli, "Construction of planar quintic Pythagorean-hodograph
-                  curves by control-polygon constraints", CAGD 103 (2023) 102192
+                two of five legs, ends held  →  two or four curves
+                    Farouki, Pelosi & Sampoli, "Construction of planar quintic Pythagorean-hodograph
+                    curves by control-polygon constraints", CAGD 103 (2023) 102192
 
-              The first defines the variety. The second counts one of its slices.
+                The first defines the variety. The second counts one of its slices.
 
-    OURS      any K+1 of the 2K control points, swept by homotopy continuation
-              →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
+    COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
+                →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
 
-                    degree 3    1→2  2→2
-                    degree 5    1→4  2→3  3→4  4→4
-                    degree 7    1→6  2→8  3→4  4→10  5→8  6→8  7→4  8→8
+                      degree 3    1→2  2→2
+                      degree 5    1→4  2→3  3→4  4→4
+                      degree 7    1→6  2→8  3→4  4→10  5→8  6→8  7→4  8→8
 
-              2^(K−1) requires both ends held, and holding both ends gives an even count.
-              The count is 1 for K in a row from an end plus one more that is not the far
-              end: there the equations are a square root and then divisions, so single-valued.
+                2^(K−1) requires both ends held, and holding both ends gives an even count.
+                The count is 1 for K in a row from an end plus one more that is not the far
+                end: there the equations are a square root and then divisions, so single-valued.
 
 
-    OPEN      deg 𝒱 = 2^(K−1)     the count is the degree of the PH variety,
-                                  and a grip is a linear slice of it.`}
+    OPEN        deg 𝒱 = 2^(K−1)     the count is the degree of the PH variety,
+                                    and holding control points slices it linearly.`}
         </div>
 
         <p style={{ fontSize: '0.62em', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
@@ -466,9 +466,16 @@ in space    the same forms over ℍ      a family, not a count
     ),
     notes:
       'THE CLOSING SLIDE, moved to the end (Eric, 2026-08-24): it explains what the room has ' +
-      'just FELT across all three figures, states what is published against what is ours, and ' +
-      'ends on the open question -- which is what the discussion is for. Leave it up and stop ' +
-      'talking. ' +
+      'just FELT across all three figures, states what is PUBLISHED against what was COMPUTED ' +
+      'here, and ends on the open question -- which is what the discussion is for. Leave it up ' +
+      'and stop talking. ' +
+      'THE LABELS ARE PUBLISHED / COMPUTED / OPEN (Eric, 2026-08-24; they were KNOWN / OURS): ' +
+      '"computed" is a status a reader can check -- swept by homotopy, certified path by path -- ' +
+      'where "ours" was a claim of ownership, and the deck-s register is fact. "Not found in the ' +
+      'literature" stays SPOKEN, not printed. The Bezout line was also expanded to carry its own ' +
+      'argument: K quadratic equations, 2^K solutions in {w, -w} pairs drawing the same curve, at ' +
+      'most 2^(K-1) curves -- an upper bound, and the table below it is what the ceiling actually ' +
+      'yields grip by grip (roots lost to infinity are generators blowing up, not curves). ' +
       'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
       'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
       'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
