@@ -377,9 +377,12 @@ in space    the same forms over ℍ      a family, not a count
 
 
     KNOWN     whether a complete polygon is PH, as a condition on legs and angles
-                                        Zheng, Wang & Yang, JCAM 296 (2016) 212–227   (septic)
+                  Zheng, Wang & Yang, "On control polygons of Pythagorean hodograph septic
+                  curves", JCAM 296 (2016) 212–227
+
               two of five legs, ends held  →  two or four curves
-                                        Farouki, Pelosi & Sampoli, CAGD 103 (2023) 102192  (quintic)
+                  Farouki, Pelosi & Sampoli, "Construction of planar quintic Pythagorean-hodograph
+                  curves by control-polygon constraints", CAGD 103 (2023) 102192
 
               The first defines the variety. The second counts one of its slices.
 
