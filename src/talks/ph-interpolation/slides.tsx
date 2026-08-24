@@ -117,11 +117,11 @@ export const slides: SlideDefinition[] = [
         <h2>Outline</h2>
 
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.2em 0 0.45em 0.6em', color: '#475569' }}>
-{`   polynomial     plane:  r′ = w²  →  a COUNT        space:  r′ = 𝒜 i 𝒜*,  𝒜 = u + v j  →  a FAMILY
+{`   polynomial     plane:  r′ = w²                    space:  r′ = 𝒜 i 𝒜*,   𝒜 = u + v j
                   one complex polynomial              two complex polynomials
 
-   rational       x = q/W:  ‖q′W − qW′‖² = ρ²        ℝ⁴′¹:  ⟨P,P⟩ = 0,   ⟨P′,P′⟩ = h²
-                  nothing forces softness             a pole cannot be hard`}
+   rational       projective:  x = q/W                Möbius:  ⟨P,P⟩ = 0,   ⟨P′,P′⟩ = h²
+                  ‖q′W − qW′‖² = ρ²                   the curve written in ℝ⁴′¹`}
         </div>
 
         <p style={{ fontSize: '0.72em', color: '#64748b', marginTop: '-0.25em', marginBottom: '0.4em' }}>
@@ -132,17 +132,10 @@ export const slides: SlideDefinition[] = [
 
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.1em 0 0.5em 0.3em', lineHeight: 1.45 }}>
           <div><strong>I &mdash; Polynomial</strong></div>
-          <div style={{ color: '#475569' }}>
-            the plane &mdash; the price of PH is a quadratic, so a count<br />
-            the count is a property of WHICH points you hold<br />
-            space &mdash; the same grip leaves a family
-          </div>
+          <div style={{ color: '#475569' }}>the plane, then space</div>
 
           <div><strong>II &mdash; Rational</strong></div>
-          <div style={{ color: '#475569' }}>
-            (P, w, ρ) &mdash; a pole is soft or hard, and one number decides it<br />
-            ℝ⁴′¹ &mdash; the model that cannot make a pole hard
-          </div>
+          <div style={{ color: '#475569' }}>the projective and the M&ouml;bius model</div>
         </div>
 
         <p style={{ fontSize: '0.72em', color: '#64748b', margin: '0 0 0.4em 0.3em' }}>
@@ -171,11 +164,18 @@ export const slides: SlideDefinition[] = [
       + 'polynomials" for exactly this reason. If someone reads u and v as two of four reals and '
       + 'asks where the other two went, that is the confusion, and it is answered in one sentence. '
       + 'READ THE BOTTOM ROW ACROSS and it is the pole pair in one line: the SAME curve written two '
-      + 'ways. In (P, w, rho) the PH condition is imposed and nothing forces the numerator isotropic '
-      + 'at a root of W, so a pole is soft or hard and dragging moves it between them. In R^{4,1} '
-      + 'the null identity <P,P> = 0 evaluated at a root of W forces <q,q> = 0 with no reference to '
-      + 'PH at all -- softness is not maintained, it is UNSAYABLE otherwise. Two writings, one '
-      + 'geometric fact each: that is what "representations" in the subtitle now points at. '
+      + 'ways. In the projective model (P, w, rho) the PH condition is imposed and nothing forces '
+      + 'the numerator isotropic at a root of W, so a pole is soft or hard and dragging moves it '
+      + 'between them. In the Moebius model the null identity <P,P> = 0 evaluated at a root of W '
+      + 'forces <q,q> = 0 with no reference to PH at all -- softness is not maintained, it is '
+      + 'UNSAYABLE otherwise. Two writings, one geometric fact each: that is what "representations" '
+      + 'in the subtitle now points at. '
+      + 'SIMPLIFIED 2026-08-24 (Eric): the map carries the equations and the model names ONLY. The '
+      + 'conclusions that used to be printed beside them -- "a count", "a family", "nothing forces '
+      + 'softness", "a pole cannot be hard" -- are the slides-own job to prove, and printing a slide-s '
+      + 'conclusion on the outline spends it early and clutters the map. Say them aloud here if the '
+      + 'room wants the preview; the section list underneath went to one line per act for the same '
+      + 'reason. '
       + 'WHAT THIS SLIDE NO LONGER PROMISES, and where it went (2026-08-24). The old four-cell map '
       + 'carried the spinor chart (integrate, and kill a logarithm at every pole), Pottmann-s planar '
       + 'dual, and the integrate-or-don-t dividing line -- the whole second act. That act is parked '
@@ -201,20 +201,28 @@ export const slides: SlideDefinition[] = [
       <>
         <h1>I &mdash; Polynomial</h1>
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
-{`Bézier      A x = b                    one
+{`hold the data, and count the CURVES through it
 
-PH          xᵀ Qⱼ x = bⱼ               2ᵏ⁻¹      points on the curve
-                                       1 … 2ᵏ⁻¹  control points
+Bézier      A x = b                    one curve
+
+PH          xᵀ Qⱼ x = bⱼ               k+1 points on the curve   →   2ᵏ⁻¹ curves
+                                       k+1 control points        →   1 … 2ᵏ⁻¹ curves
 
 in space    the same forms over ℍ      a family, not a count
 
-                                       k = deg 𝒜 + 1`}
+                                       k = the generator's number of coefficients`}
         </div>
       </>
     ),
     notes:
       'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
+      + 'THE RIGHT COLUMN COUNTS CURVES, and the slide now says so twice (the header line, and the '
+      + 'word "curves" on every count) because Eric read the first version the wrong way: "2^{k-1} '
+      + 'points on the curve" parsed as a NUMBER OF POINTS, not as the number of solutions when '
+      + 'points are the data. The arrow form -- data on the left of the arrow, count of curves on '
+      + 'the right -- is the fix, and the footnote defines k in words instead of "deg A + 1", which '
+      + 'borrowed the spatial generator-s letter for the planar rows. '
       + 'THE MIDDLE ROW CARRIES TWO NUMBERS BECAUSE THERE ARE TWO PROBLEMS, and they are not the '
       + 'same one for a PH curve even though they are for an ordinary Bezier. Prescribing POINTS ON '
       + 'THE CURVE gives exactly 2^{k-1}, always -- five points on a septic give eight '
@@ -392,8 +400,8 @@ in space    the same forms over ℍ      a family, not a count
 
               The first defines the variety. The second counts one of its slices.
 
-    OURS      any odd degree, any K+1 of the 2K control points
-              →  the range 1 … 2^(K−1), certified path by path
+    OURS      any K+1 of the 2K control points, swept by homotopy continuation
+              →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
 
                     degree 3    1→2  2→2
                     degree 5    1→4  2→3  3→4  4→4
@@ -530,13 +538,17 @@ in space    the same forms over ℍ      a family, not a count
       <>
         <h1>II &mdash; Rational</h1>
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
-{`x = q/W          ‖q′W − qW′‖² = ρ²           the same PH, one denominator later
+{`x = q/W          ‖q′W − qW′‖² = ρ²             the same PH, one denominator later
+                                               ρ = the speed numerator:  ‖x′‖ = ρ/W²
 
 W(r) = 0         a POLE, and N(r) = −q(r)·W′(r)
-                 soft  ⟺  ⟨q(r), q(r)⟩ = 0
+                 at a SIMPLE pole,  soft  ⟺  ⟨q(r), q(r)⟩ = 0
 
-two writings     (P, w, ρ)                   nothing forces softness
-                 ⟨P,P⟩ = 0,  ⟨P′,P′⟩ = h²    softness is an identity`}
+PROJECTIVE       (P, w, ρ)          a rational Bézier — points and weights — plus ρ;
+                                    PH imposed as the identity above
+
+MÖBIUS           C = (W, q, c∞)     a polygon of weighted SPHERES in ℝ⁴′¹;
+                                    ⟨P,P⟩ = 0 (points),  ⟨P′,P′⟩ = h²  (PH),  ρ = h·W`}
         </div>
       </>
     ),
@@ -548,24 +560,39 @@ two writings     (P, w, ρ)                   nothing forces softness
       + 'SPEED at one. This deck does not argue what rationality BUYS (exact arc lengths, circles, '
       + 'the Moebius orbit) -- that argument belongs to the parked second half; here rationality is '
       + 'taken and the pole is studied. '
+      + 'RHO IS ONE OBJECT, NAMED TWICE ON THIS SLIDE, and Eric-s own reading caught that the first '
+      + 'version left the identification implicit: the rho in ||q-prime W - q W-prime||^2 = rho^2 '
+      + 'IS the rho of (P, w, rho) -- the speed numerator, the projective model-s third unknown, '
+      + 'with ||x-prime|| = rho/W^2. And the Moebius model-s h is the SAME quantity in its own '
+      + 'clothes: rho = h W exactly, which is the conversion conformalAsRat performs and the reason '
+      + 'one lab can hold both models. Both identifications are now printed. '
       + 'THE MIDDLE ROW IS TWO LINES OF ALGEBRA, and it is worth doing them aloud once, here, so the '
-      + 'lab slides can just point. At a SIMPLE root r of W the q-prime W term of N dies, so '
-      + 'N(r) = -q(r) W-prime(r); substitute into ||N||^2 = rho^2 and '
-      + 'rho(r)^2 = <q(r),q(r)> * W-prime(r)^2. So the speed numerator survives the pole exactly '
-      + 'when <q(r),q(r)> = 0 -- SOFT -- and that single number is the act-s protagonist. '
+      + 'lab slides can just point. At a SIMPLE root r of W -- the qualifier is on the slide, '
+      + 'because at a doubled root the argument says NOTHING and the lab keeps a specimen of '
+      + 'exactly that -- the q-prime W term of N dies, so N(r) = -q(r) W-prime(r); substitute into '
+      + '||N||^2 = rho^2 and rho(r)^2 = <q(r),q(r)> * W-prime(r)^2. So the speed numerator survives '
+      + 'the pole exactly when <q(r),q(r)> = 0 -- SOFT -- and that single number is the act-s '
+      + 'protagonist. '
       + 'SAY BILINEAR, NOT HERMITIAN, because at a complex pole the temptation is |q|^2. The form '
       + 'is <q,q> = sum q_i^2, complex BILINEAR: with q = a + i b it reads '
       + '(|a|^2 - |b|^2) + 2i<a,b>, so soft is |a| = |b| AND a perpendicular to b -- two vectors of '
       + 'equal length at right angles, which is what the readout draws. |q|^2 = 0 would force '
       + 'q(r) = 0 outright, a different and wrong condition. '
-      + 'THE THIRD ROW IS THE EXPERIMENT DESIGN, and it should be announced as one: the SAME '
-      + 'specimens, written two ways, and the only thing that changes between the two slides is '
-      + 'what a DRAG is allowed to do. In (P, w, rho) the PH condition is restored around your '
-      + 'gesture and nothing protects <q,q> at the poles -- watch |a| and |b| come apart. In '
-      + 'R^{4,1}, <P,P> = 0 evaluated at a root of W forces <q,q> = 0 identically, so softness '
-      + 'cannot break because the model cannot write the broken state. A property maintained by a '
-      + 'solver versus a property carried by the representation -- that is the pair, and it is the '
-      + 'deck-s "two representations" claim at its smallest. '
+      + 'THE MODEL ROWS SAY WHAT EACH MODEL IS, one line each, because the pair-s slides open on '
+      + 'instruments and someone should have been told the unknowns first. PROJECTIVE: exactly what '
+      + 'a NURBS editor already has -- control points and weights -- plus the one new polynomial '
+      + 'rho, and PH is imposed coefficient by coefficient. MOEBIUS: the curve itself written in '
+      + 'R^{4,1}, where a control point is a WEIGHTED SPHERE (the centres are the rational-Bezier '
+      + 'control points, the ends are point-spheres), and the two conditions are <P,P> = 0 -- it is '
+      + 'a curve of points -- and <P-prime,P-prime> = h^2 -- it is PH. '
+      + 'AND THE PAIR IS AN EXPERIMENT, announced as one: the SAME specimens, written two ways, and '
+      + 'the only thing that changes between the two slides is what a DRAG is allowed to do. In '
+      + 'the projective model the PH condition is restored around your gesture and nothing protects '
+      + '<q,q> at the poles -- watch |a| and |b| come apart. In the Moebius model, <P,P> = 0 '
+      + 'evaluated at a root of W forces <q,q> = 0 identically, so softness cannot break because '
+      + 'the model cannot write the broken state. A property maintained by a solver versus a '
+      + 'property carried by the representation -- that is the pair, and it is the deck-s '
+      + '"representations" claim at its smallest. '
       + 'PROVENANCE, so the claim discipline holds at the act boundary too: the (P, w, rho) side is '
       + 'the standard rational Bezier data with PH imposed coefficient by coefficient; the R^{4,1} '
       + 'side is the conformal construction whose weighted-sphere control polygon has NO search '
