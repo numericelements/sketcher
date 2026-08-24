@@ -548,11 +548,6 @@ MÖBIUS           (C, h)                                ⟨C,C⟩ = 0     a curv
 convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its coefficients are Cₖ.
              W = Σ wₖBₖ is the one case change, wₖ being the weights.`}
         </div>
-        <div className="event note" style={{ marginTop: '1.2em' }}>
-          C is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
-          radius zero. In each model the same gesture: hold control points and count the curves,
-          or hold one and let the solver place the rest.
-        </div>
       </>
     ),
     notes:
@@ -569,10 +564,13 @@ convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its c
       + 'with ||x-prime|| = rho/W^2. And the Moebius model-s h is the SAME quantity in its own '
       + 'clothes: rho = h W exactly, which is the conversion conformalAsRat performs and the reason '
       + 'one lab can hold both models. Both identifications are now printed. '
-      + 'THE NOTE UNDER THE TABLE arrived from the outline (Eric-s move, 2026-08-24): the '
-      + 'C-explainer and the gesture sentence belong where C is first used in earnest, not on the '
-      + 'map. One word changed in transit -- "in each CELL" became "in each MODEL", since the '
-      + 'cells were the outline-s vocabulary. '
+      + 'THE C-EXPLAINER PARAGRAPH IS SPOKEN, NOT PRINTED, and it travelled to get there (Eric, '
+      + '2026-08-24): it sat on the outline, moved here where C first works, and looked bizarre '
+      + 'as a prose block under a table -- so it was cut from the slides entirely. Say it over '
+      + 'the Moebius row instead: C is the curve itself, written in R^{4,1}, the model where a '
+      + 'point is a sphere of radius zero. The gesture sentence (hold control points and count, '
+      + 'or hold one and let the solver place the rest) is likewise a spoken line, over whichever '
+      + 'slide the question arises. '
       + 'THE UNKNOWNS/IDENTITIES TABLE AND THE CONVENTION LINE were both rewritten twice under '
       + 'Eric-s reading (2026-08-24), and the record matters so neither regresses. FIRST ATTEMPT: '
       + 'projective shown as a data triple, Moebius as its defining conditions -- he asked why one '
