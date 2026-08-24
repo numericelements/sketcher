@@ -738,7 +738,7 @@ export default function SpatialSubsetFigure() {
                 ? 'The family is an ellipse, so the dial goes all the way round and the grey loop is the whole of it.'
                 : `Both ends and one point out of each consecutive pair — the family stays bounded, and the plane gets all ${2 ** m} of its interpolants on exactly these choices.`
             : 'This choice is not one of those, so the family runs away — and the planar problem loses branches on exactly the same choices.'}{' '}
-          Blue points are held and can be dragged anywhere; hollow ones are computed, and clicking
+          Blue points are held and can be dragged anywhere; grey ones are computed, and clicking
           one takes hold of it. <span className="text-slate-400">Drag the view to rotate.</span>
         </>
       )}
