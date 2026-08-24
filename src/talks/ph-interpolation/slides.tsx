@@ -538,7 +538,7 @@ in space    the same forms over ℍ      a family, not a count
       <>
         <h1>II &mdash; Rational</h1>
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
-{`x = q/W          ‖q′W − qW′‖² = ρ²             the same PH, one denominator later
+{`x = q/W          x′ = N/W²,   N = q′W − qW′,   ‖N‖² = ρ²      the same PH, one denominator later
                                                ρ = the speed numerator:  ‖x′‖ = ρ/W²
 
 W(r) = 0         a POLE, and N(r) = −q(r)·W′(r)
@@ -546,8 +546,8 @@ W(r) = 0         a POLE, and N(r) = −q(r)·W′(r)
 
                  unknowns                              identities
 
-PROJECTIVE       (P, w, ρ)                             ‖q′W − qW′‖² = ρ²          (PH)
-                 points, weights, speed coefficients   a curve of points for free
+PROJECTIVE       (P, w, ρ)                             ‖N‖² = ρ²     (PH)
+                 points, weights, speed coefficients
 
 MÖBIUS           (C, h)                                ⟨C,C⟩ = 0     a curve of POINTS
                  control spheres in ℝ⁴′¹,              ⟨C′,C′⟩ = h²  (PH)
@@ -608,11 +608,16 @@ convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its c
       + 'WEIGHTED SPHERES in R^{4,1} (the centres are the rational-Bezier control points, the ends '
       + 'are point-spheres), plus h-s coefficients, and TWO identities: <C,C> = 0 -- it is a curve '
       + 'of points -- and <C-prime,C-prime> = h^2 -- it is PH. '
-      + 'AND THE COUNT OF IDENTITIES IS THE LESSON, worth saying aloud over the table: in R^3 any '
-      + '(P, w) is a curve of points automatically -- pointhood is FREE and only PH costs an '
-      + 'identity. In R^{4,1} pointhood itself costs the null identity, and that identity is '
+      + 'AND THE COUNT OF IDENTITIES IS THE LESSON, said aloud rather than printed (the "a curve '
+      + 'of points for free" line was on the table and Eric cut it -- the empty cell says it): in '
+      + 'R^3 any (P, w) is a curve of points automatically -- pointhood is FREE and only PH costs '
+      + 'an identity. In R^{4,1} pointhood itself costs the null identity, and that identity is '
       + 'exactly the one that forces every simple pole soft. The pole pair is hiding in the '
       + 'asymmetry of the identities column. '
+      + 'N IS DEFINED ON THE SLIDE NOW -- x-prime = N/W^2, N = q-prime W - q W-prime -- because '
+      + 'the pole row used N(r) before any line said what N was; Eric-s own re-reading caught it. '
+      + 'With the definition in row one, N(r) = -q(r) W-prime(r) is one glance: at a root of W the '
+      + 'q-prime W term carries the factor W(r) = 0 and dies, and only -q W-prime survives. '
       + 'AND THE PAIR IS AN EXPERIMENT, announced as one: the SAME specimens, written two ways, and '
       + 'the only thing that changes between the two slides is what a DRAG is allowed to do. In '
       + 'the projective model the PH condition is restored around your gesture and nothing protects '
