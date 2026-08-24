@@ -120,12 +120,12 @@ export const slides: SlideDefinition[] = [
 {`   polynomial     plane:  r′ = w²                    space:  r′ = 𝒜 i 𝒜*,   𝒜 = u + v j
                   one complex polynomial              two complex polynomials
 
-   rational       projective:  x = q/W                Möbius:  ⟨P,P⟩ = 0,   ⟨P′,P′⟩ = h²
+   rational       projective:  x = q/W                Möbius:  ⟨C,C⟩ = 0,   ⟨C′,C′⟩ = h²
                   ‖q′W − qW′‖² = ρ²                   the curve written in ℝ⁴′¹`}
         </div>
 
         <p style={{ fontSize: '0.72em', color: '#64748b', marginTop: '-0.25em', marginBottom: '0.4em' }}>
-          P is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
+          C is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
           radius zero. In each cell the same gesture: hold control points and count the curves, or
           hold one and let the solver place the rest.
         </p>
@@ -166,7 +166,7 @@ export const slides: SlideDefinition[] = [
       + 'READ THE BOTTOM ROW ACROSS and it is the pole pair in one line: the SAME curve written two '
       + 'ways. In the projective model (P, w, rho) the PH condition is imposed and nothing forces '
       + 'the numerator isotropic at a root of W, so a pole is soft or hard and dragging moves it '
-      + 'between them. In the Moebius model the null identity <P,P> = 0 evaluated at a root of W '
+      + 'between them. In the Moebius model the null identity <C,C> = 0 evaluated at a root of W '
       + 'forces <q,q> = 0 with no reference to PH at all -- softness is not maintained, it is '
       + 'UNSAYABLE otherwise. Two writings, one geometric fact each: that is what "representations" '
       + 'in the subtitle now points at. '
@@ -548,7 +548,11 @@ PROJECTIVE       (P, w, ρ)          a rational Bézier — points and weights �
                                     PH imposed as the identity above
 
 MÖBIUS           C = (W, q, c∞)     a polygon of weighted SPHERES in ℝ⁴′¹;
-                                    ⟨P,P⟩ = 0 (points),  ⟨P′,P′⟩ = h²  (PH),  ρ = h·W`}
+                                    ⟨C,C⟩ = 0 (points),  ⟨C′,C′⟩ = h²  (PH),  ρ = h·W
+
+convention:  W = Σ wₖBₖ — coefficients w, polynomial W.  Each of q, ρ, h is a polynomial too;
+             the models store their Bernstein coefficients, and the identities above are identities
+             of polynomials.`}
         </div>
       </>
     ),
@@ -566,6 +570,14 @@ MÖBIUS           C = (W, q, c∞)     a polygon of weighted SPHERES in ℝ⁴�
       + 'with ||x-prime|| = rho/W^2. And the Moebius model-s h is the SAME quantity in its own '
       + 'clothes: rho = h W exactly, which is the conversion conformalAsRat performs and the reason '
       + 'one lab can hold both models. Both identifications are now printed. '
+      + 'THE CONVENTION LINE AND THE LETTER C both exist because Eric-s reading caught the levels '
+      + 'colliding (2026-08-24). W vs w: capital is the polynomial Sigma w_k B_k, lowercase its '
+      + 'coefficients -- and q, rho, h each use ONE letter for both levels, so the line says the '
+      + 'models store Bernstein coefficients and the identities are identities of polynomials. '
+      + 'Worse, P meant CONTROL POINTS in (P, w, rho) and THE CURVE in the old <P,P> = 0 on the '
+      + 'same slide -- so the null and PH conditions are now written on C, the letter the pole '
+      + 'lab-s own notation strip already displays, and P means control points everywhere in the '
+      + 'deck. '
       + 'THE MIDDLE ROW IS TWO LINES OF ALGEBRA, and it is worth doing them aloud once, here, so the '
       + 'lab slides can just point. At a SIMPLE root r of W -- the qualifier is on the slide, '
       + 'because at a doubled root the argument says NOTHING and the lab keeps a specimen of '
@@ -583,12 +595,12 @@ MÖBIUS           C = (W, q, c∞)     a polygon of weighted SPHERES in ℝ⁴�
       + 'a NURBS editor already has -- control points and weights -- plus the one new polynomial '
       + 'rho, and PH is imposed coefficient by coefficient. MOEBIUS: the curve itself written in '
       + 'R^{4,1}, where a control point is a WEIGHTED SPHERE (the centres are the rational-Bezier '
-      + 'control points, the ends are point-spheres), and the two conditions are <P,P> = 0 -- it is '
-      + 'a curve of points -- and <P-prime,P-prime> = h^2 -- it is PH. '
+      + 'control points, the ends are point-spheres), and the two conditions are <C,C> = 0 -- it is '
+      + 'a curve of points -- and <C-prime,C-prime> = h^2 -- it is PH. '
       + 'AND THE PAIR IS AN EXPERIMENT, announced as one: the SAME specimens, written two ways, and '
       + 'the only thing that changes between the two slides is what a DRAG is allowed to do. In '
       + 'the projective model the PH condition is restored around your gesture and nothing protects '
-      + '<q,q> at the poles -- watch |a| and |b| come apart. In the Moebius model, <P,P> = 0 '
+      + '<q,q> at the poles -- watch |a| and |b| come apart. In the Moebius model, <C,C> = 0 '
       + 'evaluated at a root of W forces <q,q> = 0 identically, so softness cannot break because '
       + 'the model cannot write the broken state. A property maintained by a solver versus a '
       + 'property carried by the representation -- that is the pair, and it is the deck-s '
