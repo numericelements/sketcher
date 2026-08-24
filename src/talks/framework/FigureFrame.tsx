@@ -92,7 +92,7 @@ export default function FigureFrame({
       )}
 
       {caption && (
-        <div className="text-center text-[0.44em] leading-snug text-slate-600 max-w-[46em] mx-auto">
+        <div className="text-center text-[0.5em] leading-snug text-slate-600 max-w-[46em] mx-auto">
           {caption}
         </div>
       )}
