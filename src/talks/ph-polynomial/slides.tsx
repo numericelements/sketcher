@@ -463,7 +463,7 @@ in space    the same forms over ℍ      a family, not a count
     type: 'content',
     content: (
       <>
-        <h2>The same grip in space leaves a family</h2>
+        <h2>The same control points held in space leave a family</h2>
         <SpatialSubsetFigure />
       </>
     ),
