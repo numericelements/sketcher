@@ -419,7 +419,7 @@ in space    the same forms over ℍ      a family, not a count
     type: 'content',
     content: (
       <>
-        <h2>The number of solutions depends on which control points are held</h2>
+        <h2>Published, computed, open</h2>
 
         <p style={{ fontSize: '0.82em', marginBottom: '0.15em' }}>
           The unknown is the generator, and the control points are quadratic in it.
@@ -452,15 +452,25 @@ in space    the same forms over ℍ      a family, not a count
                 The count is 1 for K in a row from an end plus one more that is not the far
                 end: there the equations are a square root and then divisions, so single-valued.
 
+                in space, the same holds leave a family, never a count — dimension 1, 2, 3 at
+                degrees 3, 5, 7, the same at every choice of held points (75 swept):
+
+                      both ends + one point of each pair (P₁,P₂), (P₃,P₄), …  →  bounded
+                      any other choice                                        →  runs to infinity
+
+                the bounded choices are exactly those where the planar count attains 2^(K−1)
+
 
     OPEN        deg 𝒱 = 2^(K−1)     the count is the degree of the PH variety,
                                     and holding control points slices it linearly.`}
         </div>
 
         <p style={{ fontSize: '0.62em', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
-          Canonical form <span style={{ fontFamily: 'ui-monospace, monospace' }}>r(0)=0, r(1)=1</span>{' '}
-          is the ends-held mode. Where their leg pairs coincide with control-point subsets, the
-          counts agree. The odd counts require a free endpoint, which canonical form excludes.
+          Cross-check: Farouki&ndash;Pelosi&ndash;Sampoli&rsquo;s canonical form{' '}
+          <span style={{ fontFamily: 'ui-monospace, monospace' }}>r(0)=0, r(1)=1</span> is the
+          ends-held mode. On the three of their ten cases that are control-point subsets the counts
+          agree (2, 2, 4). The odd counts here require a free endpoint, which canonical form
+          excludes &mdash; they cannot appear in that paper.
         </p>
       </>
     ),
@@ -476,6 +486,17 @@ in space    the same forms over ℍ      a family, not a count
       'argument: K quadratic equations, 2^K solutions in {w, -w} pairs drawing the same curve, at ' +
       'most 2^(K-1) curves -- an upper bound, and the table below it is what the ceiling actually ' +
       'yields grip by grip (roots lost to infinity are generators blowing up, not curves). ' +
+      'THE SPATIAL BLOCK UNDER COMPUTED (Eric, 2026-08-24) covers the third figure with plain ' +
+      'numbers, no m: dimension 1, 2, 3 at degrees 3, 5, 7, the same at all 75 choices swept; ' +
+      'bounded exactly at both-ends-plus-one-of-each-pair; and the punchline joining the two ' +
+      'halves -- the bounded choices are exactly where the planar count attains its maximum. The ' +
+      'proof-vs-evidence split (running away proved by exhibited paths; boundedness 8000 walk ' +
+      'samples plus the one closed form) is on the spatial slide-s notes, and belongs in the ' +
+      'answer if pressed here. ' +
+      'THE FOOTNOTE NAMES ITS PAPER NOW: it is the reconciliation with Farouki-Pelosi-Sampoli -- ' +
+      'their canonical form IS ends-held, the three comparable cases agree (2, 2, 4), and the odd ' +
+      'counts are structurally invisible to canonical form, so their absence from that paper is ' +
+      'agreement, not contradiction. ' +
       'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
       'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
       'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
