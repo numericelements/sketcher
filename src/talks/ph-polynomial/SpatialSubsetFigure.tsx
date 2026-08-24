@@ -59,7 +59,7 @@
 // (core/spatialFibre.correctToGrip) and re-charts around the result.
 // ============================================================================
 import { useMemo, useState } from 'react'
-import type { Quat, Vec3 } from '../../core/quaternion'
+import { type Quat, type Vec3, vnorm, vsub } from '../../core/quaternion'
 import { type SpatialPHCurve, controlPoints, dragSpatialFree } from '../../core/phSpatialFreeDragN'
 import {
   type FibreChart,
@@ -256,7 +256,7 @@ export interface State {
   /** Where the dials open — the coordinates of the curve on screen. */
   t0: number[]
   /** Slider half-widths about t0: half a period where there is one, else calibrated to the box. */
-  ranges: number[]
+  ranges: DialRange[]
   /** Kept so there is always a curve to show, even if no chart could be built. */
   base: SpatialPHCurve
   dim: number
@@ -274,21 +274,30 @@ export interface State {
  * iteratively and can be pushed past where that corrector converges — a dial calibrated on the box
  * alone would offer travel that silently stops holding the points the figure says it holds.
  */
+/** One dial's travel, per direction: the slider runs [centre − down, centre + up]. */
+export interface DialRange { down: number; up: number }
+
 export function dialRanges(
   chart: FibreChart, m: number, centre: readonly number[], limit = 2.1,
-): number[] {
-  if (chart.period) return chart.period.map((p) => p / 2)
+  reachAlso?: readonly (readonly number[])[],
+): DialRange[] {
+  if (chart.period) return chart.period.map((p) => ({ down: p / 2, up: p / 2 }))
   const ok = (t: readonly number[]): boolean =>
     chart.residual(t) < 1e-7 &&
     controlPoints(chart.build(t)).every((p) =>
       Math.abs(p.x) < limit && Math.abs(p.y) < limit && Math.abs(p.z) < limit)
-  const solo = Array.from({ length: m }, (_, k) => {
+  /**
+   * EACH DIRECTION IS CALIBRATED ON ITS OWN. The first version required BOTH directions to fit
+   * the box and took one symmetric range — and on the degree-3 grip {P₀,P₁,P₂} that killed the
+   * slider outright (±0.014): the opening curve was framed to 2.05 of the 2.1 box for the TOUR
+   * fibre, one direction of this family exits immediately, and the symmetric rule silenced the
+   * other, which had almost a unit of honest travel. Measured in spatialCascadeMirror.test.ts.
+   */
+  const bisect = (k: number, sign: 1 | -1): number => {
     const probe = (r: number): boolean => {
-      const up = [...centre]
-      up[k] = centre[k] + r
-      const dn = [...centre]
-      dn[k] = centre[k] - r
-      return ok(up) && ok(dn)
+      const at = [...centre]
+      at[k] = centre[k] + sign * r
+      return ok(at)
     }
     if (!probe(1e-6)) return 0
     let lo = 1e-6
@@ -299,7 +308,8 @@ export function dialRanges(
       else hi = mid
     }
     return lo
-  })
+  }
+  const solo = Array.from({ length: m }, (_, k) => ({ down: bisect(k, -1), up: bisect(k, 1) }))
   // Used together the dials compound, so leave room — measured to hold at every corner of the box.
   // A NON-PERIODIC dial is deliberately shorter than the box would allow. Its path is an arc with
   // no natural end, and a long arc drawn at any affordable resolution reads as a polyline; the same
@@ -307,7 +317,53 @@ export function dialRanges(
   // also filled the frame with strokes that said nothing. Short and crisp beats long and coarse:
   // the readout still says the family is bounded, so nothing pretends this is all of it.
   const share = m === 1 ? 1 : m >= 3 ? 0.075 : 0.11
-  return solo.map((r) => r * share)
+  const out = solo.map((r) => ({ down: r.down * share, up: r.up * share }))
+  /**
+   * REACH-THE-MIRROR (Eric, 2026-08-24): a caller may name dial coordinates the travel MUST
+   * include when they are legal — the cascade grip's mirror member −t₀, whose midpoint t = 0 is
+   * the PLANAR curve, the one point where the runaway family crosses the plane of the held
+   * points. The extension is travel only: nothing is drawn for the mirror and nothing reframes.
+   */
+  for (const target of reachAlso ?? []) {
+    if (!ok(target)) continue
+    for (let k = 0; k < m; k++) {
+      const d = target[k] - centre[k]
+      if (d > out[k].up) out[k].up = d
+      if (-d > out[k].down) out[k].down = -d
+    }
+  }
+  /**
+   * TRUNCATE AT A DISCONTINUITY. The retraction chart projects iteratively, and pushed far enough
+   * along a runaway family its corrector can hop to another branch — the held points are still
+   * held, but a free point JUMPS, and a slider that carries the viewer across the hop shows the
+   * curve teleporting (measured: a 7.6%-of-frame jump on the degree-3 grip {P₁,P₂,P₃} once the
+   * dials went asymmetric). Walk each direction and end the offered travel at the last step
+   * before any control point moves discontinuously. The cascade and angle charts are closed-form
+   * and continuous, so the walk never shortens them.
+   */
+  const WALK = 48
+  const JUMP = 0.15
+  for (let k = 0; k < m; k++) {
+    for (const sign of [1, -1] as const) {
+      const r = sign > 0 ? out[k].up : out[k].down
+      if (!(r > 0)) continue
+      let prev = controlPoints(chart.build([...centre]))
+      for (let i = 1; i <= WALK; i++) {
+        const at = [...centre]
+        at[k] = centre[k] + sign * (r * i) / WALK
+        const cur = controlPoints(chart.build(at))
+        const step = Math.max(...cur.map((q, j) => vnorm(vsub(q, prev[j]))))
+        if (step > JUMP) {
+          const keep = (r * (i - 1)) / WALK
+          if (sign > 0) out[k].up = keep
+          else out[k].down = keep
+          break
+        }
+        prev = cur
+      }
+    }
+  }
+  return out
 }
 
 /**
@@ -321,15 +377,25 @@ export function dialRanges(
 export type Reframed = Omit<State, 'm' | 'pinEnds' | 'mode' | 'free' | 'order' | 'targets'>
 
 export function reframe(
-  m: number, order: readonly number[], cur: SpatialPHCurve, keep?: readonly number[],
+  m: number, order: readonly number[], cur: SpatialPHCurve, keep?: readonly DialRange[],
 ): Reframed {
   const dim = fibreDimension(cur, order).dimension
   const got = chartFor(m, order, cur)
   if (!got) return { chart: null, kind: 'retraction', t: [], t0: [], ranges: [], base: cur, dim }
   const t0 = got.chart.tOf(cur)
+  // The cascade grip's held points are coplanar exactly when there is ONE dial (three points), and
+  // reflection through their plane is t ↦ −t on that dial — so −t₀ is the mirror member and t = 0
+  // the planar curve, the one point where this runaway family crosses the held plane. Name three
+  // must-reach targets in decreasing ambition — the mirror, a 15% overshoot past the crossing, the
+  // crossing itself — and dialRanges extends travel to every one that is LEGAL (in the box). The
+  // mirror can genuinely be out of frame (reflection does not respect the box); the crossing is the
+  // guarantee that matters, with margin so the slider passes THROUGH the plane, not up to it.
+  const mirror = got.kind === 'cascade' && got.chart.dimension === 1
+    ? [t0.map((v) => -v), t0.map((v) => -0.15 * v), t0.map(() => 0)]
+    : undefined
   const ranges = keep && keep.length === got.chart.dimension
     ? [...keep]
-    : dialRanges(got.chart, got.chart.dimension, t0)
+    : dialRanges(got.chart, got.chart.dimension, t0, 2.1, mirror)
   return { chart: got.chart, kind: got.kind, t: t0, t0, ranges, base: cur, dim }
 }
 
@@ -366,6 +432,9 @@ const ghostCount = (m: number): number => (m >= 3 ? 4 : 7)
  * themselves were shortened (see `dialRanges`), which buys resolution a second time.
  */
 const LOCUS_STEPS_CLOSED = 240
+/** Crispness budget for a drawn arc: no chord longer than ~1.25% of the 4.4-unit frame. */
+const LOCUS_MAX_SEG = 0.055
+const LOCUS_SAMPLE_CAP = 480
 const LOCUS_STEPS_OPEN = 112
 /** Degree 7 has three dials to sweep instead of one, so it spends fewer samples on each. */
 const locusStepsOpen = (m: number): number => (m >= 3 ? 56 : LOCUS_STEPS_OPEN)
@@ -393,19 +462,51 @@ export function lociOf(
   const out: { dial: number; point: number; pts: [number, number, number][] }[] = []
   for (let k = 0; k < chart.dimension; k++) {
     const period = chart.period?.[k]
-    const r = period ? period / 2 : (ranges[k] ?? 0)
-    if (!(r > 0)) continue
+    const down = period ? period / 2 : (ranges[k]?.down ?? 0)
+    const up = period ? period / 2 : (ranges[k]?.up ?? 0)
+    if (!(down + up > 0)) continue
     // never fewer than the chart can distinguish: a quantised one throws resolution away below it
     const steps = Math.max(
       period ? LOCUS_STEPS_CLOSED : locusStepsOpen(chart.dimension),
       chart.naturalSteps ?? 0)
-    const paths = new Map<number, [number, number, number][]>()
     const centre = period ? t[k] : (t0[k] ?? t[k])
     // built from the base, one sample at a time — see retractionChart on why marching is wrong
-    for (let i = 0; i <= steps; i++) {
+    const at = (v: number): Vec3[] => {
       const tt = [...t]
-      tt[k] = centre - r + (2 * r * i) / steps
-      const pts = controlPoints(chart.build(tt))
+      tt[k] = v
+      return controlPoints(chart.build(tt))
+    }
+    let vs = Array.from({ length: steps + 1 }, (_, i) => centre - down + ((down + up) * i) / steps)
+    let built = vs.map(at)
+    /**
+     * CHORD-ADAPTIVE REFINEMENT, added with the asymmetric dials: a dial's travel is no longer
+     * capped by its weaker direction, so a fixed step count can leave segments long enough to
+     * read as a polyline (measured 10% of the frame on the degree-3 cascade grip). Subdivide any
+     * segment whose worst free-point chord exceeds the crispness budget, up to a sample cap.
+     */
+    for (let round = 0; round < 6 && built.length < LOCUS_SAMPLE_CAP; round++) {
+      const nextVs: number[] = []
+      const nextB: Vec3[][] = []
+      let split = false
+      for (let i = 0; i < built.length; i++) {
+        nextVs.push(vs[i]); nextB.push(built[i])
+        if (i === built.length - 1) break
+        let worst = 0
+        for (let j = 0; j < built[i].length; j++) {
+          if (held.has(j)) continue
+          worst = Math.max(worst, vnorm(vsub(built[i + 1][j], built[i][j])))
+        }
+        if (worst > LOCUS_MAX_SEG && nextB.length + (built.length - i) < LOCUS_SAMPLE_CAP) {
+          const mid = 0.5 * (vs[i] + vs[i + 1])
+          nextVs.push(mid); nextB.push(at(mid))
+          split = true
+        }
+      }
+      vs = nextVs; built = nextB
+      if (!split) break
+    }
+    const paths = new Map<number, [number, number, number][]>()
+    for (const pts of built) {
       for (let j = 0; j < pts.length; j++) {
         if (held.has(j)) continue
         if (!paths.has(j)) paths.set(j, [])
@@ -435,12 +536,13 @@ export default function SpatialSubsetFigure() {
     if (mode === 'free' || !chart) return []
     const k = chart.dimension - 1
     const period = chart.period?.[k]
-    const r = period ? period / 2 : (ranges[k] ?? 0)
-    if (!(r > 0)) return []
+    const down = period ? period / 2 : (ranges[k]?.down ?? 0)
+    const up = period ? period / 2 : (ranges[k]?.up ?? 0)
+    if (!(down + up > 0)) return []
     const n = ghostCount(m)
     return Array.from({ length: n }, (_, g) => {
       const tt = [...t]
-      tt[k] = t[k] - r + (2 * r * (g + 0.5)) / n
+      tt[k] = t[k] - down + ((down + up) * (g + 0.5)) / n
       return sampleCurve(chart.build(tt), 50)
     })
   }, [mode, chart, t, ranges, m])
@@ -593,9 +695,9 @@ export default function SpatialSubsetFigure() {
               <input
                 key={k}
                 type="range"
-                min={(t0[k] ?? 0) - (ranges[k] ?? 1)}
-                max={(t0[k] ?? 0) + (ranges[k] ?? 1)}
-                step={(ranges[k] ?? 1) / 250}
+                min={(t0[k] ?? 0) - (ranges[k]?.down ?? 1)}
+                max={(t0[k] ?? 0) + (ranges[k]?.up ?? 1)}
+                step={((ranges[k]?.down ?? 1) + (ranges[k]?.up ?? 1)) / 500}
                 value={v}
                 onChange={(e) => setSt((p) => ({
                   ...p, t: p.t.map((w, j) => (j === k ? Number(e.target.value) : w)),

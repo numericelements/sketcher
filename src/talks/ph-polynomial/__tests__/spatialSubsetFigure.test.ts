@@ -76,12 +76,14 @@ describe('the spatial grip figure', () => {
         expect(st.t.length, `{${grip}} gets ${m} dials`).toBe(m)
         expect(st.ranges.length).toBe(m)
         expect(st.dim).toBe(m)
-        for (const r of st.ranges) expect(r, `{${grip}} dial has travel`).toBeGreaterThan(0)
+        for (const r of st.ranges) {
+          expect(r.down + r.up, `{${grip}} dial has travel`).toBeGreaterThan(0)
+        }
         // and every dial position still holds the points it says it holds
         for (let k = 0; k < m; k++) {
           for (const s of [-1, 1]) {
             const tt = [...st.t]
-            tt[k] = st.t[k] + s * st.ranges[k]
+            tt[k] = st.t[k] + (s > 0 ? st.ranges[k].up : -st.ranges[k].down)
             const pts = controlPoints(st.chart?.build(tt) ?? seed)
             grip.forEach((i, j) => {
               worstResidual = Math.max(worstResidual, vnorm(vsub(pts[i], st.targets[j])))
@@ -107,7 +109,8 @@ describe('the spatial grip figure', () => {
       for (let c = 0; c < grid; c++) {
         const tt = st.t.map((v, k) => {
           const idx = Math.floor(c / (steps + 1) ** k) % (steps + 1)
-          return v + (steps === 1 ? (idx ? 1 : -1) : (2 * idx) / steps - 1) * st.ranges[k]
+          const f = steps === 1 ? (idx ? 1 : -1) : (2 * idx) / steps - 1
+          return v + (f > 0 ? f * st.ranges[k].up : f * st.ranges[k].down)
         })
         for (const p of controlPoints(st.chart?.build(tt) ?? st.base)) {
           worst = Math.max(worst, Math.abs(p.x) - limit, Math.abs(p.y) - limit, Math.abs(p.z) - limit)
@@ -222,13 +225,15 @@ describe('the spatial grip figure', () => {
   it('dialRanges gives a full period where there is one, and a calibrated range where there is not', () => {
     const st = freshState(2)
     if (!st.chart) throw new Error('no chart')
-    expect(dialRanges(st.chart, 2, st.t0)).toEqual([Math.PI, Math.PI])
+    expect(dialRanges(st.chart, 2, st.t0)).toEqual([
+      { down: Math.PI, up: Math.PI }, { down: Math.PI, up: Math.PI },
+    ])
     const seed = seedFor(3)
     const got = chartFor(3, [0, 1, 2, 5, 7], seed)
     if (!got) throw new Error('no chart')
     const r = dialRanges(got.chart, 3, got.chart.tOf(seed))
-    console.log(`    degree 7 {0,1,2,5,7}: dials calibrated to ±${r.map((v) => v.toFixed(3)).join(', ±')}`)
-    for (const v of r) expect(v).toBeGreaterThan(0)
+    console.log(`    degree 7 {0,1,2,5,7}: dials calibrated to ${r.map((v) => `−${v.down.toFixed(3)}/+${v.up.toFixed(3)}`).join(', ')}`)
+    for (const v of r) expect(v.down + v.up).toBeGreaterThan(0)
   }, 300_000)
 
   it('FREE mode holds nothing, so it draws no fibre — and coming back re-grips the curve', () => {
@@ -328,7 +333,7 @@ describe('the spatial grip figure', () => {
         }
         // at rest, and with every dial turned a quarter of its travel as a user would
         for (const turned of [false, true]) {
-          const s2 = turned ? { ...st, t: st.t.map((v, k) => v + 0.25 * st.ranges[k]) } : st
+          const s2 = turned ? { ...st, t: st.t.map((v, k) => v + 0.25 * st.ranges[k].up) } : st
           const cps = controlPoints(currentCurve(s2))
           for (const l of lociOf(s2)) {
             const p = cps[l.point]

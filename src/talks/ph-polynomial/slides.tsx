@@ -394,6 +394,13 @@ in space    the same forms over ℍ      a family, not a count
       'strong evidence over 8000 walk samples, except at {P0,P1,P4,P5} where the closed form settles ' +
       'it. So "ends held" opens on a good grip at every degree: {P0,P1,P3}, {P0,P1,P4,P5}, ' +
       '{P0,P1,P3,P6,P7}. ' +
+      'THE PLANE CROSSING IS WORTH SHOWING on the degree-3 grip {P0,P1,P2} (Eric-s find, ' +
+      '2026-08-24): three held points span a plane, reflection through it fixes them, so the ' +
+      'runaway family is mirror-symmetric and P3-s locus crosses the plane EXACTLY at the planar ' +
+      'cubic -- the planar count (one, by the cascade) embedded in the spatial continuum, the ' +
+      'ellipse slide-s lesson on an unbounded grip. The dial is guaranteed to pass through the ' +
+      'crossing (asymmetric calibration plus the reach-the-mirror rule in dialRanges; pinned in ' +
+      'spatialCascadeMirror.test.ts); slide it and watch P3 change sides. ' +
       'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse with the parked cubic ' +
       'slide\'s own continuation, so the dial wraps and the grey loop is the whole fibre. Degree 5 ' +
       'ends-held IS the quintic Hermite grip, so both dials are the Hopf angles phi0 and phi2, they ' +
