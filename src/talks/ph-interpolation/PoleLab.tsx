@@ -246,6 +246,13 @@ export default function PoleLab({ model }: { model: LabModel }) {
    * quadratic pins the whole polygon, since there is only one point between them. Measured: with
    * the ends pinned the two degree-2 specimens manage 0 and 8 steps of a 30-step drag, against
    * 30 and 30 with the ends free, while every degree ≥ 3 specimen manages at least 24.
+   *
+   * keepWeightSigns IS WHAT KEEPS THE CURVE ON SCREEN. Without it a gesture on the degree-5
+   * specimen flipped weights through zero, put a root of W inside [0,1], and blew the drawn curve
+   * to 250× the view box — a pole ENTERING the drawn arc, which no preset has and no drag should
+   * create. With the box the same gesture stops at the feasible limit instead (the step is
+   * refused, the point stays), and the pole stays outside the domain where the readout can talk
+   * about it. Measured in projectiveDragBox.test.ts.
    */
   const dragProjective = (index: number, to: [number, number, number]) =>
     setSt((prev) => {
@@ -261,6 +268,7 @@ export default function PoleLab({ model }: { model: LabModel }) {
       const got = settleToPH(moved, last, {
         frozen: held.flatMap((i) => [3 * i, 3 * i + 1, 3 * i + 2]),
         steps: 160,
+        keepWeightSigns: true,
       })
       return got.residual > 1e-5 ? prev : { ...prev, rat: got.rat }
     })

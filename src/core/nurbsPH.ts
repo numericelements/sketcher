@@ -172,6 +172,18 @@ export interface SettleOptions {
    * follow at all. A residual that stops falling IS the feasible limit.
    */
   readonly frozen?: readonly number[]
+  /**
+   * Forbid any weight from changing SIGN — the box constraint the header of this file promises
+   * and the solver did not enforce until a drag was measured crossing it: on the lab's degree-5
+   * specimen a 30-tick gesture flipped weights, put a root of W inside [0,1], and blew the drawn
+   * curve to 250× its view box (projectiveDrag test). Sign preservation per weight keeps each
+   * specimen in its own orthant: a one-signed curve keeps W ≠ 0 on [0,1] (no pole enters the
+   * drawn arc), and a specimen built with mixed signs — the cancelling-pole one — keeps its
+   * structure rather than being forced positive. A wall, not a floor: |w| may shrink, so a pole
+   * approaching the domain from outside is still shown honestly; only the crossing is barred.
+   * OFF by default so the seed-deterministic preset construction is bit-identical.
+   */
+  readonly keepWeightSigns?: boolean
 }
 
 /**
@@ -188,6 +200,8 @@ export function settleToPH(
   const tolerance = options.tolerance ?? 1e-13
   const frozen = new Set(options.frozen ?? [])
   let cur = projectiveNormalise(rat)
+  // The gauge rescale is by a POSITIVE λ, so signs recorded here survive every normalisation.
+  const signs = options.keepWeightSigns ? cur.w.map(Math.sign) : null
   let best = phRelativeResidual(cur)
   let lambda = 1e-6
   for (let it = 0; it < steps && best > tolerance; it++) {
@@ -205,6 +219,11 @@ export function settleToPH(
       // Jacobian's row scaling, so where it is applied changes the iteration path and therefore
       // the numbers the sweeps record
       const cand = projectiveNormalise(unpackRat(x, d))
+      // A sign-crossing candidate is off the box; shorten the step until it is back inside.
+      if (signs && cand.w.some((w, k) => signs[k] !== 0 && Math.sign(w) !== signs[k])) {
+        h *= 0.5
+        continue
+      }
       const cr = phRelativeResidual(cand)
       if (Number.isFinite(cr) && cr < best) {
         cur = cand
