@@ -32,12 +32,6 @@ const labs = [
       'Edit rational and complex-rational PH curves; bound the number of curvature extrema. Each family’s hodograph is a perfect square z′ = S²/B², so the bound reduces to the sign changes of one low-degree generating-function numerator.',
   },
   {
-    to: '/lab/ph-interpolation',
-    title: 'PH Quintic Interpolation Workbench',
-    blurb:
-      'Prescribe four of a PH quintic’s six control points and the other two are forced — eight real degrees of freedom, two per point, so four is exactly the square system. C¹ Hermite data is the subset {0,1,4,5}, with its classical four interpolants in closed form; every other choice of four is a different interpolation problem, solved by the same Newton step. No constraints, no optimiser — exact interpolation, and the solution structure laid bare.',
-  },
-  {
     to: '/lab/thb',
     title: 'THB‑splines Workbench (1D)',
     blurb:

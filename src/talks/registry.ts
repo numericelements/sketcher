@@ -30,6 +30,7 @@ export const talks: TalkDefinition[] = [
   },
   {
     slug: 'ph-rational',
+    unlisted: true,
     title: 'Pythagorean–Hodograph Curves — Rational',
     subtitle: 'Two representations, and the pole between them',
     load: () => import('./ph-rational/slides').then((m) => m.slides),
@@ -45,24 +46,28 @@ export const talks: TalkDefinition[] = [
   },
   {
     slug: 'hodograph-light-cone',
+    unlisted: true,
     title: 'The Hodograph Lies on the Light Cone',
     subtitle: 'Speed as a coordinate — the theory behind the figures',
     load: () => import('./hodograph-light-cone/slides').then((m) => m.slides),
   },
   {
     slug: 'two-points-or-a-circle',
+    unlisted: true,
     title: 'Two Points or a Circle',
     subtitle: 'What changes when a Pythagorean-hodograph curve leaves the plane',
     load: () => import('./two-points-or-a-circle/slides').then((m) => m.slides),
   },
   {
     slug: 'price-of-a-circle',
+    unlisted: true,
     title: 'The Price of a Circle',
     subtitle: 'What rationality buys in Pythagorean-hodograph curves, and what it charges',
     load: () => import('./price-of-a-circle/slides').then((m) => m.slides),
   },
   {
     slug: 'inside-the-chart',
+    unlisted: true,
     title: 'Inside the Chart',
     subtitle: 'What the space of rational Pythagorean-hodograph curves feels like from within',
     load: () => import('./inside-the-chart/slides').then((m) => m.slides),

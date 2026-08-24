@@ -24,7 +24,7 @@
 //
 // Conventions:
 //   * one gesture, one lesson, one number per figure — no configuration UI
-//     (the research bench lives at /lab/ph-interpolation instead)
+//     (a bench with all the knobs is a different genre; the old interpolation bench is retired)
 //   * a bare NOTATION strip in place of prose, to trigger a concept in half a
 //     second without explaining it
 //   * each difficulty names the result that resolved it

@@ -4,8 +4,9 @@
 // The deck's editorial rule is one gesture, one lesson, one number per figure, so
 // this frame deliberately offers only: a zoom/pan SVG, a NOTATION strip (bare
 // formulas, no prose — an expert reads notation faster than a sentence), a
-// readout row, and a caption. There is no configuration UI here on purpose; the
-// research bench with all the knobs lives at /lab/ph-interpolation.
+// readout row, and a caption. There is no configuration UI here on purpose — a bench
+// with all the knobs is a different genre and lives under /lab (the original PH
+// interpolation bench was retired 2026-08-24 once the deck's figures surpassed it).
 //
 // The viewport is passed to `children` as a render prop so a figure can draw in
 // world coordinates and size its handles in pixels.
