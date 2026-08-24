@@ -862,3 +862,35 @@ everywhere) is how to tell the two apart.
 
 The count is a separate question from the mechanism, and after §15 it should stay separate: the
 rate test reads WHETHER a point is singular, not by how much.
+
+## 21. THE DRAG, SETTLED FOR THE LAB — an interior-point stage inside the escalation
+
+The editing question this document kept returning to — can the awkward lift's control points be
+moved ON the model — closed without resolving the singularity question above, which stays open.
+
+The observation that closed it: the conformal drag was the one drag path in core not on a real
+solver, and the two repairs built for it by hand were re-inventions — the feasibility corrector is
+IPOPT's restoration phase, the per-block acceptance it needed is the filter. So the drag was posed
+to `InteriorPointOptimizer` directly (`core/conformalMobiusDrag.ts`): cursor as the objective,
+defining rows and pins as equalities, everything analytic. Two measurements shaped the result:
+
+- **BFGS alone plateaus at 1e-3.** The equality penalty stalls in restoration at iteration ~160.
+  With the EXACT constraint Hessian — closed-form, since the defining rows are quadratic — the
+  same solve lands a 12% grab at 1e-16. The standing solver-quality list had "exact Hessian vs
+  Gauss-Newton" first, and this is the measurement that promotes it from a lever to the lever.
+- **Neither route serves every point.** Interior-only loses point 3 (1/20 on the model) while
+  rescuing point 4; plain Newton is the reverse. So the interior route is a STAGE inside the
+  escalation (`dragControlPointStaged`: Newton 80 → 300 → interior → Newton 900, best by the
+  displayed ⟨C,C⟩), and each point is served by the first stage that lands it.
+
+On lift8's twenty-tick gestures: points 0–3 identical to the plain escalation, point 4 from 0/20
+on the model at 6.8s to 20/20 at 1e-10 in 0.9s. The one tick that stalled at 3.9e-9 is caught by a
+warm second interior pass — which also makes the gesture faster, because landing there skips the
+900-iteration stage. Two negative results are pinned in the module comments so they are not
+retried: the corrector inside the interior polish (19/20 → 0/20 at 16.6s), and BFGS without the
+exact Hessian. `conformalInteriorDrag.test.ts` is the measurement; the pole lab drags through the
+staged route; every other conformal figure is untouched.
+
+Point 0's six HARD readings while sitting on the model at 1e-14, at complex poles of modulus
+~0.5, are unchanged by all of this — still the open readout question of
+`mobiusDragCoverage.test.ts`, now cleanly separated from the drag.

@@ -81,7 +81,9 @@ import {
   metricApply,
   minDenominator,
   nullCurveResidual,
+  nullCurveResidualScale,
   phSquareResidual,
+  phSquareResidualScale,
   project,
 } from './conformal'
 import { leastSquares } from './linalg'
@@ -114,9 +116,32 @@ export function unpack(x: readonly number[]): ConformalPHCurve {
   }
 }
 
-/** The 12 defining conditions: 7 for null, 5 for PH. Zero exactly on the family. */
+/** The defining conditions — 2n+1 for null, 2n−1 for PH. Zero exactly on the family. */
 export function residual(s: ConformalPHCurve): number[] {
   return [...nullCurveResidual(s.C), ...phSquareResidual(s.C, s.h)]
+}
+
+/**
+ * The worst defining condition RELATIVE to the size of the terms it cancels.
+ *
+ * The absolute rows above are what the Newton step drives to zero, and that is right. But they are
+ * the wrong thing to JUDGE a trial step by: a drag's extra rows are in world units and the
+ * defining rows are coefficient products, so one combined norm is dominated by the cursor and
+ * cannot see the constraint drift. This is the number the figures print, so it is the number a
+ * line search has to respect.
+ */
+export function definingRelative(s: ConformalPHCurve): number {
+  // Per-ROW normalisation would be wrong: the end coefficients of ⟨P,P⟩ are a single term each, so
+  // their ratio is exactly 1 whenever they are nonzero at all, and the measure reads 1.0 forever.
+  // Each block is scaled by the largest term ANYWHERE in it, which is what the readouts do.
+  const block = (r: readonly number[], sc: readonly number[]): number => {
+    const scale = Math.max(...sc.map(Math.abs), 1e-300)
+    return Math.max(...r.map(Math.abs)) / scale
+  }
+  return Math.max(
+    block(nullCurveResidual(s.C), nullCurveResidualScale(s.C)),
+    block(phSquareResidual(s.C, s.h), phSquareResidualScale(s.C, s.h)),
+  )
 }
 
 /** de Casteljau on the conformal coefficients. */
@@ -454,6 +479,11 @@ export interface DragResult {
   /** Worst defining-condition residual — the family membership, measured. */
   readonly defect: number
   readonly trackingError: number
+  /**
+   * How many Newton iterations were actually spent. Instrumentation, not control: the lab
+   * escalates a budget, and "did the extra budget get used" is otherwise invisible.
+   */
+  readonly iterationsUsed?: number
 }
 
 interface Extra {
@@ -466,6 +496,17 @@ interface Extra {
    * accuracy at about 1e-9 — enough for the easy specimens and not for the awkward ones.
    */
   readonly jacobian?: (s: ConformalPHCurve) => number[][]
+  /**
+   * Index into the extra rows where the CALLER'S PINS begin — everything before it is the cursor.
+   *
+   * The feasibility corrector needs the distinction. Repairing against the defining rows alone is
+   * free to move pinned points, and does: the five-point strict-mode gesture drifted its held
+   * points by 0.435 where 1e-6 is allowed. Repairing against the FULL system instead pins the
+   * cursor too, which removes the very slack the repair needs — measured, control point 4's gesture
+   * went straight back to 0/20 steps on the model. So the corrector uses the defining rows plus the
+   * pins, and leaves the cursor to the next iteration.
+   */
+  readonly pinnedRowStart?: number
 }
 
 /**
@@ -506,7 +547,17 @@ export function pointConstraintRows(
  * because "the constraint held" is not the test — "the constraint held AND the point went
  * where asked" is.
  */
-function solveWith(from: ConformalPHCurve, extra: Extra, iterations: number): DragResult {
+/**
+ * The relative defining residual a trial step is allowed to reach — the SAME number the figures
+ * call "on the model" (PoleLab tones ⟨C,C⟩ ok below 1e-9, and `converged` below uses it too).
+ * Not a tuning knob: displayed and enforced have to be the same quantity at the same threshold.
+ */
+const MEMBERSHIP = 1e-9
+
+
+function solveWith(
+  from: ConformalPHCurve, extra: Extra, iterations: number, constraintGuard = false,
+): DragResult {
   const UNKNOWNS = unknownCount(degreeOf(from))
   const full = (x: readonly number[]): number[] => {
     const s = unpack(x)
@@ -514,7 +565,9 @@ function solveWith(from: ConformalPHCurve, extra: Extra, iterations: number): Dr
   }
   let x = pack(from)
   const E = full(x).length
+  let used = 0
   for (let it = 0; it < iterations; it++) {
+    used = it + 1
     const r = full(x)
     const nr = Math.hypot(...r)
     if (nr < 1e-13) break
@@ -554,6 +607,35 @@ function solveWith(from: ConformalPHCurve, extra: Extra, iterations: number): Dr
      * nothing and pays for the freedom. Left absolute, with the reason recorded so it is not
      * "improved" again.
      */
+    /**
+     * THE STEP: Gauss-Newton at a fixed ridge, shortened by backtracking. Plain, and it stays that
+     * way because THREE adaptive-damping variants were measured against it and all three lost.
+     *
+     * The trace that motivated trying is real: on the awkward lift this line reads `lam 2^-8, 2^-7,
+     * 2^-6 …` on EVERY iteration, so the full step is essentially never acceptable and each
+     * iteration rediscovers that from scratch — a trust region with no memory, six to nine wasted
+     * residual evaluations per iteration. `leastSquares`'s `reg` IS the Levenberg-Marquardt
+     * parameter, simply frozen, so carrying it across iterations looked free.
+     *
+     * MEASURED, on lift8g's twenty-tick gesture — the WELL-BEHAVED specimen, which is the one that
+     * matters, because a change that only helps the pathological lift is not an improvement:
+     *
+     *     this (backtracking)                            128 iters   worst ⟨C,C⟩ 2.5e-14
+     *     LM, isotropic ridge, undamped-model ρ         9822 iters              2.1e-5
+     *     LM, isotropic ridge, Nielsen ρ and ν-ladder   5130 iters              2.8e-12
+     *     LM, Marquardt's per-variable reg·diag(AᵀA)   24009 iters              7.1e-5
+     *
+     * WHY, and it is worth keeping because it says where to go next. Damping is a choice of METRIC.
+     * Adding μ·I (or even μ·diag) rotates the step toward steepest descent in the VARIABLE space —
+     * and these variables span many orders, so that direction is close to meaningless. Backtracking
+     * keeps the Gauss-Newton DIRECTION, which is a minimum-norm least-squares direction and already
+     * respects the problem's own geometry, and only shortens it. Shortening a good direction beats
+     * rotating toward a bad one.
+     *
+     * So the step length is NOT the lever, and the honest conclusion is that the conditioning has to
+     * be fixed before any damping or trust-region scheme can help — which is what the note on
+     * absolute vs equilibrated regularisation below is already circling.
+     */
     let step: number[]
     try { step = leastSquares(J, r.map((v) => -v), 1e-11) } catch { break }
     let lam = 1, moved = false
@@ -563,6 +645,64 @@ function solveWith(from: ConformalPHCurve, extra: Extra, iterations: number): Dr
       lam *= 0.5
     }
     if (!moved) break
+    /**
+     * THE CORRECTOR, and why the acceptance test above is left alone.
+     *
+     * `Math.hypot(...full(trial)) < nr` mixes the defining rows (coefficient products, ~0 on the
+     * family) with the cursor and pin rows (world units, ~the size of the curve). The cursor
+     * dominates outright, so that test cannot see the constraint drift — which is how a drag comes
+     * back reading "tracked 100%" with the model condition at 1e-2: it followed the mouse by
+     * abandoning the thing being enforced.
+     *
+     * REFUSING such a step is the wrong repair, and it was measured: gating acceptance on the
+     * relative defining residual pins the state at the ceiling and then rejects everything, so the
+     * drag stops at 0% tracking after thirteen iterations. That is a freeze, which is the one
+     * outcome a figure must never show.
+     *
+     * So the step is taken and then REPAIRED. A minimum-norm Newton step on the defining rows
+     * ALONE moves the state as little as the solve can manage, so it pulls the curve back onto the
+     * family without undoing the drag — the cursor rows are re-approached by the next iteration.
+     *
+     * AND THE CORRECTOR IS BACKTRACKED TOO, which is not a detail — it is the difference between
+     * this working and this making things worse. The defining Jacobian is RANK-DEFICIENT on a
+     * non-reduced lift (13 independent rows of 16), so an untruncated min-norm solve overshoots
+     * along the dependent directions; unfoldDirection.test.ts measures one such "correction"
+     * taking 1.8e-5 to 2.7e-1. Take the full step or nothing and the corrector quietly switches
+     * itself off after a few iterations — measured on lift8's control point 2, where it then died
+     * at iteration 139 having tracked 69%. Halving until it helps needs no rank, and lift8 cannot
+     * supply a rank anyway: its spectrum has no cliff in floating point.
+     */
+    if (constraintGuard) {
+      for (let c = 0; c < 4; c++) {
+        const sx = unpack(x)
+        const rel = definingRelative(sx)
+        if (!(rel > MEMBERSHIP)) break
+        /**
+         * THE CORRECTOR SOLVES AGAINST THE FULL SYSTEM, not the defining rows alone.
+         *
+         * Alone, a minimum-norm repair is free to move the caller's PINNED points, and it does: on
+         * the five-point strict-mode gesture the held points drifted by 0.435 where the test allows
+         * 1e-6. Using the same Jacobian as the step, with the defining rows targeted at zero and the
+         * cursor and pin rows targeted at NO CHANGE, repairs feasibility while leaving the gesture
+         * where it is — to first order, which the outer iteration then finishes.
+         */
+        const keep = extra.pinnedRowStart ?? 0
+        const rows = [...J.slice(0, base.length), ...J.slice(base.length + keep)]
+        const rhs = [
+          ...residual(sx).map((v) => -v),
+          ...new Array<number>(E - base.length - keep).fill(0),
+        ]
+        let back: number[]
+        try { back = leastSquares(rows, rhs, 1e-11) } catch { break }
+        let mu = 1, repaired = false
+        for (let k = 0; k < 20; k++) {
+          const trial = x.map((v, i) => v + mu * back[i])
+          if (definingRelative(unpack(trial)) < rel) { x = trial; repaired = true; break }
+          mu *= 0.5
+        }
+        if (!repaired) break
+      }
+    }
   }
   const s = normalize(unpack(x))
   const defect = Math.max(...residual(s).map(Math.abs))
@@ -571,6 +711,7 @@ function solveWith(from: ConformalPHCurve, extra: Extra, iterations: number): Dr
     converged: defect < 1e-9 && Number.isFinite(defect),
     defect,
     trackingError: extra.track ? extra.track(s) : 0,
+    iterationsUsed: used,
   }
 }
 
@@ -583,7 +724,24 @@ export function dragControlPoint(
   from: ConformalPHCurve,
   index: number,
   target: Vec3,
-  options: { pinEnds?: boolean; pin?: readonly number[]; iterations?: number } = {},
+  options: {
+    pinEnds?: boolean; pin?: readonly number[]; iterations?: number
+    /**
+     * Repair the defining conditions after each accepted step (see solveWith). OFF by default, and
+     * switched ON where it has been measured — today that is the Möbius pole lab.
+     *
+     * WHAT IT BUYS, on a twenty-step gesture over every control point of lift8
+     * (mobiusDragCoverage.test.ts): control point 4 goes from never once landing on the model to
+     * 20/20 at 1.2e-14, and control point 0's hard readings go from 6/20 to none at all.
+     *
+     * WHY IT IS NOT THE DEFAULT. It is not free, and the costs are on gestures this measurement
+     * does not cover. Control point 0's gesture goes from 0.59s to 9.9s. And every other conformal
+     * figure in the deck shares this solver: turning it on globally shortened the locus road on the
+     * sextic slide by a fifth (conformalPHStructure's "two ENDS of the road"), which is a figure
+     * nobody measured it against. Scope follows evidence.
+     */
+    constraintGuard?: boolean
+  } = {},
 ): DragResult {
   const pinEnds = options.pinEnds ?? true
   const before = controlPoints(from)
@@ -600,8 +758,10 @@ export function dragControlPoint(
       return out
     },
     jacobian: (s) => pointConstraintRows(s, [index, ...held]),
+    // The first three extra rows are the cursor; the pins follow.
+    pinnedRowStart: 3,
     track: (s) => vnorm(vsub(controlPoints(s)[index], target)),
-  }, options.iterations ?? 60)
+  }, options.iterations ?? 60, options.constraintGuard ?? false)
 }
 
 /**

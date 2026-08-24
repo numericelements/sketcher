@@ -465,6 +465,27 @@ export function nullCurveResidual(C: readonly Conformal[]): number[] {
 }
 
 /**
+ * The same sums with every term taken in absolute value — the SIZE of what each coefficient of
+ * ⟨P,P⟩ is cancelling.
+ *
+ * Needed because the defining rows are absolute while a drag's cursor rows are in world units, so
+ * a line search comparing one combined norm cannot see the constraint drift at all. Dividing by
+ * this makes the defining block a relative quantity, which is the quantity the figures display.
+ */
+export function nullCurveResidualScale(C: readonly Conformal[]): number[] {
+  const n = C.length - 1
+  return Array.from({ length: 2 * n + 1 }, (_, m) => {
+    let s = 0
+    for (let j = 0; j <= n; j++) {
+      const k = m - j
+      if (k < 0 || k > n) continue
+      s += ((binomial(n, j) * binomial(n, k)) / binomial(2 * n, m)) * Math.abs(innerProduct(C[j], C[k]))
+    }
+    return s
+  })
+}
+
+/**
  * The 2n−1 Bernstein coefficients of ⟨P′,P′⟩ − h², with h given by its own n Bernstein
  * coefficients (degree n−1). Zero exactly when the curve is PH with parametric speed
  * ‖p′‖ = h/w.
@@ -479,6 +500,22 @@ export function phSquareResidual(C: readonly Conformal[], h: readonly number[]):
       if (k < 0 || k > n - 1) continue
       const v = (binomial(n - 1, j) * binomial(n - 1, k)) / binomial(2 * n - 2, m)
       acc += v * (innerProduct(D[j], D[k]) - h[j] * h[k])
+    }
+    return acc
+  })
+}
+
+/** The |·| companion to phSquareResidual, for the same reason as nullCurveResidualScale. */
+export function phSquareResidualScale(C: readonly Conformal[], h: readonly number[]): number[] {
+  const n = C.length - 1
+  const D = derivativeCoefficients(C)
+  return Array.from({ length: 2 * n - 1 }, (_, m) => {
+    let acc = 0
+    for (let j = 0; j <= n - 1; j++) {
+      const k = m - j
+      if (k < 0 || k > n - 1) continue
+      const v = (binomial(n - 1, j) * binomial(n - 1, k)) / binomial(2 * n - 2, m)
+      acc += Math.abs(v) * (Math.abs(innerProduct(D[j], D[k])) + Math.abs(h[j] * h[k]))
     }
     return acc
   })

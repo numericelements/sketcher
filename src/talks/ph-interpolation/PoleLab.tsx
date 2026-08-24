@@ -29,10 +29,13 @@
 // drawn here.
 // ============================================================================
 import { useMemo, useState } from 'react'
-import { type ConformalPHCurve, dragControlPoint, radii } from '../../core/conformalPHCurve'
-import { type Conformal, project } from '../../core/conformal'
+import { type ConformalPHCurve, radii } from '../../core/conformalPHCurve'
+import { dragControlPointStaged } from '../../core/conformalMobiusDrag'
+import { type Conformal, nullCurveResidual, project } from '../../core/conformal'
 import { type Rat, phRelativeResidual, settleToPH } from '../../core/nurbsPH'
-import { type PoleReading, conformalNullResidual, poleLines, readPoles } from '../../core/poleReadout'
+import {
+  type PoleReading, conformalCoefficientResidual, conformalNullResidual, poleLines, readPoles,
+} from '../../core/poleReadout'
 import type { Vec3 } from '../../core/quaternion'
 import Figure3D, { type Bounds3D, Curve3D, DragPoint3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
@@ -192,7 +195,32 @@ export default function PoleLab({ model }: { model: LabModel }) {
     () => (model === 'mobius' && conformal ? conformalAsRat(conformal) : rat),
     [model, conformal, rat],
   )
-  const poles = useMemo(() => readPoles(shown), [shown])
+  // On the Möbius side softness is forced by ⟨C,C⟩ ≡ 0 alone, so a state that has drifted off that
+  // identity can show poles reading HARD — an artifact of the solver, not a fact about the curve.
+  // The slide claims the model cannot make a pole hard, so it has to show this number.
+  const nullOff = model === 'mobius' && conformal ? conformalNullResidual(conformal) : 0
+  const residual = phRelativeResidual(shown)
+  /**
+   * WHAT THIS STATE IS ENTITLED TO JUDGE. Softness is ⟨q(r),q(r)⟩ against zero, and how close to
+   * zero counts depends on how far the state sits off the family — amplified by |r|, since a pole
+   * outside [0,1] evaluates powers that magnify a coefficient residual enormously. The readout
+   * carries the error bar; see PoleReadoutOptions.residual for the reading that made it necessary.
+   */
+  // NOT `nullOff`: that is the violation on [0,1], and a pole can sit at |z| = 4. The bar needs the
+  // COEFFICIENT accuracy, which is what propagates out there. See conformalCoefficientResidual.
+  const stateResidual = model === 'mobius' && conformal
+    ? conformalCoefficientResidual(conformal)
+    : residual
+  // In the Möbius model ⟨q,q⟩ at a pole IS the null residual evaluated there, so the readout is
+  // handed that polynomial and can say so instead of thresholding a number it cannot interpret.
+  const nullPolynomial = useMemo(
+    () => (model === 'mobius' && conformal ? nullCurveResidual(conformal.C) : undefined),
+    [model, conformal],
+  )
+  const poles = useMemo(
+    () => readPoles(shown, { residual: stateResidual, nullPolynomial }),
+    [shown, stateResidual, nullPolynomial],
+  )
   const cps = shown.P
   const current: PoleReading | null = poles.length ? poles[Math.min(pole, poles.length - 1)] : null
 
@@ -251,16 +279,16 @@ export default function PoleLab({ model }: { model: LabModel }) {
    * soft or hard and says the state is off the model, with the number. A transient artifact is
    * fine to look at; an artifact dressed as geometry is not.
    *
-   * THE ESCALATION IS KEPT, and one attempt to remove it is recorded here because it was
-   * plausible and wrong. On the RAW lift the solve is dramatically better with an equilibrated
-   * regularisation — 900 iterations to a defect of 5e-9 becomes 212 to 7e-15 — so the escalation
-   * looked like a workaround for bad scaling. But this figure drags the FRAMED lift, and framing
-   * already fixes the scaling: there the same change cost ten times the iterations and let a pole
-   * read HARD on one step of twenty, which is the one thing the slide must never show. Measured in
-   * conformalPHCurve.solveWith, where the reason now lives.
+   * THE ESCALATION LIVES IN dragControlPointStaged NOW, with an interior-point stage inside it:
+   * Newton 80 → 300 → interior → Newton 900, stopping at the first stage that lands on the model,
+   * best state by the same ⟨C,C⟩ number displayed above. The interior stage is what finally lets
+   * EVERY control point of the awkward lift move ON the model — plain Newton never landed lift8's
+   * point 4 once in a twenty-tick gesture (0/20, 6.8s); staged it is 20/20 at 1e-10 in 0.9s, and
+   * the points Newton already served are routed exactly as before. Measured and pinned in
+   * conformalInteriorDrag.test.ts.
    *
-   *     first grab   300 iterations  →  8 genuine poles, ALL SOFT
-   *     after that    80 iterations  →  still all soft, isotropy down to 2e-13
+   *     first grab   one interior stage at most  →  8 genuine poles, ALL SOFT
+   *     after that   the 80-iteration stage      →  still all soft, isotropy down to 2e-13
    *
    * The doubled pole splits into soft poles on the first touch, which is the whole content of
    * "hard is only ever a boundary point of the soft cell".
@@ -275,24 +303,12 @@ export default function PoleLab({ model }: { model: LabModel }) {
   const dragMobius = (index: number, to: [number, number, number]) =>
     setSt((prev) => {
       if (!prev.conformal) return prev
-      let best: ConformalPHCurve | null = null
-      let bestNull = Infinity
-      for (const iterations of [80, 300, 900]) {
-        const r = dragControlPoint(prev.conformal, index, { x: to[0], y: to[1], z: to[2] },
-          { pinEnds: true, iterations })
-        const off = conformalNullResidual(r.state)
-        if (off < bestNull) { bestNull = off; best = r.state }
-        if (off <= 1e-9) break
-      }
-      return best ? { ...prev, conformal: best } : prev
+      const r = dragControlPointStaged(prev.conformal, index, { x: to[0], y: to[1], z: to[2] },
+        { pinEnds: true })
+      return { ...prev, conformal: r.state }
     })
 
   const drag = model === 'mobius' ? dragMobius : dragProjective
-  const residual = phRelativeResidual(shown)
-  // On the Möbius side softness is forced by ⟨C,C⟩ ≡ 0 alone, so a state that has drifted off that
-  // identity can show poles reading HARD — an artifact of the solver, not a fact about the curve.
-  // The slide claims the model cannot make a pole hard, so it has to show this number.
-  const nullOff = model === 'mobius' && conformal ? conformalNullResidual(conformal) : 0
 
   return (
     <Figure3D
@@ -318,8 +334,12 @@ export default function PoleLab({ model }: { model: LabModel }) {
             label: `pole ${Math.min(pole, poles.length - 1) + 1} of ${poles.length}`,
             // ⟨C,C⟩ ≡ 0 is what FORCES softness here, so a drifted state has no verdict to give:
             // saying "hard" would point opposite to the theorem, and saying "soft" would be luck.
-            value: nullOff > 1e-9 ? 'off the model' : current.verdict.toUpperCase(),
-            tone: nullOff > 1e-9 ? 'warn' : current.verdict === 'soft' ? 'ok' : 'plain',
+            value: nullOff > 1e-9 ? 'off the model'
+              : current.verdict === 'below resolution' ? 'no verdict'
+                : current.verdict.toUpperCase(),
+            tone: nullOff > 1e-9 || current.verdict === 'below resolution'
+              ? 'warn'
+              : current.verdict === 'soft' ? 'ok' : 'plain',
           }
           : { label: 'poles', value: 'none' },
       ]}

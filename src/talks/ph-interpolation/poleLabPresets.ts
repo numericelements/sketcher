@@ -318,7 +318,7 @@ export const PRESETS: Preset[] = [
   {
     id: 'lift8',
     label: 'a hard curve, LIFTED (8)',
-    note: 'The λ-chart quartic in the Möbius model — and the AWKWARD one. Its denominator is genuinely degree 1 inside a degree-4 basis, so its lift is a degree-8 member with a degree-2 denominator, and the solver needs 900 iterations where the clean specimen needs 80. Nothing is hidden: when ⟨C,C⟩ drifts the verdict is withheld and the number shown.',
+    note: 'The λ-chart quartic in the Möbius model — and the AWKWARD one. Its denominator is genuinely degree 1 inside a degree-4 basis, so its lift is a degree-8 member with a degree-2 denominator, and plain Newton cannot keep every drag of it on the model — the drag escalates to an interior-point stage for it. Nothing is hidden: when ⟨C,C⟩ drifts the verdict is withheld and the number shown.',
     degree: 8,
     conformal: liftHardQuarticToConformal().state,
     rat: () => conformalAsRat(liftHardQuarticToConformal().state),
