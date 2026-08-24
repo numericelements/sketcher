@@ -551,7 +551,7 @@ PROJECTIVE       (P, w, ρ)                             ‖N‖² = ρ²     (PH
 
 MÖBIUS           (C, h)                                ⟨C,C⟩ = 0     a curve of POINTS
                  control spheres in ℝ⁴′¹,              ⟨C′,C′⟩ = h²  (PH)
-                 speed coefficients                    and ρ = h·W, exactly
+                 speed coefficients                    ‖x′‖ = h/W,  and ρ = h·W, exactly
 
 convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its coefficients are Cₖ.
              W = Σ wₖBₖ is the one case change, wₖ being the weights.`}
@@ -589,6 +589,24 @@ convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its c
       + 'polynomial and match coefficients -- rho is the name, and the solver moves its '
       + 'coefficients like any others. h is the SAME design decision in the Moebius model, and '
       + 'rho = h W is the dictionary between the two names. '
+      + 'THE TWO-LINE DERIVATION THAT MAKES h INEVITABLE, worked through with Eric until it held '
+      + '(2026-08-24), and worth doing aloud if anyone asks what h IS. A point lifts to '
+      + '(1, x, half ||x||^2) -- null by the metric, <A,B> = a.b - a0 b4 - a4 b0 -- and the curve '
+      + 'is C = W times that lift. Product rule: C-prime = W-prime Xhat + W Xhat-prime. Expand '
+      + '<C-prime,C-prime> like a school binomial: the <Xhat,Xhat> term is 0 (points are null), '
+      + 'the cross term is 0 (derivative of null), and <Xhat-prime,Xhat-prime> = ||x-prime||^2 '
+      + 'because Xhat-prime = (0, x-prime, x.x-prime) has a ZERO first slot, killing both cross '
+      + 'products in the metric. Survivor: <C-prime,C-prime> = W^2 ||x-prime||^2. So h^2 = '
+      + '<C-prime,C-prime> says h = W ||x-prime|| -- h IS the lifted curve-s speed, the drawn '
+      + 'speed is h/W, and rho = W^2 ||x-prime|| gives rho = h W with a reason instead of a '
+      + 'formula. '
+      + 'AND THE STING, which is the slide-s theorem wearing algebra: expand ||N||^2 = '
+      + '||q-prime W - q W-prime||^2 modulo W and only ||q||^2 W-prime^2 survives -- so W divides '
+      + 'rho EXACTLY when <q,q> vanishes at every root of W, which is every pole SOFT. A '
+      + 'projective member with a hard pole has NO polynomial h: its speed blows up like 1/W^2 at '
+      + 'the hard pole where a soft one blows up like 1/W. "rho = h W with h polynomial" is not '
+      + 'bookkeeping; it IS the Moebius model-s constraint, and the reason the next two slides '
+      + 'behave differently under the same drag. '
       + 'THE MIDDLE ROW IS TWO LINES OF ALGEBRA, and it is worth doing them aloud once, here, so the '
       + 'lab slides can just point. At a SIMPLE root r of W -- the qualifier is on the slide, '
       + 'because at a doubled root the argument says NOTHING and the lab keeps a specimen of '
