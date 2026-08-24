@@ -309,7 +309,7 @@ in space    the same forms over ℍ      a family, not a count
     type: 'content',
     content: (
       <>
-        <h2>Same degrees of freedom, different number of answers</h2>
+        <h2>Interpolation: same degrees of freedom, different number of answers</h2>
         <ThreePointsFigure />
       </>
     ),
