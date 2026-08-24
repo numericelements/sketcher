@@ -124,23 +124,13 @@ export const slides: SlideDefinition[] = [
                   ‖q′W − qW′‖² = ρ²                   the curve written in ℝ⁴′¹`}
         </div>
 
-        <p style={{ fontSize: '0.72em', color: '#64748b', marginTop: '-0.25em', marginBottom: '0.4em' }}>
-          C is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
-          radius zero. In each cell the same gesture: hold control points and count the curves, or
-          hold one and let the solver place the rest.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.1em 0 0.5em 0.3em', lineHeight: 1.45 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.4em 0 0.5em 0.3em', lineHeight: 1.45 }}>
           <div><strong>I &mdash; Polynomial</strong></div>
           <div style={{ color: '#475569' }}>the plane, then space</div>
 
           <div><strong>II &mdash; Rational</strong></div>
           <div style={{ color: '#475569' }}>the projective and the M&ouml;bius model</div>
         </div>
-
-        <p style={{ fontSize: '0.72em', color: '#64748b', margin: '0 0 0.4em 0.3em' }}>
-          The aim is local editing with control over differential properties.
-        </p>
 
       </>
     ),
@@ -182,12 +172,14 @@ export const slides: SlideDefinition[] = [
       + 'VERBATIM in ph-interpolation-wip, notes included, and this outline stopped promising it the '
       + 'day the deck was cut to nine slides. When those slides graduate back, their rows return '
       + 'here with them; the git history has the old table if the wording is wanted. '
-      + 'THE GESTURE LINE UNDER THE MAP is the deck-s spine and is worth reading aloud. Each cell '
-      + 'can be shown twice: hold the maximum number of control points and the answer is a COUNT '
-      + '(strict), or hold one and the spare degrees of freedom are spent by minimum-norm (free). '
-      + 'The planar and spatial grip slides show exactly that toggle; the pole lab is the same '
-      + 'gesture with a solver holding the model instead of a count. '
-      + 'THE AIM LINE AT THE BOTTOM is the reason the deck exists and was previously left implicit. '
+      + 'TWO LINES CAME OFF THIS SLIDE (Eric, 2026-08-24). The C-explainer and the gesture '
+      + 'sentence moved to the rational divider, which is where C first appears in earnest and '
+      + 'where a reader needs them; the outline is now the map and the two-line section list, '
+      + 'nothing else. And the aim line ("local editing with control over differential '
+      + 'properties") was removed outright -- if the deck earns it, it does not need announcing; '
+      + 'say it in the discussion if asked what the work is FOR. The gesture idea itself -- each '
+      + 'figure shown twice, strict counts vs free minimum-norm -- is still the spine and still '
+      + 'worth a sentence aloud here. '
       + 'THE DISCIPLINE STILL HOLDS on every slide: named sources for what is known, an honest label '
       + 'for what is ours and how far, a number with the test that holds it for what is measured, and '
       + 'the open questions collected rather than softened along the way.',
@@ -556,6 +548,11 @@ MÖBIUS           (C, h)                                ⟨C,C⟩ = 0     a curv
 convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its coefficients are Cₖ.
              W = Σ wₖBₖ is the one case change, wₖ being the weights.`}
         </div>
+        <div className="event note" style={{ marginTop: '1.2em' }}>
+          C is the curve itself, written in ℝ⁴′¹ &mdash; the model where a point is a sphere of
+          radius zero. In each model the same gesture: hold control points and count the curves,
+          or hold one and let the solver place the rest.
+        </div>
       </>
     ),
     notes:
@@ -572,6 +569,10 @@ convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its c
       + 'with ||x-prime|| = rho/W^2. And the Moebius model-s h is the SAME quantity in its own '
       + 'clothes: rho = h W exactly, which is the conversion conformalAsRat performs and the reason '
       + 'one lab can hold both models. Both identifications are now printed. '
+      + 'THE NOTE UNDER THE TABLE arrived from the outline (Eric-s move, 2026-08-24): the '
+      + 'C-explainer and the gesture sentence belong where C is first used in earnest, not on the '
+      + 'map. One word changed in transit -- "in each CELL" became "in each MODEL", since the '
+      + 'cells were the outline-s vocabulary. '
       + 'THE UNKNOWNS/IDENTITIES TABLE AND THE CONVENTION LINE were both rewritten twice under '
       + 'Eric-s reading (2026-08-24), and the record matters so neither regresses. FIRST ATTEMPT: '
       + 'projective shown as a data triple, Moebius as its defining conditions -- he asked why one '
