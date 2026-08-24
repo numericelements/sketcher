@@ -544,15 +544,17 @@ in space    the same forms over ℍ      a family, not a count
 W(r) = 0         a POLE, and N(r) = −q(r)·W′(r)
                  at a SIMPLE pole,  soft  ⟺  ⟨q(r), q(r)⟩ = 0
 
-PROJECTIVE       (P, w, ρ)          a rational Bézier — points and weights — plus ρ;
-                                    PH imposed as the identity above
+                 unknowns                              identities
 
-MÖBIUS           C = (W, q, c∞)     a polygon of weighted SPHERES in ℝ⁴′¹;
-                                    ⟨C,C⟩ = 0 (points),  ⟨C′,C′⟩ = h²  (PH),  ρ = h·W
+PROJECTIVE       (P, w, ρ)                             ‖q′W − qW′‖² = ρ²          (PH)
+                 points, weights, speed coefficients   a curve of points for free
 
-convention:  W = Σ wₖBₖ — coefficients w, polynomial W.  Each of q, ρ, h is a polynomial too;
-             the models store their Bernstein coefficients, and the identities above are identities
-             of polynomials.`}
+MÖBIUS           (C, h)                                ⟨C,C⟩ = 0     a curve of POINTS
+                 control spheres in ℝ⁴′¹,              ⟨C′,C′⟩ = h²  (PH)
+                 speed coefficients                    and ρ = h·W, exactly
+
+convention:  one letter per object — the curve is C(t) = Σ CₖBₖ(t), its coefficients are Cₖ.
+             W = Σ wₖBₖ is the one case change, wₖ being the weights.`}
         </div>
       </>
     ),
@@ -570,14 +572,23 @@ convention:  W = Σ wₖBₖ — coefficients w, polynomial W.  Each of q, ρ, h
       + 'with ||x-prime|| = rho/W^2. And the Moebius model-s h is the SAME quantity in its own '
       + 'clothes: rho = h W exactly, which is the conversion conformalAsRat performs and the reason '
       + 'one lab can hold both models. Both identifications are now printed. '
-      + 'THE CONVENTION LINE AND THE LETTER C both exist because Eric-s reading caught the levels '
-      + 'colliding (2026-08-24). W vs w: capital is the polynomial Sigma w_k B_k, lowercase its '
-      + 'coefficients -- and q, rho, h each use ONE letter for both levels, so the line says the '
-      + 'models store Bernstein coefficients and the identities are identities of polynomials. '
-      + 'Worse, P meant CONTROL POINTS in (P, w, rho) and THE CURVE in the old <P,P> = 0 on the '
-      + 'same slide -- so the null and PH conditions are now written on C, the letter the pole '
-      + 'lab-s own notation strip already displays, and P means control points everywhere in the '
-      + 'deck. '
+      + 'THE UNKNOWNS/IDENTITIES TABLE AND THE CONVENTION LINE were both rewritten twice under '
+      + 'Eric-s reading (2026-08-24), and the record matters so neither regresses. FIRST ATTEMPT: '
+      + 'projective shown as a data triple, Moebius as its defining conditions -- he asked why one '
+      + 'model is coefficients and the other functions, and the answer is that NEITHER is: both '
+      + 'models are coefficient data plus polynomial identities ((P, w, rho) with one identity; '
+      + '(C, h) with two), exactly the code-s Rat and ConformalPHCurve. SECOND ATTEMPT said '
+      + '"capitals are polynomials", which is false twice on its own slide (P and C are capitals '
+      + 'and hold control data). The convention actually in force is the standard Bezier one, now '
+      + 'printed: ONE LETTER PER OBJECT, the curve with (t), the coefficients with a subscript -- '
+      + 'C(t) = Sigma C_k B_k(t) -- and W = Sigma w_k B_k is the single case change, w_k being the '
+      + 'weights. So <C,C> = 0 is about the curve and (C, h) lists coefficients with no collision, '
+      + 'and P means control points everywhere in the deck. '
+      + 'WHY RHO IS AN UNKNOWN AT ALL, since it will be asked of the table: PH says ||N||^2 is the '
+      + 'square OF SOME POLYNOMIAL, and to make "of some polynomial" into equations you NAME the '
+      + 'polynomial and match coefficients -- rho is the name, and the solver moves its '
+      + 'coefficients like any others. h is the SAME design decision in the Moebius model, and '
+      + 'rho = h W is the dictionary between the two names. '
       + 'THE MIDDLE ROW IS TWO LINES OF ALGEBRA, and it is worth doing them aloud once, here, so the '
       + 'lab slides can just point. At a SIMPLE root r of W -- the qualifier is on the slide, '
       + 'because at a doubled root the argument says NOTHING and the lab keeps a specimen of '
@@ -590,13 +601,18 @@ convention:  W = Σ wₖBₖ — coefficients w, polynomial W.  Each of q, ρ, h
       + '(|a|^2 - |b|^2) + 2i<a,b>, so soft is |a| = |b| AND a perpendicular to b -- two vectors of '
       + 'equal length at right angles, which is what the readout draws. |q|^2 = 0 would force '
       + 'q(r) = 0 outright, a different and wrong condition. '
-      + 'THE MODEL ROWS SAY WHAT EACH MODEL IS, one line each, because the pair-s slides open on '
-      + 'instruments and someone should have been told the unknowns first. PROJECTIVE: exactly what '
-      + 'a NURBS editor already has -- control points and weights -- plus the one new polynomial '
-      + 'rho, and PH is imposed coefficient by coefficient. MOEBIUS: the curve itself written in '
-      + 'R^{4,1}, where a control point is a WEIGHTED SPHERE (the centres are the rational-Bezier '
-      + 'control points, the ends are point-spheres), and the two conditions are <C,C> = 0 -- it is '
-      + 'a curve of points -- and <C-prime,C-prime> = h^2 -- it is PH. '
+      + 'THE MODEL ROWS ARE DELIBERATELY PARALLEL -- same two columns, same meanings -- because the '
+      + 'pair-s slides open on instruments and someone should be told the unknowns first. '
+      + 'PROJECTIVE: exactly what a NURBS editor already has -- control points and weights -- plus '
+      + 'rho-s coefficients, and ONE identity to satisfy, PH. MOEBIUS: control points that are '
+      + 'WEIGHTED SPHERES in R^{4,1} (the centres are the rational-Bezier control points, the ends '
+      + 'are point-spheres), plus h-s coefficients, and TWO identities: <C,C> = 0 -- it is a curve '
+      + 'of points -- and <C-prime,C-prime> = h^2 -- it is PH. '
+      + 'AND THE COUNT OF IDENTITIES IS THE LESSON, worth saying aloud over the table: in R^3 any '
+      + '(P, w) is a curve of points automatically -- pointhood is FREE and only PH costs an '
+      + 'identity. In R^{4,1} pointhood itself costs the null identity, and that identity is '
+      + 'exactly the one that forces every simple pole soft. The pole pair is hiding in the '
+      + 'asymmetry of the identities column. '
       + 'AND THE PAIR IS AN EXPERIMENT, announced as one: the SAME specimens, written two ways, and '
       + 'the only thing that changes between the two slides is what a DRAG is allowed to do. In '
       + 'the projective model the PH condition is restored around your gesture and nothing protects '
