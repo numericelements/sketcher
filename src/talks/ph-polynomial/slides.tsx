@@ -115,10 +115,10 @@ export const slides: SlideDefinition[] = [
 
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.4em 0 0.5em 0.3em', lineHeight: 1.45 }}>
           <div><strong>the plane</strong></div>
-          <div style={{ color: '#475569' }}>the price of PH, and the count your grip decides</div>
+          <div style={{ color: '#475569' }}>how many curves fit the control points you hold</div>
 
           <div><strong>space</strong></div>
-          <div style={{ color: '#475569' }}>the same grip leaves a family</div>
+          <div style={{ color: '#475569' }}>the same points held leave a family, not a count</div>
         </div>
 
       </>
@@ -171,40 +171,43 @@ export const slides: SlideDefinition[] = [
       + 'the open questions collected rather than softened along the way.',
   },
   // ---------------------------------------------------------------------------
-  // THE DIVIDER — the act's ladder, and nothing else: one, a count, a family.
+  // THE DIVIDER — the original table, restored, under a plain title.
   //
-  // SIMPLIFIED TO THE LADDER (Eric, 2026-08-24), and the h1 came off with it. The earlier
-  // version carried a header sentence, the points-vs-control-points split, the exponent and a
-  // footnote defining k — two of those were patches for a misreading, and all of them were the
-  // NEXT slides' conclusions spent early (the outline's own rule). What the divider owes is the
-  // SHAPE of the act: linear → one; quadratic → a count; in space → a family. The exponent lives
-  // on the price slide's notation strip, the range and the data-type split on the provenance
-  // slide, and k is defined where it is first really used. "I — Polynomial" as a title was stale
-  // twice over after the split — a numeral with no act structure left, repeating the deck's name.
+  // THIS SLIDE WAS REWRITTEN THREE TIMES AND ERIC RESTORED THE ORIGINAL (2026-08-24). The arrow
+  // version (data → count of curves, header sentence, k in words) and the ladder version (one,
+  // a count, a family — no title) were both tried; the original compact table said the facts
+  // best, and the deck's register is a STRAIGHT PRESENTATION OF FACT — no grand titles, no big
+  // reveal. "I — Polynomial" became a plain label instead. The one risk the original carries —
+  // the right column reads as counts of SOLUTIONS, and "2ᵏ⁻¹ points on the curve" once parsed as
+  // a number of points — is handled by saying it aloud (first line of the notes), not by
+  // decorating the table.
   // ---------------------------------------------------------------------------
   {
     type: 'title',
     content: (
       <>
-        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.7em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '1.6em' }}>
-{`Bézier      A x = b                    one curve
+        <h1>Counting solutions</h1>
+        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
+{`Bézier      A x = b                    one
 
-PH          xᵀ Qⱼ x = bⱼ               a COUNT — and which count, the points you hold decide
+PH          xᵀ Qⱼ x = bⱼ               2ᵏ⁻¹      points on the curve
+                                       1 … 2ᵏ⁻¹  control points
 
-in space    the same forms over ℍ      a FAMILY, not a count`}
+in space    the same forms over ℍ      a family, not a count
+
+                                       k = deg 𝒜 + 1`}
         </div>
       </>
     ),
     notes:
       'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
-      + 'THE SLIDE IS THE LADDER NOW AND NOTHING ELSE (Eric, 2026-08-24, second pass): one, a '
-      + 'count, a family. The earlier version printed the points-vs-control-points split, the '
-      + 'exponent 2^{k-1}, a header sentence and a k footnote -- the header and footnote were '
-      + 'patches for a misreading (the counts parsed as numbers of points), and the rest was the '
-      + 'next slides-own conclusions spent early. Everything below this line is now SPOKEN '
-      + 'material for when the questions come, not a description of what is printed. '
-      + 'THERE ARE TWO COUNTING PROBLEMS BEHIND THE MIDDLE ROW, and they are not the '
+      + 'SAY FIRST, EVERY TIME: the right column counts SOLUTIONS -- how many curves fit the held '
+      + 'data. It once read as a number of points, and the fix is this sentence, not decoration '
+      + 'on the table. (The table was rewritten twice -- arrows, then a ladder -- and Eric '
+      + 'restored this original as the straight statement of fact; the register of the whole deck '
+      + 'is that, no grand titles, no reveal.) '
+      + 'THE MIDDLE ROW CARRIES TWO NUMBERS BECAUSE THERE ARE TWO PROBLEMS, and they are not the '
       + 'same one for a PH curve even though they are for an ordinary Bezier. Prescribing POINTS ON '
       + 'THE CURVE gives exactly 2^{k-1}, always -- five points on a septic give eight '
       + '(planarPHInterpolantCount.test.ts, and phPlanarSepticInterp computes them by homotopy). '
