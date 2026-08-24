@@ -71,9 +71,9 @@ import { bernsteinToPower } from '../conformalPHHopf'
 import { liftToConformal, toBernstein } from '../conformalLift'
 import { definingJacobian, pack, unpack, residual, type ConformalPHCurve } from '../conformalPHCurve'
 import { readPoles } from '../poleReadout'
-import { randomHardRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { randomHardRat } from '../../talks/ph-rational/poleLabPresets'
 import { type Complex, cadd, cmul, cnorm } from '../complex'
-import { PRESETS } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS } from '../../talks/ph-rational/poleLabPresets'
 import type { Conformal } from '../conformal'
 
 const rng = (seed: number) => {

@@ -42,7 +42,7 @@ import {
 import { settleToPH, layout, type Rat } from '../nurbsPH'
 import { bernsteinToPower } from '../conformalPHHopf'
 import { liftToConformal, toBernstein } from '../conformalLift'
-import { randomHardRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { randomHardRat } from '../../talks/ph-rational/poleLabPresets'
 const rng = (seed: number) => {
   let a = seed >>> 0
   return (): number => {

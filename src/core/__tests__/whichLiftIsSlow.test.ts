@@ -27,7 +27,7 @@
 import { describe, it, expect } from 'vitest'
 import { dragControlPoint, degreeOf, type ConformalPHCurve } from '../conformalPHCurve'
 import { conformalNullResidual, readPoles, trueDegreePoly } from '../poleReadout'
-import { PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS, conformalAsRat } from '../../talks/ph-rational/poleLabPresets'
 import { frameConformal } from '../specimenFraming'
 import { hardQuarticMember } from '../hardQuarticWitness'
 

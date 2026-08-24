@@ -21,7 +21,7 @@
 // real geometry (extent ~12, pre-existing in both modes, structural).
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { PRESETS } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS } from '../../talks/ph-rational/poleLabPresets'
 import { frame, sampleRational } from '../specimenFraming'
 import { type Rat, settleToPH } from '../nurbsPH'
 

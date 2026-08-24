@@ -50,7 +50,7 @@ import {
 } from '../conformalPHCurve'
 import { bernsteinToPower } from '../conformalPHHopf'
 import { conformalNullResidual, readPoles, trueDegreePoly } from '../poleReadout'
-import { PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS, conformalAsRat } from '../../talks/ph-rational/poleLabPresets'
 import { frameConformal } from '../specimenFraming'
 import type { Conformal } from '../conformal'
 import { vnorm, vsub } from '../quaternion'

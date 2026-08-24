@@ -11,7 +11,7 @@ import { definingJacobian, degreeOf, residual } from '../conformalPHCurve'
 import { liftToConformal, normSquared, sharedFactor } from '../conformalLift'
 import { singularValues } from '../nurbsPH'
 import { readPoles } from '../poleReadout'
-import { PRESETS } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS } from '../../talks/ph-rational/poleLabPresets'
 
 const trueDeg = (p: readonly number[], rel = 1e-11): number => {
   const s = Math.max(...p.map(Math.abs), 1e-300)

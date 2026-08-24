@@ -18,9 +18,9 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import ThreePointsFigure from '../ph-interpolation/ThreePointsFigure'
-import PinnedEndsFigure from '../ph-interpolation/PinnedEndsFigure'
-import QuinticHermiteFigure from '../ph-interpolation/QuinticHermiteFigure'
+import ThreePointsFigure from '../ph-polynomial/ThreePointsFigure'
+import PinnedEndsFigure from '../ph-polynomial/PinnedEndsFigure'
+import QuinticHermiteFigure from '../ph-polynomial/QuinticHermiteFigure'
 
 interface Geometry {
   viewBoxes: { x: number; y: number; w: number; h: number }[]

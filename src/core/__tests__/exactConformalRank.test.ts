@@ -114,7 +114,7 @@ describe('the exact rank of a lifted hard curve', () => {
   }, 300_000)
 
   it('and the law is about the LIFTS, not the variety — soft members sit at 4N − 1', async () => {
-    const { PRESETS } = await import('../../talks/ph-interpolation/poleLabPresets')
+    const { PRESETS } = await import('../../talks/ph-rational/poleLabPresets')
     for (const id of ['soft6', 'soft4']) {
       const st = PRESETS.find((p) => p.id === id)?.conformal
       if (!st) continue

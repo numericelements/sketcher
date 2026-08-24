@@ -28,7 +28,7 @@
 // tiny. No threshold on the isotropy could have caught those.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS, conformalAsRat } from '../../talks/ph-rational/poleLabPresets'
 import { readPoles, conformalNullResidual } from '../poleReadout'
 import { phRelativeResidual } from '../nurbsPH'
 

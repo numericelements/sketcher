@@ -41,7 +41,7 @@ import {
 } from '../conformalPHCurve'
 import { leastSquares } from '../linalg'
 import { readPoles } from '../poleReadout'
-import { conformalAsRat, PRESETS, randomHardRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { conformalAsRat, PRESETS, randomHardRat } from '../../talks/ph-rational/poleLabPresets'
 import { liftToConformal } from '../conformalLift'
 import { bernsteinToPower } from '../conformalPHHopf'
 import { type Rat } from '../nurbsPH'

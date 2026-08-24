@@ -16,7 +16,7 @@
 //   · "can I judge this pole" is a question about z, which for lift8 runs out to |z| = 3.3.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS, conformalAsRat } from '../../talks/ph-rational/poleLabPresets'
 import { frameConformal } from '../specimenFraming'
 import {
   dragControlPoint, controlPoints, degreeOf, type ConformalPHCurve,

@@ -24,7 +24,7 @@
 // obvious form of H2 — freezes the drag at 0% tracking, which is recorded in solveWith.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { PRESETS } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS } from '../../talks/ph-rational/poleLabPresets'
 import { frameConformal } from '../specimenFraming'
 import { dragControlPoint, controlPoints, degreeOf, type ConformalPHCurve } from '../conformalPHCurve'
 import { conformalNullResidual } from '../poleReadout'

@@ -22,16 +22,24 @@ export const talks: TalkDefinition[] = [
     load: () => import('./cs2026/slides').then((m) => m.slides),
   },
   {
-    slug: 'ph-interpolation',
-    title: 'Pythagorean–Hodograph Curves',
-    subtitle: 'Solution structure, representations, and interactive control',
-    load: () => import('./ph-interpolation/slides').then((m) => m.slides),
+    // One deck per act (2026-08-24): ph-interpolation split into this and ph-rational.
+    slug: 'ph-polynomial',
+    title: 'Pythagorean–Hodograph Curves — Polynomial',
+    subtitle: 'Solution structure and interactive control',
+    load: () => import('./ph-polynomial/slides').then((m) => m.slides),
   },
   {
-    // The parked second half of ph-interpolation — see that deck's header for the split.
+    slug: 'ph-rational',
+    title: 'Pythagorean–Hodograph Curves — Rational',
+    subtitle: 'Two representations, and the pole between them',
+    load: () => import('./ph-rational/slides').then((m) => m.slides),
+  },
+  {
+    // The parking lot from the original ph-interpolation deck — slides graduate into
+    // ph-polynomial or ph-rational, whichever owns them. Figures import from ph-polynomial/.
     slug: 'ph-interpolation-wip',
     title: 'Pythagorean–Hodograph Curves — work in progress',
-    subtitle: 'The parked second half: rational twice, the gap, what is open',
+    subtitle: 'The parked slides: rational twice, the gap, what is open',
     unlisted: true,
     load: () => import('./ph-interpolation-wip/slides').then((m) => m.slides),
   },

@@ -24,7 +24,7 @@
 // routes identical there) — not made worse, not resolved here.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS, conformalAsRat } from '../../talks/ph-rational/poleLabPresets'
 import { frameConformal } from '../specimenFraming'
 import { controlPoints, degreeOf, dragControlPoint, type ConformalPHCurve } from '../conformalPHCurve'
 import { dragControlPointStaged } from '../conformalMobiusDrag'

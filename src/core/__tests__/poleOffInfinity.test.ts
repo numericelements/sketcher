@@ -35,7 +35,7 @@
 // of 4.4e+23 and a drag table of pure noise that looked like a confirmation of my prediction.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { hardQuarticRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { hardQuarticRat } from '../../talks/ph-rational/poleLabPresets'
 import { bernsteinToPower } from '../conformalPHHopf'
 import { liftToConformal, toBernstein } from '../conformalLift'
 import { dragControlPoint, controlPoints, degreeOf, residual } from '../conformalPHCurve'

@@ -37,7 +37,7 @@
 // file keeps pinning the plain escalation underneath it, corrector on and off.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
+import { PRESETS, conformalAsRat } from '../../talks/ph-rational/poleLabPresets'
 import { frameConformal } from '../specimenFraming'
 import { dragControlPoint, controlPoints, degreeOf, type ConformalPHCurve } from '../conformalPHCurve'
 import { conformalCoefficientResidual, conformalNullResidual, readPoles } from '../poleReadout'
