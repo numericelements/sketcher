@@ -357,8 +357,63 @@ in space    the same forms over ℍ      a family, not a count
       'grab one, drifting two hundredths of a pixel over a chord-long drag (phFreeDragPinned).',
   },
 
+
   // ---------------------------------------------------------------------------
-  // 6 — what is published, what we add, and the one equation under both
+  // 7 — THE spatial slide. The same grip, one geometry up: the count becomes a family.
+  //
+  // PROMOTED FROM DRAFT (2026-08-24). It entered as "placed for testing — if it holds up it
+  // replaces the spatial-cubic slide below", and the cut to nine forced the verdict: the cubic and
+  // torus slides it subsumed are parked in ph-interpolation-wip, and this is section I's closing
+  // argument. {P₀,P₁,P₃} at degree 3 IS the old cubic slide, toured the same way; degree 5
+  // ends-held IS the torus grip, its two dials the Hopf angles.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The same control points held in space leave a family</h2>
+        <SpatialSubsetFigure />
+      </>
+    ),
+    notes:
+      'THE SAME GESTURE, ONE GEOMETRY UP, and the answer changes in kind rather than in size. ' +
+      'dim = 4m+6 in space against 2K+2 in the plane, each held control point costs 3 instead of 2, ' +
+      'and the number you can always hold comes out the SAME in both: (n+3)/2, just over half the ' +
+      'control points. Degree 3 hold 3 of 4, degree 5 hold 4 of 6, degree 7 hold 5 of 8. What ' +
+      'differs is what is LEFT: nothing in the plane, so a count; m dimensions in space, so a family. ' +
+      'ONE DIAL PER DIMENSION, AT EVERY GRIP — m of them, and m = 4m+6-3(m+2) cannot see WHICH ' +
+      'points are held. If someone asks whether a different grip gives fewer dials: no. Measured at ' +
+      'every grip of every degree the figure offers, 4 + 15 + 56 of them, the dimension is m each ' +
+      'time. ' +
+      'WHAT THE GRIP DOES DECIDE IS THE SHAPE, and there is a rule for it. Hold both ends and one ' +
+      'point out of each consecutive pair (P1,P2), (P3,P4), ... — 2^m grips — and the family is ' +
+      'BOUNDED. Hold anything else and it runs to infinity. The same 2^m grips are exactly the ones ' +
+      'where the PLANAR problem attains its full 2^m interpolants; every other grip loses planar ' +
+      'branches and gains an unbounded spatial family. Swept exhaustively at degrees 3, 5 and 7. ' +
+      'Running away is proved, by exhibiting a path that leaves every bound; staying bounded is ' +
+      'strong evidence over 8000 walk samples, except at {P0,P1,P4,P5} where the closed form settles ' +
+      'it. So "ends held" opens on a good grip at every degree: {P0,P1,P3}, {P0,P1,P4,P5}, ' +
+      '{P0,P1,P3,P6,P7}. ' +
+      'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse with the parked cubic ' +
+      'slide\'s own continuation, so the dial wraps and the grey loop is the whole fibre. Degree 5 ' +
+      'ends-held IS the quintic Hermite grip, so both dials are the Hopf angles phi0 and phi2, they ' +
+      'wrap, and the loci close to 1e-16. Degree 7 has no closed form, so its dials are chart ' +
+      'coordinates and the loci are drawn as the ARCS they reach. Nothing claims a circle where ' +
+      'there is not one. ' +
+      'THIS SLIDE ABSORBED TWO OTHERS, and the ledger should be said if a specialist asks where ' +
+      'they went. The spatial-cubic slide ({P0,P1,P3}: ten degrees of freedom, nine conditions, the ' +
+      'tenth a curve) is the degree-3 tour here; the quintic-Hermite torus slide is the degree-5 ' +
+      'ends-held grip, same four points, same two angles. Both parked slides live in ' +
+      'ph-interpolation-wip, and what the torus slide still owns alone — the alpha/beta CHANGE OF ' +
+      'BASIS and the arc-length-depends-on-beta invariant — goes with it. If that lesson is wanted ' +
+      'back, it graduates as its own slide rather than being folded in here.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // THE CLOSING SLIDE — what is published, what we add, what is open (moved to the end,
+  // Eric, 2026-08-24: it is the conclusion, and the deck now ends where the discussion
+  // starts. The figure arc runs uninterrupted before it: interpolation → planar grip →
+  // spatial grip.)
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -410,7 +465,10 @@ in space    the same forms over ℍ      a family, not a count
       </>
     ),
     notes:
-      'THIS SLIDE COMES AFTER THE FIGURE ON PURPOSE: explain what they have just felt. ' +
+      'THE CLOSING SLIDE, moved to the end (Eric, 2026-08-24): it explains what the room has ' +
+      'just FELT across all three figures, states what is published against what is ours, and ' +
+      'ends on the open question -- which is what the discussion is for. Leave it up and stop ' +
+      'talking. ' +
       'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
       'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
       'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
@@ -456,56 +514,5 @@ in space    the same forms over ℍ      a family, not a count
       + 'IF ASKED what the several answers ARE: sheets of a branched covering. Each grip is a ' +
       'different projection of the same family onto the points you hold; crossing the discriminant ' +
       'permutes them, which is why the figure carries branches by Newton rather than re-solving.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 7 — THE spatial slide. The same grip, one geometry up: the count becomes a family.
-  //
-  // PROMOTED FROM DRAFT (2026-08-24). It entered as "placed for testing — if it holds up it
-  // replaces the spatial-cubic slide below", and the cut to nine forced the verdict: the cubic and
-  // torus slides it subsumed are parked in ph-interpolation-wip, and this is section I's closing
-  // argument. {P₀,P₁,P₃} at degree 3 IS the old cubic slide, toured the same way; degree 5
-  // ends-held IS the torus grip, its two dials the Hopf angles.
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>The same control points held in space leave a family</h2>
-        <SpatialSubsetFigure />
-      </>
-    ),
-    notes:
-      'THE SAME GESTURE, ONE GEOMETRY UP, and the answer changes in kind rather than in size. ' +
-      'dim = 4m+6 in space against 2K+2 in the plane, each held control point costs 3 instead of 2, ' +
-      'and the number you can always hold comes out the SAME in both: (n+3)/2, just over half the ' +
-      'control points. Degree 3 hold 3 of 4, degree 5 hold 4 of 6, degree 7 hold 5 of 8. What ' +
-      'differs is what is LEFT: nothing in the plane, so a count; m dimensions in space, so a family. ' +
-      'ONE DIAL PER DIMENSION, AT EVERY GRIP — m of them, and m = 4m+6-3(m+2) cannot see WHICH ' +
-      'points are held. If someone asks whether a different grip gives fewer dials: no. Measured at ' +
-      'every grip of every degree the figure offers, 4 + 15 + 56 of them, the dimension is m each ' +
-      'time. ' +
-      'WHAT THE GRIP DOES DECIDE IS THE SHAPE, and there is a rule for it. Hold both ends and one ' +
-      'point out of each consecutive pair (P1,P2), (P3,P4), ... — 2^m grips — and the family is ' +
-      'BOUNDED. Hold anything else and it runs to infinity. The same 2^m grips are exactly the ones ' +
-      'where the PLANAR problem attains its full 2^m interpolants; every other grip loses planar ' +
-      'branches and gains an unbounded spatial family. Swept exhaustively at degrees 3, 5 and 7. ' +
-      'Running away is proved, by exhibiting a path that leaves every bound; staying bounded is ' +
-      'strong evidence over 8000 walk samples, except at {P0,P1,P4,P5} where the closed form settles ' +
-      'it. So "ends held" opens on a good grip at every degree: {P0,P1,P3}, {P0,P1,P4,P5}, ' +
-      '{P0,P1,P3,P6,P7}. ' +
-      'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse with the parked cubic ' +
-      'slide\'s own continuation, so the dial wraps and the grey loop is the whole fibre. Degree 5 ' +
-      'ends-held IS the quintic Hermite grip, so both dials are the Hopf angles phi0 and phi2, they ' +
-      'wrap, and the loci close to 1e-16. Degree 7 has no closed form, so its dials are chart ' +
-      'coordinates and the loci are drawn as the ARCS they reach. Nothing claims a circle where ' +
-      'there is not one. ' +
-      'THIS SLIDE ABSORBED TWO OTHERS, and the ledger should be said if a specialist asks where ' +
-      'they went. The spatial-cubic slide ({P0,P1,P3}: ten degrees of freedom, nine conditions, the ' +
-      'tenth a curve) is the degree-3 tour here; the quintic-Hermite torus slide is the degree-5 ' +
-      'ends-held grip, same four points, same two angles. Both parked slides live in ' +
-      'ph-interpolation-wip, and what the torus slide still owns alone — the alpha/beta CHANGE OF ' +
-      'BASIS and the arc-length-depends-on-beta invariant — goes with it. If that lesson is wanted ' +
-      'back, it graduates as its own slide rather than being folded in here.',
   },
 ]
