@@ -171,16 +171,17 @@ export const slides: SlideDefinition[] = [
       + 'the open questions collected rather than softened along the way.',
   },
   // ---------------------------------------------------------------------------
-  // THE DIVIDER — the original table, restored, under a plain title.
+  // THE DIVIDER — the settled hybrid, after four versions (Eric, 2026-08-24).
   //
-  // THIS SLIDE WAS REWRITTEN THREE TIMES AND ERIC RESTORED THE ORIGINAL (2026-08-24). The arrow
-  // version (data → count of curves, header sentence, k in words) and the ladder version (one,
-  // a count, a family — no title) were both tried; the original compact table said the facts
-  // best, and the deck's register is a STRAIGHT PRESENTATION OF FACT — no grand titles, no big
-  // reveal. "I — Polynomial" became a plain label instead. The one risk the original carries —
-  // the right column reads as counts of SOLUTIONS, and "2ᵏ⁻¹ points on the curve" once parsed as
-  // a number of points — is handled by saying it aloud (first line of the notes), not by
-  // decorating the table.
+  // The FRAME is the original's: compact table, the plain title "Counting solutions" (no act
+  // numeral, no grand title — the deck's register is a straight presentation of fact), the
+  // space row, the k footnote. The MIDDLE ROWS are the arrow form's: data on the left of the
+  // arrow, count of CURVES on the right, with the k+1 visible — because "2ᵏ⁻¹ points on the
+  // curve" genuinely parsed as a number of points, twice, on separate readings weeks apart.
+  // And k is defined in WORDS (the generator's number of coefficients), not as "deg 𝒜 + 1",
+  // which computed it instead of saying it and borrowed the spatial generator's letter for the
+  // planar rows. The rejected versions — header sentence, and the untitled one/count/family
+  // ladder — are in git; neither said the facts as flatly.
   // ---------------------------------------------------------------------------
   {
     type: 'title',
@@ -190,23 +191,21 @@ export const slides: SlideDefinition[] = [
         <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
 {`Bézier      A x = b                    one
 
-PH          xᵀ Qⱼ x = bⱼ               2ᵏ⁻¹      points on the curve
-                                       1 … 2ᵏ⁻¹  control points
+PH          xᵀ Qⱼ x = bⱼ               k+1 points on the curve   →   2ᵏ⁻¹ curves
+                                       k+1 control points        →   1 … 2ᵏ⁻¹ curves
 
 in space    the same forms over ℍ      a family, not a count
 
-                                       k = deg 𝒜 + 1`}
+                                       k = the generator's number of coefficients`}
         </div>
       </>
     ),
     notes:
       'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
-      + 'SAY FIRST, EVERY TIME: the right column counts SOLUTIONS -- how many curves fit the held '
-      + 'data. It once read as a number of points, and the fix is this sentence, not decoration '
-      + 'on the table. (The table was rewritten twice -- arrows, then a ladder -- and Eric '
-      + 'restored this original as the straight statement of fact; the register of the whole deck '
-      + 'is that, no grand titles, no reveal.) '
+      + 'THE ARROWS CARRY THE READING: data on the left, count of curves on the right, so the '
+      + 'exponents cannot parse as numbers of points -- the misreading that happened twice before '
+      + 'the arrows went in. Nothing extra to say beyond reading a row aloud once. '
       + 'THE MIDDLE ROW CARRIES TWO NUMBERS BECAUSE THERE ARE TWO PROBLEMS, and they are not the '
       + 'same one for a PH curve even though they are for an ordinary Bezier. Prescribing POINTS ON '
       + 'THE CURVE gives exactly 2^{k-1}, always -- five points on a septic give eight '
