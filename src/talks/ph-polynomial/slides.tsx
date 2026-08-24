@@ -461,7 +461,7 @@ in space    the same forms over ℍ      a family, not a count
                 the bounded choices are exactly those where the planar count attains 2^(K−1)
 
 
-    OPEN        deg 𝒱 = 2^(K−1)     the count is the degree of the PH variety,
+    OPEN        deg 𝒱 = 2^(K−1)     the ceiling is the degree of the PH variety,
                                     and holding control points slices it linearly.`}
         </div>
 
@@ -526,6 +526,20 @@ in space    the same forms over ℍ      a family, not a count
       'recognition, not counting, so it does not contain it), and deg V = 2^(K-1). The ingredient ' +
       'for the last is textbook — deg(D_phi) = deg(phi)·deg(phi(X)) for a base-point-free system — ' +
       'but nothing applies it to PH curves. ' +
+      'THE SPOKEN LINE FOR THE OPEN ROW, and the strongest sentence this slide has for the expert ' +
+      'discussion: Farouki, Pelosi and Sampoli-s leg-pair prescriptions are LINEAR conditions on ' +
+      'the legs, just as held control points are — so their ten cases and every grip here are ' +
+      'linear slices of the SAME PH variety, and deg V is the one invariant sitting above both ' +
+      'tables: their 2-or-4, our 1-through-2^(K-1), each special slice seeing as much of the ' +
+      'degree as its position allows. The slide says CEILING, not count (tightened 2026-08-24), ' +
+      'because only a GENERIC slice sees the full degree — the table-s whole content is that ' +
+      'grips are special slices seeing less, the deficit lost to infinity or tangency. The proof ' +
+      'sketch, if pressed: a generic slice pulls back through the leg map to K quadrics whose ' +
+      'leading forms share a zero only where every leg vanishes, i.e. w-squared = 0, i.e. w = 0 — ' +
+      'base-point-free, so Bezout-s 2^K is honest; the legs determine w-squared, so the map is ' +
+      'exactly two-to-one; 2^K over 2 is 2^(K-1). What stays genuinely open: writing that down ' +
+      'properly (transversality, the count at infinity), and the PREDICTIVE half — which special ' +
+      'slices lose how many points, the histogram rather than its ceiling. ' +
       'THE CLASSICAL CASE IS ONE POSITION OF THE SELECTOR, and worth naming aloud: C1 Hermite data '
       + 'for a quintic IS the control-point grip {P0,P1,P4,P5}, since P1 = P0 + d0/5 and '
       + 'P4 = P5 - d1/5. "In general four distinct planar PH quintic interpolants to given C1 Hermite '
