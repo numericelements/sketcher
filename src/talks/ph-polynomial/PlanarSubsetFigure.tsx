@@ -321,7 +321,7 @@ export default function PlanarSubsetFigure() {
               { label: 'R = ∫|κ|ds', value: sel ? sel.rotationIndex.toFixed(3) : '—' },
               { label: 'arc len', value: sel ? sel.arcLength.toFixed(3) : '—' },
               solutions.length === 1
-                ? { label: '', value: 'unique grip ✓', tone: 'ok' as const }
+                ? { label: '', value: 'unique — no branches ✓', tone: 'ok' as const }
                 : selected === fairest
                   ? { label: '', value: `branch ${selected + 1}/${solutions.length} · fairest ✓`, tone: 'ok' as const }
                   : { label: '', value: `branch ${selected + 1}/${solutions.length} · fairest is ${fairest + 1}`, tone: 'plain' as const },
@@ -395,7 +395,7 @@ export default function PlanarSubsetFigure() {
           are computed. Click a hollow point to hold it; the oldest hold is released.{' '}
           {pinEnds
             ? 'With both ends held the count is even, and 2^(K−1) is reachable.'
-            : 'With the ends free, the single-solution grips appear: K in a row from one end plus one more.'}{' '}
+            : 'With the ends free, the single-solution choices appear: K in a row from one end plus one more.'}{' '}
           <span className="text-slate-400">Drag a blue point; click a grey curve to select it.</span>
         </>
         )
