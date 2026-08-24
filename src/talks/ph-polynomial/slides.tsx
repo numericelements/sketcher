@@ -341,9 +341,10 @@ in space    the same forms over ℍ      a family, not a count
       'exactly K+1 can be held — the FIFO selection enforces that, so no click can build an over- ' +
       'or under-determined state. ' +
       'THE COUNT IS A PROPERTY OF THE GRIP, NOT OF THE DATA: certified subset by subset in ' +
-      'planarPHSubsetCounts.test.ts, degree 5 gives 1→4 2→3 3→4 4→4 and degree 7 gives ' +
-      '1→6 2→8 3→4 4→10 5→8 6→8 7→4 8→8. All eight values occur, which killed an earlier ' +
-      '"1, 2, 4 or 8 by a product rule" claim in phPlanarSeptic. ' +
+      'planarPHSubsetCounts.test.ts. Read as a histogram (count: how many subsets produce it) — ' +
+      'degree 5: one solution at 4 subsets, two at 3, three at 4, four at 4; degree 7: every ' +
+      'value from 1 to 8 occurs (6, 8, 4, 10, 8, 8, 4, 8 subsets respectively), which killed an ' +
+      'earlier "1, 2, 4 or 8 by a product rule" claim in phPlanarSeptic. ' +
       'TWO RULES WORTH SAYING OUT LOUD. Hold K in a row from one end plus one more that is not the ' +
       'far endpoint and the answer is UNIQUE — the equations cascade (a square root, then ' +
       'divisions), nothing branches, dragging is single-valued and needs no branch tracking. And ' +
@@ -451,9 +452,11 @@ in space    the same forms over ℍ      a family, not a count
     COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
                 →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
 
-                      degree 3    1→2  2→2
-                      degree 5    1→4  2→3  3→4  4→4
-                      degree 7    1→6  2→8  3→4  4→10  5→8  6→8  7→4  8→8
+                      solutions     1   2   3   4   5   6   7   8
+
+                      degree 3      2   2                              of 4 subsets
+                      degree 5      4   3   4   4                      of 15
+                      degree 7      6   8   4  10   8   8   4   8      of 56
 
                 2^(K−1) requires both ends held, and holding both ends gives an even count.
                 The count is 1 for K in a row from an end plus one more that is not the far
@@ -493,6 +496,13 @@ in space    the same forms over ℍ      a family, not a count
       'argument: K quadratic equations, 2^K solutions in {w, -w} pairs drawing the same curve, at ' +
       'most 2^(K-1) curves -- an upper bound, and the table below it is what the ceiling actually ' +
       'yields grip by grip (roots lost to infinity are generators blowing up, not curves). ' +
+      'THE HISTOGRAM READS COLUMN-FIRST (reformatted 2026-08-24, after Eric misread the old ' +
+      '"1→6" form as "subset 1 gives 6 solutions"): the header row is the SOLUTION COUNT, each ' +
+      'degree row says how many subsets produce it, and the tally at the right is the checksum ' +
+      '-- the rows sum to C(4,3) = 4, C(6,4) = 15, C(8,5) = 56, every subset accounted for ' +
+      'once. Two readings worth doing aloud: every value 1..8 occurs at degree 7 (which killed ' +
+      'the old product-rule conjecture), and the count-1 column reads 2, 4, 6 down the degrees ' +
+      '-- exactly the cascade rule-s census, K-consecutive-from-an-end times two ends. ' +
       'THE SPATIAL BLOCK UNDER COMPUTED (Eric, 2026-08-24) covers the third figure with plain ' +
       'numbers, no m: dimension 1, 2, 3 at degrees 3, 5, 7, the same at all 75 choices swept; ' +
       'bounded exactly at both-ends-plus-one-of-each-pair; and the punchline joining the two ' +
