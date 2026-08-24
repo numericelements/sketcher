@@ -25,7 +25,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
-import { frameConformal } from '../../talks/ph-interpolation/PoleLab'
+import { frameConformal } from '../specimenFraming'
 import { controlPoints, degreeOf, dragControlPoint, type ConformalPHCurve } from '../conformalPHCurve'
 import { dragControlPointStaged } from '../conformalMobiusDrag'
 import { conformalCoefficientResidual, conformalNullResidual, readPoles } from '../poleReadout'

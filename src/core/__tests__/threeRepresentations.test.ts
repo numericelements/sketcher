@@ -27,7 +27,7 @@
 import { describe, it, expect } from 'vitest'
 import { settleToPH, phRelativeResidual, type Rat } from '../nurbsPH'
 import { hardQuarticRat, PRESETS, conformalAsRat } from '../../talks/ph-interpolation/poleLabPresets'
-import { frameConformal } from '../../talks/ph-interpolation/PoleLab'
+import { frameConformal } from '../specimenFraming'
 import { dragControlPoint, controlPoints, degreeOf } from '../conformalPHCurve'
 import { conformalNullResidual } from '../poleReadout'
 import { vnorm, vsub } from '../quaternion'

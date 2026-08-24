@@ -10,7 +10,8 @@ import { type Rat, phRelativeResidual, settleToPH, singularValues } from '../../
 import {
   conformalCoefficientResidual, conformalNullResidual, poleLines, readPoles,
 } from '../../../core/poleReadout'
-import { BOUNDS, frame, frameConformal, freshState, sampleRational } from '../PoleLab'
+import { BOUNDS, freshState } from '../PoleLab'
+import { frame, frameConformal, sampleRational } from '../../../core/specimenFraming'
 import { PRESETS, conformalAsRat } from '../poleLabPresets'
 import { project } from '../../../core/conformal'
 import { bernsteinToPower } from '../../../core/conformalPHHopf'

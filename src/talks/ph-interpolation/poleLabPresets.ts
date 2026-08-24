@@ -26,7 +26,7 @@
 //
 // The rest are constructed, because they are exact and cost nothing.
 // ============================================================================
-import { bernsteinMultiply } from '../../core/bernstein'
+import { conformalAsRat } from '../../core/specimenFraming'
 import type { Conformal } from '../../core/conformal'
 import type { ConformalPHCurve } from '../../core/conformalPHCurve'
 import {
@@ -71,23 +71,10 @@ export const conformalPreset = (c: CachedConformal): ConformalPHCurve => ({
   h: [...c.h],
 })
 
-/**
- * A conformal member as (P, w, ρ) — the SAME curve, in the projective model's unknowns.
- *
- * P = q/W and ρ = h·W, and the conversion is exact rather than a fit: it is why one lab can hold
- * both models. It also means the Möbius preset is a legal starting point for the projective slide,
- * so flipping model does not move the curve.
- */
-export function conformalAsRat(s: ConformalPHCurve): Rat {
-  const d = s.C.length - 1
-  const w = s.C.map((c) => (c as unknown as number[])[0])
-  const q = [1, 2, 3].map((i) => s.C.map((c) => (c as unknown as number[])[i]))
-  return {
-    P: Array.from({ length: d + 1 }, (_, k) => [q[0][k] / w[k], q[1][k] / w[k], q[2][k] / w[k]]),
-    w: [...w],
-    rho: bernsteinMultiply([...s.h], w),
-  }
-}
+// conformalAsRat moved to core/specimenFraming with the framings (it is exact model conversion,
+// not preset construction); re-exported here so the many specimen-consuming tests keep one import
+// site for "the presets and how to read them".
+export { conformalAsRat }
 
 /** The λ-chart quartic: one real SIMPLE pole at t = 1.7, and it is hard. */
 export function hardQuarticRat(): Rat {

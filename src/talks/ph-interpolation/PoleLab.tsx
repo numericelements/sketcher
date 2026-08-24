@@ -8,7 +8,8 @@
 //
 // The button shows that number and the verdict it was read from, because the threshold between
 // them is a choice of ours and the mathematics has no opinion about it. Everything the readout
-// prints is derived in docs/POLE_ALGEBRA.md; core/poleReadout computes it; this file only draws.
+// prints is derived in docs/POLE_ALGEBRA.md; core/poleReadout computes it; the exact framings and
+// the model conversion live in core/specimenFraming; this file only draws.
 //
 // TWO MODELS, ONE CURVE. The conformal presets are members of BOTH — C = (W, q, c∞) converts to
 // (P, w, ρ) exactly, by P = q/W and ρ = h·W — so the two slides can open on the same specimen and
@@ -31,113 +32,21 @@
 import { useMemo, useState } from 'react'
 import { type ConformalPHCurve, radii } from '../../core/conformalPHCurve'
 import { dragControlPointStaged } from '../../core/conformalMobiusDrag'
-import { type Conformal, nullCurveResidual, project } from '../../core/conformal'
+import { nullCurveResidual, project } from '../../core/conformal'
 import { type Rat, phRelativeResidual, settleToPH } from '../../core/nurbsPH'
 import {
   type PoleReading, conformalCoefficientResidual, conformalNullResidual, poleLines, readPoles,
 } from '../../core/poleReadout'
+import { conformalAsRat, frame, frameConformal, sampleRational } from '../../core/specimenFraming'
 import type { Vec3 } from '../../core/quaternion'
 import Figure3D, { type Bounds3D, Curve3D, DragPoint3D } from '../framework/Figure3D'
 import { FIG } from '../framework/figureStyle'
-import { PRESETS, type Preset, conformalAsRat } from './poleLabPresets'
+import { PRESETS, type Preset } from './poleLabPresets'
 
 export type LabModel = 'projective' | 'mobius'
 
 const tri = (p: readonly number[]): [number, number, number] => [p[0], p[1], p[2]]
 export const BOUNDS: Bounds3D = { min: [-2.2, -2.2, -2.2], max: [2.2, 2.2, 2.2] }
-
-const bern = (n: number, t: number): number[] => {
-  const out = new Array<number>(n + 1).fill(0)
-  out[0] = 1
-  for (let k = 1; k <= n; k++) {
-    for (let j = k; j >= 1; j--) out[j] = out[j] * (1 - t) + out[j - 1] * t
-    out[0] *= 1 - t
-  }
-  return out
-}
-
-/** x(t) = Σ wₖPₖBₖ / Σ wₖBₖ, sampled on [0,1]. */
-export function sampleRational(rat: Rat, n = 120): [number, number, number][] {
-  const d = rat.P.length - 1
-  const out: [number, number, number][] = []
-  for (let i = 0; i <= n; i++) {
-    const b = bern(d, i / n)
-    let W = 0
-    const q = [0, 0, 0]
-    for (let k = 0; k <= d; k++) {
-      W += rat.w[k] * b[k]
-      for (let c = 0; c < 3; c++) q[c] += rat.w[k] * rat.P[k][c] * b[k]
-    }
-    if (Math.abs(W) < 1e-12) continue
-    out.push([q[0] / W, q[1] / W, q[2] / W])
-  }
-  return out
-}
-
-/**
- * Centre and scale a specimen to the view box — EXACTLY, not approximately.
- *
- * Translating the control points leaves N = q′W − qW′ unchanged, because the added term
- * c·(w′W − wW′) is identically zero. Scaling them by λ scales N by λ, hence ρ by λ. So both are
- * exact operations on a PH curve and the framing cannot make a specimen stop being PH.
- */
-export function frame(rat: Rat, half = 1.6): Rat {
-  const pts = [...sampleRational(rat, 60), ...rat.P.map((p) => tri(p))]
-  const lo = [0, 1, 2].map((c) => Math.min(...pts.map((p) => p[c])))
-  const hi = [0, 1, 2].map((c) => Math.max(...pts.map((p) => p[c])))
-  const mid = [0, 1, 2].map((c) => (lo[c] + hi[c]) / 2)
-  const span = Math.max(...[0, 1, 2].map((c) => hi[c] - lo[c]), 1e-9)
-  const lam = (2 * half) / span
-  return {
-    P: rat.P.map((p) => p.map((v, c) => (v - mid[c]) * lam)),
-    w: [...rat.w],
-    rho: rat.rho.map((v) => v * lam),
-  }
-}
-
-/**
- * The same framing, applied to a CONFORMAL member — as a matrix, which is the model's whole point.
- *
- * x ↦ λ(x − c) is a similarity, hence a Möbius transformation, hence LINEAR on ℝ^{4,1}. In the
- * basis {o, e₁, e₂, e₃, ∞} where C = [w, q, o∞] and ⟨C,C⟩ = ‖q‖² − 2·w·o∞:
- *
- *     w   ↦ w
- *     q   ↦ λ(q − c·w)
- *     o∞  ↦ λ²(o∞ − ⟨q,c⟩ + ½‖c‖²·w)
- *
- * and ⟨MC,MC⟩ = λ²⟨C,C⟩, so the null condition survives EXACTLY rather than approximately. h
- * scales by λ because ‖p′‖ = h/w and w is untouched.
- *
- * THIS IS WHY THE SPHERE WAS IN THE WRONG PLACE. The first version framed the projective form and
- * left the conformal state alone, so the drawn sphere lived in the specimen's original coordinates
- * while the control points lived in the box — and the cursor was being handed to a solver working
- * in different units, which is why dragging did nothing recognisable.
- */
-export function frameConformal(s: ConformalPHCurve, half = 1.6): ConformalPHCurve {
-  const pts = s.C.map((c) => project(c)).filter((v): v is Vec3 => v !== null)
-  const all = [...pts.map((v) => [v.x, v.y, v.z]), ...sampleRational(conformalAsRat(s), 60)]
-  const lo = [0, 1, 2].map((k) => Math.min(...all.map((p) => p[k])))
-  const hi = [0, 1, 2].map((k) => Math.max(...all.map((p) => p[k])))
-  const c = [0, 1, 2].map((k) => (lo[k] + hi[k]) / 2)
-  const span = Math.max(...[0, 1, 2].map((k) => hi[k] - lo[k]), 1e-9)
-  const lam = (2 * half) / span
-  const cc = c[0] * c[0] + c[1] * c[1] + c[2] * c[2]
-  return {
-    C: s.C.map((v) => {
-      const w = v[0]
-      const q = [v[1], v[2], v[3]]
-      const qc = q[0] * c[0] + q[1] * c[1] + q[2] * c[2]
-      return [
-        w,
-        lam * (q[0] - c[0] * w),
-        lam * (q[1] - c[1] * w),
-        lam * (q[2] - c[2] * w),
-        lam * lam * (v[4] - qc + 0.5 * cc * w),
-      ] as unknown as Conformal
-    }),
-    h: s.h.map((v) => v * lam),
-  }
-}
 
 /** A sphere as three great circles — the idiom the other conformal figures already use. */
 function greatCircles(centre: Vec3, radius: number, n = 64): [number, number, number][][] {

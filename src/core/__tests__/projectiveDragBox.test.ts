@@ -22,7 +22,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest'
 import { PRESETS } from '../../talks/ph-interpolation/poleLabPresets'
-import { frame, sampleRational } from '../../talks/ph-interpolation/PoleLab'
+import { frame, sampleRational } from '../specimenFraming'
 import { type Rat, settleToPH } from '../nurbsPH'
 
 const bern = (n: number, t: number): number[] => {
