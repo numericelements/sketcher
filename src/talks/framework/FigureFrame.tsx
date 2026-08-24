@@ -27,6 +27,16 @@ export interface FigureFrameProps {
    * the few-hundreds, like the existing cs2026 figures.
    */
   base?: BaseSize
+  /**
+   * Ceiling on the drawing height, as a percentage of the VIEWPORT height — Figure3D's cure,
+   * ported (Eric hit the same disease on the 2D grip slide: widen the window and the figure grows
+   * with its width, pushing the readout row and controls below the fold). The SVG sizes from its
+   * width at the base aspect, so the height cap is imposed as the width cap that produces it:
+   * maxWidth = maxHeightVh · (w/h) vh. Safe in vh because reveal runs at 100%/100% with no
+   * transform scaling; no padding-bottom trick needed here, since an SVG with a viewBox keeps its
+   * intrinsic ratio everywhere, Safari 15.6 included.
+   */
+  maxHeightVh?: number
   /** Bare formulas, shown in a monospace strip. No explanations. */
   notation?: readonly string[]
   /** Live numbers: [label, value]. Keep it to a handful. */
@@ -48,6 +58,7 @@ const TONE: Record<string, string> = {
 export default function FigureFrame({
   world,
   base = DEFAULT_BASE,
+  maxHeightVh = 56,
   notation,
   readouts,
   caption,
@@ -67,18 +78,27 @@ export default function FigureFrame({
         </div>
       )}
 
-      <svg
-        ref={vp.svgRef}
-        viewBox={vp.viewBox}
-        style={{ background: FIG.color.background, border: `1px solid ${FIG.color.border}` }}
-        className={`w-full rounded touch-none ${vp.panning ? 'cursor-grabbing' : 'cursor-grab'}`}
-        onPointerDown={vp.onPanStart}
-        onPointerMove={vp.onPanMove}
-        onPointerUp={vp.onPanEnd}
-        onPointerLeave={vp.onPanEnd}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: `${((maxHeightVh * base.width) / base.height).toFixed(2)}vh`,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+        }}
       >
-        {children(vp)}
-      </svg>
+        <svg
+          ref={vp.svgRef}
+          viewBox={vp.viewBox}
+          style={{ background: FIG.color.background, border: `1px solid ${FIG.color.border}` }}
+          className={`w-full rounded touch-none ${vp.panning ? 'cursor-grabbing' : 'cursor-grab'}`}
+          onPointerDown={vp.onPanStart}
+          onPointerMove={vp.onPanMove}
+          onPointerUp={vp.onPanEnd}
+          onPointerLeave={vp.onPanEnd}
+        >
+          {children(vp)}
+        </svg>
+      </div>
 
       {(readouts?.length || controls) && (
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 font-mono text-[0.42em]">
