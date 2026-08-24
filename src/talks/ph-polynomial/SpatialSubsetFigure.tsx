@@ -543,7 +543,7 @@ export default function SpatialSubsetFigure() {
           ? {
             label: '',
             value: kind === 'angles' ? 'a torus — both dials wrap'
-              : kind === 'tour' ? 'a closed loop — it comes home'
+              : kind === 'tour' ? 'a closed loop'
                 : 'bounded',
             tone: 'ok' as const,
           }
