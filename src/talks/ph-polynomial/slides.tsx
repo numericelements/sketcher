@@ -457,7 +457,12 @@ in space    the same forms over ℍ      a family, not a count
                     Farouki, Pelosi & Sampoli, "Construction of planar quintic Pythagorean-hodograph
                     curves by control-polygon constraints", CAGD 103 (2023) 102192
 
-                The first defines the variety. The second counts one of its slices.
+                displace two control points of a given PH quintic, staying PH  →  finitely many
+                    Pelosi, Sampoli & Farouki, "Control point modifications that preserve the
+                    Pythagorean-hodograph nature of planar quintic curves", JCAM 457 (2025) 116301
+
+                The first defines the variety. The second counts one slice. The third edits
+                within it.
 
     COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
                 →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
@@ -490,7 +495,10 @@ in space    the same forms over ℍ      a family, not a count
           <span style={{ fontFamily: 'ui-monospace, monospace' }}>r(0)=0, r(1)=1</span> is the
           ends-held mode. On the three of their ten cases that are control-point subsets the counts
           agree (2, 2, 4). The odd counts here require a free endpoint, which canonical form
-          excludes &mdash; they cannot appear in that paper.
+          excludes &mdash; they cannot appear in that paper. The 2025 paper meets these counts from
+          the other side: displacing two points of a given quintic holds the remaining four, and
+          its five detailed cases match the counts here subset for subset (2, 4, 4, 2, 4); the
+          endpoint-displacing cases &mdash; where the odd counts live &mdash; it leaves undiscussed.
         </p>
       </>
     ),
@@ -524,6 +532,24 @@ in space    the same forms over ℍ      a family, not a count
       'their canonical form IS ends-held, the three comparable cases agree (2, 2, 4), and the odd ' +
       'counts are structurally invisible to canonical form, so their absence from that paper is ' +
       'agreement, not contradiction. ' +
+      'THE 2025 PAPER (Pelosi-Sampoli-Farouki, read 2026-08-25) IS THE MODIFICATION MIRROR of the ' +
+      'counting here, and its numbers confirm ours by different algebra. Displacing points {j,k} ' +
+      'of a given quintic holds the other FOUR, so their solution counts are our subset counts for ' +
+      'the complementary hold: (p0,p5) displaced = hold {1,2,3,4} -> 2; (p1,p4) = {0,2,3,5} -> 4; ' +
+      '(p2,p3) = {0,1,4,5} -> 4, the Hermite grip, after they discard one degenerate; (p1,p2) = ' +
+      '{0,3,4,5} -> 2; (p1,p3) = {0,2,4,5} -> 4. Five independent confirmations, with the same ' +
+      'roots-lost-to-infinity accounting (their Bezout 9 -> 4 finite). And their Section 5.4 ' +
+      'skips the endpoint-displacing cases "for brevity" -- exactly the complements of the ' +
+      'free-endpoint holds, where the odd counts and the cascade live. The newest, closest paper ' +
+      'stops at the even-count boundary. ' +
+      'THEIR SECTION 6 IS A FREE MODE WITH A DIFFERENT CHOICE RULE, and the comparison is worth ' +
+      'saying aloud: they fix the ends, spend the other three interior points minimizing L2 ' +
+      'distance between old and new CURVE (fmincon, real-time); ours is minimum-norm in GENERATOR ' +
+      'space with everything responding and the ends held softly. Same underdetermined problem, ' +
+      'two selectors -- the deck-s own "fewer conditions than dimensions needs a choice rule", ' +
+      'with their paper as the other choice. They also find large displacements work best as ' +
+      'sequences of small warm-started steps, which is this deck-s drag architecture, ' +
+      'independently arrived at. ' +
       'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
       'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
       'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
