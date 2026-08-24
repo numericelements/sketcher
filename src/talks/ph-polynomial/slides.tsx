@@ -378,6 +378,16 @@ in space    the same forms over ℍ      a family, not a count
     ),
     notes:
       'THE SAME GESTURE, ONE GEOMETRY UP, and the answer changes in kind rather than in size. ' +
+      'WHERE 4m+6 COMES FROM, since 10, 14, 18 will be re-derived in the room (Eric asked too, ' +
+      '2026-08-24): the generator A(t) has m+1 quaternion coefficients, 4(m+1) reals; the ' +
+      'integration constant p0 adds 3; and the gauge A -> A e^{i theta} subtracts ONE, because ' +
+      'e^{i theta} commutes with i so the phase cancels against its conjugate in the sandwich -- ' +
+      'every theta draws the identical curve. 4(m+1) + 3 - 1 = 4m+6: 10, 14, 18. The planar ' +
+      'twin 2K+2 subtracts NOTHING because its gauge w -> -w is discrete -- it halves counts but ' +
+      'costs no dimension. Same gauge story, two currencies: that is why the plane answers with ' +
+      'a count and space with a family. And the -1 is measured, not assumed: fibreDimension ' +
+      'checks the gauge direction sits in the held-point Jacobian kernel, 0.0 at all 15,445 ' +
+      'grips swept through degree 15. ' +
       'dim = 4m+6 in space against 2K+2 in the plane, each held control point costs 3 instead of 2, ' +
       'and the number you can always hold comes out the SAME in both: (n+3)/2, just over half the ' +
       'control points. Degree 3 hold 3 of 4, degree 5 hold 4 of 6, degree 7 hold 5 of 8. What ' +
