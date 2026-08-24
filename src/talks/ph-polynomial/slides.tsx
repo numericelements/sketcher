@@ -97,9 +97,10 @@ export const slides: SlideDefinition[] = [
   //
   // This deck is circulated BEFORE the discussion, so slide 2 has to do two jobs at once: say what
   // the object is, and say what is being asked. Since the split the map is the polynomial row
-  // alone — plane and space, one generator equation each — and a grey line points to the sibling
-  // ph-rational deck rather than promising its content here. (The rational row moved there with
-  // the pole pair; the old four-cell map's spinor act is parked in ph-interpolation-wip.)
+  // alone — plane and space, one generator equation each — and the deck says nothing about the
+  // rational act at all: a pointer line to the sibling deck was tried and cut (Eric, 2026-08-24);
+  // the shelf page lists both decks and that is enough. (The rational row moved to ph-rational
+  // with the pole pair; the old four-cell map's spinor act is parked in ph-interpolation-wip.)
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -119,10 +120,6 @@ export const slides: SlideDefinition[] = [
           <div><strong>space</strong></div>
           <div style={{ color: '#475569' }}>the same grip leaves a family</div>
         </div>
-
-        <p style={{ fontSize: '0.62em', color: '#94a3b8', margin: '0.2em 0 0 0.3em' }}>
-          Rational PH curves &mdash; two models of them, and the pole &mdash; are their own deck.
-        </p>
 
       </>
     ),
@@ -145,9 +142,10 @@ export const slides: SlideDefinition[] = [
       + 'alpha, beta. Ours are their alpha and beta. The line under the equation says "two complex '
       + 'polynomials" for exactly this reason. If someone reads u and v as two of four reals and '
       + 'asks where the other two went, that is the confusion, and it is answered in one sentence. '
-      + 'THE RATIONAL ROW LEFT WITH THE SPLIT (2026-08-24): the map is the polynomial row alone, '
-      + 'and the grey line at the bottom points a reader to the sibling deck instead of promising '
-      + 'its content here. '
+      + 'THE RATIONAL ROW LEFT WITH THE SPLIT (2026-08-24): the map is the polynomial row alone. '
+      + 'A grey pointer line to the sibling deck was tried and cut the same day -- the shelf page '
+      + 'lists both decks, and an outline that mentions another deck-s content is half a promise. '
+      + 'If someone asks where the rational story went, say ph-rational aloud. '
       + 'SIMPLIFIED 2026-08-24 (Eric): the map carries the equations and the model names ONLY. The '
       + 'conclusions that used to be printed beside them -- "a count", "a family", "nothing forces '
       + 'softness", "a pole cannot be hard" -- are the slides-own job to prove, and printing a slide-s '
