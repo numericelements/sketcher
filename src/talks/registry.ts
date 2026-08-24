@@ -28,6 +28,14 @@ export const talks: TalkDefinition[] = [
     load: () => import('./ph-interpolation/slides').then((m) => m.slides),
   },
   {
+    // The parked second half of ph-interpolation — see that deck's header for the split.
+    slug: 'ph-interpolation-wip',
+    title: 'Pythagorean–Hodograph Curves — work in progress',
+    subtitle: 'The parked second half: rational twice, the gap, what is open',
+    unlisted: true,
+    load: () => import('./ph-interpolation-wip/slides').then((m) => m.slides),
+  },
+  {
     slug: 'hodograph-light-cone',
     title: 'The Hodograph Lies on the Light Cone',
     subtitle: 'Speed as a coordinate — the theory behind the figures',

@@ -19,6 +19,8 @@ export interface TalkDefinition {
   subtitle?: string
   /** Static PDF export, if one exists — phones are redirected to it. */
   pdfUrl?: string
+  /** Kept off the public index but still served at /talks/<slug> — a parked or draft deck. */
+  unlisted?: boolean
   /**
    * The deck's slides, fetched ON DEMAND. Deliberately a loader and not an array: the registry is
    * imported by the presentations INDEX, and a static `slides` field made that page pull in every

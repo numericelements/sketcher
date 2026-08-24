@@ -14,7 +14,7 @@ export default function Talks() {
         </h1>
 
         <div className="flex flex-col gap-4">
-          {talks.map((talk) => (
+          {talks.filter((talk) => !talk.unlisted).map((talk) => (
             <Link
               key={talk.slug}
               to={`/talks/${talk.slug}`}
