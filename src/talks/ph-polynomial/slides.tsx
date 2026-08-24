@@ -171,37 +171,40 @@ export const slides: SlideDefinition[] = [
       + 'the open questions collected rather than softened along the way.',
   },
   // ---------------------------------------------------------------------------
-  // SECTION I — POLYNOMIAL. One equation, one consequence.
+  // THE DIVIDER — the act's ladder, and nothing else: one, a count, a family.
+  //
+  // SIMPLIFIED TO THE LADDER (Eric, 2026-08-24), and the h1 came off with it. The earlier
+  // version carried a header sentence, the points-vs-control-points split, the exponent and a
+  // footnote defining k — two of those were patches for a misreading, and all of them were the
+  // NEXT slides' conclusions spent early (the outline's own rule). What the divider owes is the
+  // SHAPE of the act: linear → one; quadratic → a count; in space → a family. The exponent lives
+  // on the price slide's notation strip, the range and the data-type split on the provenance
+  // slide, and k is defined where it is first really used. "I — Polynomial" as a title was stale
+  // twice over after the split — a numeral with no act structure left, repeating the deck's name.
   // ---------------------------------------------------------------------------
   {
     type: 'title',
     content: (
       <>
-        <h1>I &mdash; Polynomial</h1>
-        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
-{`hold the data, and count the CURVES through it
+        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.7em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '1.6em' }}>
+{`Bézier      A x = b                    one curve
 
-Bézier      A x = b                    one curve
+PH          xᵀ Qⱼ x = bⱼ               a COUNT — and which count, the points you hold decide
 
-PH          xᵀ Qⱼ x = bⱼ               k+1 points on the curve   →   2ᵏ⁻¹ curves
-                                       k+1 control points        →   1 … 2ᵏ⁻¹ curves
-
-in space    the same forms over ℍ      a family, not a count
-
-                                       k = the generator's number of coefficients`}
+in space    the same forms over ℍ      a FAMILY, not a count`}
         </div>
       </>
     ),
     notes:
       'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
-      + 'THE RIGHT COLUMN COUNTS CURVES, and the slide now says so twice (the header line, and the '
-      + 'word "curves" on every count) because Eric read the first version the wrong way: "2^{k-1} '
-      + 'points on the curve" parsed as a NUMBER OF POINTS, not as the number of solutions when '
-      + 'points are the data. The arrow form -- data on the left of the arrow, count of curves on '
-      + 'the right -- is the fix, and the footnote defines k in words instead of "deg A + 1", which '
-      + 'borrowed the spatial generator-s letter for the planar rows. '
-      + 'THE MIDDLE ROW CARRIES TWO NUMBERS BECAUSE THERE ARE TWO PROBLEMS, and they are not the '
+      + 'THE SLIDE IS THE LADDER NOW AND NOTHING ELSE (Eric, 2026-08-24, second pass): one, a '
+      + 'count, a family. The earlier version printed the points-vs-control-points split, the '
+      + 'exponent 2^{k-1}, a header sentence and a k footnote -- the header and footnote were '
+      + 'patches for a misreading (the counts parsed as numbers of points), and the rest was the '
+      + 'next slides-own conclusions spent early. Everything below this line is now SPOKEN '
+      + 'material for when the questions come, not a description of what is printed. '
+      + 'THERE ARE TWO COUNTING PROBLEMS BEHIND THE MIDDLE ROW, and they are not the '
       + 'same one for a PH curve even though they are for an ordinary Bezier. Prescribing POINTS ON '
       + 'THE CURVE gives exactly 2^{k-1}, always -- five points on a septic give eight '
       + '(planarPHInterpolantCount.test.ts, and phPlanarSepticInterp computes them by homotopy). '
