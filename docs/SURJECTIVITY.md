@@ -130,6 +130,48 @@ Consequences:
   consistently with their 2D solutions being the (huge) planar members the ladder's
   moderate-scale seeds cannot reach.
 
+## The scattered program (begun 2026-08-30)
+
+The route to the scattered grips, opened on the minimal case — degree 5, hold {0,1,3,5}
+(prefix 2, one interior point, suffix 1). Every scattered grip reduces the same way: cascade
+away the prefix and suffix jets, leaving r+1 free quaternions and r+1 block conditions (the
+two-ends theorem is r = 0). For {0,1,3,5} (r = 1) the reduction is, with 𝒜₀ fixed by the
+first leg and λ₁ = 𝒜₁, λ₂ = 𝒜₂ free:
+
+    (1)  ½·polar(𝒜₀,λ₁) + ⅔·S(λ₁) + ⅙·polar(𝒜₀,λ₂) = 5(P₃−P₁)
+    (2)  ½·polar(λ₁,λ₂)  +  S(λ₂)                    = 5(P₅−P₃)
+
+**What is proven here so far:**
+- **The inner square completes**: (2) ⟺ S(λ₂ + λ₁/2) = V + S(λ₁)/4 — a Hopf inversion for
+  every λ₁, exactly the two-ends mechanism, with the gauge angle θ free. What remains is the
+  OUTER problem: (1) after substituting λ₂(λ₁, θ) — three equations in five unknowns, reduced
+  in the 𝒜₀-frame to a circle-reachability equation. Not yet closed in closed form; solved
+  reliably by Gauss–Newton (`scatteredQuinticReduction.test.ts`).
+- **Properness for {0,1,3,5}** — the a-priori bound, step (a) of the open-closed-connected
+  program: the homogeneous parts vanish TRIANGULARLY (S(λ₁) = 0 ⟹ λ₁ = 0 ⟹ S(λ₂) = 0 ⟹
+  λ₂ = 0, using |S(q)| = |q|²), so |targets| ≳ |λ|² and the image is closed. Measured
+  signature: solutions scale like √(target scale) through scale 1000 — the exact bound whose
+  FAILURE in the plane produced the 2D blow-up specimens. The plane-vs-space contrast is now
+  a theorem-shaped statement, not just an observation.
+
+**And what the classification says — properness is NOT universal.** The triangular argument
+mechanises into the KILL-CASCADE (a block whose live pair terms reduce to one diagonal
+w·S(𝒜ⱼ) kills 𝒜ⱼ; iterate). Exact scan (`propernessKillCascade.test.ts`): it proves
+properness for {0,1,3,5}, {0,1,4,5}, {0,2,4,5} at degree 5; four grips at degree 7; and at
+degree 9 exactly the FIVE perfectly-spread grips {0,1,3,5,7,9} … {0,2,4,6,8,9}. It cannot
+reach further, and the limit is real: {0,2,4,5,6,9} holds BOTH endpoints yet has a genuine
+escape (sphere-minimum 6e-36, found by numeric minimisation) — inside a gap, block sums let
+S(𝒜₀) cancel against polar terms, so held points coincide while |𝒜| = 1. Grips missing an
+endpoint always escape through their unheld end-legs (140 of 210 at degree 9, benign,
+end-supported). The general properness lemma must therefore QUOTIENT the escape directions —
+or the closedness argument must be replaced. Note the escapes do not threaten surjectivity
+(all these grips solve everywhere measured); they break only this proof route's easy step.
+
+**Missing, in order:** (i) close the {0,1,3,5} outer problem — the honest candidates are a
+cleverer completion or a degree/topology argument on the reduced circle-reachability form;
+(ii) openness (full rank somewhere on every fibre); (iii) the quotient form of properness for
+grips with escapes. Literature for (i): Agrachev–Lerario, systems of real quadratic forms.
+
 ## Open
 
 1. **Stage 3**: certify ONE candidate's infeasibility (cascade away the consecutive prefix —
@@ -156,7 +198,11 @@ Consequences:
 ladder, must all solve) and three of the 40 candidates hardcoded (must RESIST the bounded
 ladder — if a future solver solves one, that is a discovery, not a regression: update this
 document). `twoEndsConstruction.test.ts`: the two-ends theorem at machine precision, all m+3
-splits, degrees 5–11. `planarSubsetHomotopyBlindSpot.test.ts`: the 2D huge-root specimen —
+splits, degrees 5–11. `scatteredQuinticReduction.test.ts`: the {0,1,3,5} reduction exact, the
+inner square an identity, and √s properness scaling to target scale 1000.
+`propernessKillCascade.test.ts`: the exact triangular-vanishing classification (5 grips at
+degree 9) and the {0,2,4,5,6,9} counterexample to universal properness.
+`planarSubsetHomotopyBlindSpot.test.ts`: the 2D huge-root specimen —
 homotopy reads empty, cascade-seeded Newton finds the verified |w| ≈ 5e3 solution. Related:
 `spatialFibreDimensionHighDegree.test.ts` (dimension m at every grip through degree 15),
 `docs/SEPTIC_SIX_POINTS.md` (the square case, where realness fails half the time).
