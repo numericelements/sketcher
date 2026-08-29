@@ -237,10 +237,10 @@ export const slides: SlideDefinition[] = [
       <>
         <h2>The generator</h2>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 2.2, margin: '1.1em 0 0 0.6em' }}>
-{`plane     r′ = w²                     one complex polynomial
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.85em', whiteSpace: 'pre', lineHeight: 2.2, margin: '1.1em 0 0 0.4em' }}>
+{`plane   r′ = w²                    one complex polynomial
 
-space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j    two complex polynomials`}
+space   r′ = 𝒜 i 𝒜*,  𝒜 = u + v j   two complex polynomials`}
         </div>
       </>
     ),
@@ -287,15 +287,15 @@ space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j    two complex polynomials`}
       <>
         <h2>Counting solutions</h2>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 2.0, margin: '0.9em 0 0 0.6em' }}>
-{`Bézier      A x = b                    one
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.80em', whiteSpace: 'pre', lineHeight: 2.0, margin: '0.9em 0 0 0.4em' }}>
+{`Bézier   A x = b         one
 
-PH          xᵀ Qⱼ x = bⱼ               k+1 points on the curve   →   2ᵏ⁻¹ curves
-                                       k+1 control points        →   1 … 2ᵏ⁻¹ curves
+PH       xᵀ Qⱼ x = bⱼ    k+1 points on the curve  →  2ᵏ⁻¹ curves
+                         k+1 control points       →  1 … 2ᵏ⁻¹ curves
 
-in space    the same forms over ℍ      a family, not a count
+in space the same forms over ℍ   a family, not a count
 
-                                       k = the generator's number of coefficients`}
+                         k = the generator's number of coefficients`}
         </div>
       </>
     ),
