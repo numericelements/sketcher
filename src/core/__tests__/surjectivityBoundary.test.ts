@@ -13,8 +13,6 @@
 //     document, do not silence the test.
 // ============================================================================
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { type SpatialPHCurve, controlPoints } from '../phSpatialFreeDragN'
 import { cascadeChart, correctToGrip } from '../spatialFibre'
 import type { Quat, Vec3 } from '../quaternion'
@@ -29,6 +27,12 @@ const rng = (): number => {
 const rq = (s: number): Quat => ({ u: s * (2 * rng() - 1), v: s * (2 * rng() - 1), p: s * (2 * rng() - 1), q: s * (2 * rng() - 1) })
 const rv = (s: number): Vec3 => ({ x: s * (2 * rng() - 1), y: s * (2 * rng() - 1), z: s * (2 * rng() - 1) })
 
+const CANDIDATES: { grip: number[]; targets: Vec3[] }[] = [
+  { grip: [0, 1, 2, 3, 4, 5, 6], targets: [{ x: -0.23985239001922309, y: 0.095523713389411569, z: 0.6947724677156657 }, { x: -0.68958438606932759, y: -0.093424898805096745, z: 0.64233045838773251 }, { x: 1.4407262122258544, y: -0.60943740466609597, z: -1.4864546202588826 }, { x: -1.0246859053149819, y: 1.4948339466936886, z: -0.66032533021643758 }, { x: -1.3113835221156478, y: 0.28299120417796075, z: 0.41513528139330447 }, { x: 1.4452129304409027, y: -0.0867874959949404, z: 1.3557600877247751 }, { x: 1.1492117119487375, y: 0.075257861288264394, z: -0.31993092061020434 }] },
+  { grip: [0, 1, 2, 3, 4, 7, 9], targets: [{ x: 0.4773963934276253, y: 0.6649005941580981, z: -0.72464255732484162 }, { x: -1.1627221740782261, y: -0.37978282500989735, z: -0.55716873379424214 }, { x: -0.78306855540722609, y: 0.040235528256744146, z: 0.31893099937587976 }, { x: 1.3019408653490245, y: -1.0881211068481207, z: -0.57337699458003044 }, { x: 0.75572333112359047, y: -0.24469293421134353, z: -1.453483147546649 }, { x: 0.87748706806451082, y: 0.1196527979336679, z: -0.94489129143767059 }, { x: 0.61997058894485235, y: -0.81524650496430695, z: -1.3636352741159499 }] },
+  { grip: [0, 1, 2, 3, 6, 7, 8], targets: [{ x: -0.86299241753295064, y: -0.6398326987400651, z: -1.4289480624720454 }, { x: -0.99365122010931373, y: -0.40447606332600117, z: -1.3332211975939572 }, { x: 0.27760967938229442, y: 0.0055336919613182545, z: 0.69807674456387758 }, { x: 0.23541274177841842, y: 0.75554596306756139, z: 0.1954731463920325 }, { x: -0.70920771081000566, y: 0.15752264158800244, z: 0.012526363832876086 }, { x: -0.99806888750754297, y: -0.90257559274323285, z: -0.12024558358825743 }, { x: -0.57916657417081296, y: 0.98796420707367361, z: -1.1954998467117548 }] },
+]
+
 function* choose(n: number, k: number, start = 0, acc: number[] = []): Generator<number[]> {
   if (acc.length === k) { yield [...acc]; return }
   for (let i = start; i <= n - (k - acc.length); i++) {
@@ -38,9 +42,9 @@ function* choose(n: number, k: number, start = 0, acc: number[] = []): Generator
 
 function multi(m: number, grip: readonly number[], targets: readonly Vec3[], starts: number): boolean {
   for (let s = 0; s < starts; s++) {
-    const seed: SpatialPHCurve = { A: Array.from({ length: m + 1 }, () => rq(s % 2 ? 0.6 : 1.5)), p0: targets[0] }
-    const pts = controlPoints(seed)
-    seed.p0 = { x: 2 * targets[0].x - pts[grip[0]].x, y: 2 * targets[0].y - pts[grip[0]].y, z: 2 * targets[0].z - pts[grip[0]].z }
+    const A = Array.from({ length: m + 1 }, () => rq(s % 2 ? 0.6 : 1.5))
+    const pts = controlPoints({ A, p0: targets[0] })
+    const seed: SpatialPHCurve = { A, p0: { x: 2 * targets[0].x - pts[grip[0]].x, y: 2 * targets[0].y - pts[grip[0]].y, z: 2 * targets[0].z - pts[grip[0]].z } }
     if (correctToGrip(seed, grip, targets, 120).residual < 1e-9) return true
   }
   return false
@@ -86,17 +90,9 @@ describe('the surjectivity boundary', () => {
   }, 600_000)
 
   it('one point beyond, the campaign candidates resist the same ladder', () => {
-    const data = JSON.parse(readFileSync(join(__dirname, '../../../docs/surjectivity-candidates.json'), 'utf8'))
-    // three candidates from three different grips
-    const seen = new Set<string>()
-    const picked = data.candidates.filter((c: { grip: number[] }) => {
-      const k = c.grip.join(',')
-      if (seen.has(k) || seen.size >= 3) return false
-      seen.add(k)
-      return true
-    })
-    expect(picked.length).toBe(3)
-    for (const c of picked) {
+    // three candidates from three different grips, inlined verbatim from
+    // docs/surjectivity-candidates.json (the app tsconfig has no node types, so no fs here)
+    for (const c of CANDIDATES) {
       const solved = ladder(4, c.grip, c.targets)
       expect(solved, `candidate {${c.grip}} still resists — if this fails, it is a DISCOVERY: see docs/SURJECTIVITY.md`).toBe(false)
     }
