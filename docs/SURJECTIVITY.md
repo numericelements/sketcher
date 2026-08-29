@@ -13,7 +13,7 @@ because the campaign found the boundary.
 
 | count held | status |
 |---|---|
-| (n+3)/2 — the conjecture | HOLDS everywhere tested: theorems at the core, ~3,700 verified instances across every choice of held points at degrees 3, 5, 7, 9, zero surviving failures |
+| (n+3)/2 — the conjecture | HOLDS everywhere tested: PROVEN for all m+3 prefix+suffix splits per degree (two-ends theorem) plus grade-1; ~3,700 verified instances across every choice of held points at degrees 3, 5, 7, 9, zero surviving failures |
 | (n+3)/2 + 1 (degree 9, hold 7) | FAILS, often and grip-dependently: 40 surviving infeasibility candidates (`surjectivity-candidates.json`), up to 11/12 configurations refused on the worst grip |
 
 Dimension-counting says hold-7 at degree 9 is legal (a 1-parameter family remains — measured, all
@@ -41,8 +41,28 @@ configuration is feasible at every choice — counterexamples must be genuinely 
 coefficient still enters linearly (sum of polars = polar of the combined quaternion) — cascade
 still runs. This is the mechanism under the planar count-1 rule.
 
+**The two-ends theorem (the lean companion's construction, 2026-08-29; verified here).** Hold
+any PREFIX of p points and SUFFIX of q points with p + q = m + 2, arbitrary positions. The left
+cascade determines 𝒜₀…𝒜_{p−2}, the mirrored right cascade determines 𝒜_p…𝒜_m, and exactly one
+Bernstein coefficient λ = 𝒜_{p−1} — the shadow of t^{p−1}(1−t)^{q−1}, whose degree is p+q−2 = m
+EXACTLY — stays free. The one remaining condition (total displacement) is quadratic in λ:
+c·λiλ* + polar(B,λ) = V with c > 0, and COMPLETING THE SQUARE ON THE SANDWICH reduces it to a
+single Hopf inversion, solvable for every right-hand side. That proves all m+3 prefix+suffix
+splits per degree — subsuming both one-sided cascades (p = 0, m+2) and the literature's Hermite
+grip (p = q = 2) — constructively: `spatialTwoEnds.ts`, validated to machine precision at
+degrees 5–11 in `twoEndsConstruction.test.ts`. Nondegeneracy: nonzero first prescribed leg at
+each end.
+
+**The wall, mechanised.** The same bookkeeping explains why m+3 held points fail: one more
+condition and the interpolation direction would need degree m+1 > m — λ is gone, the system is
+square, and realness can refuse. The measured boundary (the 40 candidates) is this mechanism
+made visible. Corollary for proof strategy: any proof of the full conjecture must be sharp
+enough to FAIL at m+3, which rules out every soft argument (dimension counting, genericity,
+Sard) from the start.
+
 **Literature.** The degree-5 Hermite choice {P₀,P₁,P₄,P₅}: spatial PH quintics match arbitrary
 C¹ Hermite data (Farouki–al-Kandari–Sakkalis 2002; Farouki–Giannelli–Manni–Sestini CAGD 2008).
+Now a special case of the two-ends theorem.
 
 ## What is measured (the campaign, 2026-08-29; all probes deterministic)
 
@@ -76,8 +96,13 @@ exposed (and cured) a stark orientation bias (0/15 vs 11/15 on mirror-image grip
 1. **Stage 3**: certify ONE candidate's infeasibility (cascade away the consecutive prefix —
    six explicit conditions on seven parameters — then SOS/Positivstellensatz or exhaustive
    low-dimensional analysis). Would make the boundary a theorem, not evidence.
-2. **The non-cascade proofs at the safe count** (scattered grips, ends-held): measured clean,
-   unproven. The hostile result hints at the route: understand why spare dimensions rescue
+2. **The scattered interior grips** (any grip that is not prefix+suffix or grade-1): measured
+   clean, unproven. One reformulation worth keeping (the lean companion's): the held data are
+   values of the quadratic moment maps 𝒜 ↦ Σ C_ab·𝒜ₐi𝒜_b* with coefficient matrices supported
+   on anti-diagonals (a+b fixed) — surjectivity is a JOINT-NUMERICAL-RANGE question for a family
+   of quaternionic quadratic forms (Dines, Brickman, Au-Yeung–Poon are the classical entry
+   points, though those convexity theorems cover far fewer forms than a general grip needs).
+   The hostile result hints at the geometric route: understand why spare dimensions rescue
    realness (the reachable-region boundary = the realness discriminant, where solutions collide
    pairwise and go complex).
 3. **The reachable region**: over six held points at degree 9, map the family through "position
@@ -91,5 +116,7 @@ exposed (and cured) a stark orientation bias (0/15 vs 11/15 on mirror-image grip
 `surjectivityBoundary.test.ts`: reduced safe-count sweeps at degrees 5, 7, 9 (full attack
 ladder, must all solve) and three of the 40 candidates hardcoded (must RESIST the bounded
 ladder — if a future solver solves one, that is a discovery, not a regression: update this
-document). Related: `spatialFibreDimensionHighDegree.test.ts` (dimension m at every grip through
-degree 15), `docs/SEPTIC_SIX_POINTS.md` (the square case, where realness fails half the time).
+document). `twoEndsConstruction.test.ts`: the two-ends theorem at machine precision, all m+3
+splits, degrees 5–11. Related: `spatialFibreDimensionHighDegree.test.ts` (dimension m at every
+grip through degree 15), `docs/SEPTIC_SIX_POINTS.md` (the square case, where realness fails
+half the time).
