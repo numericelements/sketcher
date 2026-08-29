@@ -35,7 +35,11 @@ for a single polynomial — polynomials are global — but holds coefficient-wis
 **The coplanarity lemma.** Any 3 points are coplanar; the planar problem in their plane has
 solutions (2D: complex solutions ARE planar curves, and ℂ is closed); a planar PH curve is a
 spatial one. So degree 3 is settled for ALL choices, and more generally every COPLANAR
-configuration is feasible at every choice — counterexamples must be genuinely 3D.
+configuration whose 2D problem is solvable is feasible at every choice — counterexamples must
+be genuinely 3D. (Caveat, added with the 2D check below: "ℂ is closed" guarantees complex
+roots, not FINITE ones — at higher degrees a 2D configuration can in principle push all roots
+to infinity, so the lemma's blanket form holds verbatim only at degree 3, where the square
+system is a single quadratic per leg. No actual infinite-root configuration has been found.)
 
 **Grade-1 extension.** One gap, far endpoint excluded: the held data are leg-SUMS whose newest
 coefficient still enters linearly (sum of polars = polar of the combined quaternion) — cascade
@@ -91,6 +95,41 @@ is a PROOF for that instance; a surviving failure is evidence, not proof, of inf
 genuinely quadratic scattered grips. The rescue ladder above is the remedy; reversal also
 exposed (and cured) a stark orientation bias (0/15 vs 11/15 on mirror-image grips).
 
+## The 2D check (the lean companion's caveat, resolved 2026-08-29)
+
+The lean companion warned that the 2D baseline is a SQUARE system (no slack), so "arbitrary
+positions" in the plane could hide a discriminant — configurations whose roots all sit at
+infinity. Swept: degree 5 (all 15 grips × 8) and degree 7 (all 56 × 8) clean; degree 9 hold-6
+(all 210 × 4, K=5 homotopy) returned THREE empty verdicts, each with all 32 paths diverged,
+robust to six independent gammas AND to raising the escape bound to 1e9, with even a
+0.15-perturbed neighbourhood reading empty.
+
+That robustness was the tell, not the proof: an open region of genuine emptiness is
+algebraically impossible for a square system whose sibling configurations solve (the finite
+root count drops only on closed algebraic sets). The oracle settled it — all three grips have
+a length-4 consecutive prefix (one after reversal), so w₀…w₂ come EXACTLY from the division
+cascade, and Newton from cascade-seeded tails found verified solutions for ALL THREE, with
+generator coefficients of magnitude 5e3 to 7e5. The homotopy's divergence verdict had misfiled
+huge-but-finite roots (`BIG` = 1e5, and tracking collapses near the blow-up long before that).
+Pinned: `planarSubsetHomotopyBlindSpot.test.ts`.
+
+Consequences:
+- **No 2D counterexample; the conjecture stands in the plane at every sampled configuration.**
+  What exists is a BLOW-UP REGION: near the (measure-zero) locus where a grade-1 grip's tail
+  division degenerates (w₄ = RHS/B with B → 0), the one finite root runs enormous. Exactly ON
+  such a locus with nonzero RHS the 2D problem would be genuinely infeasible — that is the
+  real (thin) discriminant the caveat anticipated; random sampling can only ever see its
+  neighbourhood, as huge solutions.
+- **Solver lesson #2: a homotopy divergence report is NOT an emptiness certificate** on
+  near-triangular grips — the count-1 structure leaves one finite path among 31 divergent
+  ones, and it is lost first. Cascade-seeded Newton is the oracle there.
+- **The lesson was turned on our own evidence**: the three inlined hold-7 candidates were
+  re-attacked with seed scales 5 → 2000 (750 extra starts each, exactly the scale range that
+  had hidden the 2D roots) — all three RESIST. The 3D boundary evidence survives its own
+  audit; the same coplanar specimens embedded at z=0 also resist the standard 3D ladder,
+  consistently with their 2D solutions being the (huge) planar members the ladder's
+  moderate-scale seeds cannot reach.
+
 ## Open
 
 1. **Stage 3**: certify ONE candidate's infeasibility (cascade away the consecutive prefix —
@@ -117,6 +156,7 @@ exposed (and cured) a stark orientation bias (0/15 vs 11/15 on mirror-image grip
 ladder, must all solve) and three of the 40 candidates hardcoded (must RESIST the bounded
 ladder — if a future solver solves one, that is a discovery, not a regression: update this
 document). `twoEndsConstruction.test.ts`: the two-ends theorem at machine precision, all m+3
-splits, degrees 5–11. Related: `spatialFibreDimensionHighDegree.test.ts` (dimension m at every
-grip through degree 15), `docs/SEPTIC_SIX_POINTS.md` (the square case, where realness fails
-half the time).
+splits, degrees 5–11. `planarSubsetHomotopyBlindSpot.test.ts`: the 2D huge-root specimen —
+homotopy reads empty, cascade-seeded Newton finds the verified |w| ≈ 5e3 solution. Related:
+`spatialFibreDimensionHighDegree.test.ts` (dimension m at every grip through degree 15),
+`docs/SEPTIC_SIX_POINTS.md` (the square case, where realness fails half the time).
