@@ -147,30 +147,61 @@ first leg and λ₁ = 𝒜₁, λ₂ = 𝒜₂ free:
   OUTER problem: (1) after substituting λ₂(λ₁, θ) — three equations in five unknowns, reduced
   in the 𝒜₀-frame to a circle-reachability equation. Not yet closed in closed form; solved
   reliably by Gauss–Newton (`scatteredQuinticReduction.test.ts`).
-- **Properness for {0,1,3,5}** — the a-priori bound, step (a) of the open-closed-connected
-  program: the homogeneous parts vanish TRIANGULARLY (S(λ₁) = 0 ⟹ λ₁ = 0 ⟹ S(λ₂) = 0 ⟹
-  λ₂ = 0, using |S(q)| = |q|²), so |targets| ≳ |λ|² and the image is closed. Measured
-  signature: solutions scale like √(target scale) through scale 1000 — the exact bound whose
-  FAILURE in the plane produced the 2D blow-up specimens. The plane-vs-space contrast is now
-  a theorem-shaped statement, not just an observation.
+- **Properness for {0,1,3,5}** — the a-priori bound: the homogeneous parts vanish
+  TRIANGULARLY (S(λ₁) = 0 ⟹ λ₁ = 0 ⟹ S(λ₂) = 0 ⟹ λ₂ = 0, using |S(q)| = |q|²), so
+  |targets| ≳ |λ|² and the image is closed. Measured signature: solutions scale like
+  √(target scale) through scale 1000. CORRECTED (the lean companion, 2026-08-30): this kill
+  uses only anisotropy of the square, which holds over ℂ too (w² = 0 ⟺ w = 0) — so the SAME
+  grip is proper in the plane, and there the square homogeneous system upgrades straight to
+  full surjectivity (trivial zero fibre ⟹ finite morphism ⟹ onto): 2D {0,1,3,5} is
+  completely solved, every target. The plane-vs-space contrast is ALGEBRAIC CLOSURE, not
+  properness; the earlier 2D blow-up specimens live at grips that are genuinely non-proper —
+  in both dimensions (e.g. {0,1,2,3,4,8}: after the leg kills, one block equation on three
+  coefficients has nontrivial zeros).
 
-**And what the classification says — properness is NOT universal.** The triangular argument
+**The kill-cascade is a CERTIFICATE, not a classification.** The triangular argument
 mechanises into the KILL-CASCADE (a block whose live pair terms reduce to one diagonal
-w·S(𝒜ⱼ) kills 𝒜ⱼ; iterate). Exact scan (`propernessKillCascade.test.ts`): it proves
-properness for {0,1,3,5}, {0,1,4,5}, {0,2,4,5} at degree 5; four grips at degree 7; and at
-degree 9 exactly the FIVE perfectly-spread grips {0,1,3,5,7,9} … {0,2,4,6,8,9}. It cannot
-reach further, and the limit is real: {0,2,4,5,6,9} holds BOTH endpoints yet has a genuine
-escape (sphere-minimum 6e-36, found by numeric minimisation) — inside a gap, block sums let
-S(𝒜₀) cancel against polar terms, so held points coincide while |𝒜| = 1. Grips missing an
-endpoint always escape through their unheld end-legs (140 of 210 at degree 9, benign,
-end-supported). The general properness lemma must therefore QUOTIENT the escape directions —
-or the closedness argument must be replaced. Note the escapes do not threaten surjectivity
-(all these grips solve everywhere measured); they break only this proof route's easy step.
+w·S(𝒜ⱼ) kills 𝒜ⱼ; iterate). Exact scan (`propernessKillCascade.test.ts`): it certifies
+{0,1,3,5}, {0,1,4,5}, {0,2,4,5} at degree 5; four grips at degree 7; the five
+perfectly-spread grips at degree 9 (counts m+1 — the companion notes the closed-form
+criterion: the elimination order works iff each block's top index reaches the diagonal of its
+newest coefficient, left-to-right, right-to-left, or two-ended). Two facts keep the
+certificate honest in BOTH directions:
+- properness can hold where the certificate fails — {0,2,3,5} at degree 5 (the companion's
+  proof, verified numerically, sphere-minimum 1.0e-1 over 60 starts): substituting
+  u = 𝒜₀+½𝒜₁, v = 𝒜₂+½𝒜₁ forces |u| = |v| = ½|𝒜₁| onto i-circles, and the middle block
+  reduces to 2cos(φ−ψ) − 2(cosφ+cosψ) + 18 = 0, whose left side is ≥ 12;
+- genuine escapes exist — {0,2,4,5,6,9} holds both endpoints yet reaches sphere-minimum
+  6e-36 (block sums let S(𝒜₀) cancel against polar terms inside a gap); grips missing an
+  endpoint always escape benignly through unheld end-legs.
 
-**Missing, in order:** (i) close the {0,1,3,5} outer problem — the honest candidates are a
-cleverer completion or a degree/topology argument on the reduced circle-reachability form;
-(ii) openness (full rank somewhere on every fibre); (iii) the quotient form of properness for
-grips with escapes. Literature for (i): Agrachev–Lerario, systems of real quadratic forms.
+**THE FILTER, run (the companion's demand — and it bites).** The kill-cascade at hold-(m+3):
+the degree-7 square case {0,1,2,3,4,5} — where HALF of all polygons are infeasible
+(SEPTIC_SIX_POINTS) — is interior-proper by the certificate; at degree 9 hold-7, 30 of 120
+grips are interior-proper, including three of the nine candidate grips with FULL kills
+({0,1,3,4,5,8,9}, {0,1,3,5,7,8,9}, {0,2,3,4,6,8,9}). So PROPERNESS HOLDS WHERE SURJECTIVITY
+IS FALSE: the program "proper ⟹ closed, + open + connected ⟹ surjective" is REFUTED as
+stated — it would prove a false theorem. The separating ingredient is the one still without
+a route: the critical-value set must not disconnect the target space (a closed image whose
+boundary is a measure-zero critical set can still be a half-space), and THAT is what fails
+at m+3. Silver lining: on a fully-killed hold-7 grip, properness makes the INFEASIBLE set
+open — the candidates sit in robust open regions, strengthening the boundary evidence.
+
+**The outer problem, in its better shape (the companion's elimination order).** λ₂ enters
+(1) only linearly through polar(𝒜₀,·), which is onto with kernel ℝ·𝒜₀i — so solve (1) first:
+λ₂ = μ(λ₁) + t·𝒜₀i. Then (2) becomes, with ν = μ(λ₁) + ½λ₁ and using S(𝒜₀i) = S(𝒜₀):
+
+    t²·S(𝒜₀) + t·polar(ν, 𝒜₀i) + S(ν) = V + ¼S(λ₁)
+
+— for each λ₁ a PARABOLA in ℝ³ with fixed nonzero leading vector S(𝒜₀); the question is
+whether the 4-parameter family of parabolas sweeps ℝ³. Everything is polynomial (quartic in
+λ₁), no Hopf lift, and every ingredient is already a theorem in the companion's Cascade.lean.
+
+**Missing, in order:** (i) close the parabola-sweep question for {0,1,3,5}; (ii) the
+NON-SEPARATION ingredient — why, at m+2 only, the critical values do not wall off part of the
+target space (this is now identified as THE difficulty, by the filter); (iii) openness (full
+rank somewhere on every fibre). Literature for (i)–(ii): Agrachev–Lerario, systems of real
+quadratic forms.
 
 ## Open
 

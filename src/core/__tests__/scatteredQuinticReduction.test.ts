@@ -15,9 +15,10 @@
  *
  * Also pinned: the properness scaling. The homogeneous parts vanish TRIANGULARLY
  * (S(λ₁) = 0 ⟹ λ₁ = 0 ⟹ S(λ₂) = 0 ⟹ λ₂ = 0), so |targets| ≳ |λ|² and solutions must scale
- * like √(target scale) — the a-priori bound that FAILS in the plane (the 2D blow-up specimens)
- * and is proven for this grip in docs/SURJECTIVITY.md. The test measures max|λ|/√s bounded
- * across target scales 1 → 1000.
+ * like √(target scale). The kill uses only anisotropy of the square, so the SAME grip is
+ * proper in the plane too — where the square homogeneous system upgrades to full surjectivity
+ * (lean companion's correction; the 2D blow-up specimens live at genuinely NON-proper grips).
+ * The test measures max|λ|/√s bounded across target scales 1 → 1000.
  */
 import { describe, expect, it } from 'vitest'
 import {
