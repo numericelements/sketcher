@@ -124,6 +124,45 @@ export const slides: SlideDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
+  // THE GENERATOR — the map on its own page (Eric, 2026-08-30). It travelled: outline
+  // epigraph → Counting epigraph → its own slide, because it is the deck's one statement of
+  // what the object IS, and after the opening figure the reader has earned the definition.
+  // Two lines, nothing else; the notes carry the Hopf reading and the u,v convention warning.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The generator</h2>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 2.2, margin: '1.1em 0 0 0.6em' }}>
+{`plane     r′ = w²                     one complex polynomial
+
+space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j    two complex polynomials`}
+        </div>
+      </>
+    ),
+    notes:
+      'TWO LINES AND THAT IS THE DECK-S OBJECT: a PH curve is the integral of a square. Read '
+      + 'across and it says what changes on leaving the plane: ONE complex polynomial becomes '
+      + 'TWO, and — the slides ahead will show — a COUNT becomes a FAMILY. '
+      + 'THE FORM IS HOPF — A = u + v j — and it is why the two-valued square root becomes a '
+      + 'CIRCLE of square roots: (u,v) and (u e^{i theta}, v e^{-i theta}) give the same '
+      + 'hodograph. Note the phases are OPPOSITE in the pair, which is what a common phase in '
+      + 'the quaternion looks like from here. '
+      + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own '
+      + 'convention: Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls '
+      + 'the complex pair alpha, beta. Ours are their alpha and beta. The line beside the '
+      + 'equation says "two complex polynomials" for exactly this reason; if someone reads u and '
+      + 'v as two of four reals and asks where the other two went, that is the confusion, '
+      + 'answered in one sentence. '
+      + 'WHY THIS PAGE SITS AFTER THE FIGURE: show first, explain after (the 2026-08-30 '
+      + 'restructure). The figure let the room feel that a PH interpolation problem has TWO '
+      + 'answers where a Bezier has one; this page names the object responsible, and the next '
+      + 'page counts with it.',
+  },
+
+  // ---------------------------------------------------------------------------
   // COUNTING SOLUTIONS — the settled hybrid table, after four versions (Eric, 2026-08-24);
   // DEMOTED from divider to ordinary content page 2026-08-30 (Eric): with the deck at eight
   // pages and one continuous line, a full-page curtain was ceremony. Then MOVED AFTER the
@@ -146,11 +185,6 @@ export const slides: SlideDefinition[] = [
       <>
         <h2>Counting solutions</h2>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.3em 0 0 0.6em', color: '#475569' }}>
-{`plane     r′ = w²                    one complex polynomial
-space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j   two complex polynomials`}
-        </div>
-
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 2.0, margin: '0.9em 0 0 0.6em' }}>
 {`Bézier      A x = b                    one
 
@@ -164,18 +198,9 @@ in space    the same forms over ℍ      a family, not a count
       </>
     ),
     notes:
-      'THE MAP ON TOP CAME FROM THE CUT OUTLINE (2026-08-30), in its proven epigraph form: small '
-      + 'and grey it reads as the frame, and the table below at full weight is what the eye lands '
-      + 'on. It belongs here because the footnote defines k as the GENERATOR-s number of '
-      + 'coefficients — the map is where the generator is stated. Read the map across and it says '
-      + 'what changes on leaving the plane: ONE complex polynomial becomes TWO. The form is Hopf — '
-      + 'A = u + v j — and it is why the two-valued square root becomes a CIRCLE of square roots, '
-      + 'since (u,v) and (u e^{i theta}, v e^{-i theta}) give the same hodograph. '
-      + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own convention: '
-      + 'Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls the complex pair '
-      + 'alpha, beta. Ours are their alpha and beta. The line beside the equation says "two complex '
-      + 'polynomials" for exactly this reason; if someone reads u and v as two of four reals and '
-      + 'asks where the other two went, that is the confusion, answered in one sentence. '
+      'THE GENERATOR WAS STATED ON THE PREVIOUS PAGE — this page counts with it. The footnote '
+      + 'defines k as the generator-s number of coefficients, and the previous slide is where '
+      + 'those coefficients were introduced. '
       + 'THE TABLE IS THREE ROWS AND THEY ARE THE SLIDES AROUND IT. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
       + 'THE ARROWS CARRY THE READING: data on the left, count of curves on the right, so the '
