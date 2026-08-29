@@ -93,15 +93,13 @@ export const slides: SlideDefinition[] = [
       + 'title would stake a claim the document itself declines to make.',
   },
   // ---------------------------------------------------------------------------
-  // THE OUTLINE PAGE WAS CUT (Eric, 2026-08-30) — show-first: the second page is now the
-  // first interactive figure, not a table of contents. The two-line generator map moved to
-  // the Counting solutions page as its epigraph, and the load-bearing notes (the u+vj
-  // convention warning, the circle of square roots) moved with it. The outline's full text
-  // and its design history are in git.
+  // THE OUTLINE PAGE WAS CUT and the deck restructured show-first (Eric, 2026-08-30):
+  // the three figures run uninterrupted from the title — interpolation, grip, space — then
+  // the explanation act (the generator, the counting table), then the record. The outline's
+  // generator map became its own page after the figures; its full text and design history
+  // are in git.
   // ---------------------------------------------------------------------------
-  // ---------------------------------------------------------------------------
-  // the price of PH, stated as a dimension count — MOVED BEFORE the counting table
-  // (Eric, 2026-08-30): show something interactive and visual first, explain after.
+  // the price of PH, stated as a dimension count — the OPENING figure since 2026-08-30
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -123,183 +121,6 @@ export const slides: SlideDefinition[] = [
       'across many data sets and t₁ values. Both panels are closed form; no optimizer.',
   },
 
-  // ---------------------------------------------------------------------------
-  // THE GENERATOR — the map on its own page (Eric, 2026-08-30). It travelled: outline
-  // epigraph → Counting epigraph → its own slide, because it is the deck's one statement of
-  // what the object IS, and after the opening figure the reader has earned the definition.
-  // Two lines, nothing else; the notes carry the Hopf reading and the u,v convention warning.
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>The generator</h2>
-
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 2.2, margin: '1.1em 0 0 0.6em' }}>
-{`plane     r′ = w²                     one complex polynomial
-
-space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j    two complex polynomials`}
-        </div>
-      </>
-    ),
-    notes:
-      'TWO LINES AND THAT IS THE DECK-S OBJECT: a PH curve is the integral of a square. Read '
-      + 'across and it says what changes on leaving the plane: ONE complex polynomial becomes '
-      + 'TWO, and — the slides ahead will show — a COUNT becomes a FAMILY. '
-      + 'THE FORM IS HOPF — A = u + v j — and it is why the two-valued square root becomes a '
-      + 'CIRCLE of square roots: (u,v) and (u e^{i theta}, v e^{-i theta}) give the same '
-      + 'hodograph. Note the phases are OPPOSITE in the pair, which is what a common phase in '
-      + 'the quaternion looks like from here. '
-      + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own '
-      + 'convention: Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls '
-      + 'the complex pair alpha, beta. Ours are their alpha and beta. The line beside the '
-      + 'equation says "two complex polynomials" for exactly this reason; if someone reads u and '
-      + 'v as two of four reals and asks where the other two went, that is the confusion, '
-      + 'answered in one sentence. '
-      + 'WHY THIS PAGE SITS AFTER THE FIGURE: show first, explain after (the 2026-08-30 '
-      + 'restructure). The figure let the room feel that a PH interpolation problem has TWO '
-      + 'answers where a Bezier has one; this page names the object responsible, and the next '
-      + 'page counts with it.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // COUNTING SOLUTIONS — the settled hybrid table, after four versions (Eric, 2026-08-24);
-  // DEMOTED from divider to ordinary content page 2026-08-30 (Eric): with the deck at eight
-  // pages and one continuous line, a full-page curtain was ceremony. Then MOVED AFTER the
-  // interpolation figure (same day): show first, explain after — the table now explains the
-  // figure the audience just used. The TABLE is untouched; it frames the figure slides.
-  //
-  // The table's history: the plain title (no act numeral, no grand title — the deck's register
-  // is a straight presentation of fact), the space row, the k footnote. The MIDDLE ROWS are
-  // the arrow form's: data on the left of the arrow, count of CURVES on the right, with the
-  // k+1 visible — because "2ᵏ⁻¹ points on the curve" genuinely parsed as a number of points,
-  // twice, on separate readings weeks apart. And k is defined in WORDS (the generator's number
-  // of coefficients), not as "deg 𝒜 + 1", which computed it instead of saying it and borrowed
-  // the spatial generator's letter for the planar rows. The rejected versions — header
-  // sentence, and the untitled one/count/family ladder — are in git; neither said the facts
-  // as flatly.
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Counting solutions</h2>
-
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 2.0, margin: '0.9em 0 0 0.6em' }}>
-{`Bézier      A x = b                    one
-
-PH          xᵀ Qⱼ x = bⱼ               k+1 points on the curve   →   2ᵏ⁻¹ curves
-                                       k+1 control points        →   1 … 2ᵏ⁻¹ curves
-
-in space    the same forms over ℍ      a family, not a count
-
-                                       k = the generator's number of coefficients`}
-        </div>
-      </>
-    ),
-    notes:
-      'THE GENERATOR WAS STATED ON THE PREVIOUS PAGE — this page counts with it. The footnote '
-      + 'defines k as the generator-s number of coefficients, and the previous slide is where '
-      + 'those coefficients were introduced. '
-      + 'THE TABLE IS THREE ROWS AND THEY ARE THE SLIDES AROUND IT. Linear, then quadratic, then '
-      + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
-      + 'THE ARROWS CARRY THE READING: data on the left, count of curves on the right, so the '
-      + 'exponents cannot parse as numbers of points -- the misreading that happened twice before '
-      + 'the arrows went in. Nothing extra to say beyond reading a row aloud once. '
-      + 'THE MIDDLE ROW CARRIES TWO NUMBERS BECAUSE THERE ARE TWO PROBLEMS, and they are not the '
-      + 'same one for a PH curve even though they are for an ordinary Bezier. Prescribing POINTS ON '
-      + 'THE CURVE gives exactly 2^{k-1}, always -- five points on a septic give eight '
-      + '(planarPHInterpolantCount.test.ts, and phPlanarSepticInterp computes them by homotopy). '
-      + 'Prescribing CONTROL POINTS gives a RANGE, 1 to 2^{k-1}, and which value depends on WHICH '
-      + 'points are held: degree 7 takes every value from 1 to 8 across the 56 grips '
-      + '(planarPHSubsetCounts.test.ts). The difference is that a control-point condition factors '
-      + 'through the generator by division and a curve-point condition does not, so the control-point '
-      + 'systems can be triangular and lose roots to infinity. Both slides follow. '
-      + 'WHAT k IS, because it will be asked: the number of COEFFICIENTS OF THE GENERATOR, not the '
-      + 'curve degree and not the curve-s control points. A PH curve of degree n has a generator of '
-      + 'degree (n-1)/2, so k = (n+1)/2. Cubic: w linear, k = 2. Quintic: w quadratic, k = 3. And '
-      + 'because the planar system is SQUARE, k is also the number of quadratic equations -- which is '
-      + 'why it sets the count. '
-      + 'THE TWO EXPONENTS ARE THE SAME MINUS ONE, and it is the gauge both times: in the plane divide '
-      + '2^k by the two-element group w ~ -w; in space quotient by the circle. Same exponent, '
-      + 'different group. Measured at both values: k = 2 gives two planar interpolants and, in space, '
-      + 'the fibre is the circle Z0 exp(phi i) -- the spatial grip slide tours it at degree 3. k = 3 '
-      + 'gives four, and a TORUS with one dial per end (phi_0, phi_2) -- the same slide-s degree-5 '
-      + 'ends-held grip, whose two dials ARE those angles. (The dedicated cubic and torus slides are '
-      + 'parked in ph-interpolation-wip; the grip slide subsumed both.) '
-      + '2^{k-1} IS A DERIVATION, NOT A PATTERN, and this is the argument to give if pressed. '
-      + 'Substitute w_j = w_0 r_j with r_0 = 1. Every condition is quadratic in w, so it becomes '
-      + 'w_0^2 Q_j(r) = b_j; divide each by the first and w_0^2 CANCELS, leaving k-1 quadratics in the '
-      + 'k-1 unknowns r_1..r_{k-1}. Bezout: 2^{k-1}. Then w_0^2 comes back from any single condition, '
-      + 'giving w_0 up to SIGN -- and that sign IS the gauge w ~ -w, already quotiented. That is where '
-      + 'the minus one lives. '
-      + 'AND IT IS CHECKED AT k = 2, 3 AND 4: two, four and EIGHT distinct curves, in '
-      + 'planarPHInterpolantCount.test.ts. Bezout is an upper bound, so finding 2^{k-1} distinct roots '
-      + 'PROVES the count for that instance rather than suggesting it. That is the POINTS-ON-THE-CURVE '
-      + 'problem; the derivation above is the same one, and for control points it gives the CEILING '
-      + 'rather than the count, because a grip can send roots to infinity. '
-      + 'THE SPACE ROW CARRIES NO FORMULA, AND THAT IS DELIBERATE -- an earlier version said T^{k-1} '
-      + 'and it was WRONG. Two reasons, both worth knowing so it is not re-derived. '
-      + 'FIRST, THE DIMENSION DEPENDS ON THE DATA, not on k alone. With k+1 POINTS the surplus really '
-      + 'is k-1 (ten degrees of freedom, nine conditions, a curve -- the grip slide-s degree-3 tour). '
-      + 'With C1 HERMITE the nine '
-      + 'conditions do NOT grow with k, so the surplus is 4k - 10. MEASURED, in '
-      + 'spatialHermiteFamilyDimension.test.ts: '
-      + 'k=3 degree 5, rank 9 of 9, family 2 (the torus); k=4 degree 7, family SIX where k-1 predicts '
-      + 'three; k=5 degree 9, family TEN. The rank saturates at nine from the quintic up, so every '
-      + 'extra generator coefficient adds FOUR dimensions, not one -- which is the whole error in one '
-      + 'sentence. And k=2 degree 3 has rank 7 of 9: the polynomial cubic cannot interpolate general '
-      + 'C1 Hermite data at all, two of the nine numbers being unreachable, which is exactly why slide '
-      + '7 poses three POINTS instead. '
-      + 'The gauge is measured too, not assumed: the direction A -> A i sits in the Jacobian kernel to '
-      + '1e-7, which is what earns the minus one. '
-      + 'SECOND, THE THREE CIRCLES ARE CONDITIONS, NOT COEFFICIENTS. The (S1)^3/S1 derivation gets its '
-      + 'circles from the three Hermite conditions -- c-prime(0), c-prime(1), and closure -- so at '
-      + 'k = 4 there are still three of them and four coefficients, and "k links, one angle each" has '
-      + 'no fourth angle to offer. '
-      + 'AND THE TOPOLOGY WAS ALREADY WALKED BACK ONCE, section 8: at degree 6 the family is "a torus '
-      + 'OR A KLEIN BOTTLE -- orientability was not measured, so the docs and the slide say fibred in '
-      + 'circles over a circle and stop". Putting T back on a divider would undo a caution that was '
-      + 'installed on purpose. '
-      + 'WHAT IS SAFE TO SAY: the plane gives a COUNT and space gives a FAMILY. That holds in every '
-      + 'case measured, and it is the contrast the section actually demonstrates. '
-      + '2^{k-1} IS SAFE, with one qualification to state if pressed: it is the count for a SQUARE '
-      + 'system of k quadratic conditions on a k-coefficient generator -- so the problem scales with k '
-      + '(three points for the cubic, four for the quintic, five for the septic). For FIXED C1 Hermite '
-      + 'data the planar system stops being square too, at k = 4. '
-      + 'WHAT x IS: the generator-s coefficient vector. Each interpolation condition is a QUADRATIC '
-      + 'FORM in it, because the curve is the SQUARE of the unknown -- prescribing points squares the '
-      + 'equations. That is the whole price of PH and it needs no introduction to state. '
-      + 'WRITE x-TRANSPOSE, NOT x-STAR, and it matters. The form is complex BILINEAR, not Hermitian, '
-      + 'which is what keeps the system holomorphic -- and holomorphy is what makes the count 2^k by '
-      + 'Bezout. In real coordinates the same k complex equations become 2k real ones in 2k real '
-      + 'unknowns, where the real Bezout bound is 2^{2k}: wildly wrong, because the real system is far '
-      + 'from generic. The transpose is the flag that tells a specialist which regime we are in. '
-      + 'WHY HALVED: r-prime = w^2, so w and -w give the same curve. The algebraic system counts both; '
-      + 'each pair is ONE curve. Cubic through three points, k = 2: four solutions, two curves. C1 '
-      + 'Hermite on the quintic, k = 3: eight solutions, four curves. And the gauge does not merge the '
-      + 'roots -- substituting w1 = r w0 leaves r fixed under w -> -w, so the curves stay distinct. '
-      + 'WHY ONLY PLUS-OR-MINUS IN THE PLANE, and this is the cleanest statement of what changes in '
-      + 'space: (w e^{i theta})^2 = w^2 e^{2 i theta}, equal only when e^{2 i theta} = 1, so the gauge '
-      + 'is the square roots of unity. In the sandwich the phase appears once as e^{i theta} and once '
-      + 'as e^{-i theta} from the conjugate, and since e^{i theta} commutes with i they CANCEL -- so '
-      + 'every theta is gauge and the group is the whole circle. The plane-s {+1,-1} is the discrete '
-      + 'remnant of it. That is why the plane can be divided by two and space cannot. '
-      + 'THE THIRD ROW IS NOT CAUSED BY THE GAUGE, and an earlier version of this slide said it was. '
-      + 'The arithmetic: planar quintic 8 DOF against 8 conditions, square, so a count; spatial quintic '
-      + '14 against 12, so a two-parameter family. The 14 is ALREADY gauge-reduced (15 raw, less the '
-      + 'circle), so the circle SHRINKS the family from three to two rather than creating it. The '
-      + 'family comes from the system being UNDERDETERMINED. The parked torus slide-s note still '
-      + 'reads as causal and should be corrected if that slide graduates back from '
-      + 'ph-interpolation-wip. '
-      + 'WHAT THIS SLIDE USED TO SAY, so it is not restored by accident: "the square becomes a sandwich '
-      + 'and the square root becomes a circle of square roots", and "|e|^2 = 1 forces the leading '
-      + 'coefficient to vanish, so a moving unit frame can never be polynomial". Both were shaped to '
-      + 'sound good rather than to be checked. The frame argument is not lost -- the parked '
-      + 'Moebius-bend slide makes the positive version at the point of use (the frame is A k A* over '
-      + 'sigma, RATIONAL because sigma = |A|^2 is a polynomial), and until it graduates back the '
-      + 'title notes keep the pocket version. Say it there, not here.',
-  },
 
   // ---------------------------------------------------------------------------
   // the count is not a property of the FAMILY, it is a property of your GRIP
@@ -402,6 +223,184 @@ in space    the same forms over ℍ      a family, not a count
       'ph-interpolation-wip, and what the torus slide still owns alone — the alpha/beta CHANGE OF ' +
       'BASIS and the arc-length-depends-on-beta invariant — goes with it. If that lesson is wanted ' +
       'back, it graduates as its own slide rather than being folded in here.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // THE GENERATOR — the map on its own page (Eric, 2026-08-30). It travelled: outline
+  // epigraph → Counting epigraph → its own slide, because it is the deck's one statement of
+  // what the object IS, and after the opening figure the reader has earned the definition.
+  // Two lines, nothing else; the notes carry the Hopf reading and the u,v convention warning.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>The generator</h2>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 2.2, margin: '1.1em 0 0 0.6em' }}>
+{`plane     r′ = w²                     one complex polynomial
+
+space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j    two complex polynomials`}
+        </div>
+      </>
+    ),
+    notes:
+      'TWO LINES AND THAT IS THE DECK-S OBJECT: a PH curve is the integral of a square. Read '
+      + 'across and it says what changes on leaving the plane: ONE complex polynomial becomes '
+      + 'TWO, and — the slides ahead will show — a COUNT becomes a FAMILY. '
+      + 'THE FORM IS HOPF — A = u + v j — and it is why the two-valued square root becomes a '
+      + 'CIRCLE of square roots: (u,v) and (u e^{i theta}, v e^{-i theta}) give the same '
+      + 'hodograph. Note the phases are OPPOSITE in the pair, which is what a common phase in '
+      + 'the quaternion looks like from here. '
+      + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own '
+      + 'convention: Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls '
+      + 'the complex pair alpha, beta. Ours are their alpha and beta. The line beside the '
+      + 'equation says "two complex polynomials" for exactly this reason; if someone reads u and '
+      + 'v as two of four reals and asks where the other two went, that is the confusion, '
+      + 'answered in one sentence. '
+      + 'WHY THIS PAGE SITS AFTER THE THREE FIGURES: show first, explain after (the '
+      + '2026-08-30 restructure). The figures let the room feel two answers where a Bezier has '
+      + 'one, a count that depends on the grip, and a family in space; this page names the '
+      + 'object responsible for all three, and the next page counts with it.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // COUNTING SOLUTIONS — the settled hybrid table, after four versions (Eric, 2026-08-24);
+  // DEMOTED from divider to ordinary content page 2026-08-30 (Eric): with the deck at eight
+  // pages and one continuous line, a full-page curtain was ceremony. Then MOVED AFTER the
+  // interpolation figure (same day): show first, explain after — the table now explains the
+  // figure the audience just used. The TABLE is untouched; it frames the figure slides.
+  //
+  // The table's history: the plain title (no act numeral, no grand title — the deck's register
+  // is a straight presentation of fact), the space row, the k footnote. The MIDDLE ROWS are
+  // the arrow form's: data on the left of the arrow, count of CURVES on the right, with the
+  // k+1 visible — because "2ᵏ⁻¹ points on the curve" genuinely parsed as a number of points,
+  // twice, on separate readings weeks apart. And k is defined in WORDS (the generator's number
+  // of coefficients), not as "deg 𝒜 + 1", which computed it instead of saying it and borrowed
+  // the spatial generator's letter for the planar rows. The rejected versions — header
+  // sentence, and the untitled one/count/family ladder — are in git; neither said the facts
+  // as flatly.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Counting solutions</h2>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 2.0, margin: '0.9em 0 0 0.6em' }}>
+{`Bézier      A x = b                    one
+
+PH          xᵀ Qⱼ x = bⱼ               k+1 points on the curve   →   2ᵏ⁻¹ curves
+                                       k+1 control points        →   1 … 2ᵏ⁻¹ curves
+
+in space    the same forms over ℍ      a family, not a count
+
+                                       k = the generator's number of coefficients`}
+        </div>
+      </>
+    ),
+    notes:
+      'THE GENERATOR WAS STATED ON THE PREVIOUS PAGE — this page counts with it. The footnote '
+      + 'defines k as the generator-s number of coefficients, and the previous slide is where '
+      + 'those coefficients were introduced. '
+      + 'THE TABLE IS THREE ROWS AND THEY ARE THE THREE FIGURES JUST SEEN. Linear, then quadratic, then '
+      + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
+      + 'THE ARROWS CARRY THE READING: data on the left, count of curves on the right, so the '
+      + 'exponents cannot parse as numbers of points -- the misreading that happened twice before '
+      + 'the arrows went in. Nothing extra to say beyond reading a row aloud once. '
+      + 'THE MIDDLE ROW CARRIES TWO NUMBERS BECAUSE THERE ARE TWO PROBLEMS, and they are not the '
+      + 'same one for a PH curve even though they are for an ordinary Bezier. Prescribing POINTS ON '
+      + 'THE CURVE gives exactly 2^{k-1}, always -- five points on a septic give eight '
+      + '(planarPHInterpolantCount.test.ts, and phPlanarSepticInterp computes them by homotopy). '
+      + 'Prescribing CONTROL POINTS gives a RANGE, 1 to 2^{k-1}, and which value depends on WHICH '
+      + 'points are held: degree 7 takes every value from 1 to 8 across the 56 grips '
+      + '(planarPHSubsetCounts.test.ts). The difference is that a control-point condition factors '
+      + 'through the generator by division and a curve-point condition does not, so the control-point '
+      + 'systems can be triangular and lose roots to infinity. Both slides follow. '
+      + 'WHAT k IS, because it will be asked: the number of COEFFICIENTS OF THE GENERATOR, not the '
+      + 'curve degree and not the curve-s control points. A PH curve of degree n has a generator of '
+      + 'degree (n-1)/2, so k = (n+1)/2. Cubic: w linear, k = 2. Quintic: w quadratic, k = 3. And '
+      + 'because the planar system is SQUARE, k is also the number of quadratic equations -- which is '
+      + 'why it sets the count. '
+      + 'THE TWO EXPONENTS ARE THE SAME MINUS ONE, and it is the gauge both times: in the plane divide '
+      + '2^k by the two-element group w ~ -w; in space quotient by the circle. Same exponent, '
+      + 'different group. Measured at both values: k = 2 gives two planar interpolants and, in space, '
+      + 'the fibre is the circle Z0 exp(phi i) -- the spatial grip slide tours it at degree 3. k = 3 '
+      + 'gives four, and a TORUS with one dial per end (phi_0, phi_2) -- the same slide-s degree-5 '
+      + 'ends-held grip, whose two dials ARE those angles. (The dedicated cubic and torus slides are '
+      + 'parked in ph-interpolation-wip; the grip slide subsumed both.) '
+      + '2^{k-1} IS A DERIVATION, NOT A PATTERN, and this is the argument to give if pressed. '
+      + 'Substitute w_j = w_0 r_j with r_0 = 1. Every condition is quadratic in w, so it becomes '
+      + 'w_0^2 Q_j(r) = b_j; divide each by the first and w_0^2 CANCELS, leaving k-1 quadratics in the '
+      + 'k-1 unknowns r_1..r_{k-1}. Bezout: 2^{k-1}. Then w_0^2 comes back from any single condition, '
+      + 'giving w_0 up to SIGN -- and that sign IS the gauge w ~ -w, already quotiented. That is where '
+      + 'the minus one lives. '
+      + 'AND IT IS CHECKED AT k = 2, 3 AND 4: two, four and EIGHT distinct curves, in '
+      + 'planarPHInterpolantCount.test.ts. Bezout is an upper bound, so finding 2^{k-1} distinct roots '
+      + 'PROVES the count for that instance rather than suggesting it. That is the POINTS-ON-THE-CURVE '
+      + 'problem; the derivation above is the same one, and for control points it gives the CEILING '
+      + 'rather than the count, because a grip can send roots to infinity. '
+      + 'THE SPACE ROW CARRIES NO FORMULA, AND THAT IS DELIBERATE -- an earlier version said T^{k-1} '
+      + 'and it was WRONG. Two reasons, both worth knowing so it is not re-derived. '
+      + 'FIRST, THE DIMENSION DEPENDS ON THE DATA, not on k alone. With k+1 POINTS the surplus really '
+      + 'is k-1 (ten degrees of freedom, nine conditions, a curve -- the grip slide-s degree-3 tour). '
+      + 'With C1 HERMITE the nine '
+      + 'conditions do NOT grow with k, so the surplus is 4k - 10. MEASURED, in '
+      + 'spatialHermiteFamilyDimension.test.ts: '
+      + 'k=3 degree 5, rank 9 of 9, family 2 (the torus); k=4 degree 7, family SIX where k-1 predicts '
+      + 'three; k=5 degree 9, family TEN. The rank saturates at nine from the quintic up, so every '
+      + 'extra generator coefficient adds FOUR dimensions, not one -- which is the whole error in one '
+      + 'sentence. And k=2 degree 3 has rank 7 of 9: the polynomial cubic cannot interpolate general '
+      + 'C1 Hermite data at all, two of the nine numbers being unreachable, which is exactly why slide '
+      + '7 poses three POINTS instead. '
+      + 'The gauge is measured too, not assumed: the direction A -> A i sits in the Jacobian kernel to '
+      + '1e-7, which is what earns the minus one. '
+      + 'SECOND, THE THREE CIRCLES ARE CONDITIONS, NOT COEFFICIENTS. The (S1)^3/S1 derivation gets its '
+      + 'circles from the three Hermite conditions -- c-prime(0), c-prime(1), and closure -- so at '
+      + 'k = 4 there are still three of them and four coefficients, and "k links, one angle each" has '
+      + 'no fourth angle to offer. '
+      + 'AND THE TOPOLOGY WAS ALREADY WALKED BACK ONCE, section 8: at degree 6 the family is "a torus '
+      + 'OR A KLEIN BOTTLE -- orientability was not measured, so the docs and the slide say fibred in '
+      + 'circles over a circle and stop". Putting T back on a divider would undo a caution that was '
+      + 'installed on purpose. '
+      + 'WHAT IS SAFE TO SAY: the plane gives a COUNT and space gives a FAMILY. That holds in every '
+      + 'case measured, and it is the contrast the section actually demonstrates. '
+      + '2^{k-1} IS SAFE, with one qualification to state if pressed: it is the count for a SQUARE '
+      + 'system of k quadratic conditions on a k-coefficient generator -- so the problem scales with k '
+      + '(three points for the cubic, four for the quintic, five for the septic). For FIXED C1 Hermite '
+      + 'data the planar system stops being square too, at k = 4. '
+      + 'WHAT x IS: the generator-s coefficient vector. Each interpolation condition is a QUADRATIC '
+      + 'FORM in it, because the curve is the SQUARE of the unknown -- prescribing points squares the '
+      + 'equations. That is the whole price of PH and it needs no introduction to state. '
+      + 'WRITE x-TRANSPOSE, NOT x-STAR, and it matters. The form is complex BILINEAR, not Hermitian, '
+      + 'which is what keeps the system holomorphic -- and holomorphy is what makes the count 2^k by '
+      + 'Bezout. In real coordinates the same k complex equations become 2k real ones in 2k real '
+      + 'unknowns, where the real Bezout bound is 2^{2k}: wildly wrong, because the real system is far '
+      + 'from generic. The transpose is the flag that tells a specialist which regime we are in. '
+      + 'WHY HALVED: r-prime = w^2, so w and -w give the same curve. The algebraic system counts both; '
+      + 'each pair is ONE curve. Cubic through three points, k = 2: four solutions, two curves. C1 '
+      + 'Hermite on the quintic, k = 3: eight solutions, four curves. And the gauge does not merge the '
+      + 'roots -- substituting w1 = r w0 leaves r fixed under w -> -w, so the curves stay distinct. '
+      + 'WHY ONLY PLUS-OR-MINUS IN THE PLANE, and this is the cleanest statement of what changes in '
+      + 'space: (w e^{i theta})^2 = w^2 e^{2 i theta}, equal only when e^{2 i theta} = 1, so the gauge '
+      + 'is the square roots of unity. In the sandwich the phase appears once as e^{i theta} and once '
+      + 'as e^{-i theta} from the conjugate, and since e^{i theta} commutes with i they CANCEL -- so '
+      + 'every theta is gauge and the group is the whole circle. The plane-s {+1,-1} is the discrete '
+      + 'remnant of it. That is why the plane can be divided by two and space cannot. '
+      + 'THE THIRD ROW IS NOT CAUSED BY THE GAUGE, and an earlier version of this slide said it was. '
+      + 'The arithmetic: planar quintic 8 DOF against 8 conditions, square, so a count; spatial quintic '
+      + '14 against 12, so a two-parameter family. The 14 is ALREADY gauge-reduced (15 raw, less the '
+      + 'circle), so the circle SHRINKS the family from three to two rather than creating it. The '
+      + 'family comes from the system being UNDERDETERMINED. The parked torus slide-s note still '
+      + 'reads as causal and should be corrected if that slide graduates back from '
+      + 'ph-interpolation-wip. '
+      + 'WHAT THIS SLIDE USED TO SAY, so it is not restored by accident: "the square becomes a sandwich '
+      + 'and the square root becomes a circle of square roots", and "|e|^2 = 1 forces the leading '
+      + 'coefficient to vanish, so a moving unit frame can never be polynomial". Both were shaped to '
+      + 'sound good rather than to be checked. The frame argument is not lost -- the parked '
+      + 'Moebius-bend slide makes the positive version at the point of use (the frame is A k A* over '
+      + 'sigma, RATIONAL because sigma = |A|^2 is a polynomial), and until it graduates back the '
+      + 'title notes keep the pocket version. Say it there, not here.',
   },
 
   // ---------------------------------------------------------------------------
