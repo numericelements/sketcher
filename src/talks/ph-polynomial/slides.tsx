@@ -583,12 +583,15 @@ in space    the same forms over ℍ      a family, not a count
     One more held point fails: at degree 9, 40 configurations resist every attempt.
 
 
-    PROVEN      consecutive runs from either end; every prefix + suffix split.
+    PROVEN      held points in a row from one end; or in two runs, one at each end.
 
     COMPUTED    every choice of held points at degrees 5, 7, 9: ~3,700
                 configurations, all solved.
 
-    OPEN        the scattered choices in space; a certificate that the wall is real.`}
+    OPEN        held points scattered between the ends — every test solves, no proof.
+
+                the 40 configurations above — no solver finds a curve,
+                no proof that none exists.`}
         </div>
       </>
     ),
