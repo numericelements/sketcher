@@ -93,102 +93,65 @@ export const slides: SlideDefinition[] = [
       + 'title would stake a claim the document itself declines to make.',
   },
   // ---------------------------------------------------------------------------
-  // 2 — THE MAP. The slide someone reads in thirty seconds to know what this is.
-  //
-  // This deck is circulated BEFORE the discussion, so slide 2 has to do two jobs at once: say what
-  // the object is, and say what is being asked. Since the split the map is the polynomial row
-  // alone — plane and space, one generator equation each — and the deck says nothing about the
-  // rational act at all: a pointer line to the sibling deck was tried and cut (Eric, 2026-08-24);
-  // the shelf page lists both decks and that is enough. (The rational row moved to ph-rational
-  // with the pole pair; the old four-cell map's spinor act is parked in ph-interpolation-wip.)
+  // THE OUTLINE PAGE WAS CUT (Eric, 2026-08-30) — show-first: the second page is now the
+  // first interactive figure, not a table of contents. The two-line generator map moved to
+  // the Counting solutions page as its epigraph, and the load-bearing notes (the u+vj
+  // convention warning, the circle of square roots) moved with it. The outline's full text
+  // and its design history are in git.
+  // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // the price of PH, stated as a dimension count — MOVED BEFORE the counting table
+  // (Eric, 2026-08-30): show something interactive and visual first, explain after.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Outline</h2>
-
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.2em 0 0.45em 0.6em', color: '#475569' }}>
-{`   plane     r′ = w²                    one complex polynomial
-   space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j   two complex polynomials`}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '1.4em', rowGap: '0.55em', margin: '0.4em 0 0.5em 0.3em', lineHeight: 1.45 }}>
-          <div><strong>the plane</strong></div>
-          <div style={{ color: '#475569' }}>how many curves fit the control points you hold</div>
-
-          <div><strong>space</strong></div>
-          <div style={{ color: '#475569' }}>the same points held leave a family, not a count</div>
-        </div>
-
+        <h2>Interpolation: same degrees of freedom, different number of answers</h2>
+        <ThreePointsFigure />
       </>
     ),
     notes:
-      'THIRTY SECONDS IS THE BUDGET for this slide, because the deck is read before the meeting. '
-      + 'THE MAP SITS ON TOP, and what makes that work is SIZE rather than order. Set small and grey '
-      + 'it reads as an epigraph -- the frame you glance at -- and the sections underneath, at full '
-      + 'size, are what the eye lands on. The order was tried both ways: with the map at full weight '
-      + 'on top it swamped the slide and stopped looking like an outline at all; with the sections '
-      + 'first it read correctly but lost the map-as-opening. Small-grey-on-top is the arrangement '
-      + 'that gives both. '
-      + 'READ THE TOP ROW ACROSS and it says what changes on leaving the plane: ONE complex polynomial '
-      + 'becomes TWO, and a COUNT becomes a FAMILY. The form is Hopf -- A = u + v j -- and it is why '
-      + 'the two-valued square root becomes a CIRCLE of square roots, since (u,v) and '
-      + '(u e^{i theta}, v e^{-i theta}) give the same hodograph. Note the phases are OPPOSITE in the '
-      + 'pair, which is what a common phase in the quaternion looks like from here. Section I is that '
-      + 'sentence. '
-      + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own convention: '
-      + 'Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls the complex pair '
-      + 'alpha, beta. Ours are their alpha and beta. The line under the equation says "two complex '
-      + 'polynomials" for exactly this reason. If someone reads u and v as two of four reals and '
-      + 'asks where the other two went, that is the confusion, and it is answered in one sentence. '
-      + 'THE RATIONAL ROW LEFT WITH THE SPLIT (2026-08-24): the map is the polynomial row alone. '
-      + 'A grey pointer line to the sibling deck was tried and cut the same day -- the shelf page '
-      + 'lists both decks, and an outline that mentions another deck-s content is half a promise. '
-      + 'If someone asks where the rational story went, say ph-rational aloud. '
-      + 'SIMPLIFIED 2026-08-24 (Eric): the map carries the equations and the model names ONLY. The '
-      + 'conclusions that used to be printed beside them -- "a count", "a family", "nothing forces '
-      + 'softness", "a pole cannot be hard" -- are the slides-own job to prove, and printing a slide-s '
-      + 'conclusion on the outline spends it early and clutters the map. Say them aloud here if the '
-      + 'room wants the preview; the section list underneath went to one line per act for the same '
-      + 'reason. '
-      + 'WHAT THIS SLIDE NO LONGER PROMISES, and where it went (2026-08-24). The old four-cell map '
-      + 'carried the spinor chart (integrate, and kill a logarithm at every pole), Pottmann-s planar '
-      + 'dual, and the integrate-or-don-t dividing line -- the whole second act. That act is parked '
-      + 'VERBATIM in ph-interpolation-wip, notes included, and this outline stopped promising it the '
-      + 'day the deck was cut to nine slides. When those slides graduate back, their rows return '
-      + 'here with them; the git history has the old table if the wording is wanted. '
-      + 'TWO LINES CAME OFF THIS SLIDE (Eric, 2026-08-24). The C-explainer and the gesture '
-      + 'sentence moved to the rational divider, which is where C first appears in earnest and '
-      + 'where a reader needs them; the outline is now the map and the two-line section list, '
-      + 'nothing else. And the aim line ("local editing with control over differential '
-      + 'properties") was removed outright -- if the deck earns it, it does not need announcing; '
-      + 'say it in the discussion if asked what the work is FOR. The gesture idea itself -- each '
-      + 'figure shown twice, strict counts vs free minimum-norm -- is still the spine and still '
-      + 'worth a sentence aloud here. '
-      + 'THE DISCIPLINE STILL HOLDS on every slide: named sources for what is known, an honest label '
-      + 'for what is ours and how far, a number with the test that holds it for what is measured, and '
-      + 'the open questions collected rather than softened along the way.',
+      'Both objects have 6 real DOF (quadratic Bézier: 3 planar control points; planar PH cubic: ' +
+      'the linear generator w₀,w₁ = 4 real, plus the integration constant = 2). Three interpolation ' +
+      'points impose 6 real conditions. Both square. The quadratic\'s equations are LINEAR, so one ' +
+      'solution; the PH cubic\'s are QUADRATIC, so two. That is the whole price of PH, and it needs ' +
+      'no introduction to state. ' +
+      'Mechanism: c(t)−c(0) = A(t)w₀² + B(t)w₀w₁ + C(t)w₁² with A,B,C REAL, so w₁ = r·w₀ factors out ' +
+      'w₀² and the system collapses to one complex quadratic in r — hence exactly two roots, and the ' +
+      'gauge w → −w leaves both q and r fixed so it does not merge them. Verified in phCubic.test.ts ' +
+      'across many data sets and t₁ values. Both panels are closed form; no optimizer.',
   },
+
   // ---------------------------------------------------------------------------
-  // THE DIVIDER — the settled hybrid, after four versions (Eric, 2026-08-24).
+  // COUNTING SOLUTIONS — the settled hybrid table, after four versions (Eric, 2026-08-24);
+  // DEMOTED from divider to ordinary content page 2026-08-30 (Eric): with the deck at eight
+  // pages and one continuous line, a full-page curtain was ceremony. Then MOVED AFTER the
+  // interpolation figure (same day): show first, explain after — the table now explains the
+  // figure the audience just used. The TABLE is untouched; it frames the figure slides.
   //
-  // The FRAME is the original's: compact table, the plain title "Counting solutions" (no act
-  // numeral, no grand title — the deck's register is a straight presentation of fact), the
-  // space row, the k footnote. The MIDDLE ROWS are the arrow form's: data on the left of the
-  // arrow, count of CURVES on the right, with the k+1 visible — because "2ᵏ⁻¹ points on the
-  // curve" genuinely parsed as a number of points, twice, on separate readings weeks apart.
-  // And k is defined in WORDS (the generator's number of coefficients), not as "deg 𝒜 + 1",
-  // which computed it instead of saying it and borrowed the spatial generator's letter for the
-  // planar rows. The rejected versions — header sentence, and the untitled one/count/family
-  // ladder — are in git; neither said the facts as flatly.
+  // The table's history: the plain title (no act numeral, no grand title — the deck's register
+  // is a straight presentation of fact), the space row, the k footnote. The MIDDLE ROWS are
+  // the arrow form's: data on the left of the arrow, count of CURVES on the right, with the
+  // k+1 visible — because "2ᵏ⁻¹ points on the curve" genuinely parsed as a number of points,
+  // twice, on separate readings weeks apart. And k is defined in WORDS (the generator's number
+  // of coefficients), not as "deg 𝒜 + 1", which computed it instead of saying it and borrowed
+  // the spatial generator's letter for the planar rows. The rejected versions — header
+  // sentence, and the untitled one/count/family ladder — are in git; neither said the facts
+  // as flatly.
   // ---------------------------------------------------------------------------
   {
-    type: 'title',
+    type: 'content',
     content: (
       <>
-        <h1>Counting solutions</h1>
-        <div className="subtitle" style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 2.0, textAlign: 'left', display: 'inline-block', marginTop: '0.9em' }}>
+        <h2>Counting solutions</h2>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.62em', whiteSpace: 'pre', lineHeight: 1.55, margin: '0.3em 0 0 0.6em', color: '#475569' }}>
+{`plane     r′ = w²                    one complex polynomial
+space     r′ = 𝒜 i 𝒜*,  𝒜 = u + v j   two complex polynomials`}
+        </div>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 2.0, margin: '0.9em 0 0 0.6em' }}>
 {`Bézier      A x = b                    one
 
 PH          xᵀ Qⱼ x = bⱼ               k+1 points on the curve   →   2ᵏ⁻¹ curves
@@ -201,7 +164,19 @@ in space    the same forms over ℍ      a family, not a count
       </>
     ),
     notes:
-      'THE SECTION IS THREE ROWS AND THEY ARE THE SLIDES THAT FOLLOW. Linear, then quadratic, then '
+      'THE MAP ON TOP CAME FROM THE CUT OUTLINE (2026-08-30), in its proven epigraph form: small '
+      + 'and grey it reads as the frame, and the table below at full weight is what the eye lands '
+      + 'on. It belongs here because the footnote defines k as the GENERATOR-s number of '
+      + 'coefficients — the map is where the generator is stated. Read the map across and it says '
+      + 'what changes on leaving the plane: ONE complex polynomial becomes TWO. The form is Hopf — '
+      + 'A = u + v j — and it is why the two-valued square root becomes a CIRCLE of square roots, '
+      + 'since (u,v) and (u e^{i theta}, v e^{-i theta}) give the same hodograph. '
+      + 'SAY THAT u AND v ARE COMPLEX, because the letters collide with the field-s own convention: '
+      + 'Farouki writes A = u + v i + p j + q k with u, v, p, q all REAL and calls the complex pair '
+      + 'alpha, beta. Ours are their alpha and beta. The line beside the equation says "two complex '
+      + 'polynomials" for exactly this reason; if someone reads u and v as two of four reals and '
+      + 'asks where the other two went, that is the confusion, answered in one sentence. '
+      + 'THE TABLE IS THREE ROWS AND THEY ARE THE SLIDES AROUND IT. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
       + 'THE ARROWS CARRY THE READING: data on the left, count of curves on the right, so the '
       + 'exponents cannot parse as numbers of points -- the misreading that happened twice before '
@@ -302,30 +277,7 @@ in space    the same forms over ℍ      a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // 4 — the price of PH, stated as a dimension count
-  // ---------------------------------------------------------------------------
-  {
-    type: 'content',
-    content: (
-      <>
-        <h2>Interpolation: same degrees of freedom, different number of answers</h2>
-        <ThreePointsFigure />
-      </>
-    ),
-    notes:
-      'Both objects have 6 real DOF (quadratic Bézier: 3 planar control points; planar PH cubic: ' +
-      'the linear generator w₀,w₁ = 4 real, plus the integration constant = 2). Three interpolation ' +
-      'points impose 6 real conditions. Both square. The quadratic\'s equations are LINEAR, so one ' +
-      'solution; the PH cubic\'s are QUADRATIC, so two. That is the whole price of PH, and it needs ' +
-      'no introduction to state. ' +
-      'Mechanism: c(t)−c(0) = A(t)w₀² + B(t)w₀w₁ + C(t)w₁² with A,B,C REAL, so w₁ = r·w₀ factors out ' +
-      'w₀² and the system collapses to one complex quadratic in r — hence exactly two roots, and the ' +
-      'gauge w → −w leaves both q and r fixed so it does not merge them. Verified in phCubic.test.ts ' +
-      'across many data sets and t₁ values. Both panels are closed form; no optimizer.',
-  },
-
-  // ---------------------------------------------------------------------------
-  // 5 — the count is not a property of the FAMILY, it is a property of your GRIP
+  // the count is not a property of the FAMILY, it is a property of your GRIP
   // ---------------------------------------------------------------------------
   {
     type: 'content',
@@ -428,16 +380,16 @@ in space    the same forms over ℍ      a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // THE CLOSING SLIDE — what is published, what we add, what is open (moved to the end,
-  // Eric, 2026-08-24: it is the conclusion, and the deck now ends where the discussion
-  // starts. The figure arc runs uninterrupted before it: interpolation → planar grip →
-  // spatial grip.)
+  // PUBLISHED, COMPUTED — the literature against the sweep. The OPEN row left this page
+  // (Eric, 2026-08-30): the page was full, and the open question grew into its own final
+  // slide (holding control points anywhere — next). The deg-𝒱 ceiling line lives in the
+  // notes now, spoken if asked.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Published, computed, open</h2>
+        <h2>Published, computed</h2>
 
         <p style={{ fontSize: '0.82em', marginBottom: '0.15em' }}>
           The unknown is the generator, and the control points are quadratic in it.
@@ -483,11 +435,7 @@ in space    the same forms over ℍ      a family, not a count
                       both ends + one point of each pair (P₁,P₂), (P₃,P₄), …  →  bounded
                       any other choice                                        →  runs to infinity
 
-                the bounded choices are exactly those where the planar count attains 2^(K−1)
-
-
-    OPEN        deg 𝒱 = 2^(K−1)     the ceiling is the degree of the PH variety,
-                                    and holding control points slices it linearly.`}
+                the bounded choices are exactly those where the planar count attains 2^(K−1)`}
         </div>
 
         <p style={{ fontSize: '0.62em', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
@@ -503,10 +451,11 @@ in space    the same forms over ℍ      a family, not a count
       </>
     ),
     notes:
-      'THE CLOSING SLIDE, moved to the end (Eric, 2026-08-24): it explains what the room has ' +
-      'just FELT across all three figures, states what is PUBLISHED against what was COMPUTED ' +
-      'here, and ends on the open question -- which is what the discussion is for. Leave it up ' +
-      'and stop talking. ' +
+      'THIS PAGE explains what the room has just FELT across all three figures, stating what is ' +
+      'PUBLISHED against what was COMPUTED here. The OPEN row moved to the final slide ' +
+      '(2026-08-30) -- this page was full, and the open question earned its own page. The line ' +
+      'that left, if asked: the ceiling 2^(K-1) is the DEGREE OF THE PH VARIETY, and holding ' +
+      'control points slices it linearly -- say it aloud here if the Bezout line prompts it. ' +
       'THE LABELS ARE PUBLISHED / COMPUTED / OPEN (Eric, 2026-08-24; they were KNOWN / OURS): ' +
       '"computed" is a status a reader can check -- swept by homotopy, certified path by path -- ' +
       'where "ours" was a claim of ownership, and the deck-s register is fact. "Not found in the ' +
@@ -609,5 +558,76 @@ in space    the same forms over ℍ      a family, not a count
       + 'IF ASKED what the several answers ARE: sheets of a branched covering. Each grip is a ' +
       'different projection of the same family onto the points you hold; crossing the discriminant ' +
       'permutes them, which is why the figure carries branches by Newton rather than re-solving.',
+  },
+
+  // ---------------------------------------------------------------------------
+  // THE FINAL SLIDE (new, 2026-08-30) — holding control points anywhere. The other question
+  // the deck circles: not how many curves through held data, but how much data can be held at
+  // all. Grew out of the OPEN row of the previous page when the campaign answered it
+  // (docs/SURJECTIVITY.md); same taxonomy, plain table, no reveal. The deck ends here because
+  // this is where the discussion starts.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Holding control points anywhere</h2>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.68em', whiteSpace: 'pre', lineHeight: 1.7, margin: '0.7em 0 0 0.2em' }}>
+{`    degree                  3   5   7   9
+
+    held anywhere           3   4   5   6
+
+    (n+3)/2 — the generator's coefficients, plus one constant of integration.
+    The same count in the plane and in space, for every choice of which points.
+    One more held point fails: at degree 9, 40 configurations resist every attempt.
+
+
+    PROVEN      consecutive runs from either end; every prefix + suffix split.
+
+    COMPUTED    every choice of held points at degrees 5, 7, 9: ~3,700
+                configurations, all solved.
+
+    OPEN        the scattered choices in space; a certificate that the wall is real.`}
+        </div>
+      </>
+    ),
+    notes:
+      'THE LAST PAGE, and the one that is ours. Everything before counted or toured the curves '
+      + 'through held points; this page says how many points can be held AT ALL — positioned '
+      + 'anywhere, the rest completing to a genuine PH curve, for EVERY choice of which points. '
+      + 'Leave it up and stop talking; the discussion starts here. '
+      + 'WHY (n+3)/2: the objects are the generator-s (n+1)/2 coefficients plus one constant of '
+      + 'integration — one control point per object. And why not one more: DIMENSION COUNTING '
+      + 'PERMITS IT (at degree 9, holding 7 still leaves a 1-parameter family — measured at all '
+      + '120 choices), but REALNESS refuses: the solutions exist and are complex. The boundary is '
+      + 'not a dimension count, which is what makes it a theorem worth having. '
+      + 'THE PROVEN ROW, mechanisms in one sentence each. Consecutive runs: Bernstein products '
+      + 'CONVOLVE, so each new leg meets its newest generator coefficient LINEARLY — a square '
+      + 'root, then divisions in the plane, polar solves in space (the count-1 rule of the '
+      + 'histogram two slides back is this same cascade). Prefix + suffix: cascade from both ends '
+      + 'and exactly ONE coefficient survives untouched — the shadow of t^(p-1)(1-t)^(q-1), whose '
+      + 'degree is exactly the spinor-s — and the one leftover condition is quadratic in it and '
+      + 'closes by completing the square on the Hopf map. Every classical Hermite result is the '
+      + 'p = q = 2 case of that construction. '
+      + 'THE COMPUTED ROW: multi-start Gauss-Newton with cascade-manifold seeding, all 15 + 56 + '
+      + '210 choices at degrees 5, 7, 9, roughly 3,700 verified instances, zero surviving '
+      + 'failures (surjectivityBoundary.test.ts pins reduced sweeps). The 40 resisters at hold-7 '
+      + 'survive seeds from scale 5 to 2000 and sit in provably OPEN infeasible regions — '
+      + 'candidates, not yet certificates, which is why the wall is in the OPEN row. '
+      + 'THE PLANE CARRIES ONE CAVEAT, spoken not printed: at some choices there are thin '
+      + 'exceptional loci (a division-s denominator can vanish — measure zero, never hit by '
+      + 'editing) where the count drops to none and nearby solutions grow huge. In space no such '
+      + 'locus has ever been observed at the safe count — the family-s slack absorbs it — but '
+      + 'that protection is measured, not proven. '
+      + 'THE TIE TO THE SPACE SLIDE: held at this count, the space curve still moves in exactly '
+      + 'the m-parameter family the dials showed. The count is the last one with '
+      + 'position-them-anywhere freedom; one more and the family goes rigid, then complex. '
+      + 'STATUS AND SOURCES: docs/SURJECTIVITY.md is the record — the cascade and two-ends '
+      + 'theorems, the campaign tables, the 40 candidate coordinates '
+      + '(surjectivity-candidates.json), and the open program. A Lean formalization of the '
+      + 'cascade construction is in progress in a companion project. Nothing on this page is in '
+      + 'the literature; the nearest published results are the Hermite constructions the PROVEN '
+      + 'row subsumes.',
   },
 ]
