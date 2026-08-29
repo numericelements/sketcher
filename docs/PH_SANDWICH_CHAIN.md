@@ -8,7 +8,7 @@ Sources:
 
 - **[FGMS08]** Farouki, **Giannelli**, Manni, Sestini, *Identification of spatial PH quintic
   Hermite interpolants with near-optimal shape measures*, CAGD **25** (2008) 274–297.
-  (Carlotta Giannelli is the second author — this is her own work on exactly our question.)
+  (Note the second author — this paper is that group's own work on exactly this question.)
 - **[FKS02]** Farouki, al-Kandari, Sakkalis, *Hermite interpolation by rotation-invariant
   spatial PH curves* — reference [56] of the 2019 survey, the original two-parameter result.
 - **[SJ05]** Šír, Jüttler (2005) — the `α = β = 0` convergence result.

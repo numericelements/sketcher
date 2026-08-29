@@ -121,7 +121,7 @@
 // ✅ THE LITERATURE CHECK — DONE 2026-08-11, and the verdict is that ACT II IS THEIRS.
 //
 //   Kalkan, Scharler, Schröcker & Šír, "Rational Framing Motions and Spatial Rational Pythagorean
-//   Hodograph Curves", CAGD (2022); arXiv 2111.04600. It was already in ~/Documents/Carlotta as
+//   Hodograph Curves", CAGD (2022); arXiv 2111.04600. It was already on hand as
 //   "2022 Rational PH.pdf", unread. Two of its authors are also on the 2026 PH-preserving paper the
 //   hodograph-light-cone deck cites, so this is the same group, one paper over.
 //
@@ -924,7 +924,7 @@ export const slides: SlideDefinition[] = [
       'SOURCES. The chain reading and every formula on this slide are docs/PH_SANDWICH_CHAIN.md, '
       + 'which reads [FGMS08] -- Farouki, GIANNELLI, Manni, Sestini, CAGD 25 (2008) 274-297 -- plus '
       + '[FKS02] Farouki, al-Kandari, Sakkalis for the original two-parameter result. Worth saying '
-      + 'aloud that Carlotta Giannelli is the second author: this is her own paper on exactly this '
+      + 'aloud who the second author is: this is that group-s own paper on exactly this '
       + 'question, and the collaboration runs through it. The half-way construction n = (delta + u) '
       + 'over |delta + u| is [FGMS08] eq. (49); our quatFromSandwich was written independently and is '
       + 'literally that formula. '
@@ -2361,7 +2361,7 @@ export const slides: SlideDefinition[] = [
       + 'from the 2022 paper-s own introduction. Saying which is which is the same discipline as the '
       + 'slide tags, and it tells a reader precisely how much weight each line carries. If somebody '
       + 'later reads Choi et al. properly, promote it and say so. '
-      + 'THE TWO OWED ITEMS ARE BOTH SITTING IN ~/Documents/Carlotta. The 2026 PH-preserving paper '
+      + 'THE TWO REMAINING ITEMS ARE ALREADY IN THE READING FOLDER. The 2026 PH-preserving paper '
       + 'matters because the hodograph-light-cone deck already cites it for residue conditions on '
       + 'Psi, and nobody has checked whether those extend to n >= 3. The 2019 survey matters because '
       + 'it is the fastest route to whatever else in Act II is already known. Neither is a formality. '

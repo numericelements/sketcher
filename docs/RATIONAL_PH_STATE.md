@@ -7,8 +7,7 @@ if the goal is to advance the subject rather than to continue the code. §12 is 
 says about all of it, read from the papers themselves — go there before claiming anything is new.
 §13 is where the two chart types turn out to touch.*
 
-The goal behind all of it: **local modification of 3D PH curves during editing** (Eric's letter to
-Carlotta). The rational work is a detour taken to understand 3D PH curves well enough to get there.
+The goal behind all of it: **local modification of 3D PH curves during editing**. The rational work is a detour taken to understand 3D PH curves well enough to get there.
 Two interactive decks serve it: `ph-interpolation` (polynomial) and `inside-the-chart` (rational).
 
 ---
@@ -734,7 +733,7 @@ visible as artefacts. Note the measured caveat: the covariant form does **not** 
 
 ### 11.3 References
 
-*Present in `~/Documents/Carlotta` and used directly:*
+*Read directly for this work:*
 
 - **Kalkan, Scharler, Schröcker & Šír**, *Rational Framing Motions and Spatial Rational Pythagorean
   Hodograph Curves*, CAGD 2022 (arXiv:2111.04600). **The central paper for this line.** Theorem 3.6

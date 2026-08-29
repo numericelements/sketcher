@@ -624,7 +624,7 @@ ingredients), so the bound is two polynomial certificates P± = κ_max·σ² ± 
 certified by Bernstein coefficients ≥ 0 (variation diminishing; subdivision is a linear
 map that tightens honestly — loose is true). Core `phValueBound.ts` keeps the
 "certificate rows" shape generic: a SPATIAL PH curve joins later with its single row
-b²σ⁶ − |r′×r″|² ≥ 0 (the Giannelli AUV lab) — same pattern, its own polynomial.
+b²σ⁶ − |r′×r″|² ≥ 0 (the planned AUV-trajectory lab) — same pattern, its own polynomial.
 
 **Build:** certificate + exact forward-AD Jacobian through the exported RDual algebra
 (machine-precision parity with the legacy hand-derived columns, pinned at subdivisions
