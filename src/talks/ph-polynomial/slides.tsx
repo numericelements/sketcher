@@ -419,7 +419,7 @@ in space the same forms over ℍ   a family, not a count
           The unknown is the generator, and the control points are quadratic in it.
         </p>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.4em 0 0 0.2em' }}>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 'clamp(10px, 1.55vh, 17px)', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.4em 0 0 0.2em' }}>
 {`    c′ = w²     w has K complex coefficients, and every leg is a quadratic
                 form in them. K quadratic equations in K unknowns: Bézout 2^K
                 solutions, in pairs {w, −w} that draw the same curve — so at
@@ -503,7 +503,7 @@ in space the same forms over ℍ   a family, not a count
       <>
         <h2>Computed</h2>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.5em 0 0 0.2em' }}>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 'clamp(10px, 1.55vh, 17px)', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.5em 0 0 0.2em' }}>
 {`    COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
                 →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
 
@@ -529,7 +529,7 @@ in space the same forms over ℍ   a family, not a count
                 attains 2^(K−1)`}
         </div>
 
-        <p style={{ fontSize: '0.62em', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 'clamp(9px, 1.3vh, 14px)', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
           Cross-check: Farouki&ndash;Pelosi&ndash;Sampoli&rsquo;s canonical form{' '}
           <span style={{ fontFamily: 'ui-monospace, monospace' }}>r(0)=0, r(1)=1</span> is the
           ends-held mode. On the three of their ten cases that are control-point subsets the counts
