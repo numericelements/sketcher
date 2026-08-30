@@ -48,6 +48,8 @@ import {
   shapeQuat,
   solveReduction,
   spatialCubicFiber,
+  spatialCubicFiberAtAngle,
+  spatialCubicFiberClosedForm,
   speedAt,
 } from '../phSpatialCubic'
 
@@ -468,6 +470,42 @@ describe('the fiber — the slide’s claim', () => {
     expect(worstConic, 'lies on a conic').toBeLessThan(1e-9)
     // B² − 4AC < 0 is the ellipse branch (= 0 parabola, > 0 hyperbola)
     expect(x[1] * x[1] - 4 * x[0] * x[2], 'the ellipse branch').toBeLessThan(0)
+  })
+
+  it('CLOSED FORM: θ ↦ z solves the reduction exactly, with no continuation', () => {
+    const F = reductionRHS(spatialCubicFiber(P0, P1, P3, { samples: 8 })[0].curve.A0, P0, P3)
+    for (let i = 0; i < 64; i++) {
+      const f = spatialCubicFiberAtAngle(P0, P1, P3, (2 * Math.PI * i) / 64)
+      expect(f).not.toBeNull()
+      // the reduction is the whole constraint, so satisfying it IS holding the grip
+      expect(vnorm(vsub(reductionLHS(f!.z), F))).toBeLessThan(1e-12)
+    }
+  })
+
+  it('CLOSED FORM: it is the SAME fiber the tracer walks, point for point', () => {
+    const traced = spatialCubicFiber(P0, P1, P3, { samples: 200 })
+    expect(traced.length).toBeGreaterThan(50)
+    for (const t of traced) {
+      // recover the tracer point's own angle, then ask the formula for that angle
+      const f = spatialCubicFiberAtAngle(P0, P1, P3, Math.atan2(t.z.q, t.z.p))
+      expect(f).not.toBeNull()
+      expect(Math.abs(f!.z.u - t.z.u)).toBeLessThan(1e-9)
+      expect(Math.abs(f!.z.v - t.z.v)).toBeLessThan(1e-9)
+      expect(vnorm(vsub(f!.derived, t.derived))).toBeLessThan(1e-9)
+    }
+  })
+
+  it('CLOSED FORM: the loop closes by construction, no end-gap test needed', () => {
+    const loop = spatialCubicFiberClosedForm(P0, P1, P3, 120)
+    expect(loop).toHaveLength(120)
+    const wrapped = spatialCubicFiberAtAngle(P0, P1, P3, 2 * Math.PI)!
+    expect(vnorm(vsub(wrapped.derived, loop[0].derived))).toBeLessThan(1e-12)
+    // and it covers the same ground as the tracer: every traced point is on it
+    const traced = spatialCubicFiber(P0, P1, P3, { samples: 200 })
+    for (const t of traced) {
+      const near = Math.min(...loop.map((f) => vnorm(vsub(f.derived, t.derived))))
+      expect(near).toBeLessThan(0.05)
+    }
   })
 
   it('IS CLOSED — so the slider is an angle, and the drawn fiber should loop', () => {

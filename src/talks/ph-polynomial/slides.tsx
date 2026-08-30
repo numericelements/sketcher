@@ -210,8 +210,9 @@ export const slides: SlideDefinition[] = [
       'ellipse slide-s lesson on an unbounded grip. The dial is guaranteed to pass through the ' +
       'crossing (asymmetric calibration plus the reach-the-mirror rule in dialRanges; pinned in ' +
       'spatialCascadeMirror.test.ts); slide it and watch P3 change sides. ' +
-      'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse with the parked cubic ' +
-      'slide\'s own continuation, so the dial wraps and the grey loop is the whole fibre. Degree 5 ' +
+      'THE CIRCLES ARE REAL WHERE THEY ARE DRAWN. Degree 3 tours its ellipse by its CLOSED FORM ' +
+      '(z2^2+z3^2 is a root of one quadratic in the data), so the dial IS an angle, it wraps, and '
+      + 'the grey loop closes to machine zero rather than to a traced sample. Degree 5 ' +
       'ends-held IS the quintic Hermite grip, so both dials are the Hopf angles phi0 and phi2, they ' +
       'wrap, and the loci close to 1e-16. Degree 7 has no closed form, so its dials are chart ' +
       'coordinates and the loci are drawn as the ARCS they reach. Nothing claims a circle where ' +

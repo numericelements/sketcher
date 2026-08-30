@@ -436,6 +436,85 @@ export function spatialCubicFiber(
 }
 
 /**
+ * THE SAME FIBER IN CLOSED FORM — no continuation, no seed, no accumulated step error,
+ * and θ is a genuine angle, so a dial driven by it wraps exactly.
+ *
+ * The derivation is the ellipse proof at `fiberEllipseRadiusSq`, run forwards instead of
+ * used as a check. Write F for the reduction's right-hand side and s = z₂²+z₃². The j and
+ * k components of F solve for z₀ and z₁ over s,
+ *
+ *     z₀ = (F.y·z₃ − F.z·z₂)/(4s) − ½        z₁ = (F.y·z₂ + F.z·z₃)/(4s)
+ *
+ * and substituting BOTH into the i component makes the θ-dependence cancel identically,
+ * leaving one quadratic in s alone:
+ *
+ *     2s² + (F.x + ½)·s − (F.y² + F.z²)/8 = 0
+ *
+ * whose roots multiply to −(F.y²+F.z²)/16 ≤ 0, so exactly one is positive. That fixes s
+ * for the whole fiber, and θ ↦ (z₂,z₃) = √s·(cos θ, sin θ) then sweeps it once.
+ *
+ * WHY THE TRACER STAYS. It is the same machinery the spatial QUINTIC's two-parameter
+ * family needs, where there is no such formula, and it is the independent check on this
+ * one (`phSpatialCubic.test.ts` pins them against each other). This function is the right
+ * one to drive a degree-3 dial with; `spatialCubicFiber` is the right one to generalise.
+ *
+ * Returns null when the fiber degenerates to a point (s ≤ 0), matching the tracer's
+ * empty return on the same data.
+ */
+function ellipseChart(A0: Quat, p0: Vec3, p3: Vec3): { F: Vec3; s: number } | null {
+  const F = reductionRHS(A0, p0, p3)
+  const b = F.x + 0.5
+  const s = (-b + Math.sqrt(b * b + F.y * F.y + F.z * F.z)) / 4
+  return s > 0 ? { F, s } : null
+}
+
+/** The fiber member at angle θ, or null if the fiber degenerates. */
+export function spatialCubicFiberAtAngle(
+  p0: Vec3,
+  p1: Vec3,
+  p3: Vec3,
+  theta: number,
+): FiberPoint | null {
+  const A0 = quatFromSandwich(vscale(vsub(p1, p0), 3))
+  if (!A0) return null
+  const chart = ellipseChart(A0, p0, p3)
+  if (!chart) return null
+  const { F, s } = chart
+  const root = Math.sqrt(s)
+  const z2 = root * Math.cos(theta)
+  const z3 = root * Math.sin(theta)
+  const z: Quat = {
+    u: (F.y * z3 - F.z * z2) / (4 * s) - 0.5,
+    v: (F.y * z2 + F.z * z3) / (4 * s),
+    p: z2,
+    q: z3,
+  }
+  const curve: SpatialPHCubic = { A0, A1: qmul(A0, z), p0 }
+  return { curve, z, derived: controlPoints(curve)[2] }
+}
+
+/**
+ * The whole fiber, sampled uniformly in θ and closed by construction — the closed-form
+ * counterpart of `spatialCubicFiber`, with the same arguments and the same return shape.
+ * The last sample is θ just short of 2π, so the caller closes the loop by joining back to
+ * the first rather than by measuring an end gap.
+ */
+export function spatialCubicFiberClosedForm(
+  p0: Vec3,
+  p1: Vec3,
+  p3: Vec3,
+  samples = 160,
+): FiberPoint[] {
+  const out: FiberPoint[] = []
+  for (let i = 0; i < samples; i++) {
+    const f = spatialCubicFiberAtAngle(p0, p1, p3, (2 * Math.PI * i) / samples)
+    if (!f) return []
+    out.push(f)
+  }
+  return out
+}
+
+/**
  * The fiber with both ends pinned and ONE interior control point prescribed —
  * either of them.
  *
@@ -445,6 +524,25 @@ export function spatialCubicFiber(
  * what makes clicking to swap the handle seamless — as in the plane, where the two
  * choices are mirror images under t ↦ 1−t.
  */
+/**
+ * The closed-form counterpart of `spatialCubicFiberAt`: the member at angle θ, for either
+ * interior handle. `which = 2` reverses exactly as the tracer does, so the two agree
+ * member for member on both grips.
+ */
+export function spatialCubicFiberAtAngleFor(
+  p0: Vec3,
+  p3: Vec3,
+  handle: Vec3,
+  which: InteriorHandle,
+  theta: number,
+): FiberPoint | null {
+  if (which === 1) return spatialCubicFiberAtAngle(p0, handle, p3, theta)
+  const f = spatialCubicFiberAtAngle(p3, handle, p0, theta)
+  if (!f) return null
+  const curve = reverseSpatialCubic(f.curve)
+  return { curve, z: f.z, derived: controlPoints(curve)[1] }
+}
+
 export function spatialCubicFiberAt(
   p0: Vec3,
   p3: Vec3,

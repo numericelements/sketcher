@@ -183,7 +183,10 @@ describe('the spatial grip figure', () => {
     }
     console.log(`    degree 3 {0,1,3}: P${loci[0].point} traces a loop closing to ${gap.toFixed(4)},` +
       ` across ${spread.toFixed(3)}`)
-    // quantised to the trace, so "closed" is one sample's worth, not machine zero
+    // The chart is the ellipse's closed form, so this closes to machine zero rather than to
+    // one traced sample's worth. The threshold stays where it was: it is an upper bound the
+    // old quantised chart also had to meet, and tightening it to today's 0.0000 would pin
+    // the formula's rounding rather than the fact that the loop comes home.
     expect(gap).toBeLessThan(0.05 * spread)
     expect(spread).toBeGreaterThan(0.1)
     // every curve the dial reaches is an exact fibre member, holding all three points

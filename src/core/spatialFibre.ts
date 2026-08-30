@@ -35,13 +35,13 @@ import { leastSquares, luFactor, luSolve } from './linalg'
 import type { Quat, Vec3 } from './quaternion'
 import {
   QUAT_I, qadd, qmul, qscale, qsub, qnormSq,
-  sandwich, polarSandwich, quatFromSandwich, vadd, vnorm, vsub, vscale,
+  sandwich, polarSandwich, quatFromSandwich, vadd, vdot, vnorm, vsub, vscale,
 } from './quaternion'
 import { type SpatialPHCurve, controlPoints, spatialControlPointJacobian } from './phSpatialFreeDragN'
 import {
   type SpatialHermiteData, anglesOf, gaugeRefsFor, interpolateSpatialQuintic,
 } from './phSpatialQuintic'
-import { type InteriorHandle, spatialCubicFiberAt } from './phSpatialCubic'
+import { type FiberPoint, type InteriorHandle, spatialCubicFiberAtAngleFor } from './phSpatialCubic'
 
 const dot = (a: readonly number[], b: readonly number[]): number =>
   a.reduce((s, v, i) => s + v * b[i], 0)
@@ -721,11 +721,17 @@ export const isQuinticHermiteGrip = (m: number, grip: readonly number[]): boolea
  * So the dial here is POSITION AROUND THE LOOP, given a period of 2π so the slider wraps and a
  * control point's locus is drawn as the whole ellipse rather than the arc a chart would reach.
  *
- * IT IS QUANTISED, and that is the one thing to know about it. The trace is a finite list of exact
- * fibre members and `build` returns the nearest one, so the dial steps between real curves instead
- * of interpolating between them — every curve shown is on the fibre, none is invented, and
- * `residual` is 0 for the same reason. The trace length is therefore also a CEILING on how finely
- * the path can be drawn, which is what `naturalSteps` reports.
+ * IT IS EXACT AND CONTINUOUS. θ goes straight into the closed form of the ellipse
+ * (`spatialCubicFiberAtAngleFor`), so `build` returns the fibre member AT that angle rather than
+ * the nearest one on a traced list — no quantisation, no ceiling on how finely the locus can be
+ * drawn, and `residual` is 0 because the formula solves the reduction outright.
+ *
+ * `tOf` INVERTS IT IN CLOSED FORM TOO, which matters because `build` is now continuous: a
+ * quantised inverse would make the curve jump the moment the dial was read. The free control
+ * point is a + b·cos θ + c·sin θ, so three evaluations give a, b and c, and reading a curve's
+ * angle is one 2×2 solve. Control points are gauge-invariant, so this needs no spinor
+ * normalisation — which is why the inverse is taken through the point rather than through z,
+ * whose (z₂,z₃) part rotates by 2φ under 𝒜 → 𝒜e^{iφ}.
  */
 export function cubicTourChart(points: readonly Vec3[], grip: readonly number[]): FibreChart | null {
   if (points.length !== 4) return null
@@ -734,36 +740,44 @@ export function cubicTourChart(points: readonly Vec3[], grip: readonly number[])
   const which: InteriorHandle | null = s[1] === 1 ? 1 : s[1] === 2 ? 2 : null
   if (which === null) return null
 
-  // The trace CLOSES before it runs out of samples, so its resolution is set by `step` and not by
-  // the cap: at the default 0.06 the loop came back after 76 steps and the drawn path showed it, a
-  // 3.4%-of-frame corner. 0.012 traces it in 380–660.
-  const trace = spatialCubicFiberAt(points[0], points[3], points[s[1]], which,
-    { samples: 2000, step: 0.012 })
-  if (trace.length < 8) return null
-  const curves: SpatialPHCurve[] = trace.map((f) => ({ A: [f.curve.A0, f.curve.A1], p0: f.curve.p0 }))
-  const polys = curves.map((c) => controlPoints(c))
-  const N = curves.length
   const TAU = 2 * Math.PI
-  const at = (t: number): number => {
-    const u = ((t / TAU) % 1 + 1) % 1
-    return Math.min(N - 1, Math.round(u * N) % N)
+  const at = (theta: number): FiberPoint | null =>
+    spatialCubicFiberAtAngleFor(points[0], points[3], points[s[1]], which, theta)
+  if (!at(0)) return null
+
+  const build = (t: readonly number[]): SpatialPHCurve => {
+    const f = at(t[0] ?? 0)!
+    return { A: [f.curve.A0, f.curve.A1], p0: f.curve.p0 }
   }
-  const build = (t: readonly number[]): SpatialPHCurve => curves[at(t[0] ?? 0)]
+
+  // a, b, c of the free point's ellipse, from three angles.
+  const e0 = at(0)!.derived, eq = at(Math.PI / 2)!.derived, ep = at(Math.PI)!.derived
+  const a = vscale(vadd(e0, ep), 0.5)
+  const b = vscale(vsub(e0, ep), 0.5)
+  const c = vsub(eq, a)
+  const bb = vdot(b, b), bc = vdot(b, c), cc = vdot(c, c)
+  const det = bb * cc - bc * bc
+  const free = which === 1 ? 2 : 1
+
   return {
     dimension: 1,
     period: [TAU],
-    naturalSteps: N,
     build,
     residual: () => 0,
-    tOf: (c) => {
-      const mine = controlPoints(c)
-      let best = 0
-      let bestD = Infinity
-      for (let i = 0; i < N; i++) {
-        const d = polygonDistance(polys[i], mine)
-        if (d < bestD) { bestD = d; best = i }
+    tOf: (curve) => {
+      const q = vsub(controlPoints(curve)[free], a)
+      // A flattened ellipse (b ∥ c) has no unique angle; say so by searching instead of
+      // dividing by a determinant that is telling us the inverse does not exist.
+      if (!(Math.abs(det) > 1e-24 * (bb * cc + 1))) {
+        let best = 0, bestD = Infinity
+        for (let i = 0; i < 720; i++) {
+          const d = vnorm(vsub(at((TAU * i) / 720)!.derived, controlPoints(curve)[free]))
+          if (d < bestD) { bestD = d; best = i }
+        }
+        return [(TAU * best) / 720]
       }
-      return [(TAU * best) / N]
+      const qb = vdot(q, b), qc = vdot(q, c)
+      return [Math.atan2((bb * qc - bc * qb) / det, (qb * cc - qc * bc) / det)]
     },
   }
 }
