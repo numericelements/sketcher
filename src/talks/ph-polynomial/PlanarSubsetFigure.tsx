@@ -301,10 +301,10 @@ export default function PlanarSubsetFigure() {
       notation={
         mode === 'strict'
           ? [
-              `deg ${n} = 2K−1, K = ${K}`,
-              `dim = 2K+2 = ${2 * K + 2}`,
-              `hold K+1 = ${K + 1}`,
-              `max 2^(K−1) = ${2 ** (K - 1)}`,
+              `deg ${n} = 2k−1, k = ${K}`,
+              `dim = 2k+2 = ${2 * K + 2}`,
+              `hold k+1 = ${K + 1}`,
+              `max 2^(k−1) = ${2 ** (K - 1)}`,
               `{${sortedSubset.join(',')}}`,
             ]
           : [
@@ -394,8 +394,8 @@ export default function PlanarSubsetFigure() {
           held, {K + 1} of them, which is what {2 * K + 2} degrees of freedom allow. Hollow points
           are computed. Click a hollow point to hold it; the oldest hold is released.{' '}
           {pinEnds
-            ? 'With both ends held the count is even, and 2^(K−1) is reachable.'
-            : 'With the ends free, the single-solution choices appear: K in a row from one end plus one more.'}{' '}
+            ? 'With both ends held the count is even, and 2^(k−1) is reachable.'
+            : 'With the ends free, the single-solution choices appear: k in a row from one end plus one more.'}{' '}
           <span className="text-slate-400">Drag a blue point; click a grey curve to select it.</span>
         </>
         )

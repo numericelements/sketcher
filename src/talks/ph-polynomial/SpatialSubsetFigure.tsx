@@ -628,10 +628,14 @@ export default function SpatialSubsetFigure() {
     <Figure3D
       bounds={BOUNDS}
       notation={[
-        `deg ${n} = 2m+1, m = ${m}`,
-        `dim = 4m+6 = ${4 * m + 6}`,
-        `hold (n+3)/2 = ${gripSize(m)}`,
-        `left over ${4 * m + 6 - 3 * gripSize(m)}`,
+        // The strip counts the generator's CONTROL POINTS, k, so it reads in the same
+        // letter as the planar figure and the counting table. Internally this figure and
+        // core/spatialFibre carry m, the generator's DEGREE, which is the natural parameter
+        // for the polynomial algebra; k = m+1 is the only translation, and it lives here.
+        `deg ${n} = 2k−1, k = ${m + 1}`,
+        `dim = 4k+2 = ${4 * m + 6}`,
+        `hold k+1 = ${gripSize(m)}`,
+        `left over k−1 = ${4 * m + 6 - 3 * gripSize(m)}`,
       ]}
       readouts={mode === 'free' ? [
         { label: 'held', value: 'nothing' },

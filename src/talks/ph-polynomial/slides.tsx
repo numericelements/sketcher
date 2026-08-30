@@ -135,21 +135,21 @@ export const slides: SlideDefinition[] = [
     ),
     notes:
       'The previous slide fixes WHICH data is prescribed and counts. This one makes the choice the ' +
-      'gesture. dim = 2K+2 for a planar PH curve of degree 2K−1, each control point costs 2, so ' +
-      'exactly K+1 can be held — the FIFO selection enforces that, so no click can build an over- ' +
+      'gesture. dim = 2k+2 for a planar PH curve of degree 2k−1, each control point costs 2, so ' +
+      'exactly k+1 can be held — the FIFO selection enforces that, so no click can build an over- ' +
       'or under-determined state. ' +
       'THE COUNT IS A PROPERTY OF THE GRIP, NOT OF THE DATA: certified subset by subset in ' +
       'planarPHSubsetCounts.test.ts. Read as a histogram (count: how many subsets produce it) — ' +
       'degree 5: one solution at 4 subsets, two at 3, three at 4, four at 4; degree 7: every ' +
       'value from 1 to 8 occurs (6, 8, 4, 10, 8, 8, 4, 8 subsets respectively), which killed an ' +
       'earlier "1, 2, 4 or 8 by a product rule" claim in phPlanarSeptic. ' +
-      'TWO RULES WORTH SAYING OUT LOUD. Hold K in a row from one end plus one more that is not the ' +
+      'TWO RULES WORTH SAYING OUT LOUD. Hold k in a row from one end plus one more that is not the ' +
       'far endpoint and the answer is UNIQUE — the equations cascade (a square root, then ' +
       'divisions), nothing branches, dragging is single-valued and needs no branch tracking. And ' +
-      'pinning both ends forces an EVEN count, with the maximum 2^(K−1) reachable ONLY that way; ' +
+      'pinning both ends forces an EVEN count, with the maximum 2^(k−1) reachable ONLY that way; ' +
       'so the "ends held" toggle is choosing between always-branching and possibly-unique editing. ' +
       'STRICT vs FREE, and why free is here this early: strict spends every degree of freedom, so ' +
-      'the answer is a count and nothing is chosen; free holds one point and leaves 2K spare, so a ' +
+      'the answer is a count and nothing is chosen; free holds one point and leaves 2k spare, so a ' +
       'solver chooses, by minimum-norm. The spare room grows with degree — 2, 4, 6, 8 — so the ' +
       'modes diverge as you climb. Free is the editing mode the whole deck is heading toward; ' +
       'strict is how you learn what the space will allow. The ends hold in free mode unless you ' +
@@ -176,28 +176,28 @@ export const slides: SlideDefinition[] = [
     ),
     notes:
       'THE SAME GESTURE, ONE GEOMETRY UP, and the answer changes in kind rather than in size. ' +
-      'WHERE 4m+6 COMES FROM, since 10, 14, 18 will be re-derived in the room (Eric asked too, ' +
-      '2026-08-24): the generator A(t) has m+1 quaternion coefficients, 4(m+1) reals; the ' +
+      'WHERE 4k+2 COMES FROM, since 10, 14, 18 will be re-derived in the room (Eric asked too, ' +
+      '2026-08-24): the generator A(t) has k quaternion control points, 4k reals; the ' +
       'integration constant p0 adds 3; and the gauge A -> A e^{i theta} subtracts ONE, because ' +
       'e^{i theta} commutes with i so the phase cancels against its conjugate in the sandwich -- ' +
-      'every theta draws the identical curve. 4(m+1) + 3 - 1 = 4m+6: 10, 14, 18. The planar ' +
-      'twin 2K+2 subtracts NOTHING because its gauge w -> -w is discrete -- it halves counts but ' +
+      'every theta draws the identical curve. 4k + 3 - 1 = 4k+2: 10, 14, 18. The planar ' +
+      'twin 2k+2 subtracts NOTHING because its gauge w -> -w is discrete -- it halves counts but ' +
       'costs no dimension. Same gauge story, two currencies: that is why the plane answers with ' +
       'a count and space with a family. And the -1 is measured, not assumed: fibreDimension ' +
       'checks the gauge direction sits in the held-point Jacobian kernel, 0.0 at all 15,445 ' +
       'grips swept through degree 15. ' +
-      'dim = 4m+6 in space against 2K+2 in the plane, each held control point costs 3 instead of 2, ' +
-      'and the number you can always hold comes out the SAME in both: (n+3)/2, just over half the ' +
+      'dim = 4k+2 in space against 2k+2 in the plane, each held control point costs 3 instead of 2, ' +
+      'and the number you can always hold comes out the SAME in both: k+1, just over half the ' +
       'control points. Degree 3 hold 3 of 4, degree 5 hold 4 of 6, degree 7 hold 5 of 8. What ' +
-      'differs is what is LEFT: nothing in the plane, so a count; m dimensions in space, so a family. ' +
-      'ONE DIAL PER DIMENSION, AT EVERY GRIP — m of them, and m = 4m+6-3(m+2) cannot see WHICH ' +
+      'differs is what is LEFT: nothing in the plane, so a count; k-1 dimensions in space, so a family. ' +
+      'ONE DIAL PER DIMENSION, AT EVERY GRIP — k-1 of them, and k-1 = 4k+2-3(k+1) cannot see WHICH ' +
       'points are held. If someone asks whether a different grip gives fewer dials: no. Measured at ' +
-      'every grip of every degree the figure offers, 4 + 15 + 56 of them, the dimension is m each ' +
+      'every grip of every degree the figure offers, 4 + 15 + 56 of them, the dimension is k-1 each ' +
       'time. ' +
       'WHAT THE GRIP DOES DECIDE IS THE SHAPE, and there is a rule for it. Hold both ends and one ' +
-      'point out of each consecutive pair (P1,P2), (P3,P4), ... — 2^m grips — and the family is ' +
-      'BOUNDED. Hold anything else and it runs to infinity. The same 2^m grips are exactly the ones ' +
-      'where the PLANAR problem attains its full 2^m interpolants; every other grip loses planar ' +
+      'point out of each consecutive pair (P1,P2), (P3,P4), ... — 2^(k-1) grips — and the family is ' +
+      'BOUNDED. Hold anything else and it runs to infinity. The same 2^(k-1) grips are exactly the ones ' +
+      'where the PLANAR problem attains its full 2^(k-1) interpolants; every other grip loses planar ' +
       'branches and gains an unbounded spatial family. Swept exhaustively at degrees 3, 5 and 7. ' +
       'Running away is proved, by exhibiting a path that leaves every bound; staying bounded is ' +
       'strong evidence over 8000 walk samples, except at {P0,P1,P4,P5} where the closed form settles ' +
@@ -292,9 +292,10 @@ space   r′ = 𝒜 i 𝒜*,  𝒜 = u + v j   two complex polynomials`}
 
 planar PH     xᵀ Qⱼ x = bⱼ    k+1 points on the curve  →  2ᵏ⁻¹ curves
                               k+1 control points       →  1 … 2ᵏ⁻¹ curves
-                              k = the generator's number of coefficients
 
-spatial PH    the same forms over ℍ     a family, not a count`}
+spatial PH    the same forms over ℍ     a family, not a count
+
+              k = control points of the generator:  complex in the plane, quaternion in space`}
         </div>
       </>
     ),
@@ -423,10 +424,10 @@ spatial PH    the same forms over ℍ     a family, not a count`}
         </p>
 
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 'clamp(10px, 1.55vh, 17px)', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.4em 0 0 0.2em' }}>
-{`    c′ = w²     w has K complex coefficients, and every leg is a quadratic
-                form in them. K quadratic equations in K unknowns: Bézout 2^K
+{`    c′ = w²     w has k complex coefficients, and every leg is a quadratic
+                form in them. k quadratic equations in k unknowns: Bézout 2^k
                 solutions, in pairs {w, −w} that draw the same curve — so at
-                most 2^(K−1) curves.
+                most 2^(k−1) curves.
 
 
     PUBLISHED   whether a complete polygon is PH, as a condition on legs and angles
@@ -460,7 +461,7 @@ spatial PH    the same forms over ℍ     a family, not a count`}
       'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
       'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
       'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
-      'inverting a quadratic map — K quadrics in K unknowns, Bézout 2^K, halved by the gauge w → −w. ' +
+      'inverting a quadratic map — k quadrics in k unknowns, Bézout 2^k, halved by the gauge w → −w. ' +
       'The Bezout line carries its own argument on the slide: an upper bound, and the next page-s ' +
       'table is what the ceiling actually yields grip by grip (roots lost to infinity are ' +
       'generators blowing up, not curves). ' +
@@ -477,20 +478,20 @@ spatial PH    the same forms over ℍ     a family, not a count`}
       'so the METHOD is not ours — sweeping every grip with it is. ' +
       'NOT FOUND, so claim nothing yet: the odd counts (they need a free endpoint, which canonical ' +
       'form structurally excludes), the degree-7 histogram (Zheng-Wang-Yang READ 2026-08-19 — it is ' +
-      'recognition, not counting, so it does not contain it), and deg V = 2^(K-1). The ingredient ' +
+      'recognition, not counting, so it does not contain it), and deg V = 2^(k-1). The ingredient ' +
       'for the last is textbook — deg(D_phi) = deg(phi)·deg(phi(X)) for a base-point-free system — ' +
       'but nothing applies it to PH curves. ' +
       'THE SPOKEN LINE, and the strongest sentence this page has for the expert discussion: ' +
       'Farouki, Pelosi and Sampoli-s leg-pair prescriptions are LINEAR conditions on ' +
       'the legs, just as held control points are — so their ten cases and every grip here are ' +
       'linear slices of the SAME PH variety, and deg V is the one invariant sitting above both ' +
-      'tables: their 2-or-4, our 1-through-2^(K-1), each special slice seeing as much of the ' +
+      'tables: their 2-or-4, our 1-through-2^(k-1), each special slice seeing as much of the ' +
       'degree as its position allows. The word is CEILING, not count (tightened 2026-08-24), ' +
       'because only a GENERIC slice sees the full degree. The proof ' +
-      'sketch, if pressed: a generic slice pulls back through the leg map to K quadrics whose ' +
+      'sketch, if pressed: a generic slice pulls back through the leg map to k quadrics whose ' +
       'leading forms share a zero only where every leg vanishes, i.e. w-squared = 0, i.e. w = 0 — ' +
-      'base-point-free, so Bezout-s 2^K is honest; the legs determine w-squared, so the map is ' +
-      'exactly two-to-one; 2^K over 2 is 2^(K-1). What stays genuinely open: writing that down ' +
+      'base-point-free, so Bezout-s 2^k is honest; the legs determine w-squared, so the map is ' +
+      'exactly two-to-one; 2^k over 2 is 2^(k-1). What stays genuinely open: writing that down ' +
       'properly (transversality, the count at infinity), and the PREDICTIVE half — which special ' +
       'slices lose how many points, the histogram rather than its ceiling.',
   },
@@ -507,8 +508,8 @@ spatial PH    the same forms over ℍ     a family, not a count`}
         <h2>Computed</h2>
 
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 'clamp(10px, 1.55vh, 17px)', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.5em 0 0 0.2em' }}>
-{`    COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
-                →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
+{`    COMPUTED    any k+1 of the 2k control points, swept by homotopy continuation
+                →  the range 1 … 2^(k−1), certified path by path at degrees 3, 5, 7
 
                       solutions     1   2   3   4   5   6   7   8
 
@@ -516,8 +517,8 @@ spatial PH    the same forms over ℍ     a family, not a count`}
                       degree 5      4   3   4   4                      of 15
                       degree 7      6   8   4  10   8   8   4   8      of 56
 
-                2^(K−1) requires both ends held, and holding both ends gives an
-                even count. The count is 1 for K in a row from an end plus one
+                2^(k−1) requires both ends held, and holding both ends gives an
+                even count. The count is 1 for k in a row from an end plus one
                 more that is not the far end: there the equations are a square
                 root and then divisions, so single-valued.
 
@@ -529,7 +530,7 @@ spatial PH    the same forms over ℍ     a family, not a count`}
                       any other choice                               →  runs to infinity
 
                 the bounded choices are exactly those where the planar count
-                attains 2^(K−1)`}
+                attains 2^(k−1)`}
         </div>
 
         <p style={{ fontSize: 'clamp(9px, 1.3vh, 14px)', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
@@ -552,7 +553,7 @@ spatial PH    the same forms over ℍ     a family, not a count`}
       '-- the rows sum to C(4,3) = 4, C(6,4) = 15, C(8,5) = 56, every subset accounted for ' +
       'once. Two readings worth doing aloud: every value 1..8 occurs at degree 7 (which killed ' +
       'the old product-rule conjecture), and the count-1 column reads 2, 4, 6 down the degrees ' +
-      '-- exactly the cascade rule-s census, K-consecutive-from-an-end times two ends. ' +
+      '-- exactly the cascade rule-s census, k-consecutive-from-an-end times two ends. ' +
       'IF THE CASCADE NEEDS SPELLING OUT, degree 3 does it in four lines. Hold P0,P1,P2: w0² = 3a ' +
       'gives w0 up to a sign that IS the gauge, then w0w1 = 3b gives w1 by a DIVISION — no equation ' +
       'is ever solved, so the answer is unique and the grip is a genuine chart. Hold P0,P1,P3 ' +
