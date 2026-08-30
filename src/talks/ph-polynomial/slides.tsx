@@ -419,7 +419,7 @@ in space the same forms over ℍ   a family, not a count
           The unknown is the generator, and the control points are quadratic in it.
         </p>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.4em 0 0 0.2em' }}>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.4em 0 0 0.2em' }}>
 {`    c′ = w²     w has K complex coefficients, and every leg is a quadratic
                 form in them. K quadratic equations in K unknowns: Bézout 2^K
                 solutions, in pairs {w, −w} that draw the same curve — so at
@@ -503,7 +503,7 @@ in space the same forms over ℍ   a family, not a count
       <>
         <h2>Computed</h2>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.5em 0 0 0.2em' }}>
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.66em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.5em 0 0 0.2em' }}>
 {`    COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
                 →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
 
