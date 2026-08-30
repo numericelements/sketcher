@@ -729,15 +729,14 @@ export default function SpatialSubsetFigure() {
         <>
           <b>In space the answer is a family, not a count.</b> {4 * m + 6} degrees of freedom against{' '}
           {gripSize(m)} held control points at three apiece leaves {4 * m + 6 - 3 * gripSize(m)}, so
-          there are {m} dial{m > 1 ? 's' : ''} — at every choice of held points, since the count
-          cannot see which points you hold. What the choice decides is the shape.{' '}
+          there {m > 1 ? 'are' : 'is'} {m} dial{m > 1 ? 's' : ''}.{' '}
           {bounded
             ? kind === 'angles'
               ? 'These four are C¹ Hermite data, and the family is the torus: both dials are angles, so they wrap and the grey loops close.'
               : kind === 'tour'
                 ? 'The family is an ellipse, so the dial goes all the way round and the grey loop is the whole of it.'
                 : `Both ends and one point out of each consecutive pair — the family stays bounded, and the plane gets all ${2 ** m} of its interpolants on exactly these choices.`
-            : 'This choice is not one of those, so the family runs away — and the planar problem loses branches on exactly the same choices.'}{' '}
+            : 'The family runs away and the planar problem loses branches.'}{' '}
           Blue points are held and can be dragged anywhere; grey ones are computed, and clicking
           one takes hold of it. <span className="text-slate-400">Drag the view to rotate.</span>
         </>

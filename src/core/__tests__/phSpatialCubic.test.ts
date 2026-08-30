@@ -26,6 +26,7 @@ import {
   vcross,
   vdot,
   vnorm,
+  vscale,
   vsub,
 } from '../quaternion'
 import {
@@ -437,6 +438,36 @@ describe('the fiber — the slide’s claim', () => {
     // Eccentric, so an ellipse rather than a circle.
     const radii = pts.map((q) => vnorm(vsub(q, c)))
     expect(Math.max(...radii) / Math.min(...radii)).toBeGreaterThan(1.05)
+
+    // AND ACTUALLY A CONIC, which "planar + eccentric" does not test — any planar
+    // non-circular closed curve passes that. Fit the general conic in the plane and
+    // check both that the fit is exact and that it is the ELLIPSE branch.
+    const e1raw = Math.abs(normal.x) < 0.9 ? V(1, 0, 0) : V(0, 1, 0)
+    const t1 = vsub(e1raw, vscale(normal, vdot(e1raw, normal)))
+    const e1 = vscale(t1, 1 / vnorm(t1))
+    const e2 = vcross(normal, e1)
+    const uv = pts.map((q) => {
+      const d = vsub(q, c)
+      return [vdot(d, e1) / extent, vdot(d, e2) / extent]
+    })
+    // rows of the design matrix for A u² + B uv + C v² + D u + E v + F = 0
+    const rows = uv.map(([u, v]) => [u * u, u * v, v * v, u, v, 1])
+    const G = Array.from({ length: 6 }, () => new Array(6).fill(0))
+    for (const r of rows) for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) G[i][j] += r[i] * r[j]
+    // Smallest eigenvector, by power iteration on (trace·I − G) — the same trick the
+    // plane normal above uses, so the test needs no new linear algebra.
+    const trG = G.reduce((a, r, i) => a + r[i], 0)
+    let x = [0.31, 0.71, 0.13, 0.47, 0.23, 0.59]
+    for (let k = 0; k < 2000; k++) {
+      const y = Array.from({ length: 6 }, (_, i) =>
+        trG * x[i] - G[i].reduce((a, g, j) => a + g * x[j], 0))
+      const L = Math.hypot(...y)
+      x = y.map((v) => v / L)
+    }
+    const worstConic = Math.max(...rows.map((r) => Math.abs(r.reduce((a, v, i) => a + v * x[i], 0))))
+    expect(worstConic, 'lies on a conic').toBeLessThan(1e-9)
+    // B² − 4AC < 0 is the ellipse branch (= 0 parabola, > 0 hyperbola)
+    expect(x[1] * x[1] - 4 * x[0] * x[2], 'the ellipse branch').toBeLessThan(0)
   })
 
   it('IS CLOSED — so the slider is an angle, and the drawn fiber should loop', () => {

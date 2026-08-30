@@ -39,11 +39,12 @@
 // Three quadratics in four unknowns — hence the curve. Sanity anchor, checked in
 // the tests: the straight line is z = 1, F = (4,0,0).
 //
-// Tracing it is numerical continuation, not a formula: find one solution, then walk
-// the null direction of the 3×4 Jacobian (exact, via the 4-D generalised cross
-// product of its rows) with a predictor–corrector step. That is honest about what
-// the object is — a curve with no closed form — and it is the same machinery the
-// spatial QUINTIC's two-parameter family will need.
+// Tracing it is numerical continuation: find one solution, then walk the null
+// direction of the 3×4 Jacobian (exact, via the 4-D generalised cross product of
+// its rows) with a predictor–corrector step. The fibre also HAS a closed form — it
+// is an ellipse, derived at fiberEllipseRadiusSq below — so continuation is not the
+// only route to it. The tracer is kept because the spatial QUINTIC's two-parameter
+// family will need the same machinery.
 // ============================================================================
 import type { Complex } from './complex'
 import { leastSquares, type Matrix } from './linalg'

@@ -288,21 +288,24 @@ space   r′ = 𝒜 i 𝒜*,  𝒜 = u + v j   two complex polynomials`}
         <h2>Counting solutions</h2>
 
         <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.80em', whiteSpace: 'pre', lineHeight: 2.0, margin: '0.9em 0 0 0.4em' }}>
-{`Bézier   A x = b         one
+{`Bézier        A x = b         one
 
-PH       xᵀ Qⱼ x = bⱼ    k+1 points on the curve  →  2ᵏ⁻¹ curves
-                         k+1 control points       →  1 … 2ᵏ⁻¹ curves
+planar PH     xᵀ Qⱼ x = bⱼ    k+1 points on the curve  →  2ᵏ⁻¹ curves
+                              k+1 control points       →  1 … 2ᵏ⁻¹ curves
+                              k = the generator's number of coefficients
 
-in space the same forms over ℍ   a family, not a count
-
-                         k = the generator's number of coefficients`}
+spatial PH    the same forms over ℍ     a family, not a count`}
         </div>
       </>
     ),
     notes:
-      'THE GENERATOR WAS STATED ON THE PREVIOUS PAGE — this page counts with it. The footnote '
-      + 'defines k as the generator-s number of coefficients, and the previous slide is where '
-      + 'those coefficients were introduced. '
+      'THE GENERATOR WAS STATED ON THE PREVIOUS PAGE — this page counts with it. The line under '
+      + 'the planar rows defines k as the generator-s number of coefficients, and the previous '
+      + 'slide is where those coefficients were introduced. It sits there rather than at the foot '
+      + 'of the table because k appears only in those two rows. '
+      + 'THE ROWS SAY PLANAR AND SPATIAL rather than 2D and 3D, matching the previous page-s '
+      + 'plane/space labels and the rest of the deck. Bezier carries no dimension label because '
+      + 'its count is one either way -- the system is linear in the plane and in space. '
       + 'THE TABLE IS THREE ROWS AND THEY ARE THE THREE FIGURES JUST SEEN. Linear, then quadratic, then '
       + 'quadratic-but-underdetermined -- and the answers go one, a count, a family. '
       + 'THE ARROWS CARRY THE READING: data on the left, count of curves on the right, so the '
