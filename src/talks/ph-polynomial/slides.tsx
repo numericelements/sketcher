@@ -404,43 +404,107 @@ in space the same forms over ℍ   a family, not a count
   },
 
   // ---------------------------------------------------------------------------
-  // PUBLISHED, COMPUTED — the literature against the sweep. The OPEN row left this page
-  // (Eric, 2026-08-30): the page was full, and the open question grew into its own final
-  // slide (holding control points anywhere — next). The deg-𝒱 ceiling line lives in the
-  // notes now, spoken if asked.
+  // PUBLISHED — the literature (split from "Published, computed" 2026-08-30, Eric: the page
+  // overflowed a laptop viewport at normal zoom; same decision as the OPEN row — a full page
+  // is doing two jobs). This half: the Bézout frame and the three papers. The sweep and its
+  // reconciliation are the next page.
   // ---------------------------------------------------------------------------
   {
     type: 'content',
     content: (
       <>
-        <h2>Published, computed</h2>
+        <h2>Published</h2>
 
         <p style={{ fontSize: '0.82em', marginBottom: '0.15em' }}>
           The unknown is the generator, and the control points are quadratic in it.
         </p>
 
-        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.68em', whiteSpace: 'pre', lineHeight: 1.55, color: '#475569', margin: '0.3em 0 0 0.2em' }}>
-{`    c′ = w²          w has K complex coefficients, and every leg is a quadratic form in them.
-                     K quadratic equations in w's K coefficients: Bézout 2^K solutions, in
-                     pairs {w, −w} that draw the same curve — so at most 2^(K−1) curves.
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.4em 0 0 0.2em' }}>
+{`    c′ = w²     w has K complex coefficients, and every leg is a quadratic
+                form in them. K quadratic equations in K unknowns: Bézout 2^K
+                solutions, in pairs {w, −w} that draw the same curve — so at
+                most 2^(K−1) curves.
 
 
     PUBLISHED   whether a complete polygon is PH, as a condition on legs and angles
-                    Zheng, Wang & Yang, "On control polygons of Pythagorean hodograph septic
-                    curves", JCAM 296 (2016) 212–227
+                    Zheng, Wang & Yang, "On control polygons of Pythagorean
+                    hodograph septic curves", JCAM 296 (2016) 212–227
 
                 two of five legs, ends held  →  two or four curves
-                    Farouki, Pelosi & Sampoli, "Construction of planar quintic Pythagorean-hodograph
-                    curves by control-polygon constraints", CAGD 103 (2023) 102192
+                    Farouki, Pelosi & Sampoli, "Construction of planar quintic
+                    Pythagorean-hodograph curves by control-polygon constraints",
+                    CAGD 103 (2023) 102192
 
-                displace two control points of a given PH quintic, staying PH  →  finitely many
-                    Pelosi, Sampoli & Farouki, "Control point modifications that preserve the
-                    Pythagorean-hodograph nature of planar quintic curves", JCAM 457 (2025) 116301
+                displace two control points of a given PH quintic, staying PH
+                →  finitely many
+                    Pelosi, Sampoli & Farouki, "Control point modifications that
+                    preserve the Pythagorean-hodograph nature of planar quintic
+                    curves", JCAM 457 (2025) 116301
 
-                The first defines the variety. The second counts one slice. The third edits
-                within it.
+                The first defines the variety. The second counts one slice.
+                The third edits within it.`}
+        </div>
+      </>
+    ),
+    notes:
+      'THE RECORD PAGES, first half: the literature. This page and the next were ONE page until ' +
+      'it overflowed a laptop viewport (split 2026-08-30); this half frames the algebra and ' +
+      'names the papers, the next holds the sweep. ' +
+      'THE LABELS ARE PUBLISHED / COMPUTED / OPEN (Eric, 2026-08-24; they were KNOWN / OURS): ' +
+      '"computed" is a status a reader can check -- swept by homotopy, certified path by path -- ' +
+      'where "ours" was a claim of ownership, and the deck-s register is fact. "Not found in the ' +
+      'literature" stays SPOKEN, not printed. ' +
+      'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
+      'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
+      'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
+      'inverting a quadratic map — K quadrics in K unknowns, Bézout 2^K, halved by the gauge w → −w. ' +
+      'The Bezout line carries its own argument on the slide: an upper bound, and the next page-s ' +
+      'table is what the ceiling actually yields grip by grip (roots lost to infinity are ' +
+      'generators blowing up, not curves). ' +
+      'STATUS, checked 2026-08-19. PUBLISHED, and the two papers are complementary rather than ' +
+      'competing. Zheng, Wang & Yang, JCAM 296 (2016) 212-227, solve RECOGNITION: given a COMPLETE ' +
+      'septic polygon, is it PH? — necessary and sufficient in leg lengths and angles, the septic ' +
+      'analogue of the cubic\'s geometric progression plus equal angles. That CUTS OUT the variety. ' +
+      'Farouki, Pelosi & Sampoli, CAGD 103 (2023) 102192, COUNT one slice of it: canonical form ' +
+      'r(0)=0, r(1)=1 is exactly our ends-held mode; two of ' +
+      'five legs prescribed; two or four curves. Only 3 of their 10 leg-pairs correspond to ' +
+      'control-point subsets — (L1,L2), (L4,L5), (L1,L5) — and all three agree with ours (2, 2, 4; ' +
+      'the last is the classical Hermite four, which they reconcile from an apparent eight). ' +
+      'Homotopy continuation is also standard here (Jaklic-Kozak-Krajnc-Vitrih-Zagar, G2 quintics), ' +
+      'so the METHOD is not ours — sweeping every grip with it is. ' +
+      'NOT FOUND, so claim nothing yet: the odd counts (they need a free endpoint, which canonical ' +
+      'form structurally excludes), the degree-7 histogram (Zheng-Wang-Yang READ 2026-08-19 — it is ' +
+      'recognition, not counting, so it does not contain it), and deg V = 2^(K-1). The ingredient ' +
+      'for the last is textbook — deg(D_phi) = deg(phi)·deg(phi(X)) for a base-point-free system — ' +
+      'but nothing applies it to PH curves. ' +
+      'THE SPOKEN LINE, and the strongest sentence this page has for the expert discussion: ' +
+      'Farouki, Pelosi and Sampoli-s leg-pair prescriptions are LINEAR conditions on ' +
+      'the legs, just as held control points are — so their ten cases and every grip here are ' +
+      'linear slices of the SAME PH variety, and deg V is the one invariant sitting above both ' +
+      'tables: their 2-or-4, our 1-through-2^(K-1), each special slice seeing as much of the ' +
+      'degree as its position allows. The word is CEILING, not count (tightened 2026-08-24), ' +
+      'because only a GENERIC slice sees the full degree. The proof ' +
+      'sketch, if pressed: a generic slice pulls back through the leg map to K quadrics whose ' +
+      'leading forms share a zero only where every leg vanishes, i.e. w-squared = 0, i.e. w = 0 — ' +
+      'base-point-free, so Bezout-s 2^K is honest; the legs determine w-squared, so the map is ' +
+      'exactly two-to-one; 2^K over 2 is 2^(K-1). What stays genuinely open: writing that down ' +
+      'properly (transversality, the count at infinity), and the PREDICTIVE half — which special ' +
+      'slices lose how many points, the histogram rather than its ceiling.',
+  },
 
-    COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
+  // ---------------------------------------------------------------------------
+  // COMPUTED — the sweep (the other half of the 2026-08-30 split): the histogram with its
+  // two rules, the spatial block, and the reconciliation footnote, which belongs with the
+  // counts it reconciles.
+  // ---------------------------------------------------------------------------
+  {
+    type: 'content',
+    content: (
+      <>
+        <h2>Computed</h2>
+
+        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72em', whiteSpace: 'pre', lineHeight: 1.6, color: '#475569', margin: '0.5em 0 0 0.2em' }}>
+{`    COMPUTED    any K+1 of the 2K control points, swept by homotopy continuation
                 →  the range 1 … 2^(K−1), certified path by path at degrees 3, 5, 7
 
                       solutions     1   2   3   4   5   6   7   8
@@ -449,17 +513,20 @@ in space the same forms over ℍ   a family, not a count
                       degree 5      4   3   4   4                      of 15
                       degree 7      6   8   4  10   8   8   4   8      of 56
 
-                2^(K−1) requires both ends held, and holding both ends gives an even count.
-                The count is 1 for K in a row from an end plus one more that is not the far
-                end: there the equations are a square root and then divisions, so single-valued.
+                2^(K−1) requires both ends held, and holding both ends gives an
+                even count. The count is 1 for K in a row from an end plus one
+                more that is not the far end: there the equations are a square
+                root and then divisions, so single-valued.
 
-                in space, the same holds leave a family, never a count — dimension 1, 2, 3 at
-                degrees 3, 5, 7, the same at every choice of held points (75 swept):
+                in space, the same holds leave a family, never a count —
+                dimension 1, 2, 3 at degrees 3, 5, 7, the same at every choice
+                of held points (75 swept):
 
-                      both ends + one point of each pair (P₁,P₂), (P₃,P₄), …  →  bounded
-                      any other choice                                        →  runs to infinity
+                      both ends + one point of each pair (P₁,P₂), …  →  bounded
+                      any other choice                               →  runs to infinity
 
-                the bounded choices are exactly those where the planar count attains 2^(K−1)`}
+                the bounded choices are exactly those where the planar count
+                attains 2^(K−1)`}
         </div>
 
         <p style={{ fontSize: '0.62em', color: '#94a3b8', marginTop: '0.55em', lineHeight: 1.5 }}>
@@ -475,18 +542,7 @@ in space the same forms over ℍ   a family, not a count
       </>
     ),
     notes:
-      'THIS PAGE explains what the room has just FELT across all three figures, stating what is ' +
-      'PUBLISHED against what was COMPUTED here. The OPEN row moved to the final slide ' +
-      '(2026-08-30) -- this page was full, and the open question earned its own page. The line ' +
-      'that left, if asked: the ceiling 2^(K-1) is the DEGREE OF THE PH VARIETY, and holding ' +
-      'control points slices it linearly -- say it aloud here if the Bezout line prompts it. ' +
-      'THE LABELS ARE PUBLISHED / COMPUTED / OPEN (Eric, 2026-08-24; they were KNOWN / OURS): ' +
-      '"computed" is a status a reader can check -- swept by homotopy, certified path by path -- ' +
-      'where "ours" was a claim of ownership, and the deck-s register is fact. "Not found in the ' +
-      'literature" stays SPOKEN, not printed. The Bezout line was also expanded to carry its own ' +
-      'argument: K quadratic equations, 2^K solutions in {w, -w} pairs drawing the same curve, at ' +
-      'most 2^(K-1) curves -- an upper bound, and the table below it is what the ceiling actually ' +
-      'yields grip by grip (roots lost to infinity are generators blowing up, not curves). ' +
+      'THE RECORD PAGES, second half: what was computed here, against the previous page-s papers. ' +
       'THE HISTOGRAM READS COLUMN-FIRST (reformatted 2026-08-24, after Eric misread the old ' +
       '"1→6" form as "subset 1 gives 6 solutions"): the header row is the SOLUTION COUNT, each ' +
       'degree row says how many subsets produce it, and the tally at the right is the checksum ' +
@@ -494,14 +550,37 @@ in space the same forms over ℍ   a family, not a count
       'once. Two readings worth doing aloud: every value 1..8 occurs at degree 7 (which killed ' +
       'the old product-rule conjecture), and the count-1 column reads 2, 4, 6 down the degrees ' +
       '-- exactly the cascade rule-s census, K-consecutive-from-an-end times two ends. ' +
-      'THE SPATIAL BLOCK UNDER COMPUTED (Eric, 2026-08-24) covers the third figure with plain ' +
+      'IF THE CASCADE NEEDS SPELLING OUT, degree 3 does it in four lines. Hold P0,P1,P2: w0² = 3a ' +
+      'gives w0 up to a sign that IS the gauge, then w0w1 = 3b gives w1 by a DIVISION — no equation ' +
+      'is ever solved, so the answer is unique and the grip is a genuine chart. Hold P0,P1,P3 ' +
+      'instead: the gap swallows two legs at once, w0 and w1 couple, w0w1 + w1² = 3c is a real ' +
+      'quadratic — two curves. ' +
+      'WHY THE COUNTS ARE NOT POWERS OF TWO: Bézout counts projectively and a root at infinity is a ' +
+      'generator blowing up, which is not a curve. How many escape depends on the grip; the cascade ' +
+      'sends 14 of 16 away at degree 7. An earlier claim in phPlanarSeptic that the count "runs ' +
+      '1, 2, 4 or 8 by a product rule" was read off two grips and is false. ' +
+      'THE CLASSICAL CASE IS ONE POSITION OF THE SELECTOR, and worth naming aloud: C1 Hermite data ' +
+      'for a quintic IS the control-point grip {P0,P1,P4,P5}, since P1 = P0 + d0/5 and ' +
+      'P4 = P5 - d1/5. "In general four distinct planar PH quintic interpolants to given C1 Hermite ' +
+      'data always exist" (Farouki-Neff; 2019 survey section 21) — and ALWAYS, unlike the cubic, ' +
+      'because the unknowns are complex: w0 = ±sqrt(d0) and w2 = ±sqrt(d1) always exist and closure ' +
+      'is a complex quadratic in w1. Two relative signs times two roots, the overall sign being the ' +
+      'gauge. That is the 4 in the degree-5 row. ' +
+      'THE SPATIAL BLOCK (Eric, 2026-08-24) covers the third figure with plain ' +
       'numbers, no m: dimension 1, 2, 3 at degrees 3, 5, 7, the same at all 75 choices swept; ' +
       'bounded exactly at both-ends-plus-one-of-each-pair; and the punchline joining the two ' +
       'halves -- the bounded choices are exactly where the planar count attains its maximum. The ' +
       'proof-vs-evidence split (running away proved by exhibited paths; boundedness 8000 walk ' +
       'samples plus the one closed form) is on the spatial slide-s notes, and belongs in the ' +
       'answer if pressed here. ' +
-      'THE FOOTNOTE NAMES ITS PAPER NOW: it is the reconciliation with Farouki-Pelosi-Sampoli -- ' +
+      'AND IT SETS UP SPACE for the final page. The same control-point problem in SPACE takes SIX ' +
+      'points at degree 7 (4k+2 = 18 against 3 each) and has 0, 2, 4 or 6 REAL answers under a ' +
+      'ceiling of 8 — half of all arbitrary six-point polygons carry no real curve at all. The ' +
+      'difference is the gauge: in the plane w -> -w is DISCRETE and costs no dimension, in space ' +
+      'A -> A e^{i theta} is a whole circle. That one missing dimension is why the plane gives a ' +
+      'count and space gives a family. See docs/SEPTIC_SIX_POINTS.md and ' +
+      'core/septicCascadeDegree.test.ts. ' +
+      'THE FOOTNOTE NAMES ITS PAPER: it is the reconciliation with Farouki-Pelosi-Sampoli -- ' +
       'their canonical form IS ends-held, the three comparable cases agree (2, 2, 4), and the odd ' +
       'counts are structurally invisible to canonical form, so their absence from that paper is ' +
       'agreement, not contradiction. ' +
@@ -523,63 +602,7 @@ in space the same forms over ℍ   a family, not a count
       'with their paper as the other choice. They also find large displacements work best as ' +
       'sequences of small warm-started steps, which is this deck-s drag architecture, ' +
       'independently arrived at. ' +
-      'THE ONE IDEA: squaring is two-to-one, and PH is a squaring. For an ordinary Bézier the ' +
-      'control points ARE the unknowns, the map is the identity, one answer. For PH the unknown is ' +
-      'the generator and every leg is a quadratic form in it, so prescribing control points means ' +
-      'inverting a quadratic map — K quadrics in K unknowns, Bézout 2^K, halved by the gauge w → −w. ' +
-      'IF THE CASCADE NEEDS SPELLING OUT, degree 3 does it in four lines. Hold P0,P1,P2: w0² = 3a ' +
-      'gives w0 up to a sign that IS the gauge, then w0w1 = 3b gives w1 by a DIVISION — no equation ' +
-      'is ever solved, so the answer is unique and the grip is a genuine chart. Hold P0,P1,P3 ' +
-      'instead: the gap swallows two legs at once, w0 and w1 couple, w0w1 + w1² = 3c is a real ' +
-      'quadratic — two curves. ' +
-      'WHY THE COUNTS ARE NOT POWERS OF TWO: Bézout counts projectively and a root at infinity is a ' +
-      'generator blowing up, which is not a curve. How many escape depends on the grip; the cascade ' +
-      'sends 14 of 16 away at degree 7. An earlier claim in phPlanarSeptic that the count "runs ' +
-      '1, 2, 4 or 8 by a product rule" was read off two grips and is false. ' +
-      'STATUS, checked 2026-08-19. PUBLISHED, and the two papers are complementary rather than ' +
-      'competing. Zheng, Wang & Yang, JCAM 296 (2016) 212-227, solve RECOGNITION: given a COMPLETE ' +
-      'septic polygon, is it PH? — necessary and sufficient in leg lengths and angles, the septic ' +
-      'analogue of the cubic\'s geometric progression plus equal angles. That CUTS OUT the variety. ' +
-      'Farouki, Pelosi & Sampoli, CAGD 103 (2023) 102192, COUNT one slice of it: canonical form ' +
-      'r(0)=0, r(1)=1 is exactly our ends-held mode; two of ' +
-      'five legs prescribed; two or four curves. Only 3 of their 10 leg-pairs correspond to ' +
-      'control-point subsets — (L1,L2), (L4,L5), (L1,L5) — and all three agree with ours (2, 2, 4; ' +
-      'the last is the classical Hermite four, which they reconcile from an apparent eight). ' +
-      'Homotopy continuation is also standard here (Jaklic-Kozak-Krajnc-Vitrih-Zagar, G2 quintics), ' +
-      'so the METHOD is not ours — sweeping every grip with it is. ' +
-      'NOT FOUND, so claim nothing yet: the odd counts (they need a free endpoint, which canonical ' +
-      'form structurally excludes), the degree-7 histogram (Zheng-Wang-Yang READ 2026-08-19 — it is ' +
-      'recognition, not counting, so it does not contain it), and deg V = 2^(K-1). The ingredient ' +
-      'for the last is textbook — deg(D_phi) = deg(phi)·deg(phi(X)) for a base-point-free system — ' +
-      'but nothing applies it to PH curves. ' +
-      'THE SPOKEN LINE FOR THE OPEN ROW, and the strongest sentence this slide has for the expert ' +
-      'discussion: Farouki, Pelosi and Sampoli-s leg-pair prescriptions are LINEAR conditions on ' +
-      'the legs, just as held control points are — so their ten cases and every grip here are ' +
-      'linear slices of the SAME PH variety, and deg V is the one invariant sitting above both ' +
-      'tables: their 2-or-4, our 1-through-2^(K-1), each special slice seeing as much of the ' +
-      'degree as its position allows. The slide says CEILING, not count (tightened 2026-08-24), ' +
-      'because only a GENERIC slice sees the full degree — the table-s whole content is that ' +
-      'grips are special slices seeing less, the deficit lost to infinity or tangency. The proof ' +
-      'sketch, if pressed: a generic slice pulls back through the leg map to K quadrics whose ' +
-      'leading forms share a zero only where every leg vanishes, i.e. w-squared = 0, i.e. w = 0 — ' +
-      'base-point-free, so Bezout-s 2^K is honest; the legs determine w-squared, so the map is ' +
-      'exactly two-to-one; 2^K over 2 is 2^(K-1). What stays genuinely open: writing that down ' +
-      'properly (transversality, the count at infinity), and the PREDICTIVE half — which special ' +
-      'slices lose how many points, the histogram rather than its ceiling. ' +
-      'THE CLASSICAL CASE IS ONE POSITION OF THE SELECTOR, and worth naming aloud: C1 Hermite data '
-      + 'for a quintic IS the control-point grip {P0,P1,P4,P5}, since P1 = P0 + d0/5 and '
-      + 'P4 = P5 - d1/5. "In general four distinct planar PH quintic interpolants to given C1 Hermite '
-      + 'data always exist" (Farouki-Neff; 2019 survey section 21) — and ALWAYS, unlike the cubic, '
-      + 'because the unknowns are complex: w0 = ±sqrt(d0) and w2 = ±sqrt(d1) always exist and closure '
-      + 'is a complex quadratic in w1. Two relative signs times two roots, the overall sign being the '
-      + 'gauge. That is the 4 in the degree-5 row. '
-      + 'AND IT SETS UP SPACE. The same control-point problem in SPACE takes SIX points at degree 7 '
-      + '(4k+2 = 18 against 3 each) and has 0, 2, 4 or 6 REAL answers under a ceiling of 8 — half of '
-      + 'all arbitrary six-point polygons carry no real curve at all. The difference is the gauge: in '
-      + 'the plane w -> -w is DISCRETE and costs no dimension, in space A -> A e^{i theta} is a whole '
-      + 'circle. That one missing dimension is why the plane gives a count and space gives a family. '
-      + 'See docs/SEPTIC_SIX_POINTS.md and core/septicCascadeDegree.test.ts. '
-      + 'IF ASKED what the several answers ARE: sheets of a branched covering. Each grip is a ' +
+      'IF ASKED what the several answers ARE: sheets of a branched covering. Each grip is a ' +
       'different projection of the same family onto the points you hold; crossing the discriminant ' +
       'permutes them, which is why the figure carries branches by Newton rather than re-solving.',
   },
