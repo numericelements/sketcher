@@ -408,7 +408,9 @@ export default function PlanarSubsetFigure() {
           if (mode === 'free') {
             if (!free) return
             // the ends hold unless the end IS what you grabbed
-            const pinned = dragIdx === 0 || dragIdx === n ? [] : [0, n]
+            // Unpin only the endpoint being grabbed — the far end stays put (the deck's
+            // convention, matched to the spatial figure; both ends drifted before).
+            const pinned = [0, n].filter((j) => j !== dragIdx)
             const step = dragPHFree(free, dragIdx, { re: w.x, im: w.y }, { pinned })
             setSt((p) => ({ ...p, free: step.state }))
             setFreeInfo({ tracking: step.trackingError, disturbance: step.disturbance })
